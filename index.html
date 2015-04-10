@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" itemscope itemtype="http://schema.org/map" style="height:100%">
+<head>
+<meta charset="UTF-8"> 
+<meta name=viewport content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="referrer" content="origin">
+<link rel="shortcut icon" href="//safecast.org/favicon.png" />
+<link href="webicons/apple-touch-icon-152x152.png" rel="apple-touch-icon" sizes="152x152">
+<link href="webicons/apple-touch-icon-144x144.png" rel="apple-touch-icon" sizes="144x144">
+<link href="webicons/apple-touch-icon-76x76.png" rel="apple-touch-icon" sizes="76x76">
+<link href="webicons/apple-touch-icon-72x72.png" rel="apple-touch-icon" sizes="72x72">
+<link href="webicons/apple-touch-icon-57x57.png" rel="apple-touch-icon">
+
+<title>Safecast Tile Map</title>
+
+<style type="text/css">
+#mainMenu 
+{
+	position: absolute;
+	min-width: 100px;
+	z-index: 1000;
+	background: #fff;
+	border-top: solid 1px #CCC;
+	border-left: solid 1px #CCC;
+	border-bottom: solid 1px #676767;
+	border-right: solid 1px #676767;
+	padding: 0px;
+	margin: 0px;
+}
+ 
+#mainMenu a 
+{
+	color: #000;
+	text-decoration: none;
+	display: block;
+	line-height: 22px;
+	height: 22px;
+	padding: 1px 10px;
+}
+ 
+#mainMenu li 
+{
+    font-size: 80%;
+	list-style: none;
+	padding: 1px;
+	margin: 0px;
+}
+ 
+#mainMenu li.hover a 
+{
+	background-color: #A7C4FA;
+}
+ 
+#mainMenu li.separator 
+{
+	border-top: solid 1px #ccc;
+}
+</style>
+
+<style type="text/css">
+#contextMenu 
+{
+	position: absolute;
+	min-width: 100px;
+	z-index: 1000;
+	background: #fff;
+	border-top: solid 1px #CCC;
+	border-left: solid 1px #CCC;
+	border-bottom: solid 1px #676767;
+	border-right: solid 1px #676767;
+	padding: 0px;
+	margin: 0px;
+}
+ 
+#contextMenu a 
+{
+	color: #000;
+	text-decoration: none;
+	display: block;
+	line-height: 22px;
+	height: 22px;
+	padding: 1px 10px;
+}
+ 
+#contextMenu li 
+{
+    font-size: 80%;
+	list-style: none;
+	padding: 1px;
+	margin: 0px;
+}
+ 
+#contextMenu li.hover a 
+{
+	background-color: #A7C4FA;
+}
+ 
+#contextMenu li.separator 
+{
+	border-top: solid 1px #ccc;
+}
+
+@media screen and (max-height:447px) { #imgScale  { display:none; } }
+@media screen and ( max-width:400px) { #searchbar { display:none; } }
+
+@media screen and (min-width:801px) { #logo2 { left:50px;top:10px; } #bottombar0 { top:5px; right:110px; } #whatsnewdiv { left:131px;top:10px; } }
+@media screen and (max-width:800px) { #logo2 { left:10px;top:10px; } #bottombar0 { top:60px; left:20px;  } #whatsnewdiv { left:91px; top:10px; } }
+
+#scale 
+{
+    bottom: 10px;
+    position: absolute;
+    right:0px;
+    z-index: 1;
+    background-color: rgba(0, 0, 0, 0.0);
+    padding: 0px 0px 0px 0px;
+    text-align: right;
+}
+
+#logo2
+{
+    position: absolute;
+    z-index: 6;
+    background-color: rgba(255, 255, 255, 0.75);
+    padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 5px;
+    padding-right: 5px;
+    font-size: 80%;
+    vertical-align: top;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+}
+
+.sc_hline 
+{
+    overflow: hidden;
+    text-align: center;
+}
+
+.sc_hline:before, .sc_hline:after
+{
+    background-color: #000;
+    content: "";
+    display: inline-block;
+    height: 1px;
+    position: relative;
+    vertical-align: middle;
+    width: 50%;
+}
+
+.sc_hline:before 
+{
+    right: 0.5em;
+    margin-left: -50%;
+}
+
+.sc_hline:after
+{
+    left: 0.5em;
+    margin-right: -50%;
+}
+
+#whatsnew
+{
+    position: absolute;
+    z-index: 10;
+    background-color: rgba(255, 255, 255, 1.0);
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    width: 424px;
+    height: 424px;
+    font-size: 80%;
+    vertical-align: top;
+    margin: auto;
+    overflow-x:hidden;
+    overflow-y:scroll;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    display:none;
+}
+
+
+#bottombar0
+{
+    position: absolute;
+    z-index: 6;
+    background-color: rgba(0, 0, 0, 0.0);
+    padding: 0px 0px 0px 0px;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+}
+
+#searchbar
+{
+    bottom: 3px;
+    position: absolute;
+    left: 80px;
+    background-color: rgba(0, 0, 0, 0.0);
+    padding: 1px 5px 0px 0px;
+    opacity: 0.5;
+}
+   
+#map_canvas 
+{
+    width: 100%;
+    height: 100%;
+}
+
+.FuturaFont
+{
+    font-size: 100%;
+    font-family: Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif;
+}
+
+#popup
+{
+    font-size: 60%;
+    top:30px;
+    left:30px;
+    width: 420px;
+    height: 570px;
+    margin: 10px auto; 
+    border: 1px solid #333;
+    background-color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    padding: 10px;
+    position: absolute;
+    overflow-x:hidden;
+    overflow-y:scroll;
+    z-index:9;
+}
+
+.noblur
+{
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+</style>
+ 
+
+<style type="text/css">
+.gm-style 
+{
+    font-family: Futura, Futura-Medium, 'Futura Medium', 'Futura ND Medium', 'Futura Std Medium', 'Futura Md BT', 'Century Gothic', 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-size: 12px;
+    font-weight: normal;
+    text-decoration: none;
+}
+
+.gm-style .gm-style-iw 
+{
+    font-size: 12px;
+    overflow-y: auto;
+}
+
+.gm-style .gm-iw
+{
+    -webkit-user-select:none;
+}
+
+.gm-style .gm-iw .gm-title 
+{
+    font-size: 14px;
+}
+
+.gm-style .gm-iw .gm-basicinfo 
+{
+    font-size: 11px;
+    line-height: 18px;
+    padding-bottom: 12px;
+}
+</style>
+
+<style type="text/css">
+.hud_btnW
+{
+    color: #000000;
+    background: rgba(0,0,0,0.0);
+    padding: 2px 2px 2px 2px;
+    border: solid #000000 1px;
+    -webkit-border-radius: 3;
+    -moz-border-radius: 3;
+    border-radius: 3px;
+    white-space: nowrap;
+    -webkit-user-select: none;
+    -webkit-user-drag: none;
+}
+
+.hud_btnW:hover
+{
+    background: #EFEFEF;
+    text-decoration: none;
+}
+</style>
+
+<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
+<script type="text/javascript">
+
+function InitCodeBehind()
+{
+    // nb: The async load of the codebehind is problematic in old versions of IE.
+    //     Theoretically, this could be coded around, if the code complexity tradeoff
+    //     for old IE compatibility was deemed worth it.
+    
+    if (!("EventTarget" in window || "addEventListener" in window)) return;
+    
+    var el   = document.createElement("script");
+    el.async = true;
+    el.type  = "text/javascript";
+    
+    var cb = function(e)
+    {
+        initialize();
+        el.removeEventListener("load", cb);
+    };
+    
+    el.addEventListener("load", cb, false);
+    el.src   = "safemap_minifi.js?" + (new Date()).getTime();
+    var head = document.getElementsByTagName("head")[0];
+    head.appendChild(el);
+}
+
+function InitImages(i)
+{
+    if (i == 0) document.getElementById("logo271").src = "schoriz_362x44.png";
+    if (i == 0) document.getElementById("logo271").style.visibility = "visible";
+    if (i == 0) return;
+    
+    if (i == 1) document.getElementById("hud_btnToggle").src = "p90ret3-green-quad.png";
+    if (i == 1) document.getElementById("hud_btnToggle").title = "Show or hide the query tool reticle.  See a layer's value at a target location.  NOTE: The indicated precision is the color lookup classification range, not the uncertainty of the measurements."
+        
+    if (i == 2) document.getElementById("imgScale").src = "scale64_854x60.png";
+    if (i == 2) document.getElementById("imgScale").title = "Yes, it's actually 4x LOG10s.  Very loggy.";
+    if (i == 2) document.getElementById("scale").style.visibility = "visible";
+        
+    if (i >= 2) return;
+    i++;
+    if ("requestAnimationFrame" in window) requestAnimationFrame(function() { InitImages(i); });
+    else InitImages(i);
+}//InitImages
+
+function InitPlatformChecks()
+{
+    ShowBrowserWarningWindowIfNeeded();
+    setTimeout(FixScaleBarBottomForMobile, 500);
+}//InitPlatformChecks
+
+function Init()
+{
+    InitCodeBehind();
+    InitPlatformChecks();
+    setTimeout(InitGMapsStyleHack, 500);
+    setTimeout(function() { if ("requestAnimationFrame" in window) requestAnimationFrame(function() { InitImages(0); } ); else InitImages(0); }, 200);
+    setTimeout(function() { if ("requestAnimationFrame" in window) requestAnimationFrame(function() { InitImages(1); } ); else InitImages(1); }, 450);
+}//Init
+
+function FixScaleBarBottomForMobile()
+{
+    if (navigator.userAgent.indexOf("mobile") == -1
+        && navigator.userAgent.indexOf("iPhone") == -1
+        && navigator.userAgent.indexOf("iPad") == -1
+        && navigator.userAgent.indexOf("Android") == -1)
+        return;
+    document.getElementById("scale").style.bottom = "11px";//16
+}
+
+function ShowBrowserWarningWindowIfNeeded()
+{
+    // The issue with old IE and async loads is that document.body doesn't
+    // exist during page load.  Further, even IE9 won't work with https requests
+    // to the API.  So, check capabilities and for old versions of IE.
+    
+    var ua   = window.navigator.userAgent;
+    var msie = ua.indexOf('MSIE '); // IE11: "Trident/"
+    var old_ie = msie <= 0 ? false : parseInt(ua.substring(msie + 5, ua.indexOf('.', msie)), 10) < 10;
+    
+    if (!old_ie && "ArrayBuffer" in window && "bind" in Function.prototype) return;
+        
+    var errtxt = "<b>Warning:</b> You are using a browser which does not support modern HTML and JavaScript standards used by this web page.<br/>";
+    
+    if (document != null && document.body != null)
+    {
+        var el = document.createElement("div");
+        el.id = "divBrowserWarning";
+        el.style.cssText = "position:absolute;margin:auto;top:0;bottom:0;left:0;right:0;font-family:sans-serif;padding:10px 10px 10px 10px;width:256;height:256;background-color:#FFFFFF;z-index:9000;";
+        errtxt += "Only basic functionality will be available.<br/>"
+               +  "If possible, please update your browser to access all functionality.<br/><br/>";
+               +  "<center><a onclick=\"JavaScript:document.body.removeChild(getElementById('divBrowserWarning'));\"><u>Close</u></a></center>";
+        el.innerHTML = errtxt;
+        document.body.appendChild(el);
+    }//if
+    else
+    {
+        errtxt = "<br/><br/><br/><br/><br/><br/><br/><br/>" + errtxt
+               + "This web page is inoperable with your browser.<br/>"
+               + "You must update your browser to use this page.<br/>";
+        document.write(errtxt);
+    }//else
+}
+
+function InitGMapsStyleHack() // pure hacky evil
+{
+    // This just sets misc Gmaps fonts to Futura.  It will likely break eventually.
+    
+    if (!("ArrayBuffer" in window) || !("bind" in Function.prototype)) return;
+    var fr = function() {
+        var ds = document.getElementById("map_canvas").getElementsByTagName("div");
+        if (ds == null) return;
+        for (var i=0; i<ds.length; i++)
+        {
+            if (ds[i].style != null && ds[i].style.fontFamily != null && ds[i].style.fontFamily.indexOf("Roboto") > -1 && ds[i].style.fontFamily.indexOf("Futura") == -1)
+            {
+                ds[i].style.fontFamily = "Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic',Roboto,'Segoe UI',Helvetica,Arial,sans-serif";
+            }//if
+        }//for
+    };    
+    window.setTimeout(fr, 500);
+    window.setTimeout(fr, 2000); // long delay for the basemap DDL if it doesn't load fast.
+}
+
+
+if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)) 
+    && window.innerHeight != document.documentElement.clientHeight) 
+{
+        var fixViewportHeight = function()
+        {
+            document.documentElement.style.height = window.innerHeight + "px";
+            if (document.body.scrollTop !== 0) window.scrollTo(0, 0);
+        }.bind(this);
+
+    window.addEventListener("scroll", fixViewportHeight, false);
+    window.addEventListener("orientationchange", fixViewportHeight, false);
+    fixViewportHeight();
+    document.body.style.webkitTransform = "translate3d(0,0,0)";
+    //document.body.style.position = "fixed";
+}
+</script>
+ 
+ <!-- safemap_minifi.js = safemap.js + gbGIS.js + bitstore.js + png.js + zlib.js + bmp_lib.js.  Same directory. /-->
+
+</head>
+<body style="margin:0px; padding:0px; position:fixed; width:100%; height:100%;" onload="Init();">
+<div id="map_canvas"></div>
+<form onSubmit="codeAddress(); return false;" style="margin:0px; padding:0px;">
+    <div id="map-layers" style="font-size: small;"> 
+        <div id="scale" style="visibility:hidden;">
+            <img width="22" height="22" border=0 style="margin:0px 1px 0px 0px; -webkit-user-select:none;-webkit-user-drag:none;" class="hud_btnW" id="hud_btnToggle" /><br/>
+            <img id="imgScale" width="30" height="427" border=0 style="margin-top:-2px;-webkit-user-select:none;-webkit-user-drag:none;" />
+        </div>
+        <div id="searchbar"><input id="address" type="textbox" placeholder="Find Address..."></div>
+        <div id="logo2">
+            <img id="logo271" border=0 width="181" height="22" style="padding:5px 0px 0px 0px;border:0px;margin:0px 0px -2px 0px;-webkit-user-select:none;-webkit-user-drag:none;visibility:hidden;" /><br/>
+            <table style="width:181px; border:0px; padding:0px; border-spacing:0px; border-collapse:collapse;" class="FuturaFont">
+                <tr>
+                    <td style="width:33%; text-align:center; padding:0px;"><a href="http://safecast.org" target="_blank"><span style="color:black;text-decoration:underline;">Blog</span></a></td>
+                    <td style="width:33%; text-align:center; padding:0px;"><a id="show"  href="#"><span style="color:black;text-decoration:underline;">About</span></a></td>
+                    <td style="width:33%; text-align:center; padding:0px;"><a href="http://blog.safecast.org/donate/" target="_blank"><span style="color:black;text-decoration:underline;">Donate</span></a></td>
+                </tr>
+            </table>
+        </div>
+        <div id="bottombar0">
+            <select id="layers" onChange="return Layers_OnChange();" class="FuturaFont" style="border:1px solid #808080; height:18px; font-size:11px; vertical-align:middle;">
+                <option class="layer" value="11" id="layers_11">&nbsp;None</option>
+                <option class="layer" value="0" id="layers_0">&nbsp;Safecast</option>
+                <option class="layer" value="1" id="layers_1">&nbsp;Safecast (&#945;)</option>
+                <option class="layer" value="2" id="layers_2">&nbsp;SC Interp.</option>
+                <option class="layer" value="8" id="layers_8">&nbsp;Safecast 2013-04-15</option>
+                <option class="layer" value="9" id="layers_9">&nbsp;Safecast 2014-03-11</option>
+                <option class="layer" value="3" id="layers_3">&nbsp;NNSA Japan 2011-06-30</option>
+                <option class="layer" value="4" id="layers_4">&nbsp;USGS/GSC NURE ~1980</option>
+                <option class="layer" value="5" id="layers_5">&nbsp;Geoscience Australia 2010</option>
+                <option class="layer" value="6" id="layers_6">&nbsp;AIST/JGS Natural Bkg</option>
+                <option class="layer" value="7" id="layers_7">&nbsp;(Interpolation Test)</option>
+                <option class="layer" value="10" id="layers_10">&nbsp;Add bGeigie Log...</option>
+            </select>
+        </div>
+    </div> 
+</form>
+
+
+<div id="popup" style="display:none;"></div>
+<div id="hud_canvas"></div>
+<div id="bv_transferBar" class="bv_transferBarHidden"></div>
+<div id="whatsnew"></div>
+
+</body>
+</html>

@@ -1,0 +1,302 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" itemscope itemtype="http://schema.org/map">
+<head>
+ 
+<link rel="shortcut icon" href="//safecast.org/favicon.png" />
+
+<title>Safecast Tile Map - Data Processing Methodology</title>
+
+<style type="text/css">
+body,div,p 
+{
+    margin: 0;
+    padding: 0;
+}
+   
+body,div,p,span,input,a,button,li,option,select,td,tr,table
+{
+    font-size: 95%;
+    font-family: Futura,Futura-Medium,'Futura Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif;
+}
+
+form
+{
+    margin: 0;
+    padding: 0;
+}
+
+#content_div
+{
+/*
+    width: 500px;
+    display:-moz-box;
+    -moz-box-pack:center;
+    -moz-box-align:center;
+    display:-webkit-box;
+    -webkit-box-pack:center;
+    -webkit-box-align:center;
+    display:box;
+    box-pack:center;
+    box-align:center;
+    */
+    
+    position: absolute;
+    width: 500px;
+    left: 50%;
+    margin-left: -250px;
+}
+</style>
+</head>
+ 
+<body style="margin:0px; padding:0px;">
+
+<div>
+<center>
+    <img id="logo272" border=0 src="schoriz_271x33.png" width="271" height="33" style="padding-top:5px;" /><br/><br/>
+    The data displayed on the map is derived from the full Safecast dataset and processed as follows:<br/>
+</center>
+</div>
+<br/><br/><br/>
+
+<div id="content_div">
+<table style="width:500px; border:0px; padding:5px; border-spacing:0px; border-collapse:collapse;">
+    <tr>
+        <td style="text-align:center;">
+            <a href="webmap_dataflow_2048x1536.png" target="_blank"><img width=200 height=150 src="webmap_dataflow_2048x1536.png"></a>
+        </td>
+        <td style="text-align:center;">
+            <a href="webmap_files_2048x1536.png" target="_blank"><img width=200 height=150 src="webmap_files_2048x1536.png"></a>
+        </td>
+    </tr>
+    <tr>
+        <td style="text-align:center;">
+            Web Map Data Flow
+        </td>
+        <td style="text-align:center;">
+            Web Map File Structure
+        </td>
+    </tr>
+</table>
+
+<br/><br/><br/>
+<b><u>Introduction</u></b><br/>
+<br/>
+First, the process for creating tiles from the Safecast dataset will be discussed.<br/>
+<br/>
+This process begins on the Safecast API server with SQL, and ends on a server running OS X with C.<br/>
+<br/>
+This is not the sole visualization of the Safecast dataset, but is the primary one.<br/>
+<br/>
+Currently, the Safecast native apps for iOS and OS X share the same underlying engine for tile rendering.  The native apps are dynamic; the web map is the result of the OS X app producing static PNG tiles.<br/>
+<br/>
+Here's how it happens.<br/>
+<br/><br/><br/>
+<b><u>Measurements: Filtering and Conversion</u></b><br/>
+<ol>
+    <li>
+        The data is filtered using a combination of sanity filters and manually-maintained blacklists for specific exceptions.
+        <ul>
+            <li>This filtered version of the dataset may be downloaded <a href="https://api.safecast.org/system/mclean.tar.gz" target="_blank">here</a>.</li>
+        </ul>
+    </li>
+    <li>
+        CPM is converted to &#x00B5;Sv/h on a per-device basis.  
+        <ul>
+            <li>For bGeigies, the conversion is CPM/350.0</li>
+            <li>In the above dataset, bGeigies have a NULL device_id</li>
+            <li>Because they are not stored in the database, the conversion factor constants are hardcoded into the SQL script.  Source available <a href="https://github.com/Safecast/safecastapi/blob/master/script/ios_query.sql" target="_bank">here</a>.</li>
+        </ul>
+    </li>
+    <li>
+        The data is reprojected from EPSG:4326 decimal degree latitude / longitude to EPSG:3857 Web Mercator pixel x/y at zoom level 13, which is ~19m resolution.
+        <ul>
+            <li>The algorithms for reprojection can be found <a href="http://msdn.microsoft.com/en-us/library/bb259689.aspx" target="_blank">here</a>.</li>
+        </ul>
+    </li>
+</ol>
+<br/>
+<br/><b><u>Measurements: Aggregation (Binning)</u></b><br/>
+<ol>
+    <li>
+        From the above, the distinct spatial x, y locations at zoom level 13 are selected, as well as the most recent date for each of them, on a per-point basis.
+        <ul>
+            <li>This most recent date can range from 2011 to the present, depending on the specific location.</li>
+        </ul>
+    </li>
+    <li>
+        The distinct spatial x, y locations at zoom level 13 are then set to the mean for that location.
+        <ul>
+            <li>However, only the most recent 270 days for that point are selected.</li>
+            <li>Thus, if a point contains data from 2014, no data from 2011 will be included in the mean.</li>
+            <li>The purpose of this is to simultaneously show the most recent measurements if available, while not discarding all older data, due to the temporal resolution of the dataset.</li>
+            <li>In general, most of the older measurements are background level.</li>
+        </ul>
+    </li>
+</ol>
+<br/>
+<br/><b><u>Measurements: Export</u></b><br/>
+<ol>
+    <li>
+        These points as described above are now the final XYZ points used for both the web map and iOS / OS X apps.
+        <ul>
+            <li>Dose rate ("Z") is converted to nSv/h so it can be stored as an integer, and exported from PostgreSQL to a SQLite3 database.</li>
+            <li>The Z column is then offset by -32768 to be stored more compactly with a smaller file size.</li>
+            <li>This database is available <a href="https://api.safecast.org/system/ios13_32.sqlite" target="_blank">here</a>.</li>
+        </ul>
+    </li>
+    <li>
+        All of the above actions -- filtering, conversion, aggregation, and export, are performed on the server by an SQL script.
+        <ul>
+            <li>
+                Source available <a href="https://github.com/Safecast/safecastapi/blob/master/script/ios_query.sql" target="_bank">here</a>.
+                <ul>
+                    <li>Note: if you plan to use the SQL script directly, the schema references may require changes to work in your environment.</li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+</ol>
+<br/>
+<br/><b><u>Safecast App: Data Update</u></b><br/>
+<ol>
+    <li>
+        The above SQLite database is downloaded and processed by the data update of the iOS or OS X apps.
+        <ul>
+            <li>The points are read, the Z column is offset by +32768 to restore nSv/h, then converted back to &#x00B5;Sv/h.</li>
+            <li>The XYZ points are rasterized and tiled at zoom level 13, and stored in a SQLite3 database.</li>
+            <li>The tile rasters are IEEE754 Binary16 half-precision floating point planar data in LSB byte order, compressed with either LZ4 or Deflate level 9.</li>
+        </ul>
+    </li>
+    <li>
+        Tiles for zoom levels 0 - 12 are created iteratively by using the mean of the next raster tile pyramid zoom level.
+        <ul>
+            <li>Only cells with data values are included in the mean.</li>
+        </ul>
+    </li>
+    <li>
+        <i>(Note: it is planned to move this process to the server, such that the client only needs to download the final tile database at some point in the future)</i>
+    </li>
+</ol>
+<br/>
+<br/><b><u>Safecast App: PNG Export</u></b><br/>
+<ol>
+    <li>
+        PNGs are then created from the tiles.
+        <ul>
+            <li>The default options from the app are used for non-retina displays (Smart Resize 2x2, Shadow Halo 3x3, LUT min 0.03, LUT max 65.535, LOG10 scaling, Cyan Halo LUT) with the exception of discretizing the LUT to 64 colors.</li>
+            <li>Discretization is done to improve the compression of the PNG output, through both improved Deflate ratios and ensuring the PNG can use indexed color.</li>
+        </ul>
+    </li>
+    <li>
+        PNGs for zoom levels 14 - 17 are then created by interpolating zoom level 13 data.
+        <ul>
+            <li>Data values are interpolated using a specialized form of hybrid bilinear/Lanczos interpolation.</li>
+            <li>Bilinear is used for the data values because it will not contain overshoot / undershoot errors as Lanczos does.</li>
+            <li>First, the data values are edge-extended, and have a NODATA fill applied, which is a neighborhood mean with a kernel size equal to the extent of the resampling kernel in pixels minus one.</li>
+            <li>This is then interpolated using bilinear interpolation.</li>
+            <li>At the same time, the original data is converted to a bitmask, which is then edge extended and resampled using Lanczos 3x3 interpolation.</li>
+            <li>The floating point output of the bitmask is thresholded and used to mask the results of the bilinear output, which becomes the final resampled raster output.</li>
+            <li>The reason for this complexity is that GIS rasters with NODATA cells cannot be interpolated with simple naive resampling methods.</li>
+            <li>Lanczos is used for the mask resampling instead of nearest-neighbor to provide a smoother clipping mask.</li>
+        </ul>
+    </li>
+    <li>
+        The PNG export for the web map is complete at that point.
+    </li>
+</ol>
+<br/>
+<br/><b><u>Web Map: Interpolated Tiles and Indexing</u></b><br/>
+<ol>
+    <li>
+        Next, the interpolated data on the web map is generated outside of the app by Python scripts.
+        <ul>
+            <li>Source available <a href="https://github.com/bidouilles/safemaps" target="_blank">here</a>.</li>
+            <li>This creates the base interpolated tiles at zoom level 13.</li>
+        </ul>
+    </li>
+    <li>
+        Interpolated tiles for zoom levels 0 - 12 and 14 - 15 are then created by resampling the zoom level 13 PNGs, using Retile.
+        <ul>
+            <li>Source available <a href="https://github.com/Safecast/Retile" target="_blank">here</a>.</li>
+        </ul>
+    </li>
+    <li>
+        At this point the web map data is fully generated.
+        <ul>
+            <li>Bitstore.js provides client-side indexing and updates the date displayed in the UI.</li>
+            <li>Source available <a href="https://github.com/Safecast/bitstore.js" target="_blank">here</a>.</li>
+        </ul>
+    </li>
+</ol>
+<br/>
+<br/><b><u>Web Map: bGeigie Log Viewer</u></b><br/>
+<ul>
+    <li>
+        The bGeigie Log Viewer is an entirely client-side component written in JavaScript to display a large number of log files.
+    </li>
+    <li>
+        At a high level, it performs the following actions:
+        <ol>
+            <li>The Safecast API for logs is queried based upon user input, via a RESTful HTTP POST request.</li>
+            <li>A response is received in JSON, indicating the download URLs for the log(s).</li>
+            <li>The log files are downloaded, parsed, and processed.</li>
+            <li>Markers with icons encoding the dose rate of each point are created and displayed using the Google Maps API.</li>
+        </ol>
+    </li>
+    <li>
+        The true complexity comes from the scaling and performance required to display a large number of markers (point geometry) on the client.
+        <ol>
+            <li>A local client-server model is used, where only markers in the current visible extent are displayed.</li>
+            <li>Data processing is multithreaded via web workers.</li>
+            <li>The marker data is stored in typed arrays, not objects, because the main issue affecting scalability is memory pressure.  Even on a desktop browser, there a soft limit of about 1GB of RAM.</li>
+            <li>The visibility of the markers is controlled, so as to not wastefully display markers on top of each other.</li>
+            <ol>
+                <li>When parsing the data, spatial coordinates are stored as zoom level 21 EPSG:3857 pixel x/y.</li>
+                <li>A minimum zoom level is determined iteratively for every point in the log file.</li>
+                <li>This produces a potentially visible set of point geometry which is guaranteed to not render occluded features.</li>
+                <li>Not rendering occuluded points which cannot be seen improves performance, memory use, and scalability significantly.</li>
+                <li>When multiple logs are displayed, a similar process is applied to remove occluded point geometry, as the datsets are merged.</li>
+                <li>However, this merging process is imperfect, due to both multithreaded processing and the algorithm currently employed not scaling well past ~300k points.</li>
+                <li>Thus, run-time filtering is also employed, which is necessary anyway due to markers already present when the map is zoomed or panned.</li>
+            </ol>
+            <li>The data is also clustered (grouped) by tile recursively using <a href="http://msdn.microsoft.com/en-us/library/bb259689.aspx" target="_blank">QuadKeys</a>.</li>
+            <li>This allows rendering aligned with Google Maps internally (which renders markers to 256x256 HTML Canvas tiles) and improves the performance of testing for occuluded geometry at runtime.</li>
+        </ol>
+    </li>
+    <li>Source available <a href="bgeigie_viewer.js" target="_blank">here</a>.</li>
+</ul>
+<br/>
+<br/><b><u>Web Map: Query Reticle</u></b><br/>
+<ul>
+    <li>
+        The query reticle displays the numeric value for a cell in a raster layer, using again, entirely client-side processing in JavaScript.
+    </li>
+    <li>
+        The following actions are performed:
+        <ol>
+            <li>The centroid of the visible extent, and tile(s) it represents, are determined.</li>
+            <li>The PNG tile is retrieved from the server, and dispatched to a background web worker for processing.</li>
+            <li>The color of the pixel nearest to the center of the reticle is determined, within a small search radius.</li>
+            <li>This determination is made by reversing the steps used to color it mathematically.</li>
+            <li>From this, an approximate median value, and range of that classification color, are determined.</li>
+            <li>If the color was not present (due to rounding) a nearest-color match with a small tolerance is performed.</li>
+            <li>If the search is successful, the color is learned for future use.  Failures are also learned.</li>
+            <li>If no match could be made, any other raster layers are queried successively.</li>
+            <li>Otherwise, the results are displayed to the user.</li>
+        </ol>
+    </li>
+    <li>
+        The query reticle also optionally interfaces with bitstore.js, to prevent wastefully attempting to load tiles which do not exist.
+        <ul>
+            <li>It will also learn "bad" URLs, such that they are only queried once.</li>
+        </ul>
+    </li>
+    <li>This method is not ideal as the color matches a range, rather than a specific value.</li>
+    <li>Nonetheless, in absence of a GIS server, it produces results with acceptable precision that is noted in the display.</li>
+    <li>Also, it is hoped the reader is rightfully terrified of any technology with a targeting reticle that learns from its failures.</li>
+    <li>Source available <a href="hud.js" target="_blank">here</a>.</li>
+</ul>
+
+
+</div>
+</body>
+</html>

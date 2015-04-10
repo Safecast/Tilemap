@@ -1,0 +1,213 @@
+<div id="bv_bvPanel" class="bv_bvPanelHidden">
+    <div>
+        <table style="width:337px;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;" class="bv_FuturaFont">
+            <tr>
+                <td colspan="2" style="padding: 7px 0px 15px 0px; text-align:center;">
+                    <div style="font-size:120%; left:0; right:0;" class="bv_hline">bGeigie Logs</div>
+                </td>
+            </tr>
+        </table>
+        <div id="bv_btnDoneX" style="position:absolute;top:5px;right:10px;cursor:pointer;cursor:hand;">
+            <img id="bv_imgDoneX" border=0 width="13" height="13" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA0AAAANBAMAAACAxflPAAAABlBMVEX///9/f39icvWHAAAAAXRSTlMAQObYZgAAAClJREFUGNNjYEAHggwMjAIgWgCEgBxBRkGIBJgLEmBA5sPkYeph+lEBAE+rAYd+VgGrAAAAAElFTkSuQmCC" />
+        </div>
+    </div>
+    <div style="overflow-y:auto;width:357px;height:165px;">
+        <table style="width:337px;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;" class="bv_FuturaFont">
+            <tr>
+                <td colspan="2" style="padding:0px;">
+                    <img id="bv_bvImgPreview" border=0 width=71 height=127 style="float:right; padding:4px 14px 4px 4px;" />
+                    A bGeigie log contains the original data points upon which the Safecast map tiles are based.<br/><br/>
+                    This offers additional information and resolution, but is limited to a smaller subset of data.<br/><br/>
+                    <table style="width:100%;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;" class="bv_FuturaFont">
+                        <tr>
+                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">To Add</td>
+                            <td style="vertical-align:top; padding:4px;">Enter the <a href="https://api.safecast.org/en-US/bgeigie_imports" target="_blank">ID of a log</a>. Click "Search".<br/><i>(Multiple IDs: use commas)</i></td>
+                        </tr>
+                        <tr>
+                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">To Search</td>
+                            <td style="vertical-align:top; padding:4px;">Select "User ID" or "Text".<br/>You can choose a specific date range,<br/>and status type.</td>
+                        </tr>
+                        <tr>
+                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">To Clear</td>
+                            <td style="vertical-align:top; padding:4px;">Click "Remove All" to remove all logs added to the map.</td>
+                        </tr>
+                        <tr>
+                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">Tip 1/5</td>
+                            <td style="vertical-align:top; padding:4px;">To search by date, select "Text" but leave the text field empty.</td>
+                        </tr>
+                        <tr>
+                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">Tip 2/5</td>
+                            <td style="vertical-align:top; padding:4px;">To not include aircraft flights, set the status type to "Approved."</td>
+                        </tr>
+                        <tr>
+                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">Tip 3/5</td>
+                            <td style="vertical-align:top; padding:4px;">If using Street View, it's recommended to use a larger marker size, such as 32px.</td>
+                        </tr>
+                        <tr>
+                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">Tip 4/5</td>
+                            <td style="vertical-align:top; padding:4px;">For best performance when displaying many logs, disable the bearing line on the marker.</td>
+                        </tr>
+                        <tr>
+                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">Tip 5/5</td>
+                            <td style="vertical-align:top; padding:4px;">The bearing line is not accurate in Street View or 45 degree aerial imagery views.</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div style="width:280px;">
+        <table style="width:337px;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;" class="bv_FuturaFont">
+            <tr>
+                <td colspan="2" style="height:1px; padding: 5px 0px 5px 0px; text-align:center;"><hr style="border-style: none none solid; height:1px;" /></td>
+            </tr>
+            <tr>
+                <td style="vertical-align:middle; width:75px; padding:0px 4px 5px 5px;">
+                    <select id="bv_ddlQueryType" style="width:75px;" class="bv_FuturaFont">
+                        <option value="0">Log IDs</option>
+                        <option value="1">User ID</option>
+                        <option value="2">Text</option>
+                    </select>
+                </td>
+                <td style="vertical-align:middle; padding: 0px 5px 5px 0px;">
+                    <input id="bv_tbLogIDs" style="width:242px;" type="text" placeholder="Enter bGeigie Log ID(s)" class="bv_FuturaFont">
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align:center; height:1px; padding: 0px;"><hr style="border-style: none none solid; height:1px;" /></td>
+            </tr>
+        </table>
+    </div>
+    
+    <div style="width:280px;padding-top:0px;">
+        <table style="width:337px;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;" class="bv_FuturaFont">
+            <tr id="bv_trStartDate">
+                <td style="padding:5px;"><input id="bv_tbStartDate" style="width:153px" disabled type="date" name="bv_tbStartDate" placeholder="Start Date" class="bv_FuturaFont"></td>
+                <td style="padding:5px;"><input id="bv_tbEndDate" style="width:153px" disabled type="date" name="bv_tbEndDate" placeholder="End Date" class="bv_FuturaFont"></td>
+            </tr>
+            <tr id="bv_trStatusType">
+                <td style="vertical-align:middle; padding:5px;">
+                    <select id="bv_ddlStatusType"  style="width:153px" disabled class="bv_FuturaFont">
+                        <option value="">&nbsp;All Status Types</option>
+                        <option value="&by_status=processed">&nbsp;Processed</option>
+                        <option value="&by_status=submitted">&nbsp;Submitted</option>
+                        <option value="&by_status=done">&nbsp;Approved</option>
+                    </select>
+                </td>
+                <td style="vertical-align:middle; padding:5px;">
+                    <select id="bv_ddlMaxPages" style="width:153px" disabled class="bv_FuturaFont">
+                        <option value="1">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;25</option>
+                        <option value="2">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;50</option>
+                        <option value="3">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;75</option>
+                        <option value="4">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;100</option>
+                        <option value="6">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;150</option>
+                        <option value="8">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;200</option>
+                        <option value="12">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;300</option>
+                        <option value="20">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;500</option>
+                        <option selected value="40">&nbsp;Max Logs:&nbsp;1000</option>
+                        <option value="80">&nbsp;Max Logs:&nbsp;2000</option>
+                        <option value="160">&nbsp;Max Logs:&nbsp;4000</option>
+                        <option value="320">&nbsp;Max Logs:&nbsp;8000</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align: center; height:1px; padding: 0px;"><hr style="border-style: none none solid; height:1px;" /></td>
+            </tr>
+            <tr>
+                <td style="vertical-align:middle; text-align: center; padding:5px;">
+                    <button id="bv_btnOptions" class="bv_btnW" style="width:100px;">Options...</button>
+                </td>
+                <td style="vertical-align:middle; text-align: center; padding:5px;">
+                    <button id="bv_btnRemoveAll" class="bv_btnW" style="width:100px;">Remove All</button>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align:center; height:1px; padding: 0px;"><hr style="border-style: none none solid; height:1px;" /></td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align:center; padding: 7px 0px 15px 0px;">
+                    <button id="bv_btnSearch" class="bv_btnW" style="width:100px;">Search</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+
+
+<div id="bv_bvPanelQuery" class="bv_bvPanelHidden">
+    <div>
+        <table style="width:357px;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;" class="bv_FuturaFont">
+            <tr>
+                <td colspan="2" style="text-align:center; padding: 7px 0px 15px 0px;">
+                    <div style="font-size:120%; left:0; right:0;" class="bv_hline">Log Options</div>
+                </td>
+            </tr>
+        </table>
+        <div id="bv_btnAdvDoneX" style="position:absolute;top:5px;right:10px;cursor:pointer;cursor:hand;">
+            <img id="bv_imgAdvDoneX" border=0 width="13" height="13" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA0AAAANBAMAAACAxflPAAAABlBMVEX///9/f39icvWHAAAAAXRSTlMAQObYZgAAAClJREFUGNNjYEAHggwMjAIgWgCEgBxBRkGIBJgLEmBA5sPkYeph+lEBAE+rAYd+VgGrAAAAAElFTkSuQmCC" />
+        </div>
+    </div>
+    <div style="overflow-y:auto;overflow-x:hidden;width:357px;">
+        <table style="width:337px;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;" class="bv_FuturaFont">
+            <tr>
+                <td style="padding:5px; text-align:right; vertical-align:middle; white-space:nowrap;">Marker Style</td>
+                <td valign="middle" style="padding:5px;">
+                    <select id="bv_ddlMarkerType" class="bv_FuturaFont">
+                        <option value="0">&nbsp;&nbsp;7px</option>
+                        <option value="1">&nbsp;10px + bearing line</option>
+                        <option selected value="2">&nbsp;10px</option>
+                        <option value="3">&nbsp;16px + bearing line</option>
+                        <option value="4">&nbsp;16px</option>
+                        <option value="9000">&nbsp;Custom</option>
+                    </select>
+                </td>
+            </tr>
+            <tr id="bv_trMarkerSize" style="display:none;">
+                <td style="text-align:right; vertical-align:middle; padding:5px; white-space:nowrap;">Custom Size (px)</td>
+                <td style="vertical-align:middle; padding:5px;">
+                    <input id="bv_tbMarkerSize" disabled type="number" min="1" max="64" value="10" class="bv_FuturaFont">
+                </td>
+            </tr>
+            <tr id="bv_trMarkerBearing" style="display:none;">
+                <td style="text-align:right; vertical-align:middle; padding:5px; white-space:nowrap;">Bearing Line?</td>
+                <td style="vertical-align:middle; padding:5px;">
+                    <input id="bv_chkMarkerBearing" disabled type="checkbox">
+                </td>
+            </tr>
+            <tr id="bv_trMarkerFillAlpha" style="display:none;">
+                <td style="text-align:right; vertical-align:middle; padding:5px; white-space:nowrap;">Fill Alpha</td>
+                <td style="vertical-align:middle; padding:5px;">
+                    <input id="bv_tbMarkerFillAlpha" disabled type="range" min="0" max="100" value="75">
+                </td>
+            </tr>
+            <tr id="bv_trMarkerStrokeAlpha" style="display:none;">
+                <td style="text-align:right; vertical-align:middle; padding:5px; white-space:nowrap;">Stroke Alpha</td>
+                <td style="vertical-align:middle; padding:5px;">
+                    <input id="bv_tbMarkerStrokeAlpha" disabled type="range" min="0" max="100" value="75">
+                </td>
+            </tr>
+            <tr id="bv_trMarkerShadowRadius" style="display:none;">
+                <td style="text-align:right; vertical-align:middle; padding:5px; white-space:nowrap;">Shadow Radius</td>
+                <td style="vertical-align:middle; padding:5px;">
+                    <input id="bv_tbMarkerShadowRadius" disabled  type="range" min="0" max="32" value="0" class="bv_FuturaFont">
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align:center; height:1px; padding: 0px;"><hr style="border-style: none none solid; height:1px;" /></td>
+            </tr>
+            <tr>
+                <td style="text-align:right; vertical-align:middle; padding:5px; white-space:nowrap;">Parallelism</td>
+                <td style="vertical-align:middle; padding:5px;">
+                    <input id="bv_tbParallelism"  type="number" min="1" max="16" value="1" class="bv_FuturaFont">
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="text-align:center;padding-top:10px;padding-bottom:10px;">
+                    <button id="bv_btnAdvDone" class="bv_btnW" style="width:85px;">Done</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
