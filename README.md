@@ -17,4 +17,7 @@ https://github.com/Safecast/Tilemap/blob/master/webmap_dataflow_2048x1536.png
 Please coordinate any production or test deployments with Nick Dolezal.  Thanks!
 
 
+NOTE: A required component, bitstore.js, is not included here.  That's because it already has its own Github repo: https://github.com/Safecast/bitstore.js
+
+
 (further documentation is forthcoming)
