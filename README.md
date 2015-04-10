@@ -1,6 +1,6 @@
 # Tilemap
 
-This is the code for the current production Safecast web map, http://safecast.org/tilemap
+This is the code and content for the current production Safecast web map, http://safecast.org/tilemap
 
 
 ## Overview
@@ -33,7 +33,7 @@ IE10+, any semi-recent version of Chrome, Safari, Firefox, etc.  Please make sur
 
 ## Server Requirements
 
-There are no particular server requirements for hosting these files, and they may be served from any HTTP server.  When testing locally, you should use a local HTTP server, rather than file://.  The reason being that almost all code and content is now loaded asynchronously and that requires http.
+There are no particular server requirements for hosting these files, and they may be served from any HTTP server.  When testing locally, you should use a local HTTP server, rather than file://.  The reason being that almost all code and content is now loaded asynchronously and that requires HTTP.
 
 
 ## Domain-Specific References:
