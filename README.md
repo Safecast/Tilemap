@@ -16,7 +16,7 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
 
 Not shown in files graphic:
 
-1. whatsnew_<lang>_inline.html - this is the content displayed for the "what's new" feature, a one-shot time-limited pop-up which may also be viewed though "About"
+1. whatsnew_(lang)_inline.html - this is the content displayed for the "what's new" feature, a one-shot time-limited pop-up which may also be viewed though "About"
 2. methdology.html - content which describes data processing methodology.  This is a separate HTML document opened in a new window.
 3. gbGIS_min.js - remanants of legacy code from an alpha version.  This is used only for the bitmap index visualization features.
 
