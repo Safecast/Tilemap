@@ -10,7 +10,7 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
 
 
 
-### Overview - Files
+## Overview - Files
 
 ![webmap_files.png](https://github.com/Safecast/Tilemap/raw/master/webmap_files_2048x1536.png)
 
@@ -23,7 +23,7 @@ Not shown in files graphic:
 
 
 
-### Overview - Data Flow
+## Overview - Data Flow
 ![webmap_dataflow.png](https://github.com/Safecast/Tilemap/raw/master/webmap_dataflow_2048x1536.png)
 
 Not shown in data flow graphic:
