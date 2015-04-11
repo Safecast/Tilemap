@@ -59,7 +59,7 @@ There are no particular server requirements for hosting these files, and they ma
 
 ## Domain-Specific References:
 1. index.html -- has a hardcoded meta origin tag.  This is so things don't break when the QueryString gets long.
-2. safemap.js -- contains hardcoded references to bitstore_min.js and png_zlib_worker_min.js.  Necessary because bitstore.js uses inlined web workers, which require absolute URLs.  You don't have to change these for testing, unless you're using a different version of bitstore.js than the server.
+2. safemap.js -- contains hardcoded absolute URL references to bitstore_min.js and png_zlib_worker_min.js.  Necessary because bitstore.js uses inlined web workers, which require absolute URLs.  You don't have to change these for testing, unless you're using a different version of bitstore.js than the server.
 
 
 ## Tilemap: Future Todo
@@ -102,7 +102,7 @@ In general, heavy use is made of asynchronous and deferred loads to improve init
 
 safemap.js is the main "codebehind" for index.html, containing the majority of the scripts used by the tilemap.  It manages all tile content for the map, facilitates UI events, and controls asynchronous loads of other code modules.
 
-As with index.html, the codebase relies heavily on asynchronous loading of scripts and contents.  This creates a certain degree of code complexity.
+As with index.html, the codebase relies heavily on asynchronous loading of scripts and content.  This creates a certain degree of code complexity.
 
 To safely handle asynchronous loads of other code modules, proxy classes are used.  Other code should only refer to these proxy classes, and never the objects they retain which may or may not be loaded.
 
@@ -113,9 +113,11 @@ safemap.js is always loaded.
 
 ## bitstore.js
 
-bitstore.js was the first external script created for the tilemap.  It provides automated indexing of raster tiles, implemented in the form of myBitstore.ShouldLoadTile().  This provides a significant performance improvement, especially at higher zoom levels, as the webserver hosting the tiles has significantly greater latency when a tile request is 404 than when it is present.
+bitstore.js was the first external script created for the tilemap.  It provides automated indexing of raster tiles, implemented in the form of myBitstore.ShouldLoadTile().  This provides a significant performance improvement, especially at higher zoom levels, as the webserver hosting the tiles has much greater latency when a tile request is 404 than when it is present.
 
 bitstore.js also updates the layer's date in the UI via a callback function.
+
+bitstore.js was implemented as a general-purpose library, suitable for re-use elsewhere.  Unlike the other modules, it contains no dependencies on the Google Maps API, or Safecast dataset.
 
 bitstore.js is always loaded.
 
@@ -147,6 +149,8 @@ hud.js contains the query reticle, which displays the classification range and m
 Note that any new layers added must match existing symbology, or it will need to be updated with additional lookup tables in hud_worker.js to perform this action.
 
 hud.js works by iterating through a batch of one or more URLs representing active layer(s), retrieving the tile specified by the URL from the server, and attempting to find the nearest pixel within a search radius.  If no match is found, the next tile in the batch is attempted, and so on.  If a match is found, the RGB colors are matched to a premade lookup table to determine the value and range, with some tolerance given as RGB color matches are often not 100%.
+
+hud.js is unique among the tilemap modules in that it optionally may call bitstore.js's ShouldLoadTile to improve performance.  None of the other modules currently reference each other, or really have any external dependencies other than the Google Maps API v3 in most cases.  In the current implementation, this is performed by retaining a function reference to bitstore.js's proxy in safemap.js.  It also learns bad URLs, but testing showed this did not improve performance to the same degree as both learning bad URLs and using bitstore.js could.
 
 hud.js is loaded only on-demand.
 
