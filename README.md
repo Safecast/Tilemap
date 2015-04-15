@@ -11,25 +11,13 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
 
 
 ## Overview - Files
-
-![webmap_files.png](https://github.com/Safecast/Tilemap/raw/master/webmap_files_2048x1536.png)
-
-Not shown in files graphic:
-
-1. whatsnew_(lang)_inline.html - this is the content displayed for the "what's new" feature, a one-shot time-limited pop-up which may also be viewed though "About"
-2. methodology.html - content which describes data processing methodology.  This is a separate HTML document opened in a new window.
-3. gbGIS_min.js - remnants of legacy code from an alpha version.  This is used only for the bitmap index visualization features.
+![webmap_files_full.png](https://github.com/Safecast/Tilemap/raw/master/docs/webmap_files_full_2048x1536.png)
 
 
 
 
 ## Overview - Data Flow
-![webmap_dataflow.png](https://github.com/Safecast/Tilemap/raw/master/webmap_dataflow_2048x1536.png)
-
-Not shown in data flow graphic:
-
-1. rt_viewer.js - chart images are currently created and hosted on gamma.tar.gz, using both api.safecast.org and rt.safecast.org as a datasource.  This process eventually should be moved to rt.safecast.org.
-2. safemap.js - Lionel's Python interpolation script - this is responsible for regenerating the interpolated Safecast tiles daily, using mclean.tar.gz downloaded from api.safecast.org.  Source which has been likely modified from its repo state: https://github.com/bidouilles/safemaps
+![webmap_dataflow_full.png](https://github.com/Safecast/Tilemap/raw/master/docs/webmap_dataflow_full_2048x1536.png)
 
 
 
