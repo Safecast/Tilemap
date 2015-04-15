@@ -143,6 +143,112 @@ hud.js is unique among the tilemap modules in that it optionally may call bitsto
 hud.js is loaded only on-demand.
 
 
+# Summary of Secondary Content Files and Scripts
+
+## gbGIS_min.js
+
+gbGIS_min.js is legacy code from an earlier alpha version used by the right-click "show bitmap index visualization" feature.  This is considered deprecated because of the implicit synchronous assumptions used.  Eventually, this will likely either be removed entirely or replaced with a component more suited to asynchronous loading from bitstore.js.
+
+## scale64_854x60.png
+
+scale64_854x60.png is the symbology scale displayed at the bottom-right hand corner of the screen.  Note the width and height are swapped in the filename and should be fixed.
+
+## schoriz_362x44.png
+
+schoriz_362x44.png is the primary Safecast logo referenced by index.html, about_inline.html, and methodology.html.
+
+## p90ret3-green-quad.png
+
+p90ret3-green-quad.png is the query reticle graphic from the iOS / OS X app, referenced by index.html.  It is used here only as an icon for activating the analagous hud.js, which internally renders its own icon for use dynamically.
+
+
+## xa_13x13.png
+
+xa_13x13.png is not in active use, having been inlined as a base64-encoded PNG text string in several content files.  The source file is present for maintainability.
+
+
+
+## bgeigie_viewer_inline.html
+
+bgeigie_viewer_inline.html contains HTML elements representing the UI for bGeigie log queries.  It depends on styles in bgeigie_viewer_inline.css being loaded first.
+
+bgeigie_viewer_inline.html is not a standalone HTML document, and is intended only to be injected or inlined into a content div after being loaded asynchronously.
+
+After the HTML content in bgeigie_viewer_inline.html has been fully loaded into the DOM, event listeners are databound to these form elements in safemap.js.
+
+
+
+## bgeigie_viewer_inline.css
+
+bgeigie_viewer_inline.css contains CSS styles representing the UI for bGeigie log queries, and styles used by bgeigie_viewer.js for Google Maps InfoWindows and the Data Transfer view.
+
+bgeigie_viewer_inline.css is not a standalone CSS document, and is intended only to be injected or inlined into a style element after being loaded asynchronously.
+
+bgeigie_viewer_inline.css should be loaded before bgeigie_viewer_inline.html or bgeigie_viewer.js.
+
+
+## bgpreview_118x211.png
+
+bgpreview_118x211.png is referenced by bgeigie_viewer_inline.html and is simply a preview image screenshot displayed for illustrative purposes to the user.
+
+## world_155a_z0.png
+
+world_155a_z0.png is referenced by bgeigie_viewer.js.  It is a 256x256 pixel Web Mercator map tile at zoom level 0 representing the entire world.
+
+world_155a_z0.png is the background image used by bgeigie_viewer.js's Data Transfer view when showing a preview map as logs are being downloaded and processed.
+
+
+## about_inline.html
+
+about_inline.html contains HTML content displayed when the user clicks "About."
+
+about_inline.html is not a standalone HTML document, and is intended only to be injected or inlined into a content div after being loaded asynchronously.
+
+about_inline.html contains links to data sources and methodology.html.  It also directly invokes a global JavaScript function to show "What's New".
+
+
+
+## methodology.html
+
+methodology.html is a full HTML document describing the data processing methdology of the Tilemap for users.  It is accessed from "About", and opens in a new window.
+
+
+## webmap_dataflow_2048x1536.png
+
+webmap_dataflow_2048x1536.png is a diagram image referenced by methodology.html.  It contains a simplified overview of the Tilemap's data flow and sources.
+
+## webmap_files_2048x1536.png
+
+webmap_files_2048x1536.png is a diagram image referenced by methodology.html.  It contains a simplified overview of the Tilemap's file structure.
+
+## whatsnew_en_inline.html
+
+whatsnew_en_inline.html contains English-language HTML content displayed once during April 2015, or when the user clicks "What's New" in "About."
+
+whatsnew_en_inline.html is not a standalone HTML documents, and is intended only to be injected or inlined into a content div after being loaded asynchronously.
+
+## whatsnew_ja_inline.html
+
+whatsnew_ja_inline.html contains Japanese-language HTML content displayed once during April 2015, or when the user clicks "What's New" in "About."
+
+whatsnew_ja_inline.html is not a standalone HTML documents, and is intended only to be injected or inlined into a content div after being loaded asynchronously.
+
+## whatsnew_en_847x793.jpg
+
+whatsnew_en_847x793.jpg is an English-language content image referenced by whatsnew_en_inline.html.  It is a diagrammed screenshot illustrating major changes made in an April 2015 release of the Tilemap.
+
+## whatsnew_ja_847x793.jpg
+
+whatsnew_ja_847x793.jpg is a Japanese-language content image referenced by whatsnew_ja_inline.html.  It is a diagrammed screenshot illustrating major changes made in an April 2015 release of the Tilemap.
+
+## flag-jp_50x27.png
+
+flag-jp_50x27.png is a borderless Japanese flag icon.  It is referenced by whatsnew_en_inline.html and whatsnew_ja_inline.html and used to provide the user with language selection.
+
+## flag-usuk_50x27.png
+
+flag-usuk_50x27.png is a borderless split US/UK flag icon.  It is referenced by whatsnew_en_inline.html and whatsnew_ja_inline.html and used to provide the user with language selection.
+
 
 
 (further documentation is forthcoming)
