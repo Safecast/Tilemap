@@ -249,6 +249,59 @@ flag-jp_50x27.png is a borderless Japanese flag icon.  It is referenced by whats
 
 flag-usuk_50x27.png is a borderless split US/UK flag icon.  It is referenced by whatsnew_en_inline.html and whatsnew_ja_inline.html and used to provide the user with language selection.
 
+# Server Data Sources
+
+## safecast.org
+
+safecast.org is the primary webhost of the files in this repository.  It provies automatic gzip compression, though that is non-essential.
+
+Contingency planning: the files here may be hosted on any webserver.  There are no special server requirements.  However, all users will currently be referencing this server to use the tilemap.
+
+## api.safecast.org
+
+api.safecast.org is used directly by the tilemap for right click -> Query API here and the bGeigie log query interface.  More significantly, api.safecast.org is the principal data source for all other data sources.  
+
+api.safecast.org is a custom Ruby app with a PostgreSQL backend that has a specific API used by the tilemap and rt.safecast.org.  It also runs cron jobs to export the DB outside of the Ruby app, which are used directly for tile creation.
+
+Contingency planning: unknown, but the Ruby app is on Github, and daily DB backups occur.  There are dependencies to specific URLs for these servers with no fallback.
+
+## safecast.media.mit.edu
+
+safecast.media.mit.edu is a VM on one of the last Apple Xserves made, running OS X 10.9.  It provides all raster map tiles used by the tilemap.
+
+safecast.media.mit.edu's tiles are principally created by the Safecast app for OS X running as a cron job, using source data from a job on api.safecast.org.  The Safecast app for OS X obviously must be running on OS X.
+
+safecast.media.mit.edu's tiles are also created by Lionel Bergeret's Python interpolation script running as a cron job, which uses a different source file from api.safecast.org than the app.  This constitutes the majority of the server's workload.  Theoretically, this process does not need to run on OS X.
+
+In both cases, Retile is also run in a cron job to reprocess the tiles.  The OS X app exports all zoom levels of tiles, but Retile is used to assemble these 256x256 tiles into 512x512 tiles for Retina/HDPI displays.  Both 256x256 and 512x512 are actively in use.  For Lionel's interpolated tiles, Retile creates all zoom levels other than 13 for 256x256 tiles, and further assembles them into 512x512 tiles for Retina/HDPI displays.
+
+Contingency planning: Any OS X machine can generate tiles with the Safecast app for OS X, and these can be hosted on any web server.  However, the logistics of the number of files involved make it somewhat impractical to update a remote host daily.  Realistically, another OS X server would need to be set up and configured.  For lesser disasters, the server is partially backed up via CrashPlan, but anything necessitating a new OS install would require some configuration work.  The daily tile sets are not backed up, but archives of the static tilesets are.  There are dependencies to specific URLs for this server with no fallback.
+
+Note: cron jobs are used to clean up after the interpolation script; if this is not done, all free disk space will be exhausted on the server.
+
+## Safecast Amazon S3
+
+Safecast's Amazon S3 server is used by api.safecast.org to store bGeigie log files after they have been submitted as a long-term, static archive.  These are referenced by the bgeigie_imports.json API on api.safecast.org as a URL, and bgeigie_viewer.js downloads and parses them directly for display.
+
+Contingency planning: the log files can be stored on any server, though I am uncertain if they are being archived anywhere but S3 currently.  There are dependencies to specific URLs for this server with no fallback.
+
+Note: the files are stored uncompressed; eventually, it would be nice to have these compressed instead, which would significantly reduce download times when using bgeigie_viewer.js.
+
+## rt.safecast.org
+
+rt.safecast.org is the Real-Time sensor server, which uses a combination of data pulled from api.safecast.org and data stored within WordPress to provide higher-level and admin functionality.
+
+rt.safecast.org provides devices.json, a list of all RT sensors which is used directly by rt_viewer.js.
+
+Contingency planning: unknown.  There are dependencies to specific URLs for this server with no fallback.
+
+## gamma.tar.bz
+
+gamma.tar.bz generates chart images used by rt_viewer.js.  It uses data from api.safecast.org and rt.safecast.org.
+
+Contingency planning: unknown.  It is likely the code could be redeployed from Kalin's GitHub repo.  There are dependencies to specific URLs for this server with no fallback.
+
+Note: eventually, the chart generation should be moved to rt.safecast.org.  This will require updates to rt_viewer.js.
 
 
 (further documentation is forthcoming)
