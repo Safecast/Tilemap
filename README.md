@@ -135,6 +135,18 @@ Please coordinate any production or test deployments with Nick Dolezal.  Thanks!
 
  
 
+## Data Processing Methodology
+
+Please refer to: http://safecast.org/tilemap/methodology.html
+
+ 
+
+ 
+
+ 
+
+ 
+
 ## Description of Main Content Files and Scripts
 
 
