@@ -67,6 +67,7 @@ Note that thus far, only one component of the tilemap, bitstore.js, has been exp
 
 The servers used to provide data to the tilemap have finite capacity.  If you use them in your own application, please be curteous of this.
 
+ 
 
 # Setup and Installation
 
@@ -103,8 +104,15 @@ IE10+, any semi-recent version of Chrome, Safari, Firefox, etc.  Please make sur
 
 Please coordinate any production or test deployments with Nick Dolezal.  Thanks!
 
+ 
 
-#### To Do
+ 
+
+ 
+
+ 
+
+# To Do
 
 1. Japanese language support
 2. Per-log metadata display for the bGeigie log viewer
