@@ -10,9 +10,17 @@ Code and content for the current production Safecast web map, http://safecast.or
 
  
 
+ 
+
+ 
+
 ## Abstract
 
 The Safecast Tilemap is a single-page web application using the Google Maps API v3 to provide visualization and analysis of the Safecast dataset.  This is principally accomplished through the display of standard Web Mercator map tiles.  Other features include a bGeigie log viewer and query interface, a raster cell value lookup tool, and display of the Safecast real-time sensors.
+
+ 
+
+ 
 
  
 
@@ -27,6 +35,10 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
 
  
 
+ 
+
+ 
+
 ## Overview - Files
 ![webmap_files_full.png](https://github.com/Safecast/Tilemap/raw/master/docs/webmap_files_full_2048x1536.png)
 
@@ -34,8 +46,16 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
 
  
 
+ 
+
+ 
+
 ## Overview - Data Flow
 ![webmap_dataflow_full.png](https://github.com/Safecast/Tilemap/raw/master/docs/webmap_dataflow_full_2048x1536.png)
+
+ 
+
+ 
 
  
 
@@ -53,8 +73,19 @@ NOTE: A required component, bitstore.js, is not included here.  That's because i
 
  
 
+## Data Processing Methodology
 
-# Licensing
+Please refer to: http://safecast.org/tilemap/methodology.html
+
+ 
+
+ 
+
+ 
+
+ 
+
+## Licensing
 
 Individual licenses are displayed at the top of each .js file.  In general, most things here created by Safecast are public domain/CC0.  The Safecast logo and name are not.
 
@@ -69,7 +100,13 @@ The servers used to provide data to the tilemap have finite capacity.  If you us
 
  
 
-# Setup and Installation
+ 
+
+ 
+
+ 
+
+## Setup and Installation
 
 
 #### "Compiling"
@@ -112,7 +149,7 @@ Please coordinate any production or test deployments with Nick Dolezal.  Thanks!
 
  
 
-# To Do
+## To Do
 
 1. Japanese language support
 2. Per-log metadata display for the bGeigie log viewer
@@ -130,20 +167,7 @@ Please coordinate any production or test deployments with Nick Dolezal.  Thanks!
 
  
 
-
-# Technical Documentation
-
- 
-
-## Data Processing Methodology
-
-Please refer to: http://safecast.org/tilemap/methodology.html
-
- 
-
- 
-
- 
+# Technical Reference Documentation
 
  
 
