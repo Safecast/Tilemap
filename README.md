@@ -2,31 +2,15 @@
 
  
 
- 
-
- 
-
- 
-
 # Tilemap
 
 Code and content for the current production Safecast web map, http://safecast.org/tilemap
 
  
 
- 
-
- 
-
- 
-
 ## Abstract
 
 The Safecast Tilemap is a single-page web application using the Google Maps API v3 to provide visualization and analysis of the Safecast dataset.  This is principally accomplished through the display of standard Web Mercator map tiles.  Other features include a bGeigie log viewer and query interface, a raster cell value lookup tool, and display of the Safecast real-time sensors.
-
- 
-
- 
 
  
 
@@ -75,17 +59,9 @@ NOTE: A required component, bitstore.js, is not included here.  That's because i
 
  
 
- 
-
- 
-
 ## Data Processing Methodology
 
 Please refer to: http://safecast.org/tilemap/methodology.html
-
- 
-
- 
 
  
 
@@ -103,10 +79,6 @@ Although this is mostly an internally-focused repository, you are welcome to re-
 Note that thus far, only one component of the tilemap, bitstore.js, has been expressly created as a general-purpose library.  Other components are designed specifically to work with Safecast data, and will likely require modification to be used for other things.
 
 The servers used to provide data to the tilemap have finite capacity.  If you use them in your own application, please be curteous of this.
-
- 
-
- 
 
  
 
@@ -151,10 +123,6 @@ Please coordinate any production or test deployments with Nick Dolezal.  Thanks!
 
  
 
- 
-
- 
-
 ## To Do
 
 1. Japanese language support
@@ -169,9 +137,6 @@ Please coordinate any production or test deployments with Nick Dolezal.  Thanks!
 
  
 
- 
-
- 
 
 # Technical Reference
 
