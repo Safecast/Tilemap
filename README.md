@@ -2,6 +2,12 @@
 
  
 
+ 
+
+ 
+
+ 
+
 # Tilemap
 
 Code and content for the current production Safecast web map, http://safecast.org/tilemap
@@ -167,11 +173,11 @@ Please coordinate any production or test deployments with Nick Dolezal.  Thanks!
 
  
 
-# Technical Reference Documentation
+# Technical Reference
 
  
 
-## Description of Main Content Files and Scripts
+## Main Content Files and Scripts
 
 
 #### index.html
@@ -245,7 +251,7 @@ hud.js is loaded only on-demand.
 
  
 
-## Description of Secondary Content Files and Scripts
+## Secondary Content Files and Scripts
 
 #### gbGIS_min.js
 
@@ -356,7 +362,7 @@ flag-usuk_50x27.png is a borderless split US/UK flag icon.  It is referenced by 
 
  
 
-## Description of Server Data Sources
+## Server Data Sources
 
 #### safecast.org
 
