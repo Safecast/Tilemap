@@ -1,41 +1,62 @@
+![schoriz_362x44.png](https://github.com/Safecast/Tilemap/raw/master/docs/schoriz_362x44.png)
 # Tilemap
 
 Code and content for the current production Safecast web map, http://safecast.org/tilemap
 
+.
+
+.
 
 ## Abstract
 
 The Safecast Tilemap is a single-page web application using the Google Maps API v3 to provide visualization and analysis of the Safecast dataset.  This is principally accomplished through the display of standard Web Mercator map tiles.  Other features include a bGeigie log viewer and query interface, a raster cell value lookup tool, and display of the Safecast real-time sensors.
 
+.
+
+.
 
 ## Components
 ![webmap_code.png](https://github.com/Safecast/Tilemap/raw/master/docs/webmap_code_669x378.png)
+
 ![webmap_content.png](https://github.com/Safecast/Tilemap/raw/master/docs/webmap_content_669x376.png)
 
+.
+
+.
 
 ## Overview - Files
 ![webmap_files_full.png](https://github.com/Safecast/Tilemap/raw/master/docs/webmap_files_full_2048x1536.png)
 
+.
 
-
+.
 
 ## Overview - Data Flow
 ![webmap_dataflow_full.png](https://github.com/Safecast/Tilemap/raw/master/docs/webmap_dataflow_full_2048x1536.png)
 
+.
 
-
-
-## Deployments
-
-The references within these files are for minified versions of .js files, typically a _min suffix.  Thus, to deploy, the code here must be minified using a tool such as http://jscompress.com
-
-
-Please coordinate any production or test deployments with Nick Dolezal.  Thanks!
-
+.
 
 ## External Dependencies
 
 NOTE: A required component, bitstore.js, is not included here.  That's because it already has its own Github repo: https://github.com/Safecast/bitstore.js
+
+.
+
+.
+
+.
+
+.
+
+
+# Doing Stuff With These Files
+
+
+## "Compiling"
+
+The references within these files are for minified versions of .js files, typically a _min suffix.  Thus, to deploy, the code here must be minified using a tool such as http://jscompress.com
 
 
 ## Client Requirements
@@ -45,20 +66,18 @@ IE10+, any semi-recent version of Chrome, Safari, Firefox, etc.  Please make sur
 
 ## Server Requirements
 
-There are no particular server requirements for hosting these files, and they may be served from any HTTP server.  When testing locally, you should use a local HTTP server, rather than file://.  The reason being that almost all code and content is now loaded asynchronously and that requires HTTP.
+There are no particular server requirements for hosting these files, and they may be served from any HTTP server.  However, please see "Domain-Specific References" below.
 
 
-## Domain-Specific References:
+## Local Testing Environment
+
+When testing locally, you should use a local HTTP server, rather than file://.  The reason being that almost all code and content is now loaded asynchronously and that requires HTTP.
+
+
+## Domain-Specific References
+
 1. index.html -- has a hardcoded meta origin tag.  This is so things don't break when the QueryString gets long.
 2. safemap.js -- contains hardcoded absolute URL references to bitstore_min.js and png_zlib_worker_min.js.  Necessary because bitstore.js uses inlined web workers, which require absolute URLs.  You don't have to change these for testing, unless you're using a different version of bitstore.js than the server.
-
-
-## Tilemap: Future Todo
-1. Japanese language support
-2. Per-log metadata display for the bGeigie log viewer
-3. Hack-ish spatial query to find logs at a location (which the API does not support a spatial query for)
-4. Addition of content from Azby
-5. Addition of NNSA Washington DC data/follow-up
 
 
 ## Licensing
@@ -74,6 +93,29 @@ Note that thus far, only one component of the tilemap, bitstore.js, has been exp
 
 The servers used to provide data to the tilemap have finite capacity.  If you use them in your own application, please be curteous of this.
 
+
+## Deployments
+
+Please coordinate any production or test deployments with Nick Dolezal.  Thanks!
+
+
+# To Do
+
+1. Japanese language support
+2. Per-log metadata display for the bGeigie log viewer
+3. Hack-ish spatial query to find logs at a location (which the API does not support a spatial query for)
+4. Addition of content from Azby
+5. Addition of NNSA Washington DC data/follow-up
+6. Further documentation
+7. etc.
+
+.
+
+.
+
+.
+
+.
 
 
 # Technical Documentation
