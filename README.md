@@ -133,18 +133,19 @@ Please coordinate any production or test deployments with Nick Dolezal.  Thanks!
 
 # Technical Documentation
 
+ 
 
-# Description of Main Content Files and Scripts
+## Description of Main Content Files and Scripts
 
 
-## index.html
+#### index.html
 
 index.html is the main content page the tilemap is accessed from.  It contains the general UI/layout for the map, and coordinates loading the initial file requirements.  It also contains a number of divs used as databinds for asynchronously loaded content and scripts
 
 In general, heavy use is made of asynchronous and deferred loads to improve initial load times.  This even applies to the images, which were found in testing to delay loading of other scripts.  Much of this is related to the nature of HTTP 1.0/1.1.
 
 
-## safemap.js
+#### safemap.js
 
 safemap.js is the main "codebehind" for index.html, containing the majority of the scripts used by the tilemap.  It manages all tile content for the map, facilitates UI events, and controls asynchronous loads of other code modules.
 
@@ -157,7 +158,7 @@ To purely display a tile overlay, no script other than safemap.js is necessarily
 safemap.js is always loaded.
 
 
-## bitstore.js
+#### bitstore.js
 
 bitstore.js was the first external script created for the tilemap.  It provides automated indexing of raster tiles, implemented in the form of myBitstore.ShouldLoadTile().  This provides a significant performance improvement, especially at higher zoom levels, as the webserver hosting the tiles has much greater latency when a tile request is 404 than when it is present.
 
@@ -168,7 +169,7 @@ bitstore.js was implemented as a general-purpose library, suitable for re-use el
 bitstore.js is always loaded.
 
 
-## bgeigie_viewer.js
+#### bgeigie_viewer.js
 
 bgeigie_viewer.js is perhaps the single most complex component.  It is responsible for the query and display of one or more bGeigie log files, and is capable of displaying a relatively large number of point features / markers on the client.  The complexity arises from the manual marker management and data processing involved to accomplish the degree of scalability it provides.
 
@@ -177,7 +178,7 @@ Despite its complexity, bgeigie_viewer.js may be useful elsewhere if modified.  
 bgeigie_viewer.js is loaded only on-demand.
 
 
-## rt_viewer.js
+#### rt_viewer.js
 
 rt_viewer.js is currently likely the simplest component to re-use in another map, able to be instantiated and work from a single line of code.  It displays all Safecast real-time sensors reported to it from rt.safecast.org, both online and offline, as markers on the map.  rt_viewer.js is a simplified version of beigie_viewer.js's code, rewritten to support the requirements for real-time sensors.
 
@@ -188,7 +189,7 @@ Note that due to current Safecast API limitations, there is no concept of a "met
 rt_viewer.js is always loaded.
 
 
-## hud.js
+#### hud.js
 
 hud.js contains the query reticle, which displays the classification range and median value for a color used by a pixel in a raster map tile.
 
@@ -200,33 +201,38 @@ hud.js is unique among the tilemap modules in that it optionally may call bitsto
 
 hud.js is loaded only on-demand.
 
+ 
 
-# Description of Secondary Content Files and Scripts
+ 
 
-## gbGIS_min.js
+ 
+
+ 
+
+## Description of Secondary Content Files and Scripts
+
+#### gbGIS_min.js
 
 gbGIS_min.js is legacy code from an earlier alpha version used by the right-click "show bitmap index visualization" feature.  This is considered deprecated because of the implicit synchronous assumptions used.  Eventually, this will likely either be removed entirely or replaced with a component more suited to asynchronous loading from bitstore.js.
 
-## scale64_854x60.png
+#### scale64_854x60.png
 
 scale64_854x60.png is the symbology scale displayed at the bottom-right hand corner of the screen.  Note the width and height are swapped in the filename and should be fixed.
 
-## schoriz_362x44.png
+#### schoriz_362x44.png
 
 schoriz_362x44.png is the primary Safecast logo referenced by index.html, about_inline.html, and methodology.html.
 
-## p90ret3-green-quad.png
+#### p90ret3-green-quad.png
 
 p90ret3-green-quad.png is the query reticle graphic from the iOS / OS X app, referenced by index.html.  It is used here only as an icon for activating the analagous hud.js, which internally renders its own icon for use dynamically.
 
-
-## xa_13x13.png
+#### xa_13x13.png
 
 xa_13x13.png is not in active use, having been inlined as a base64-encoded PNG text string in several content files.  The source file is present for maintainability.
 
 
-
-## bgeigie_viewer_inline.html
+#### bgeigie_viewer_inline.html
 
 bgeigie_viewer_inline.html contains HTML elements representing the UI for bGeigie log queries.  It depends on styles in bgeigie_viewer_inline.css being loaded first.
 
@@ -235,8 +241,7 @@ bgeigie_viewer_inline.html is not a standalone HTML document, and is intended on
 After the HTML content in bgeigie_viewer_inline.html has been fully loaded into the DOM, event listeners are databound to these form elements in safemap.js.
 
 
-
-## bgeigie_viewer_inline.css
+#### bgeigie_viewer_inline.css
 
 bgeigie_viewer_inline.css contains CSS styles representing the UI for bGeigie log queries, and styles used by bgeigie_viewer.js for Google Maps InfoWindows and the Data Transfer view.
 
@@ -245,18 +250,19 @@ bgeigie_viewer_inline.css is not a standalone CSS document, and is intended only
 bgeigie_viewer_inline.css should be loaded before bgeigie_viewer_inline.html or bgeigie_viewer.js.
 
 
-## bgpreview_118x211.png
+#### bgpreview_118x211.png
 
 bgpreview_118x211.png is referenced by bgeigie_viewer_inline.html and is simply a preview image screenshot displayed for illustrative purposes to the user.
 
-## world_155a_z0.png
+
+#### world_155a_z0.png
 
 world_155a_z0.png is referenced by bgeigie_viewer.js.  It is a 256x256 pixel Web Mercator map tile at zoom level 0 representing the entire world.
 
 world_155a_z0.png is the background image used by bgeigie_viewer.js's Data Transfer view when showing a preview map as logs are being downloaded and processed.
 
 
-## about_inline.html
+#### about_inline.html
 
 about_inline.html contains HTML content displayed when the user clicks "About."
 
@@ -265,57 +271,64 @@ about_inline.html is not a standalone HTML document, and is intended only to be 
 about_inline.html contains links to data sources and methodology.html.  It also directly invokes a global JavaScript function to show "What's New".
 
 
-
-## methodology.html
+#### methodology.html
 
 methodology.html is a full HTML document describing the data processing methdology of the Tilemap for users.  It is accessed from "About", and opens in a new window.
 
 
-## webmap_dataflow_2048x1536.png
+#### webmap_dataflow_2048x1536.png
 
 webmap_dataflow_2048x1536.png is a diagram image referenced by methodology.html.  It contains a simplified overview of the Tilemap's data flow and sources.
 
-## webmap_files_2048x1536.png
+#### webmap_files_2048x1536.png
 
 webmap_files_2048x1536.png is a diagram image referenced by methodology.html.  It contains a simplified overview of the Tilemap's file structure.
 
-## whatsnew_en_inline.html
+#### whatsnew_en_inline.html
 
 whatsnew_en_inline.html contains English-language HTML content displayed once during April 2015, or when the user clicks "What's New" in "About."
 
 whatsnew_en_inline.html is not a standalone HTML documents, and is intended only to be injected or inlined into a content div after being loaded asynchronously.
 
-## whatsnew_ja_inline.html
+#### whatsnew_ja_inline.html
 
 whatsnew_ja_inline.html contains Japanese-language HTML content displayed once during April 2015, or when the user clicks "What's New" in "About."
 
 whatsnew_ja_inline.html is not a standalone HTML documents, and is intended only to be injected or inlined into a content div after being loaded asynchronously.
 
-## whatsnew_en_847x793.jpg
+#### whatsnew_en_847x793.jpg
 
 whatsnew_en_847x793.jpg is an English-language content image referenced by whatsnew_en_inline.html.  It is a diagrammed screenshot illustrating major changes made in an April 2015 release of the Tilemap.
 
-## whatsnew_ja_847x793.jpg
+#### whatsnew_ja_847x793.jpg
 
 whatsnew_ja_847x793.jpg is a Japanese-language content image referenced by whatsnew_ja_inline.html.  It is a diagrammed screenshot illustrating major changes made in an April 2015 release of the Tilemap.
 
-## flag-jp_50x27.png
+#### flag-jp_50x27.png
 
 flag-jp_50x27.png is a borderless Japanese flag icon.  It is referenced by whatsnew_en_inline.html and whatsnew_ja_inline.html and used to provide the user with language selection.
 
-## flag-usuk_50x27.png
+#### flag-usuk_50x27.png
 
 flag-usuk_50x27.png is a borderless split US/UK flag icon.  It is referenced by whatsnew_en_inline.html and whatsnew_ja_inline.html and used to provide the user with language selection.
 
-# Server Data Sources
+ 
 
-## safecast.org
+ 
+
+ 
+
+ 
+
+## Description of Server Data Sources
+
+#### safecast.org
 
 safecast.org is the primary webhost of the files in this repository.  It provies automatic gzip compression, though that is non-essential.
 
 Contingency planning: the files here may be hosted on any webserver.  There are no special server requirements.  However, all users will currently be referencing this server to use the tilemap.
 
-## api.safecast.org
+#### api.safecast.org
 
 api.safecast.org is used directly by the tilemap for right click -> Query API here and the bGeigie log query interface.  More significantly, api.safecast.org is the principal data source for all other data sources.  
 
@@ -323,7 +336,7 @@ api.safecast.org is a custom Ruby app with a PostgreSQL backend that has a speci
 
 Contingency planning: unknown, but the Ruby app is on Github, and daily DB backups occur.  There are dependencies to specific URLs for these servers with no fallback.
 
-## safecast.media.mit.edu
+#### safecast.media.mit.edu
 
 safecast.media.mit.edu is a VM on one of the last Apple Xserves made, running OS X 10.9.  It provides all raster map tiles used by the tilemap.
 
@@ -337,7 +350,7 @@ Contingency planning: Any OS X machine can generate tiles with the Safecast app 
 
 Note: cron jobs are used to clean up after the interpolation script; if this is not done, all free disk space will be exhausted on the server.
 
-## Safecast Amazon S3
+#### Safecast Amazon S3
 
 Safecast's Amazon S3 server is used by api.safecast.org to store bGeigie log files after they have been submitted as a long-term, static archive.  These are referenced by the bgeigie_imports.json API on api.safecast.org as a URL, and bgeigie_viewer.js downloads and parses them directly for display.
 
@@ -345,7 +358,7 @@ Contingency planning: the log files can be stored on any server, though I am unc
 
 Note: the files are stored uncompressed; eventually, it would be nice to have these compressed instead, which would significantly reduce download times when using bgeigie_viewer.js.
 
-## rt.safecast.org
+#### rt.safecast.org
 
 rt.safecast.org is the Real-Time sensor server, which uses a combination of data pulled from api.safecast.org and data stored within WordPress to provide higher-level and admin functionality.
 
@@ -353,7 +366,7 @@ rt.safecast.org provides devices.json, a list of all RT sensors which is used di
 
 Contingency planning: unknown.  There are dependencies to specific URLs for this server with no fallback.
 
-## gamma.tar.bz
+#### gamma.tar.bz
 
 gamma.tar.bz generates chart images used by rt_viewer.js.  It uses data from api.safecast.org and rt.safecast.org.
 
