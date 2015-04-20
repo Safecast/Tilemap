@@ -1,4 +1,4 @@
-![schoriz_362x44.png](https://github.com/Safecast/Tilemap/raw/master/docs/schoriz_362x44.png)
+<img src="http://blog.safecast.org/wp-content/uploads/2014/01/header.png?w=460&amp;h=120&amp;crop=1" alt="Safecast">
 
  
 
@@ -17,9 +17,9 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
  
 
 ## Components
-![webmap_code.png](https://github.com/Safecast/Tilemap/raw/master/docs/webmap_code_669x378.png)
+<img width="669" height="378" src="https://github.com/Safecast/Tilemap/raw/master/docs/webmap_code_1338x755.png" />
 
-![webmap_content.png](https://github.com/Safecast/Tilemap/raw/master/docs/webmap_content_669x376.png)
+<img width="669" height="376" src="https://github.com/Safecast/Tilemap/raw/master/docs/webmap_content_1338x752.png" />
 
  
 
@@ -30,8 +30,7 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
  
 
 ## Overview - Files
-![webmap_files_full.png](https://github.com/Safecast/Tilemap/raw/master/docs/webmap_files_full_2048x1536.png)
-
+<img width="800" height="600" src="https://github.com/Safecast/Tilemap/raw/master/docs/webmap_files_full_2048x1536.png" />
  
 
  
@@ -41,7 +40,7 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
  
 
 ## Overview - Data Flow
-![webmap_dataflow_full.png](https://github.com/Safecast/Tilemap/raw/master/docs/webmap_dataflow_full_2048x1536.png)
+<img width="800" height="600" src="https://github.com/Safecast/Tilemap/raw/master/docs/webmap_dataflow_full_2048x1536.png" />
 
  
 
