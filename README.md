@@ -1,4 +1,7 @@
 ![schoriz_362x44.png](https://github.com/Safecast/Tilemap/raw/master/docs/schoriz_362x44.png)
+
+ 
+
 # Tilemap
 
 Code and content for the current production Safecast web map, http://safecast.org/tilemap
@@ -51,41 +54,12 @@ NOTE: A required component, bitstore.js, is not included here.  That's because i
  
 
 
-# Doing Stuff With These Files
-
-
-## "Compiling"
-
-The references within these files are for minified versions of .js files, typically a _min suffix.  Thus, to deploy, the code here must be minified using a tool such as http://jscompress.com
-
-
-## Client Requirements
-
-IE10+, any semi-recent version of Chrome, Safari, Firefox, etc.  Please make sure to account for mobile devices, UI paradigms, and screen sizes with any changes made.
-
-
-## Server Requirements
-
-There are no particular server requirements for hosting these files, and they may be served from any HTTP server.  However, please see "Domain-Specific References" below.
-
-
-## Local Testing Environment
-
-When testing locally, you should use a local HTTP server, rather than file://.  The reason being that almost all code and content is now loaded asynchronously and that requires HTTP.
-
-
-## Domain-Specific References
-
-1. index.html -- has a hardcoded meta origin tag.  This is so things don't break when the QueryString gets long.
-2. safemap.js -- contains hardcoded absolute URL references to bitstore_min.js and png_zlib_worker_min.js.  Necessary because bitstore.js uses inlined web workers, which require absolute URLs.  You don't have to change these for testing, unless you're using a different version of bitstore.js than the server.
-
-
-## Licensing
+# Licensing
 
 Individual licenses are displayed at the top of each .js file.  In general, most things here created by Safecast are public domain/CC0.  The Safecast logo and name are not.
 
 
-## Reuse
+#### Reuse
 
 Although this is mostly an internally-focused repository, you are welcome to re-use whatever parts are useful to you.  Attribution is always appreciated, but may not be required depending on the specific licensing for the code/content in question.
 
@@ -94,12 +68,43 @@ Note that thus far, only one component of the tilemap, bitstore.js, has been exp
 The servers used to provide data to the tilemap have finite capacity.  If you use them in your own application, please be curteous of this.
 
 
-## Deployments
+# Setup and Installation
+
+
+#### "Compiling"
+
+The references within these files are for minified versions of .js files, typically a _min suffix.  Thus, to deploy, the code here must be minified using a tool such as http://jscompress.com
+
+
+#### Local Testing Environment
+
+When testing locally, you should use a local HTTP server, rather than file://.  The reason being that almost all code and content is now loaded asynchronously and that requires HTTP
+
+Any local server will work -- Apache, IIS, etc.  Note you may need set permissions on all files appropriately.
+
+
+#### Server Requirements
+
+There are no particular server requirements for hosting these files, and they may be served from any HTTP server.  However, please see "Domain-Specific References" below.
+
+
+#### Client Requirements
+
+IE10+, any semi-recent version of Chrome, Safari, Firefox, etc.  Please make sure to account for mobile devices, UI paradigms, and screen sizes with any changes made.
+
+
+#### Domain-Specific References
+
+1. index.html -- has a hardcoded meta origin tag.  This is so things don't break when the QueryString gets long.
+2. safemap.js -- contains hardcoded absolute URL references to bitstore_min.js and png_zlib_worker_min.js.  Necessary because bitstore.js uses inlined web workers, which require absolute URLs.  You don't have to change these for testing, unless you're using a different version of bitstore.js than the server.
+
+
+#### Deployments
 
 Please coordinate any production or test deployments with Nick Dolezal.  Thanks!
 
 
-# To Do
+#### To Do
 
 1. Japanese language support
 2. Per-log metadata display for the bGeigie log viewer
@@ -121,7 +126,7 @@ Please coordinate any production or test deployments with Nick Dolezal.  Thanks!
 # Technical Documentation
 
 
-# Summary of Main Content Files and Scripts
+# Description of Main Content Files and Scripts
 
 
 ## index.html
@@ -188,7 +193,7 @@ hud.js is unique among the tilemap modules in that it optionally may call bitsto
 hud.js is loaded only on-demand.
 
 
-# Summary of Secondary Content Files and Scripts
+# Description of Secondary Content Files and Scripts
 
 ## gbGIS_min.js
 
