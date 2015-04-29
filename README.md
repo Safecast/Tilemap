@@ -30,7 +30,7 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
  
 
 ## Overview - Files
-<img width="800" height="600" src="https://github.com/Safecast/Tilemap/raw/master/docs/webmap_files_full_2048x1536.png" />
+<img width="728" height="546" src="https://github.com/Safecast/Tilemap/raw/master/docs/webmap_files_full_2048x1536.png" />
  
 
  
@@ -40,7 +40,7 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
  
 
 ## Overview - Data Flow
-<img width="800" height="600" src="https://github.com/Safecast/Tilemap/raw/master/docs/webmap_dataflow_full_2048x1536.png" />
+<img width="728" height="546" src="https://github.com/Safecast/Tilemap/raw/master/docs/webmap_dataflow_full_2048x1536.png" />
 
  
 
