@@ -46,6 +46,7 @@ var _no_hdpi_tiles    = false;
 var _bs_ready       = true; // HACK for legacy "show bitstores"
 var _layerBitstores = null; // HACK for legacy "show bitstores"
 var useBitmapIdx    = true; // HACK for legacy "show bitstores"
+var _cached_baseURL = null; // 2015-08-22 ND: fix for legacy "show bitstores"
 
 
 // ========== GOOGLE MAPS LAYERS =============
@@ -71,41 +72,24 @@ var LOCAL_TEST_MODE     = false; // likely does *not* work anymore.
 // 2015-04-03 ND: "What's New" popup that fires once.  May also be called
 //                from the about window.
 
-function WhatsNewGetShouldShow()
+function WhatsNewGetShouldShow() // 2015-08-22 ND: fix for non-Chrome date parsing
 {
-    var maxtime = Date.parse("2015-04-30 00:00:00");
-    var curdate = new Date();
-    
-    if (curdate.getTime() > maxtime)
-    {
-        console.log("Not displaying due to time.");
-        return false;
-    }
+    if ((new Date()).getTime() > Date.parse("2015-04-30T00:00:00Z")) return false;
     
     var sval = localStorage.getItem("WHATSNEW_2_0");
-    if (sval != null && sval == "1")
-    {
-        console.log("Not displaying due to LS key.");
-        return false;
-    }
-    
-    var vwh = FlyToExtent.GetClientViewSize();
-    if (vwh[0] < 424 || vwh[1] < 424)
-    {
-        console.log("Not displaying due client view size (%d x %d).", vwh[0], vwh[1]);
-        return false;
-    }
+    var vwh  = FlyToExtent.GetClientViewSize();
+    if ((sval != null && sval == "1") || vwh[0] < 424 || vwh[1] < 424) return false;
     
     localStorage.setItem("WHATSNEW_2_0", "1");
     return true;
-}
+}//WhatsNewGetShouldShow
 
 function WhatsNewClose()
 {
     var el = document.getElementById("whatsnew");
     el.innerHTML = "";
     el.style.display = "none";
-}
+}//WhatsNewClose
 
 function WhatsNewShow(language)
 {
@@ -128,12 +112,12 @@ function WhatsNewShow(language)
         if (req.readyState === 4 && req.status == 200) el.innerHTML = req.response || req.responseText;
     };
     req.send(null);
-}
+}//WhatsNewShow
 
 function WhatsNewShowIfNeeded()
 {
     if (WhatsNewGetShouldShow()) WhatsNewShow("en");
-}
+}//WhatsNewShowIfNeeded
 
 
 
@@ -1392,6 +1376,7 @@ function ShowBitmapIndexVisualization(isShowAll, rendererId)
         return;
     }//if
     
+    _cached_baseURL = _cached_ext.baseurl;  // 2015-08-22 ND: fix for legacy bitmap viewer support
     _layerBitstores = new Array();    
     _bitsProxy.InitLayerIds([2,3,6,8,9,16]);
     for (var i=0; i<_bitsProxy._layerBitstores.length; i++)
