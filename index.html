@@ -11,10 +11,10 @@
 <link href="webicons/apple-touch-icon-72x72.png" rel="apple-touch-icon" sizes="72x72">
 <link href="webicons/apple-touch-icon-57x57.png" rel="apple-touch-icon">
 
-<title>Safecast Tile Map</title>
+<title>TEST2 Safecast Tile Map</title>
 
 <style type="text/css">
-#mainMenu 
+#mainMenu, #contextMenu 
 {
 	position: absolute;
 	min-width: 100px;
@@ -28,7 +28,7 @@
 	margin: 0px;
 }
  
-#mainMenu a 
+#mainMenu a, #contextMenu a 
 {
 	color: #000;
 	text-decoration: none;
@@ -38,7 +38,7 @@
 	padding: 1px 10px;
 }
  
-#mainMenu li 
+#mainMenu li, #contextMenu li 
 {
     font-size: 80%;
 	list-style: none;
@@ -46,59 +46,18 @@
 	margin: 0px;
 }
  
-#mainMenu li.hover a 
+#mainMenu li.hover a, #contextMenu li.hover a 
 {
 	background-color: #A7C4FA;
 }
  
-#mainMenu li.separator 
+#mainMenu li.separator, #contextMenu li.separator 
 {
 	border-top: solid 1px #ccc;
 }
 </style>
 
 <style type="text/css">
-#contextMenu 
-{
-	position: absolute;
-	min-width: 100px;
-	z-index: 1000;
-	background: #fff;
-	border-top: solid 1px #CCC;
-	border-left: solid 1px #CCC;
-	border-bottom: solid 1px #676767;
-	border-right: solid 1px #676767;
-	padding: 0px;
-	margin: 0px;
-}
- 
-#contextMenu a 
-{
-	color: #000;
-	text-decoration: none;
-	display: block;
-	line-height: 22px;
-	height: 22px;
-	padding: 1px 10px;
-}
- 
-#contextMenu li 
-{
-    font-size: 80%;
-	list-style: none;
-	padding: 1px;
-	margin: 0px;
-}
- 
-#contextMenu li.hover a 
-{
-	background-color: #A7C4FA;
-}
- 
-#contextMenu li.separator 
-{
-	border-top: solid 1px #ccc;
-}
 
 @media screen and (max-height:447px) { #imgScale  { display:none; } }
 @media screen and ( max-width:400px) { #searchbar { display:none; } }
@@ -122,10 +81,7 @@
     position: absolute;
     z-index: 6;
     background-color: rgba(255, 255, 255, 0.75);
-    padding-top: 0px;
-    padding-bottom: 0px;
-    padding-left: 5px;
-    padding-right: 5px;
+    padding: 0px 5px 0px 5px;
     font-size: 80%;
     vertical-align: top;
     -webkit-user-select: none;
@@ -166,10 +122,7 @@
     position: absolute;
     z-index: 10;
     background-color: rgba(255, 255, 255, 1.0);
-    padding-top: 20px;
-    padding-bottom: 20px;
-    padding-left: 20px;
-    padding-right: 20px;
+    padding: 20px 20px 20px 20px;
     width: 424px;
     height: 424px;
     font-size: 80%;
@@ -211,7 +164,7 @@
     height: 100%;
 }
 
-.FuturaFont
+.FuturaFont, .gm-style
 {
     font-size: 100%;
     font-family: Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif;
@@ -247,7 +200,6 @@
 <style type="text/css">
 .gm-style 
 {
-    font-family: Futura, Futura-Medium, 'Futura Medium', 'Futura ND Medium', 'Futura Std Medium', 'Futura Md BT', 'Century Gothic', 'Segoe UI', Helvetica, Arial, sans-serif;
     font-size: 12px;
     font-weight: normal;
     text-decoration: none;
@@ -321,23 +273,25 @@ function InitCodeBehind()
     };
     
     el.addEventListener("load", cb, false);
-    el.src   = "safemap_minifi.js?" + (new Date()).getTime();
+    el.src   = "safemap_min.js?" + (new Date()).getTime();
     var head = document.getElementsByTagName("head")[0];
     head.appendChild(el);
 }
 
+function _gelid(n){return document.getElementById(n);}
+
 function InitImages(i)
 {
-    if (i == 0) document.getElementById("logo271").src = "schoriz_362x44.png";
-    if (i == 0) document.getElementById("logo271").style.visibility = "visible";
+    if (i == 0) _gelid("logo271").src = "schoriz_362x44.png";
+    if (i == 0) _gelid("logo271").style.visibility = "visible";
     if (i == 0) return;
     
-    if (i == 1) document.getElementById("hud_btnToggle").src = "p90ret3-green-quad.png";
-    if (i == 1) document.getElementById("hud_btnToggle").title = "Show or hide the query tool reticle.  See a layer's value at a target location.  NOTE: The indicated precision is the color lookup classification range, not the uncertainty of the measurements."
+    if (i == 1) _gelid("hud_btnToggle").src = "reticle_62x62.png";
+    if (i == 1) _gelid("hud_btnToggle").title = "Show or hide the query tool reticle.  See a layer's value at a target location.  NOTE: The indicated precision is the color lookup classification range, not the uncertainty of the measurements."
         
-    if (i == 2) document.getElementById("imgScale").src = "scale64_854x60.png";
-    if (i == 2) document.getElementById("imgScale").title = "Yes, it's actually 4x LOG10s.  Very loggy.";
-    if (i == 2) document.getElementById("scale").style.visibility = "visible";
+    if (i == 2) _gelid("imgScale").src = "scale64_60x854.png";
+    if (i == 2) _gelid("imgScale").title = "Yes, it's actually 4x LOG10s.  Very loggy.";
+    if (i == 2) _gelid("scale").style.visibility = "visible";
         
     if (i >= 2) return;
     i++;
@@ -410,7 +364,7 @@ function InitGMapsStyleHack() // pure hacky evil
     
     if (!("ArrayBuffer" in window) || !("bind" in Function.prototype)) return;
     var fr = function() {
-        var ds = document.getElementById("map_canvas").getElementsByTagName("div");
+        var ds = _gelid("map_canvas").getElementsByTagName("div");
         if (ds == null) return;
         for (var i=0; i<ds.length; i++)
         {

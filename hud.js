@@ -6,9 +6,9 @@
 // ==============================================
 
 // 
+// 2015-08-31 ND: Support 512x512 tiles.
 // 2015-04-05 ND: Make the init detect on HUD.prototype.ChangeLayers use a boolean flag instead,
 //                to fix bug where it kept activating upon layer change when it shouldn't.
-
 
 // =========
 // HUDCanvas
@@ -68,11 +68,13 @@ var HUDCanvas = (function()
         var cvs = document.createElement("canvas");
         var ctx = cvs.getContext("2d");
         
+        // 2015-08-31 ND: Check for 1x1 px null.png tile, instead of just 0x0
+        
         img.onerror = function() { this.fxCallbackFailure(url, x, y, z, px, py, batchId, userData); }.bind(this);
         img.onload  = function() 
         {
-            if (     ("naturalWidth" in img  && img.naturalWidth == 0)
-                || (!("naturalWidth" in img) && img.width == 0))
+            if (     ("naturalWidth" in img  && img.naturalWidth <= 1)
+                || (!("naturalWidth" in img) && img.width <= 1))
             {
                 this.fxCallbackFailure(url, x, y, z, px, py, batchId, userData);
                 return;
@@ -277,13 +279,9 @@ var HUD = (function()
         this.cooldown_time = 0;
         this.hib_cooldown  = 0;
         this.lblTarget     = null;
-        this.lblTarget2    = null;
-        this.lblTarget3    = null;
         this.lblTarget4    = null;
         
         this.lblTarget5    = null;
-        this.lblTarget6    = null;
-        this.lblTarget7    = null;
         this.lblTarget8    = null;
         this.lblTarget9    = null;
         
@@ -293,7 +291,7 @@ var HUD = (function()
         this.queueBatchId  = 0;
         this.worker        = null;
         this.enable_loc    = false;
-        this.layers        = new HUD.Layers(null);
+        this.layers        = new HUD.Layers(null, null);
         this.gmaps_cc_ls   = null;
         this.tile_size     = 256;
         this.hud_canvas    = null;
@@ -301,7 +299,6 @@ var HUD = (function()
         this.reticleTypeId = HUD.ReticleType_P90_GreenQuad;
         
         this.did_init_view = false; // 2015-04-05 ND: fix for change layers -> forced visible bug
-        
         this.is_hibernate  = false;
         
         if (this.decoder == HUD.DecodeCanvas)
@@ -639,8 +636,6 @@ var HUD = (function()
     
     HUD.prototype.InjectHtmlDiv = function()
     {
-        var text_quality = window.devicePixelRatio > 1.5 && "WebkitAppearance" in document.documentElement.style ? 4 : 4; // slow shadows for non-webkit.
-
         var divtxt = "position:absolute;top:0;bottom:0;left:0;right:0;margin:auto;width:170px;height:86px;z-index:2;"
                    + "padding-top:55px;text-align:center;"
                    + "overflow-x:hidden;overflow-y:hidden;"
@@ -674,49 +669,39 @@ var HUD = (function()
 
         this.lblTarget = document.createElement("div");
 
-        // other text_quality defs were removed.  this produces the desired effect on all browsers.
-        if (text_quality == 4)
-        {
-            this.lblTarget4 = document.createElement("div");
-            this.lblTarget5 = document.createElement("div");
-            this.lblTarget8 = document.createElement("div");
-            this.lblTarget9 = document.createElement("div");
+        this.lblTarget4 = document.createElement("div");
+        this.lblTarget5 = document.createElement("div");
+        this.lblTarget8 = document.createElement("div");
+        this.lblTarget9 = document.createElement("div");
             
-            var shd = "text-shadow:0px 0px 4px #000;";
+        var shd = "text-shadow:0px 0px 4px #000;";
             
-            this.lblTarget.style.cssText  = shd + etc + str_gr;
+        this.lblTarget.style.cssText  = shd + etc + str_gr;
             
-            // +---+---+---+
-            // | 7 | 4 | 6 |
-            // +---+---+---+
-            // | 9 | T | 8 |            
-            // +---+---+---+
-            // | 3 | 5 | 2 |
-            // +---+---+---+
+        // +---+---+---+
+        // | 7 | 4 | 6 |
+        // +---+---+---+
+        // | 9 | T | 8 |            
+        // +---+---+---+
+        // | 3 | 5 | 2 |
+        // +---+---+---+
             
-            abscss = "position:absolute;top:92px;left:0px;right:0px;z-index:-1;"; // (0, +1)
-            shd = "text-shadow:-1px 0px 4px #000;";
-            this.lblTarget5.style.cssText = shd + etc + str_bl + abscss;
-            abscss = "position:absolute;top:90px;left:0px;right:0px;z-index:-1;"; // (0, -1)
-            shd = "text-shadow:1px 0px 4px #000;";
-            this.lblTarget4.style.cssText = shd + etc + str_bl + abscss;
-            abscss = "position:absolute;top:91px;left:1px;right:0px;z-index:-1;"; // (+1, 0)
-            shd = "text-shadow:0px 1px 4px #000;";
-            this.lblTarget8.style.cssText = shd + etc + str_bl + abscss;
-            abscss = "position:absolute;top:91px;left:0px;right:1px;z-index:-1;"; // (-1, 0)
-            shd = "text-shadow:0px -1px 4px #000;";
-            this.lblTarget9.style.cssText = shd + etc + str_bl + abscss;
-        }
+        abscss = "position:absolute;top:92px;left:0px;right:0px;z-index:-1;"; // (0, +1)
+        shd = "text-shadow:-1px 0px 4px #000;";
+        this.lblTarget5.style.cssText = shd + etc + str_bl + abscss;
+        abscss = "position:absolute;top:90px;left:0px;right:0px;z-index:-1;"; // (0, -1)
+        shd = "text-shadow:1px 0px 4px #000;";
+        this.lblTarget4.style.cssText = shd + etc + str_bl + abscss;
+        abscss = "position:absolute;top:91px;left:1px;right:0px;z-index:-1;"; // (+1, 0)
+        shd = "text-shadow:0px 1px 4px #000;";
+        this.lblTarget8.style.cssText = shd + etc + str_bl + abscss;
+        abscss = "position:absolute;top:91px;left:0px;right:1px;z-index:-1;"; // (-1, 0)
+        shd = "text-shadow:0px -1px 4px #000;";
+        this.lblTarget9.style.cssText = shd + etc + str_bl + abscss;
 
         this.div.appendChild(this.lblTarget);
-        if (this.lblTarget2 != null) this.div.appendChild(this.lblTarget2);
-        if (this.lblTarget3 != null) this.div.appendChild(this.lblTarget3);
-        if (this.lblTarget4 != null) this.div.appendChild(this.lblTarget4);
-        
+        if (this.lblTarget4 != null) this.div.appendChild(this.lblTarget4);        
         if (this.lblTarget5 != null) this.div.appendChild(this.lblTarget5);
-        if (this.lblTarget6 != null) this.div.appendChild(this.lblTarget6);
-        if (this.lblTarget7 != null) this.div.appendChild(this.lblTarget7);
-
         if (this.lblTarget8 != null) this.div.appendChild(this.lblTarget8);
         if (this.lblTarget9 != null) this.div.appendChild(this.lblTarget9);
 
@@ -730,9 +715,7 @@ var HUD = (function()
         
         if (this.last.slat != slat || this.last.slon != slon)
         {
-            this.lblTarget.innerHTML =  this.last.msg + "<br/>" + this.last.slat + ", " + this.last.slon;
-            if (this.lblTarget2 != null) this.lblTarget2.innerHTML = this.lblTarget.innerHTML;            
-            
+            this.lblTarget.innerHTML =  this.last.msg + "<br/>" + this.last.slat + ", " + this.last.slon;            
             this.last.slat = slat;
             this.last.slon = slon;
         }//if
@@ -744,12 +727,8 @@ var HUD = (function()
         {
             requestAnimationFrame(function() { 
                 this.lblTarget.innerHTML = this.enable_loc ? txt + "<br/>" + this.last.slat + ", " + this.last.slon : txt;
-                if (this.lblTarget2 != null) this.lblTarget2.innerHTML = this.lblTarget.innerHTML;
-                if (this.lblTarget3 != null) this.lblTarget3.innerHTML = this.lblTarget.innerHTML;
                 if (this.lblTarget4 != null) this.lblTarget4.innerHTML = this.lblTarget.innerHTML;
                 if (this.lblTarget5 != null) this.lblTarget5.innerHTML = this.lblTarget.innerHTML;
-                if (this.lblTarget6 != null) this.lblTarget6.innerHTML = this.lblTarget.innerHTML;
-                if (this.lblTarget7 != null) this.lblTarget7.innerHTML = this.lblTarget.innerHTML;
                 if (this.lblTarget8 != null) this.lblTarget8.innerHTML = this.lblTarget.innerHTML;
                 if (this.lblTarget9 != null) this.lblTarget9.innerHTML = this.lblTarget.innerHTML;
 
@@ -816,6 +795,16 @@ var HUD = (function()
     {
         this.layers.fxCheckBitstores = fxCheckBitstores;
     };
+    
+    HUD.prototype.SetFxCheckSize = function(fxCheckSize)
+    {
+        this.layers.fxCheckSize = fxCheckSize;
+    };
+    
+    HUD.prototype.SetFxCheckMaxZ = function(fxCheckMaxZ)
+    {
+        this.layers.fxCheckMaxZ = fxCheckMaxZ;
+    };
 
     HUD.prototype.GetCentroidForVisibleExtent = function()
     {
@@ -851,8 +840,8 @@ var HUD = (function()
         if (this.busy) return;
         
         var xyz = this.GetCentroidXyzForVisibleExtent();
-        var px  = xyz.x % 256;
-        var py  = xyz.y % 256;
+        var px  = xyz.x % this.tile_size;
+        var py  = xyz.y % this.tile_size;
 
         if (px != this.last.px || py != this.last.py)
         {
@@ -867,11 +856,12 @@ var HUD = (function()
 
             for (var i=0; i<this.layers.layers.length; i++)
             {
-                var url = this.layers.GetUrl(i, tx, ty, xyz.z);
+                var tc  = this.layers.TranslateCoordsForIdx(i, tx, ty, xyz.z, xyz.x, xyz.y, this.tile_size, window.devicePixelRatio > 1.5);
+                var url = this.layers.GetUrl(i, tc.x, tc.y, tc.z);
                 
                 if (url != null)
                 {
-                    this.QueueAdd(qbid, url, tx, ty, xyz.z, xyz.x, xyz.y, null);
+                    this.QueueAdd(qbid, url, tc.x, tc.y, tc.z, tc.px, tc.py, null);
                     adds = true;
                 }//if
             }//for
@@ -933,9 +923,11 @@ var HUD = (function()
 
     HUD.Layers = (function()
     {
-        function Layers(fxCheckBitstores)
+        function Layers(fxCheckBitstores, fxCheckSize, fxCheckMaxZ)
         {
             this.fxCheckBitstores = fxCheckBitstores;
+            this.fxCheckSize      = fxCheckSize;
+            this.fxCheckMaxZ      = fxCheckMaxZ;
             this.layers           = new Array();
         }
 
@@ -952,10 +944,64 @@ var HUD = (function()
 
             return url;
         };
+        
+        // 2015-08-31 ND: enable multi tile resolution. This uses 256x256 tile internal coordinates,
+        //                and translates to whatever tile resolution the layer uses.
+        Layers.prototype.TranslateCoordsForIdx = function(idx, x, y, z, px, py, tile_size, isRetina)
+        {
+            var layer = this.layers[idx];
+            var r     = { x:x, y:y, z:z, px:px, py:py, tile_size:tile_size };
+            
+            // todo: fix this to work on cases other than 256x256 -> 512x512
+            // note: this assumes (for retina displays with 512x512 tiles) cheating to max_z+1 using 256x256 tiles
+            if (layer.width > r.tile_size)
+            {
+                if (r.z > 0)
+                {
+                    r.x >>= 1;
+                    r.y >>= 1;
+                    r.z  -= 1;
+
+                    r.px = r.px % 2 == 0 ? r.px : r.tile_size + r.px;
+                    r.py = r.py % 2 == 0 ? r.py : r.tile_size + r.py;
+                    
+                    r.tile_size = layer.width;
+                }//if
+                else
+                {
+                    r.px <<= 1;
+                    r.py <<= 1;
+                }//else
+            }//if
+            
+            return r;
+        };
+        
+        Layers.prototype.TranslateCoordsForBitstoreLayerId = function(bitstoreLayerId, x, y, z, px, py, tile_size, isRetina)
+        {
+            var idx = this.GetLayerIdxForBitstoreLayerId(bitstoreLayerId);
+            return this.TranslateCoordsForIdx(idx, x, y, z, px, py, tile_size, isRetina);
+        };
 
         Layers.prototype.Add = function(urlTemplate, bitstoreLayerId)
         {
-            this.layers.push(new Layers.Layer(urlTemplate, bitstoreLayerId));
+            var px    = 256;
+            var max_z = 23;
+            
+            if (bitstoreLayerId != null)
+            {
+                if (this.fxCheckSize != null)
+                {
+                    var wh = this.fxCheckSize(bitstoreLayerId);
+                    px = wh.w;
+                }//if
+                if (this.fxCheckMaxZ != null)
+                {
+                    max_z = this.fxCheckMaxZ(bitstoreLayerId);
+                }//if
+            }//if
+            
+            this.layers.push(new Layers.Layer(urlTemplate, bitstoreLayerId, px, max_z));
         };
 
         Layers.prototype.Clear = function()
@@ -965,10 +1011,12 @@ var HUD = (function()
 
         Layers.Layer = (function()
         {
-            function Layer(urlTemplate, bitstoreLayerId)
+            function Layer(urlTemplate, bitstoreLayerId, px, max_z)
             {
                 this.urlTemplate     = urlTemplate;
                 this.bitstoreLayerId = bitstoreLayerId;
+                this.tile_size       = px;
+                this.max_z           = max_z;
             }
 
             Layer.prototype.GetUrl = function(x, y, z)
@@ -1326,7 +1374,6 @@ var HUDLUT = (function()
     return HUDLUT;
 })();
 */
-
 
 
 

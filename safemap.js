@@ -260,9 +260,20 @@ function GetNormalizedCoordsAndCheckBitmapIdx_512(xy, z, layerId, normal_max_z)
     
     var nXY = GetNormalizedCoord(xy, z);
         
-    if (!nXY || z > max_z_before_idx || (!_bitsProxy.ShouldLoadTile(layerId, nXY.x, nXY.y, z)))
+    //if (!nXY || z > max_z_before_idx || (!_bitsProxy.ShouldLoadTile(layerId, nXY.x, nXY.y, z)))
+    //{
+    //    return null;
+    //}//if
+    
+    if (!nXY || z > max_z_before_idx)
     {
         return null;
+    }//if
+    
+    if (!_bitsProxy.ShouldLoadTile(layerId, nXY.x, nXY.y, z))
+    {
+        if (z == 0) z = 1;
+        z = 0 - z;
     }//if
 
     return [nXY, z, rez_path];
@@ -283,11 +294,30 @@ function GetUrlForTile512(xy, z, layerId, normal_max_z, base_url)
 {
     var pack = GetNormalizedCoordsAndCheckBitmapIdx_512(xy, z, layerId, normal_max_z);
     if (pack == null) return null;
+    //if (pack == null) return "dogetile2.png";
     var nXY = pack[0];
     z = pack[1];
-    var rez_path = pack[2];
+    
+    var url;
+    
+    if (z >= 0)
+    {
+        var rez_path = pack[2];
+        url = base_url + rez_path + "/" + z + "/" + nXY.x + "/" + nXY.y + ".png";
+    }
+    else
+    {
+        //url = GetDogeTileForXY(nXY.x, nXY.y);
+        //url = "dogetile_cyanhalo.png";
+        //url = "doge_512x512.png";
+        url = null;
+    }
+    
+    return url;
+    
+    //var rez_path = pack[2];
                    
-    return base_url + rez_path + "/" + z + "/" + nXY.x + "/" + nXY.y + ".png";
+    //return base_url + rez_path + "/" + z + "/" + nXY.x + "/" + nXY.y + ".png";
 }//GetUrlForTile512
 
 
@@ -295,8 +325,16 @@ function GetUrlForTile256(xy, z, layerId, normal_max_z, base_url)
 {
     var nXY = GetNormalizedCoord(xy, z);
     
-    if (!nXY || z > normal_max_z || (!_bitsProxy.ShouldLoadTile(layerId, nXY.x, nXY.y, z)))
+    //if (!nXY || z > normal_max_z || (!_bitsProxy.ShouldLoadTile(layerId, nXY.x, nXY.y, z)))
+    if (!nXY || z > normal_max_z)
     {
+        return null;
+    }//if
+    
+    if ((!_bitsProxy.ShouldLoadTile(layerId, nXY.x, nXY.y, z)))
+    {
+        //return "dogetile_cyanhalo.png";
+        //return "doge_512x512.png";
         return null;
     }//if
 
@@ -336,7 +374,8 @@ function InitGmapsLayers_CreateAll()
     x.push( InitGmapsLayers_Create(6,  12, 0.7, 256, "http://safecast.media.mit.edu/tilemap/TileExportNURE") );
     x.push( InitGmapsLayers_Create(16, 12, 0.7, 256, "http://safecast.media.mit.edu/tilemap/TileExportAU") );
     x.push( InitGmapsLayers_Create(9,  12, 0.7, 256, "http://safecast.media.mit.edu/tilemap/TileExportAIST") );
-    x.push( InitGmapsLayers_Create(8,  15, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW") );
+    //x.push( InitGmapsLayers_Create(8,  15, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW") );
+    x.push( InitGmapsLayers_Create(9,  15, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW") );
     x.push( InitGmapsLayers_Create(2,  17, 1.0, 512, "http://safecast.media.mit.edu/tilemap/tiles20130415sc") );
     x.push( InitGmapsLayers_Create(2,  17, 1.0, 512, "http://safecast.media.mit.edu/tilemap/tiles20140311sc") );
     
@@ -669,13 +708,16 @@ function InitContextMenu()
                        + '<li><a href="#zoomOut" class="FuturaFont">Zoom Out</a></li>'
                        + '<li><a href="#centerHere" class="FuturaFont">Center Map Here</a></li>'
                        + '<li class="separator"></li>'
-                       + '<li><a href="#zoomLimitBreak" class="FuturaFont">Zoom Limit Break</a></li>'
+                       + '<li><a href="#zoomLimitBreak" class="FuturaFont">Zoom Limit Break</a></li>';
+                       // 2015-09-07 ND: Disabling due to legacy code breaking with 512x512 bitmap index support.
+                       //                Todo: recode.
+                       /*
                        + '<li class="separator"></li>'
                        + (LOCAL_TEST_MODE ? '<li><a href="#showIndices2" class="FuturaFont">Bitmap Index Visualization</a></li>'
                                           : '<li><a href="index.html?showIndices=2" target="_blank" class="FuturaFont">Bitmap Index Visualization</a></li>')
                        + (LOCAL_TEST_MODE ? '<li><a href="#showIndices1" class="FuturaFont">Show All Indices</a></li>'
                                           : '<li><a href="index.html?showIndices=1" target="_blank" class="FuturaFont">Show All Indices</a></li>');
-    
+                        */
     document.getElementById("map_canvas").appendChild(cm);
 
     var clickLL;
@@ -1548,15 +1590,35 @@ var BitsProxy = (function()
 {
     function BitsProxy(ddlLayersId) // "layers"
     {
+        this._debug_loads    = 0;
+        this._debug_noloads  = 0;
+        this._cached_tilewh  = null;
+        this._cached_maxz    = null;
         this._layerBitstores = null;
         this._bs_ready       = false;
         this.use_bitstores   = BitsProxy.CheckRequirements();
         this.ddlLayersId     = ddlLayersId;
         this.ddlLayers       = document.getElementById(ddlLayersId);
-        this.extent_u32      = "ArrayBuffer" in window ? new Uint32Array([0,0,0,0,23,0]) : null; // <- must be 23.
+        this.extent_u32      = "ArrayBuffer" in window ? new Uint32Array([0,0,0,0,21,0]) : null; // <- must be 21.
         
         if (this.use_bitstores) this.LoadAsync();
     }
+    
+    // 2015-08-31 ND: reduce function call and enum overhead when loading tiles
+    BitsProxy.prototype.CacheAddTileWHZ = function(layerId, px, z)
+    {
+        if (   this._cached_tilewh        == null
+            || this._cached_tilewh.length  < layerId + 1)
+        {
+            this._cached_tilewh = BitsProxy.vcopy_vfill_sset_u16(this._cached_tilewh, 0xFFFF, layerId, px, 32);
+            this._cached_maxz   = BitsProxy.vcopy_vfill_sset_u16(this._cached_maxz,   0xFFFF, layerId, z,  32);
+        }//if
+        else if (this._cached_tilewh[layerId] == 0xFFFF)
+        {
+            this._cached_tilewh[layerId] = px;
+            this._cached_maxz[layerId]   = z;
+        }//if
+    };
     
     BitsProxy.prototype.LoadAsync = function()
     {
@@ -1618,8 +1680,9 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId02 = function()
     {
-        var url   = "http://safecast.media.mit.edu/tilemap/TileExport/{z}/{x}/{y}.png";
-        var opts2 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:1, maxz:4, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
+        //var url   = "http://safecast.media.mit.edu/tilemap/TileExport/{z}/{x}/{y}.png";
+        var url   = "http://safecast.media.mit.edu/tilemap/TileExport512/{z}/{x}/{y}.png";
+        var opts2 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, maxz:4, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb2  = function(dstr)
         {
             //if (this.ddlLayers != null && this.ddlLayers[0] && this.ddlLayers[0].text && this.ddlLayers[1] && this.ddlLayers[1].text)
@@ -1645,8 +1708,9 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId08 = function()
     {
-        var url   = "http://safecast.media.mit.edu/tilemap/TileGriddata/{z}/{x}/{y}.png";
-        var opts8 = new LBITSOptions({ lldim:1, ll:1, multi:1, maxz:5, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
+        //var url   = "http://safecast.media.mit.edu/tilemap/TileGriddata/{z}/{x}/{y}.png";
+        var url   = "http://safecast.media.mit.edu/tilemap/TileGriddata512/{z}/{x}/{y}.png";
+        var opts8 = new LBITSOptions({ lldim:1, ll:1, multi:1, maxz:5, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb8  = function(dstr)
         {
             //if (this.ddlLayers != null && this.ddlLayers[2] && this.ddlLayers[2].text)
@@ -1673,28 +1737,28 @@ var BitsProxy = (function()
     BitsProxy.prototype.Init_LayerId03 = function()
     {
         var url   = "http://safecast.media.mit.edu/tilemap/TileExportNNSA/{z}/{x}/{y}.png";
-        var opts3 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:1, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
+        var opts3 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
         this._layerBitstores.push(new LBITS(3, 1, 16, url, 1, 0, opts3, null));
     };
 
     BitsProxy.prototype.Init_LayerId06 = function()
     {
         var url   = "http://safecast.media.mit.edu/tilemap/TileExportNURE/{z}/{x}/{y}.png";
-        var opts6 = new LBITSOptions({ lldim:1, ll:1, multi:1, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
+        var opts6 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
         this._layerBitstores.push(new LBITS(6, 1, 12, url, 0, 0, opts6, null));
     };
     
     BitsProxy.prototype.Init_LayerId09 = function()
     {
         var url   = "http://safecast.media.mit.edu/tilemap/TileExportAIST/{z}/{x}/{y}.png";
-        var opts9 = new LBITSOptions({ lldim:1, ll:1, multi:1, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
+        var opts9 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
         this._layerBitstores.push(new LBITS(9, 1, 12, url, 1, 0, opts9, null));
     };
 
     BitsProxy.prototype.Init_LayerId16 = function()
     {
         var url    = "http://safecast.media.mit.edu/tilemap/TileExportAU/{z}/{x}/{y}.png";
-        var opts16 = new LBITSOptions({ lldim:1, ll:1, multi:1, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
+        var opts16 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
         this._layerBitstores.push(new LBITS(16, 1, 12, url, 1, 1, opts16, null));
     };
 
@@ -1723,44 +1787,268 @@ var BitsProxy = (function()
             else if (layerId == 16) this.Init_LayerId16();
         }//if
     };
-
-    BitsProxy.prototype.ShouldLoadTile = function(layerId, x, y, z)
+    
+    BitsProxy.prototype.StatusReport = function()
     {
-        if (!this._bs_ready || this._layerBitstores == null || this._layerBitstores.length == 0) return true;
-    
-        var retVal = true;
+        var txt = "\n";
+        txt += "============= BitsProxy Status Report ==============\n";
+        txt += "         Ready: " + (this._bs_ready ? "[Yes]" : " [NO]") + "\n";
+        txt += "     Bitstores: " + (this._layerBitstores == null ? "<NULL>" : "" + this._layerBitstores.length) + "\n";
+        txt += "Loads approved: " + this._debug_loads + "\n";
+        txt += "Loads rejected: " + this._debug_noloads + "\n";
         
-        BitsProxy.SetExtentVector(this.extent_u32, x, y, z);
-    
+        if (this._layerBitstores == null) 
+        {
+            txt += "=============      END OF REPORT      ==============\n";
+            console.log(txt);
+            return;
+        }//if
+        
+        
+        txt += "=============      Bitstore List      ==============\n";
+        
         for (var i=0; i<this._layerBitstores.length; i++)
         {
             var bs = this._layerBitstores[i];
         
             if (bs != null)
             {
-                if (!bs.ShouldLoadTile(layerId, x, y, z, this.extent_u32))
+                txt += "LBS[" + i + "]: layerId=" + bs.layerId + ", ";
+                txt += "bitstores=" + (bs.bitstores == null ? "<NULL>" : bs.bitstores.length) + ", ";
+                txt += "ready=" + (bs.isReady ? "Y" : "N") + ", ";
+                
+                var dc = 0;
+                
+                for (var j=0; j<bs.bitstores.length; j++)
                 {
-                    retVal = false;
-                    break;
-                }//if
+                    var bits = bs.bitstores[j];
+                    
+                    dc += bits.GetDataCount();
+                }//for
+                
+                txt += "dataCount=" + dc;
+                txt += ", extent=(" + bs.extent[0].toLocaleString();
+                txt += " ~~ "       + bs.extent[1].toLocaleString();
+                txt += ") ("        + bs.extent[2].toLocaleString();
+                txt += " ~~ "       + bs.extent[3].toLocaleString();
+                txt += ")";
+                txt += "\n";
+                
+                if (bs.layerId != -9000)
+                {
+                    for (var j=0; j<bs.bitstores.length; j++)
+                    {
+                        var bits  = bs.bitstores[j];
+                        var src   = null;
+                        var src_n = 0;
+                        
+                        
+                        if (bits != null && bits.data != null)
+                        {
+                            src = bits.GetNewPlanar8FromBitmap(1, 0);
+                            
+                            for (var k=0; k<src.length; k++)
+                            {
+                                if (src[k] != 0) src_n++;
+                            }//for
+                        }//if
+                        
+                        
+                        txt += " +-- ";
+                        txt += "(" + bits.x + ", " + bits.y + ") @ " + bits.z;
+                        txt += ", dc=" + bits.GetDataCount();
+                        txt += ", ready=" + (bits.isReady ? "Y" : "N");
+                        txt += ", data.length=" + (bits.data != null ? bits.data.length : "<NULL>");
+                        txt += ", src_n=" + src_n;
+                        
+                        txt += ", extent=(" + bits.extent[0].toLocaleString();
+                        txt += " ~~ "       + bits.extent[1].toLocaleString();
+                        txt += ") ("        + bits.extent[2].toLocaleString();
+                        txt += " ~~ "       + bits.extent[3].toLocaleString();
+                        txt += ")\n";
+                        
+                        if (bits.data != null && src != null)
+                        {
+                            var x, y, src_idx, dest_idx;
+                            var imgpre = "   +- ";
+                            //var src    = bits.GetNewPlanar8FromBitmap(1, 0);
+                            var src_w  = bits.img_width;
+                            var src_h  = bits.img_height;
+                        
+                            var w_rsn  = 2;
+                            var h_rsn  = 4;
+                            var dest_w = src_w >>> w_rsn;
+                            var dest_h = src_h >>> h_rsn;
+                        
+                            var dest   = new Uint8Array(dest_w * dest_h);
+                        
+                            for (y = 0; y < src_h; y++)
+                            {
+                                for (x = 0; x < src_w; x++)
+                                {
+                                    src_idx = y * src_w + x;
+                                    
+                                    if (src[src_idx] != 0)
+                                    {
+                                        dest_idx = (y >>> h_rsn) * dest_w + (x >>> w_rsn)
+                                        dest[dest_idx] = 1;
+                                    }//if
+                                }//for x
+                            }//for y
+                            
+                            var imgdiv = imgpre + "[";
+                            for (x = 0; x < dest_w; x++) { imgdiv += "="; }//for
+                            imgdiv += "]\n";
+                            txt += imgdiv;
+                            
+                            for (y = 0; y < dest_h; y++)
+                            {
+                                txt += imgpre + "[";
+                                
+                                for (x = 0; x < dest_w; x++)
+                                {
+                                    dest_idx = y * dest_w + x;
+                                    
+                                    txt += dest[dest_idx] != 0 ? "█" : " ";
+                                }//for x
+                                
+                                txt += "]\n";
+                            }//for y
+                            
+                            txt += imgdiv;
+                            
+                        }//if (bits.data != null)
+
+                    }//for (j/bits)
+                }//if (bitstores n < 10)
+            }//if (LBITS IS NOT NULL)
+            else
+            {
+                txt += "LBS[" + i + "]: <NULL>\n"; 
+            }//else
+        }//for
+        
+        txt += "=============      END OF REPORT      ==============\n";
+        
+        console.log(txt);
+    };
+
+    BitsProxy.prototype.ShouldLoadTile = function(layerId, x, y, z)
+    {
+        if (!this._bs_ready || this._layerBitstores == null || this._layerBitstores.length == 0) 
+        {
+            this._debug_loads++;
+            return true;
+        }
+    
+        var retVal = true;
+        var wh;
+        var max_z;
+        
+        // 2015-08-31 ND: reduce function and enum overhead by caching tile width/height and max z for each layer.
+        if (this._cached_tilewh == null || this._cached_tilewh.length < layerId + 1 || this._cached_tilewh[layerId] == 0xFFFF)
+        {
+            var whs = this.GetTileWidthHeightForLayer(layerId);
+            wh      = whs.w;
+            max_z   = this.GetBaseMaxZForLayer(layerId);
+            
+            this.CacheAddTileWHZ(layerId, wh, max_z);
+        }//if
+        else
+        {
+            wh    = this._cached_tilewh[layerId];
+            max_z = this._cached_maxz[layerId];
+        }//else
+        
+        //var wh    = this.GetTileWidthHeightForLayer(layerId);
+        //var max_z = this.GetBaseMaxZForLayer(layerId);
+        
+        // *** HACK ***
+        if (GetIsRetina() && z == max_z)
+        {
+            z--;
+            x>>>=1;
+            y>>>=1;
+        }//if
+        
+        BitsProxy.SetExtentVector(this.extent_u32, x, y, z, wh, wh);
+        
+        for (var i=0; i<this._layerBitstores.length; i++)
+        {
+            var bs = this._layerBitstores[i];
+        
+            if (bs != null && bs.layerId == layerId && !bs.ShouldLoadTile(layerId, x, y, z, this.extent_u32))
+            {
+                retVal = false;
+                break;
             }//if
         }//for
+        
+        if (retVal) this._debug_loads++;
+        else        this._debug_noloads++; 
     
         return retVal;
+    };
+    
+    
+    BitsProxy.prototype.GetBitstoreForLayer = function(layerId)
+    {
+        var bs = null;
+        
+        if (this._bs_ready && this._layerBitstores != null)
+        {
+            for (var i=0; i<this._layerBitstores.length; i++)
+            {
+                var _bs = this._layerBitstores[i];
+        
+                if (_bs != null && _bs.layerId == layerId)
+                {
+                    bs = _bs;
+                    break;
+                }//if
+            }//for
+        }//if
+        
+        return bs;
+    };
+    
+    BitsProxy.prototype.GetTileWidthHeightForLayer = function(layerId)
+    {
+        var bs = this.GetBitstoreForLayer(layerId);
+        return bs == null ? { w:256, h:256 } : { w:bs.img_width, h:bs.img_height };
+    };
+    
+    BitsProxy.prototype.GetBaseMaxZForLayer = function(layerId)
+    {
+        var bs = this.GetBitstoreForLayer(layerId);
+        return bs == null ? 23 : bs.maxZ;
     };
     
     // This just reprojects Web Mercator tile x/y to pixel x/y at zoom level 23,
     // with the annoying Uint32Array hackery needed to support zoom level 23 coords 
     // without FP magnitude errors.
-    BitsProxy.SetExtentVector = function(v, x, y, z)
+    BitsProxy.SetExtentVector = function(v, x, y, z, w, h)
     {
         v[5]   = z;
-        v[0]   = x << 8;
-        v[1]   = y << 8;
-        v[2]   = (256 << v[4] - v[5]) - 1;
-        v[0] <<= v[4] - v[5];
-        v[1] <<= v[4] - v[5];
-        v[3]   = v[2];
+        v[0]   = x * w;
+        v[1]   = y * h;
+        
+        v[5]   = v[4] - v[5];
+        
+        v[2]   = w;
+        v[3]   = h;
+        
+        v[2] <<= v[5];
+        v[3] <<= v[5];
+        
+        v[2] -= 1;
+        v[3] -= 1;
+                
+        v[0] <<= v[5];
+        v[1] <<= v[5];
+        
+        v[5]   = z;
+        
         v[2]  += v[0];
         v[3]  += v[1];
     };
@@ -1772,6 +2060,18 @@ var BitsProxy = (function()
     BitsProxy.CheckRequirements = function()
     {
         return !QueryString_IsParamEqual("noIndices", "1") && !IsBrowserOldIE() && "ArrayBuffer" in window && "bind" in Function.prototype;
+    };
+    
+    BitsProxy.vfill = function(x,d,n) { for(var i=0;i<n;i++)d[i]=x; };
+    BitsProxy.vcopy = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    
+    BitsProxy.vcopy_vfill_sset_u16 = function(src, fill, idx, val, n_pad)
+    {
+        var dest = new Uint16Array(idx + n_pad);
+        BitsProxy.vfill(fill, dest, dest.length);
+        if (src != null) BitsProxy.vcopy(dest, 0, src, 0, src.length);
+        dest[idx] = val;
+        return dest;
     };
     
     return BitsProxy;
@@ -1816,6 +2116,10 @@ var HudProxy = (function()
                 
                 this._hud = new HUD(map, el);
                 this._hud.SetFxCheckBitstores(function(layerId, x, y, z) { return _bitsProxy.ShouldLoadTile(layerId, x, y, z); }.bind(this));
+                
+                this._hud.SetFxCheckSize(function(layerId) { return _bitsProxy.GetTileWidthHeightForLayer(layerId); }.bind(this));
+                this._hud.SetFxCheckMaxZ(function(layerId) { return _bitsProxy.GetBaseMaxZForLayer(layerId); }.bind(this));
+                
                 if (this.last_hud_layers != null) this._hud.SetLayers(this.last_hud_layers);
                 
                 fxCallback(userData);

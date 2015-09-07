@@ -1,21 +1,13 @@
-// =======================================================
-// Safecast HUD / Query Reticle for PNG Tiles - Web Worker
-// =======================================================
-// Nick Dolezal/Safecast, 2015
-// This code is released into the public domain.
-// =======================================================
-
-// the png.js-based includes are disabled due to issues with various PNG files
 //importScripts("png_zlib_worker_min.js");
 //importScripts("zlib.js", "png_worker.js");
 
-self.hudq = null; // ivar for retained instance
+self.hudq = null;
 
 self.onmessage = function(e)
 {
     if (e.data.op == "INIT")
     {
-        hudq = new HUDQ(self.postSuccess, self.postFailure, 15); // create a retained instance
+        hudq = new HUDQ(self.postSuccess, self.postFailure, 15);
     }//if
     else if (e.data.op == "QUERY")
     {
@@ -47,8 +39,8 @@ var HUDQ = (function()
     {
         this.fxCallbackSuccess = fxCallbackSuccess;
         this.fxCallbackFailure = fxCallbackFailure;
-        this.lionel_lut   = new LionelHUDLUT(LionelHUDLUT.DecoderLionel); // retain one instance for Lionel's tiles
-        this.gb64_lut     = new LionelHUDLUT(LionelHUDLUT.DecoderGB64);   // and another for the OS X app's
+        this.lionel_lut   = new LionelHUDLUT(LionelHUDLUT.DecoderLionel);
+        this.gb64_lut     = new LionelHUDLUT(LionelHUDLUT.DecoderGB64);
         this.ret_r        = ret_r;
         this.debug        = { hits:0, misses:0 };
         this.bad_urls     = new Array();
@@ -813,8 +805,8 @@ var LionelHUDLUT = (function()
     LionelHUDLUT.vhtoi_u16 = function(d,s) { for(var i=0;i<d.length; i++)d[i]=parseInt(("0x"+s.substring(i<<2,(i<<2)+4))); };
     LionelHUDLUT.vsmul     = function(s,x,d,n) { var i,m=n-(n%4);for(i=0;i<m;i+=4){d[i]=s[i]*x;d[i+1]=s[i+1]*x;d[i+2]=s[i+2]*x;d[i+3]=s[i+3]*x;}for(i=m;i<m+n%4;i++)d[i]=s[i]*x; };
 
-    LionelHUDLUT.DecoderGB64   = 0; // OS X app discretized to 64 colors
-    LionelHUDLUT.DecoderLionel = 1; // Lionel's interpolation scripts
+    LionelHUDLUT.DecoderGB64   = 0;
+    LionelHUDLUT.DecoderLionel = 1;
 
     return LionelHUDLUT;
 })();
