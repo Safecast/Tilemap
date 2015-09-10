@@ -217,21 +217,17 @@ hud.js is loaded only on-demand.
 
 ## Secondary Content Files and Scripts
 
-#### gbGIS_min.js
+#### scale64_60x854.png
 
-gbGIS_min.js is legacy code from an earlier alpha version used by the right-click "show bitmap index visualization" feature.  This is considered deprecated because of the implicit synchronous assumptions used.  Eventually, this will likely either be removed entirely or replaced with a component more suited to asynchronous loading from bitstore.js.
-
-#### scale64_854x60.png
-
-scale64_854x60.png is the symbology scale displayed at the bottom-right hand corner of the screen.  Note the width and height are swapped in the filename and should be fixed.
+scale64_854x60.png is the symbology scale displayed at the bottom-right hand corner of the screen.
 
 #### schoriz_362x44.png
 
 schoriz_362x44.png is the primary Safecast logo referenced by index.html, about_inline.html, and methodology.html.
 
-#### p90ret3-green-quad.png
+#### reticle_62x62.png
 
-p90ret3-green-quad.png is the query reticle graphic from the iOS / OS X app, referenced by index.html.  It is used here only as an icon for activating the analagous hud.js, which internally renders its own icon for use dynamically.
+reticle_62x62.png is the query reticle graphic from the iOS / OS X app, referenced by index.html.  It is used here only as an icon for activating the analagous hud.js, which internally renders its own icon for use dynamically.
 
 #### xa_13x13.png
 
