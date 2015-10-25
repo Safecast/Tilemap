@@ -5,7 +5,7 @@
 // This code is released into the public domain.
 // ==============================================
 
-// 
+// 2015-10-20 ND: Support client zoom, S3 variable CORS.
 // 2015-08-31 ND: Support 512x512 tiles.
 // 2015-04-05 ND: Make the init detect on HUD.prototype.ChangeLayers use a boolean flag instead,
 //                to fix bug where it kept activating upon layer change when it shouldn't.
@@ -934,12 +934,22 @@ var HUD = (function()
         Layers.prototype.GetUrl = function(idx, x, y, z)
         {
             var url = null;
+            
+            // 2015-10-19 ND: show at all zoom levels due to new client zoom
+            /*
+            if (z > this.layers[idx].max_z)
+            {
+                x >>= (z - this.layers[idx].max_z);
+                y >>= (z - this.layers[idx].max_z);
+                z   = this.layers[idx].max_z;
+            }//if
+            */
 
             if (   this.fxCheckBitstores == null 
                 || this.layers[idx].bitstoreLayerId < 0
                 || this.fxCheckBitstores(this.layers[idx].bitstoreLayerId, x, y, z))
             {
-                url = this.layers[idx].GetUrl(x, y, z);
+                url = this.layers[idx].GetUrl(x, y, z) + "?c"; // 2015-10-20 ND: hack for vary CORS headers on S3
             }//if
 
             return url;
@@ -954,24 +964,44 @@ var HUD = (function()
             
             // todo: fix this to work on cases other than 256x256 -> 512x512
             // note: this assumes (for retina displays with 512x512 tiles) cheating to max_z+1 using 256x256 tiles
-            if (layer.width > r.tile_size)
+            
+            if (layer.tile_size > r.tile_size)
             {
                 if (r.z > 0)
                 {
-                    r.x >>= 1;
-                    r.y >>= 1;
-                    r.z  -= 1;
+                    //r.x >>= 1;
+                    //r.y >>= 1;
+                    //r.z  -= 1;
 
-                    r.px = r.px % 2 == 0 ? r.px : r.tile_size + r.px;
-                    r.py = r.py % 2 == 0 ? r.py : r.tile_size + r.py;
+                    //r.px = r.px % 2 == 0 ? r.px : r.tile_size + r.px;
+                    //r.py = r.py % 2 == 0 ? r.py : r.tile_size + r.py;
                     
-                    r.tile_size = layer.width;
+                    r.px <<= 1;
+                    r.py <<= 1;
+                    
+                    //r.tile_size = layer.tile_size;
                 }//if
                 else
                 {
                     r.px <<= 1;
                     r.py <<= 1;
                 }//else
+                
+                //console.log("xcoords: (%d, %d) @ %d -> (%d, %d) @ %d ... px: (%d, %d) -> (%d, %d) ... w: %d -> %d", x, y, z, r.x, r.y, r.z, px, py, r.px, r.py, tile_size, r.tile_size);
+            }//if
+            
+            
+            // 2015-10-19 ND: show at all zoom levels due to new client zoom
+            
+            if (r.z > layer.max_z)
+            {
+                r.x  >>= (r.z - layer.max_z);
+                r.y  >>= (r.z - layer.max_z);
+                r.px >>= (r.z - layer.max_z);
+                r.py >>= (r.z - layer.max_z);
+                r.z  = layer.max_z;
+                
+                //console.log("xcoords: (%d, %d) @ %d -> (%d, %d) @ %d ... px: (%d, %d) -> (%d, %d) ... w: %d -> %d", x, y, z, r.x, r.y, r.z, px, py, r.px, r.py, tile_size, r.tile_size);
             }//if
             
             return r;

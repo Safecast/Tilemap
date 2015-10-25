@@ -40,6 +40,8 @@ var _did_init_font_crimson_text = false; // cached init state
 // ========== USER PREFS =============
 var _zoom_limit_break = false;
 var _no_hdpi_tiles    = false;
+var _img_scaler_idx   = 1;
+var _use_jp_region    = false;
 
 
 // ============ LEGACY SUPPORT =============
@@ -65,8 +67,18 @@ var grayMapType          = null;
 var _test_client_render = false; // should be off here by default
 var LOCAL_TEST_MODE     = false; // likely does *not* work anymore.
 
+function SetUseJpRegion()
+{
+    var jstmi      = -540;
+    var tzmi       = (new Date()).getTimezoneOffset(); // JST = -540
+    _use_jp_region = (jstmi - 180) <= tzmi && tzmi <= (jstmi + 180); // get +/- 3 TZs from Japan... central asia - NZ
+}//SetUseJpRegion
 
-
+function GetContentBaseUrl()
+{
+    //return "http://tilemap" + (_use_jp_region ? "jp" : "") + ".safecast.org.s3.amazonaws.com/";
+    return "";
+}//GetContentBaseUrl
 
 
 // 2015-04-03 ND: "What's New" popup that fires once.  May also be called
@@ -102,9 +114,9 @@ function WhatsNewShow(language)
         el.innerHTML = "";
     }//if
     
-    InjectLoadingSpinner(el, "#000", 2, 38);
+    LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
 
-    var url = "whatsnew_" + language + "_inline.html";
+    var url = GetContentBaseUrl() + "whatsnew_" + language + "_inline.html";
     var req = new XMLHttpRequest();
     req.open("GET", url, true);
     req.onreadystatechange = function()
@@ -118,6 +130,32 @@ function WhatsNewShowIfNeeded()
 {
     if (WhatsNewGetShouldShow()) WhatsNewShow("en");
 }//WhatsNewShowIfNeeded
+
+function WarningShowIfNeeded()
+{
+    if ((new Date()).getTime() < Date.parse("2015-09-23T13:00:00Z")) 
+    {
+        var el = document.getElementById("warning_message");
+        
+        el.style.display = "block";
+        
+        if (el.innerHTML != null && el.innerHTML.length > 0) 
+        {
+            el.innerHTML = "";
+        }//if
+    
+        LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
+
+        var url = GetContentBaseUrl() + "warning_inline.html";
+        var req = new XMLHttpRequest();
+        req.open("GET", url, true);
+        req.onreadystatechange = function()
+        {   
+            if (req.readyState === 4 && req.status == 200) el.innerHTML = req.response || req.responseText;
+        };
+        req.send(null);
+    }//if
+}//WarningShowIfNeeded
 
 
 
@@ -136,8 +174,7 @@ function initialize()
     _bvProxy   = new BvProxy();           // mandatory, never disable
     _hudProxy  = new HudProxy();          // mandatory, never disable
     
-    InitZoomLimitBreak();
-    
+    SetUseJpRegion();
     
     if (_bitsProxy.GetUseBitstores()) // *** bitmap index dependents ***
     {
@@ -148,7 +185,7 @@ function initialize()
             setTimeout(function() { ShowBitmapIndexVisualization(showIndicesParam == 1, rendererIdParam == -1 ? 4 : rendererIdParam); }, 500);
             return; // this is a destructive action, no need for rest of init.
         }//if
-    }//if    
+    }//if
 
     // ************************** GMAPS **************************
     
@@ -159,7 +196,7 @@ function initialize()
     var map_options = 
     {
                             zoom: z,
-                         maxZoom: (_zoom_limit_break ? 21 : 17),
+                         maxZoom: (_zoom_limit_break ? 21 : 21),
                           center: yx,
                      scrollwheel: true,
                      zoomControl: true,
@@ -169,10 +206,12 @@ function initialize()
                streetViewControl: true,
                navigationControl: true,
               overviewMapControl: false,
-               panControlOptions: { position: google.maps.ControlPosition.LEFT_BOTTOM },      
         streetViewControlOptions: { position: google.maps.ControlPosition.LEFT_BOTTOM },
+              zoomControlOptions: { position: google.maps.ControlPosition.LEFT_BOTTOM },
+            rotateControlOptions: { position: google.maps.ControlPosition.LEFT_BOTTOM },
         navigationControlOptions: { style: google.maps.NavigationControlStyle.DEFAULT },
            mapTypeControlOptions: {
+                                     position: google.maps.ControlPosition.TOP_RIGHT,
                                         style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
                                    mapTypeIds: [google.maps.MapTypeId.ROADMAP, 
                                                 google.maps.MapTypeId.SATELLITE, 
@@ -189,6 +228,8 @@ function initialize()
     InitGmapsLayers();
 
     InitDefaultRasterLayerOrOverrideFromQuerystring();
+    
+    MapExtent_OnChange(1); //fire on init for client zoom
     
     // arbitrarily space out some loads / init that don't need to happen right now, so as not to block on the main thread here.
     
@@ -212,11 +253,12 @@ function initialize()
         InitAboutMenu(); 
         InitContextMenu(); 
         InitMainMenu();
-        (map.getStreetView()).setOptions({ panControlOptions: { position: google.maps.ControlPosition.LEFT_BOTTOM }, enableCloseButton:true, imageDateControl:true, addressControlOptions:{ position: google.maps.ControlPosition.LEFT_BOTTOM } });
+        (map.getStreetView()).setOptions({ zoomControlOptions: { position: google.maps.ControlPosition.LEFT_BOTTOM }, panControlOptions: { position: google.maps.ControlPosition.LEFT_BOTTOM }, enableCloseButton:true, imageDateControl:true, addressControlOptions:{ position: google.maps.ControlPosition.LEFT_BOTTOM } });
     }, 2000);
     
     setTimeout(function() {
         WhatsNewShowIfNeeded();
+        //WarningShowIfNeeded();
     }, 3000);
 }//initialize
 
@@ -232,159 +274,10 @@ function GetIsRetina()
     return !_no_hdpi_tiles && window.devicePixelRatio > 1.5; 
 }
 
-// Normally, 512x512 retina tiles are always reported as 256x256 pixels.
-// However, it is still desirable to use them on normal displays, as they
-// result in 4x less requests than standard tiles.  The only difference
-// is the size reported to Google Maps must be 512x512.
-function GetTestGmapsOverlaySize()
-{
-    var px = GetIsRetina() ? 256 : 512;
-    return new google.maps.Size(px, px);
-}
-
-
-// by specifying 512x512 tiles, each z has half the tile x/ys... so it's basically z-1.
-                    
-// so two cases:
-// 1. normal display: need to z -= 1 *before* bitmap idx check.
-// 2. retina display: need to z -= 1 *after* bitmap idx check, *then* x>>=1, and y>>=1 after that.
-//    nm was thinking of something else, just use normal refs for retina.  but max z is -1.
-function GetNormalizedCoordsAndCheckBitmapIdx_512(xy, z, layerId, normal_max_z)
-{
-    var isRetina         = GetIsRetina();
-    var max_z_before_idx = !isRetina ? normal_max_z - 1 : normal_max_z;
-    var rez_path         = isRetina && z == normal_max_z ? "" : "512"; // hack: use a 256x256 tile and interpolate if on retina for same max z as non-retina
-
-    //if (!isRetina && z == 0) rez_path = ""; // *** gmaps bug*** can't handle > 256px tiles at z=0
-    if (!isRetina && z  > 0) z -= 1;
-    
-    var nXY = GetNormalizedCoord(xy, z);
-        
-    //if (!nXY || z > max_z_before_idx || (!_bitsProxy.ShouldLoadTile(layerId, nXY.x, nXY.y, z)))
-    //{
-    //    return null;
-    //}//if
-    
-    if (!nXY || z > max_z_before_idx)
-    {
-        return null;
-    }//if
-    
-    if (!_bitsProxy.ShouldLoadTile(layerId, nXY.x, nXY.y, z))
-    {
-        if (z == 0) z = 1;
-        z = 0 - z;
-    }//if
-
-    return [nXY, z, rez_path];
-}//GetNormalizedCoordsAndCheckBitmapIdx_512
-
-
-// Expectations:
-// - base_url: eg:  http://safecast.media.mit.edu/tilemap/TileExport
-//                  - no slash at end
-// - There must be 256x256 and 512x512 tiles present.
-// - 256x256 tiles must be in base_url/
-// - 512x512 tiles must be in base_url512/
-// - All tile paths are OSM off base path, png files.
-//   - eg: http://safecast.media.mit.edu/tilemap/TileExport/0/0/0.png
-//         http://safecast.media.mit.edu/tilemap/TileExport512/0/0/0.png
-//
-function GetUrlForTile512(xy, z, layerId, normal_max_z, base_url)
-{
-    var pack = GetNormalizedCoordsAndCheckBitmapIdx_512(xy, z, layerId, normal_max_z);
-    if (pack == null) return null;
-    //if (pack == null) return "dogetile2.png";
-    var nXY = pack[0];
-    z = pack[1];
-    
-    var url;
-    
-    if (z >= 0)
-    {
-        var rez_path = pack[2];
-        url = base_url + rez_path + "/" + z + "/" + nXY.x + "/" + nXY.y + ".png";
-    }
-    else
-    {
-        //url = GetDogeTileForXY(nXY.x, nXY.y);
-        //url = "dogetile_cyanhalo.png";
-        //url = "doge_512x512.png";
-        url = null;
-    }
-    
-    return url;
-    
-    //var rez_path = pack[2];
-                   
-    //return base_url + rez_path + "/" + z + "/" + nXY.x + "/" + nXY.y + ".png";
-}//GetUrlForTile512
-
-
-function GetUrlForTile256(xy, z, layerId, normal_max_z, base_url)
-{
-    var nXY = GetNormalizedCoord(xy, z);
-    
-    //if (!nXY || z > normal_max_z || (!_bitsProxy.ShouldLoadTile(layerId, nXY.x, nXY.y, z)))
-    if (!nXY || z > normal_max_z)
-    {
-        return null;
-    }//if
-    
-    if ((!_bitsProxy.ShouldLoadTile(layerId, nXY.x, nXY.y, z)))
-    {
-        //return "dogetile_cyanhalo.png";
-        //return "doge_512x512.png";
-        return null;
-    }//if
-
-    return base_url + "/" + z + "/" + nXY.x + "/" + nXY.y + ".png";
-}//GetUrlForTile256
-
-
-// layerId is for bitstores. a proxy layerId should be used for similar secondary layers to reduce memory use.
-function InitGmapsLayers_Create(layerId, maxz, alpha, tile_size, url)
-{
-    var o = { opacity:alpha, 
-         ext_layer_id:layerId, 
-     ext_url_template:url + "/{z}/{x}/{y}.png" };
-    
-    if (tile_size == 512)
-    {
-        o.getTileUrl = function (xy, z) { return GetUrlForTile512(xy, z, layerId, maxz, url); };
-        o.tileSize   = GetTestGmapsOverlaySize();
-    }//if
-    else
-    {
-        o.getTileUrl = function (xy, z) { return GetUrlForTile256(xy, z, layerId, maxz, url); };
-        o.tileSize   = new google.maps.Size(256, 256);
-    }//else
-    
-    return o;
-}
-
-function InitGmapsLayers_CreateAll()
-{
-    var x = new Array();
-    
-    x.push( InitGmapsLayers_Create(2,  17, 1.0, 512, "http://safecast.media.mit.edu/tilemap/TileExport") );
-    x.push( InitGmapsLayers_Create(2,  17, 0.8, 512, "http://safecast.media.mit.edu/tilemap/TileExport") );
-    x.push( InitGmapsLayers_Create(8,  15, 0.5, 512, "http://safecast.media.mit.edu/tilemap/TileGriddata") );
-    x.push( InitGmapsLayers_Create(3,  16, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TileExportNNSA") );
-    x.push( InitGmapsLayers_Create(6,  12, 0.7, 256, "http://safecast.media.mit.edu/tilemap/TileExportNURE") );
-    x.push( InitGmapsLayers_Create(16, 12, 0.7, 256, "http://safecast.media.mit.edu/tilemap/TileExportAU") );
-    x.push( InitGmapsLayers_Create(9,  12, 0.7, 256, "http://safecast.media.mit.edu/tilemap/TileExportAIST") );
-    //x.push( InitGmapsLayers_Create(8,  15, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW") );
-    x.push( InitGmapsLayers_Create(9,  15, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW") );
-    x.push( InitGmapsLayers_Create(2,  17, 1.0, 512, "http://safecast.media.mit.edu/tilemap/tiles20130415sc") );
-    x.push( InitGmapsLayers_Create(2,  17, 1.0, 512, "http://safecast.media.mit.edu/tilemap/tiles20140311sc") );
-    
-    return x;
-}
 
 function InitGmapsLayers()
 {
-    if (overlayMaps == null) overlayMaps = InitGmapsLayers_CreateAll();
+    if (overlayMaps == null) overlayMaps = ClientZoomHelper.InitGmapsLayers_CreateAll();
 }
 
 
@@ -442,8 +335,8 @@ function NewGmapsBasemapConst(tile_size, alt, name, tile_url) // single tile for
 
 function InitBasemaps()
 {
-    tonerMapType  = NewGmapsBasemap(0, 19, 256, false, null, "Stamen Toner", "http://tile.stamen.com/toner");
-    tliteMapType  = NewGmapsBasemap(0, 19, 256, false, null, "Stamen Toner Lite", "http://tile.stamen.com/toner-lite");
+    tonerMapType  = NewGmapsBasemap(0, 19, 256, true, null, "Stamen Toner", "http://tile.stamen.com/toner");
+    tliteMapType  = NewGmapsBasemap(0, 19, 256, true, null, "Stamen Toner Lite", "http://tile.stamen.com/toner-lite");
     wcolorMapType = NewGmapsBasemap(0, 19, 256, false, null, "Stamen Watercolor", "http://tile.stamen.com/watercolor");
     mapnikMapType = NewGmapsBasemap(0, 19, 256, true,  null, "OpenStreetMap", "http://tile.openstreetmap.org");
     pureBlackMapType = NewGmapsBasemapConst(256, "Pure Black World Tendency", "None (Black)", "http://safecast.media.mit.edu/tilemap/black.png");
@@ -561,6 +454,64 @@ function InitShowLocationIfDefault()
 
 
 
+    function SetStyleFromCSS(sel, t, css)
+    {
+        var d = false;
+        
+        for (var i=0; i<document.styleSheets.length; i++)
+        {
+            var r = document.styleSheets[i].href == null ? (document.styleSheets[i].cssRules || document.styleSheets[i].rules || new Array()) : new Array();
+
+            for (var n in r)
+            {
+                if (r[n].type == t && r[n].selectorText == sel)
+                {
+                    r[n].style.cssText = css;
+                    d = true;
+                    break;
+                }//if
+            }//for
+        
+            if (d) break;
+        }//for
+    }//GetStyleFromCSS
+    
+    
+    
+    function GetCssForScaler(s)
+    {
+        var ir = "image-rendering:";
+        var a = new Array();
+
+        a.push([1, ir+"optimizeSpeed;"]);
+        a.push([1, ir+"-moz-crisp-edges;"]);
+        a.push([1, ir+"-o-crisp-edges;"]);
+        a.push([1, ir+"-webkit-optimize-contrast;"]);
+        a.push([1, ir+"optimize-contrast;"]);
+        a.push([1, ir+"crisp-edges;"]);
+        a.push([1, ir+"pixelated;"]);
+        a.push([1, "-ms-interpolation-mode:nearest-neighbor;"]);
+
+        var d = "";
+        
+        for (var i=0; i<a.length; i++)
+        {
+            if (a[i][0] <= s) d += a[i][1] + " \n ";
+        }//for
+
+        return d;
+    }//GetCssForScaler
+    
+
+    
+    function ToggleScaler()
+    {
+        _img_scaler_idx = _img_scaler_idx == 1 ? 0 : _img_scaler_idx + 1;
+        
+        var css = GetCssForScaler(_img_scaler_idx);
+        SetStyleFromCSS(".noblur img", 1, css);
+    }//ToggleScaler
+
 
 
 function InitMainMenu() 
@@ -572,16 +523,15 @@ function InitMainMenu()
     menu.id = "mainMenu";
     menu.style.display = "none";
 
-    menu.innerHTML = //'<li id="menuToggleRasters"><a href="#toggleRasters" class="FuturaFont" title="Add or remove the currently selected raster layer.">Tiles On/Off</a></li>'
-                     '<li id="menuToggleRetina"><a href="#toggleRetina" class="FuturaFont" title="This only has an effect on HDPI / Retina displays.">HDPI Tiles On/Off</a></li>'
+    menu.innerHTML = '<li id="menuToggleRetina"><a href="#toggleRetina" class="FuturaFont" title="Disabling this can make small points easier to see at the cost of resolution.">HDPI Tiles On/Off</a></li>'
                    + '<li class="separator"></li>'
                    + '<li id="menuToggleSensors"><a href="#toggleSensors" class="FuturaFont" title="Add or remove RT sensor icons.">RT Sensors On/Off</a></li>'
                    + '<li id="menuToggleScale"><a href="#toggleScale" class="FuturaFont" title="Show or hide the LUT scale in the lower-right corner.">Scale On/Off</a></li>'
                    + '<li class="separator"></li>'
-                   + '<li><a href="#apiQuery" class="FuturaFont" title="Perform API query for the centroid of the visible extent.  For touch devices.  Use reticle to aim.">API Query @ Center</a></li>';
-    //+ '<li id="menuGetFullUrlSeparator" class="separator"></li>'
-    //+ '<li id="menuGetFullUrl"><a href="#getFullUrl" class="FuturaFont" title="Temporarily get full URL for map, bypassing normal logids limit.">Get Full Map URL</a></li>';
-    
+                   + '<li><a href="#apiQuery" class="FuturaFont" title="Perform API query for the centroid of the visible extent.  For touch devices.  Use reticle to aim.">API Query @ Center</a></li>'
+                   + '<li class="separator"></li>'
+                   + '<li id="menuToggleScaler"><a href="#toggleScaler" class="FuturaFont" title="Increases sharpness at the cost of aliasing.  Bilinear or bicubic are used if disabled.">Toggle Tile Scaler</a></li>';
+
     document.body.appendChild(menu);
 
     var fxShowMenu = function(e)
@@ -590,15 +540,11 @@ function InitMainMenu()
         AnimateElementFadeIn(menu, -1.0, 0.166666666667);
         menu.style.top  = "30px";
         menu.style.left = "30px";
-        //var log_n = _bvProxy.GetLogCount();
-        
-        //document.getElementById("menuToggleRasters").firstChild.innerHTML = map.overlayMapTypes.getLength() > 0 ? "Tiles Off" : "Tiles On";
-        document.getElementById("menuToggleSensors").firstChild.innerHTML = _rtvm != null && _rtvm.GetMarkerCount() > 0 ? "Sensors Off" : "Sensors On";
-        document.getElementById("menuToggleScale").firstChild.innerHTML   = document.getElementById("imgScale").style.display == "none" ? "Scale On" : "Scale Off";
-        document.getElementById("menuToggleRetina").firstChild.innerHTML  = _no_hdpi_tiles ? "HDPI Tiles On" : "HDPI Tiles Off";
+        document.getElementById("menuToggleSensors").firstChild.innerHTML = "<input type=checkbox" + (_rtvm != null && _rtvm.GetMarkerCount() > 0 ? " checked=checked" : "") + "> Sensor Markers";
+        document.getElementById("menuToggleScale").firstChild.innerHTML = "<input type=checkbox" + (document.getElementById("imgScale").style.display != "none" ? " checked=checked" : "") + "> Map Scale";
+        document.getElementById("menuToggleRetina").firstChild.innerHTML = "<input type=checkbox" + (!_no_hdpi_tiles ? " checked=checked" : "") + "> HDPI Tiles";
         document.getElementById("menuToggleRetina").style.display         = window.devicePixelRatio > 1.5 ? null : "none";
-        //document.getElementById("menuGetFullUrl").style.display           = log_n > 25 ? null : "none";
-        //document.getElementById("menuGetFullUrlSeparator").style.display  = log_n > 25 ? null : "none";
+        document.getElementById("menuToggleScaler").firstChild.innerHTML = "<input type=checkbox" + (_img_scaler_idx > 0 ? " checked=checked" : "") + "> NN Tile Scaler";
     };
 
     document.getElementById("logo271").addEventListener("click", fxShowMenu, false);
@@ -609,12 +555,9 @@ function InitMainMenu()
         var retVal = false;                        
         switch (action) 
         {
-            //case "getFullUrl":
-            //    var url = GetMapQueryStringUrl(true);
-            //    url = url.replace("#getFullUrl","");
-            //    console.log(url);
-            //    history.pushState(null, null, url);
-            //    break;
+            case "toggleScaler":
+                ToggleScaler();
+                break;
             case "toggleSensors":
                 if (_rtvm != null)
                 {
@@ -630,10 +573,6 @@ function InitMainMenu()
                     }//else
                 }//if
                 break;
-            //case "toggleRasters":
-            //    if (map.overlayMapTypes.getLength() > 0) RemoveAllRasterLayersFromInstanceMap();
-            //    else SynchronizeInstanceSelectedLayerAndInstanceMap();
-            //    break;
             case "toggleScale":
                 var simg = document.getElementById("imgScale");
                 simg.style.display = simg.style.display == null || simg.style.display.length == 0 ? "none" : null;
@@ -644,6 +583,8 @@ function InitMainMenu()
                 overlayMaps = null;
                 InitGmapsLayers();
                 SynchronizeInstanceSelectedLayerAndInstanceMap();
+                var c = GetMapInstanceYXZ();
+                ClientZoomHelper.SynchronizeLayersToZoomLevel(c.z);
                 break;
             case "apiQuery":
                 var yx = GetNormalizedMapCentroid();
@@ -709,15 +650,6 @@ function InitContextMenu()
                        + '<li><a href="#centerHere" class="FuturaFont">Center Map Here</a></li>'
                        + '<li class="separator"></li>'
                        + '<li><a href="#zoomLimitBreak" class="FuturaFont">Zoom Limit Break</a></li>';
-                       // 2015-09-07 ND: Disabling due to legacy code breaking with 512x512 bitmap index support.
-                       //                Todo: recode.
-                       /*
-                       + '<li class="separator"></li>'
-                       + (LOCAL_TEST_MODE ? '<li><a href="#showIndices2" class="FuturaFont">Bitmap Index Visualization</a></li>'
-                                          : '<li><a href="index.html?showIndices=2" target="_blank" class="FuturaFont">Bitmap Index Visualization</a></li>')
-                       + (LOCAL_TEST_MODE ? '<li><a href="#showIndices1" class="FuturaFont">Show All Indices</a></li>'
-                                          : '<li><a href="index.html?showIndices=1" target="_blank" class="FuturaFont">Show All Indices</a></li>');
-                        */
     document.getElementById("map_canvas").appendChild(cm);
 
     var clickLL;
@@ -891,9 +823,9 @@ function GetAboutContentAsync()
 {
     var el = document.getElementById("popup");
     if (el.innerHTML != null && el.innerHTML.length > 0) return;
-    InjectLoadingSpinner(el, "#000", 2, 38);
+    LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
 
-    var url = "about_inline.html";
+    var url = GetContentBaseUrl() + "about_inline.html";
     var req = new XMLHttpRequest();
     req.open("GET", url, true);
     req.onreadystatechange = function()
@@ -910,13 +842,10 @@ function Layers_OnChange()
 {
     var newIdx = GetCurrentInstanceSelectedLayerIdx();
     
-    //if (document.getElementById("layers").selectedIndex == _lastLayerIdx) return;
     if (newIdx == _lastLayerIdx) return;
 
-    //if (document.getElementById("layers").selectedIndex == 10) // hack, todo: fix it
     if (IsLayerIdxAddLog(newIdx))
     {
-        //document.getElementById("layers").selectedIndex = _lastLayerIdx;
         SetCurrentInstanceSelectedLayerIdx(_lastLayerIdx);
         ApplyAndSetZoomLimitBreakIfNeeded();
         _bvProxy.ShowAddLogsPanel();
@@ -924,8 +853,6 @@ function Layers_OnChange()
     else
     {    
         // 2015-02-12 ND: don't init bitstores for other layers until needed.
-        //var idx = document.getElementById("layers").selectedIndex; // unused
-        
         _bitsProxy.LegacyInitForSelection();
         
         SynchronizeInstanceSelectedLayerAndInstanceMap();
@@ -934,7 +861,6 @@ function Layers_OnChange()
         
         if (!IsLayerIdxNull(newIdx))
         {    
-            //FlyToExtent.GoToPresetLocationIdIfNeeded(document.getElementById("layers").selectedIndex);
             FlyToExtent.GoToPresetLocationIdIfNeeded(newIdx);
         }//if
     }//else
@@ -986,12 +912,196 @@ function GetMapQueryStringUrl(isFull)
     var url = q.urlyxz;
     
     if (q.lidx > 0)        url += "&l=" + q.lidx;
-    if (_zoom_limit_break) url += "&b=1";
+    //if (_zoom_limit_break) url += "&b=1";
     if (q.midx > 0)        url += "&m=" + q.midx;
     if (logs != null && logs.length > 0) url += "&logids=" + logs;
     
     return url;
 }
+
+var ClientZoomHelper = (function()
+{
+    function ClientZoomHelper() 
+    {
+    }
+    
+    ClientZoomHelper.fxGetNormalizedCoord  = function(xy, z)   { return GetNormalizedCoord(xy, z); }; // static
+    ClientZoomHelper.fxShouldLoadTile      = function(l,x,y,z) { return _bitsProxy.ShouldLoadTile(l, x, y, z); };
+    ClientZoomHelper.fxGetIsRetina         = function()        { return GetIsRetina(); };
+    ClientZoomHelper.fxGetSelectedLayerIdx = function()        { return GetCurrentInstanceSelectedLayerIdx(); };
+    ClientZoomHelper.fxClearMapLayers      = function()        { map.overlayMapTypes.clear(); };
+    ClientZoomHelper.fxSyncMapLayers       = function()        { SynchronizeInstanceSelectedLayerAndInstanceMap(); };
+    ClientZoomHelper.fxGetLayers           = function()        { return overlayMaps; };
+    
+    
+    ClientZoomHelper.GetUrlForTile512 = function(xy, z, layerId, normal_max_z, base_url, idx)
+    {
+        z = ClientZoomHelper.GetClampedZoomLevelForIdx(idx, z); // moved to top to test non-retina fix
+    
+        if (!ClientZoomHelper.fxGetIsRetina() && z > 0 && z < normal_max_z) z -= 1;
+    
+        var nXY = ClientZoomHelper.fxGetNormalizedCoord(xy, z);
+    
+        if (!nXY || !ClientZoomHelper.fxShouldLoadTile(layerId, nXY.x, nXY.y, z))
+        {
+            return null;
+        }//if
+        
+        /*
+        if (base_url.indexOf("media.mit.edu") > -1)
+        {
+            return base_url + "512/" + z + "/" + nXY.x + "/" + nXY.y + ".png";
+        }
+        else
+        {
+            return base_url + "/" + z + "/" + nXY.x + "/" + nXY.y + ".png";
+        }
+        */
+        return ClientZoomHelper.GetUrlFromTemplate(base_url, nXY.x, nXY.y, z);
+    };
+    
+    
+    
+    ClientZoomHelper.GetUrlForTile256 = function(xy, z, layerId, normal_max_z, base_url, idx)
+    {
+        z       = ClientZoomHelper.GetClampedZoomLevelForIdx(idx, z);
+        var nXY = ClientZoomHelper.fxGetNormalizedCoord(xy, z);
+    
+        if (!nXY || !ClientZoomHelper.fxShouldLoadTile(layerId, nXY.x, nXY.y, z))
+        {
+            return null;
+        }//if
+
+        //return base_url + "/" + z + "/" + nXY.x + "/" + nXY.y + ".png";
+        return ClientZoomHelper.GetUrlFromTemplate(base_url, nXY.x, nXY.y, z);
+    };
+    
+    
+    
+    ClientZoomHelper.SynchronizeLayersToZoomLevel = function(z)
+    {
+        var o       = ClientZoomHelper.fxGetLayers();
+        if (o == null) return;
+        
+        var hdpi    = ClientZoomHelper.fxGetIsRetina();
+        var cleared = false;        
+        var idx     = ClientZoomHelper.fxGetSelectedLayerIdx();
+        var i, lz, lr, sz;
+    
+        for (i=0; i<o.length; i++)
+        {
+            if (i == idx || (idx == 0 && i == 2))
+            {
+                lz = o[i].ext_tile_size > 256 && !hdpi && z < o[i].ext_actual_max_z ? z - 1 : z;  //  z--   for 512x512 tiles on non-retina displays only
+                lr = o[i].ext_tile_size > 256 &&  hdpi ? 1     : 0;  // px>>=1 for 512x512 tiles on     retina displays only
+                sz = -1;
+        
+                if (o[i].ext_actual_max_z < lz)
+                {
+                    sz = o[i].ext_tile_size << (lz - o[i].ext_actual_max_z);
+                }//if
+                else if (o[i].ext_actual_max_z     >= lz 
+                      && o[i].ext_tile_size >>> lr != o[i].tileSize.width)
+                {
+                    sz = o[i].ext_tile_size;
+                }//else if
+                
+                if (sz != -1)
+                {
+                    if (hdpi) sz >>>= lr; // rescale to retina display
+                
+                    if (!cleared) 
+                    { 
+                        ClientZoomHelper.fxClearMapLayers(); // must be cleared before the first size is set
+                        cleared = true; 
+                    }//if
+                    
+                    o[i].tileSize = new google.maps.Size(sz, sz);
+                }//if
+            }//if        
+        }//for
+
+        if (cleared) ClientZoomHelper.fxSyncMapLayers(); // must re-add to map to finally take effect
+    };
+    
+    
+    
+    ClientZoomHelper.GetClampedZoomLevelForIdx = function(idx, z)
+    {
+        var o  = ClientZoomHelper.fxGetLayers();
+        var dz = o == null || z <= o[idx].ext_actual_max_z ? z : o[idx].ext_actual_max_z;        
+        return dz;
+    };
+    
+    
+    
+    // layerId is for bitstores. a proxy layerId should be used for similar secondary layers to reduce memory use.
+    ClientZoomHelper.InitGmapsLayers_Create = function(idx, layerId, maxz, alpha, tile_size, url)
+    {
+        var o = { opacity:alpha, 
+             ext_layer_id:layerId, 
+         //ext_url_template:url+(tile_size == 512 && url.indexOf("safecast.media.mit.edu") > -1 ? "512" : "") + "/{z}/{x}/{y}.png",
+         ext_url_template:url,
+         ext_actual_max_z:(tile_size == 512 ? maxz-1 : maxz),
+            ext_tile_size:tile_size,
+                  ext_idx:idx};
+    
+        if (tile_size == 512)
+        {
+            o.getTileUrl = function (xy, z) { return ClientZoomHelper.GetUrlForTile512(xy, z, layerId, maxz, url, idx); };
+            o.tileSize   = new google.maps.Size(512, 512);
+        }//if
+        else
+        {
+            o.getTileUrl = function (xy, z) { return ClientZoomHelper.GetUrlForTile256(xy, z, layerId, maxz, url, idx); };
+            o.tileSize   = new google.maps.Size(256, 256);
+        }//else
+    
+        return o;
+    };
+    
+    ClientZoomHelper.GetUrlFromTemplate = function(template, x, y, z)
+    {
+        var url = "" + template;
+            url = url.replace(/{x}/g, ""+x);
+            url = url.replace(/{y}/g, ""+y);
+            url = url.replace(/{z}/g, ""+z);
+            
+        return url;
+    };
+
+    ClientZoomHelper.InitGmapsLayers_CreateAll = function()
+    {
+        var x = new Array();
+        var zs = 0;//-1;
+        
+        var te512url = "http://te512" + (_use_jp_region ? "jp" : "") + ".safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        var tg512url = "http://tg512" + (_use_jp_region ? "jp" : "") + ".safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+       
+        //var te512url = is_jp ? "http://te512jp.safecast.org.s3.amazonaws.com" : "http://safecast.media.mit.edu/tilemap/TileExport";
+        //var tg512url = is_jp ? "http://tg512jp.safecast.org.s3.amazonaws.com" : "http://safecast.media.mit.edu/tilemap/TileGriddata";
+        
+        //x.push( ClientZoomHelper.InitGmapsLayers_Create( 0, 2,  17+zs, 1.0, 512, "http://safecast.media.mit.edu/tilemap/TileExport") );
+        //x.push( ClientZoomHelper.InitGmapsLayers_Create( 1, 2,  17+zs, 0.8, 512, "http://safecast.media.mit.edu/tilemap/TileExport") );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 0, 2,  17+zs, 1.0, 512, te512url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 1, 2,  17+zs, 1.0, 512, te512url) );
+        //x.push( ClientZoomHelper.InitGmapsLayers_Create( 2, 8,  15+zs, 0.5, 512, "http://safecast.media.mit.edu/tilemap/TileGriddata") );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 2, 8,  15+zs, 0.5, 512, tg512url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 3, 3,  16+zs, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TileExportNNSA/{z}/{x}/{y}.png") );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 4, 6,  12+zs, 0.7, 256, "http://safecast.media.mit.edu/tilemap/TileExportNURE/{z}/{x}/{y}.png") );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 5, 16, 12+zs, 0.7, 256, "http://safecast.media.mit.edu/tilemap/TileExportAU/{z}/{x}/{y}.png") );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 6, 9,  12+zs, 0.7, 256, "http://safecast.media.mit.edu/tilemap/TileExportAIST/{z}/{x}/{y}.png") );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 7, 9,  15+zs, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW/{z}/{x}/{y}.png") );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 8, 2,  17+zs, 1.0, 512, "http://safecast.media.mit.edu/tilemap/tiles20130415sc512/{z}/{x}/{y}.png") );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 9, 2,  17+zs, 1.0, 512, "http://safecast.media.mit.edu/tilemap/tiles20140311sc512/{z}/{x}/{y}.png") );
+    
+        return x;
+    };
+    
+    
+    return ClientZoomHelper;
+})();
+
 
 function MapExtent_OnChange(eventId)
 {
@@ -1012,10 +1122,10 @@ function MapExtent_OnChange(eventId)
     var updateLatLon  = initLoad || eventId  < 2 || eventId == 300;
     var updateZ       = initLoad || eventId == 1;
     var updateLayers  = initLoad || eventId == 100;
+    var c             = null;
     
     if (updateLayers)
     {
-        //q.lidx = document.getElementById("layers").selectedIndex;
         q.lidx = GetCurrentInstanceSelectedLayerIdx();
     }//if
 
@@ -1033,6 +1143,18 @@ function MapExtent_OnChange(eventId)
         
         if (!initLoad && map.overlayMapTypes.getLength() > 0) SynchronizeInstanceSelectedLayerAndInstanceMap(); // reload overlay if basemap changes
     }//if
+    
+    
+    
+    if (updateZ || updateLayers || updateBasemap) // zoom_changed
+    {
+        //console.log("MapExtent_OnChange: Applying zoom hack...");
+        c = GetMapInstanceYXZ();
+        ClientZoomHelper.SynchronizeLayersToZoomLevel(c.z);
+        //ApplyZoomHack(c.z);
+    }//if
+    
+    
     
     // *** HACK *** For pure black/white tiles (eg, no base "map"), there is an exception
     //              to setting the alpha of certain layers.
@@ -1059,12 +1181,13 @@ function MapExtent_OnChange(eventId)
         
     if (updateLatLon || updateZ)
     {
-        var c = GetMapInstanceYXZ();
+        if (c == null) c = GetMapInstanceYXZ();
         q.urlyxz = q.baseurl + ("?y=" + c.y) + ("&x=" + c.x) + ("&z=" + c.z);
     }//if
     
     var url = GetMapQueryStringUrl(true); // 2015-03-30 ND: false -> true so all logids are present, must test performance
 
+    if (!initLoad)
     history.pushState(null, null, url);
 }//MapExtent_OnChange
 
@@ -1405,7 +1528,7 @@ function SynchronizeInstanceSelectedLayerAndInstanceMap()
 
 function GetDogeTileForXY(x, y)
 {
-    return x % 2 == 0 || y % 2 == 0 ? "dogetile2.png" : "dogetile_cyanhalo.png";
+    return GetContentBaseUrl() + (x % 2 == 0 || y % 2 == 0 ? "dogetile2.png" : "dogetile_cyanhalo.png");
 }
 
 // supports showing the bitmap indices, which is contained in legacy code
@@ -1575,7 +1698,7 @@ function RtViewer_Init()
             _rtvm = new RTVM(map, null);
         };
         
-        RequireJS("rt_viewer_min.js", true, cb, null);
+        RequireJS(GetContentBaseUrl() + "rt_viewer_min.js", true, cb, null);
     }//if
 }//RtViewer_Init
 
@@ -1681,7 +1804,13 @@ var BitsProxy = (function()
     BitsProxy.prototype.Init_LayerId02 = function()
     {
         //var url   = "http://safecast.media.mit.edu/tilemap/TileExport/{z}/{x}/{y}.png";
-        var url   = "http://safecast.media.mit.edu/tilemap/TileExport512/{z}/{x}/{y}.png";
+        //var url   = "http://safecast.media.mit.edu/tilemap/TileExport512/{z}/{x}/{y}.png";
+        //var url   = "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
+        var url   = _use_jp_region ? "http://te512jp.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png" : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
+        
+        //var url   = is_jp ? "http://te512jp.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png" : "http://safecast.media.mit.edu/tilemap/TileExport512/{z}/{x}/{y}.png";        
+
         var opts2 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, maxz:4, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb2  = function(dstr)
         {
@@ -1703,13 +1832,19 @@ var BitsProxy = (function()
             }//if
         }.bind(this);
     
-        this._layerBitstores.push(new LBITS(2, 0, 17, url, 0, 0, opts2, dcb2));
+        this._layerBitstores.push(new LBITS(2, 0, 16, url, 0, 0, opts2, dcb2));
     };
 
     BitsProxy.prototype.Init_LayerId08 = function()
     {
         //var url   = "http://safecast.media.mit.edu/tilemap/TileGriddata/{z}/{x}/{y}.png";
-        var url   = "http://safecast.media.mit.edu/tilemap/TileGriddata512/{z}/{x}/{y}.png";
+        //var url   = "http://safecast.media.mit.edu/tilemap/TileGriddata512/{z}/{x}/{y}.png";
+        //var url   = "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
+        var url   = _use_jp_region ? "http://tg512jp.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png" : "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
+        //var url   = is_jp ? "http://tg512jp.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png" : "http://safecast.media.mit.edu/tilemap/TileGriddata512/{z}/{x}/{y}.png";
+        
         var opts8 = new LBITSOptions({ lldim:1, ll:1, multi:1, maxz:5, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb8  = function(dstr)
         {
@@ -1718,7 +1853,7 @@ var BitsProxy = (function()
             {
                 //this.ddlLayers[2].text += " " + dstr;
                 
-                for (var i=0; i<this.ddlLayers.options.length; i++)
+                for (var i=0; i<this.ddlLayers.options.length; i++) 
                 {
                     var o = this.ddlLayers.options[i];
             
@@ -1731,7 +1866,7 @@ var BitsProxy = (function()
             }//if
         }.bind(this);
     
-        this._layerBitstores.push(new LBITS(8, 2, 15, url, 3, 1, opts8, dcb8));
+        this._layerBitstores.push(new LBITS(8, 2, 14, url, 3, 1, opts8, dcb8));
     };
 
     BitsProxy.prototype.Init_LayerId03 = function()
@@ -2052,8 +2187,8 @@ var BitsProxy = (function()
         v[2]  += v[0];
         v[3]  += v[1];
     };
-    
-    BitsProxy.relsrc = "bitstore_min.js";
+        
+    BitsProxy.relsrc = GetContentBaseUrl() + "bitstore_min.js";
     BitsProxy.bitsrc = "http://safecast.org/tilemap/bitstore_min.js";
     BitsProxy.pngsrc = "http://safecast.org/tilemap/png_zlib_worker_min.js";
     
@@ -2108,12 +2243,12 @@ var HudProxy = (function()
         }//if
         else
         {
+            var el = document.getElementById("hud_canvas");
+            el.style.cssText = "position:absolute;display:block;top:0;bottom:0;left:0;right:0;width:144px;height:144px;margin:auto;";
+            LoadingSpinnerHelper.InjectLoadingSpinner(el, "#FFF", 2, 144);
+        
             var cb = function()
             {
-                var el = document.getElementById("hud_canvas");
-                el.style.cssText = "position:absolute;display:block;top:0;bottom:0;left:0;right:0;width:144px;height:144px;margin:auto;";
-                InjectLoadingSpinner(el, "#FFF", 2, 144);
-                
                 this._hud = new HUD(map, el);
                 this._hud.SetFxCheckBitstores(function(layerId, x, y, z) { return _bitsProxy.ShouldLoadTile(layerId, x, y, z); }.bind(this));
                 
@@ -2125,7 +2260,7 @@ var HudProxy = (function()
                 fxCallback(userData);
             }.bind(this);
 
-            RequireJS("hud_min.js", true, cb, null);
+            RequireJS(GetContentBaseUrl() + "hud_min.js", true, cb, null);
         }//else
     };
     
@@ -2191,7 +2326,7 @@ var BvProxy = (function()
         
         this.fxSwapClassToHideElId  = function(elementid, classHidden, classVisible, isHidden) { SwapClassToHideElId(elementid, classHidden, classVisible, isHidden); }.bind(this);
         this.fxRequireJS            = function(url, isAsync, fxCallback, userData) { RequireJS(url, isAsync, fxCallback, userData); }.bind(this);
-        this.fxInjectLoadingSpinner = function(el, color, str_w, size_px) { InjectLoadingSpinner(el, color, str_w, size_px); }.bind(this);
+        this.fxInjectLoadingSpinner = function(el, color, str_w, size_px) { LoadingSpinnerHelper.InjectLoadingSpinner(el, color, str_w, size_px); }.bind(this);
         this.fxUpdateMapExtent      = function() { MapExtent_OnChange(200); }.bind(this);
     }
     
@@ -2213,7 +2348,7 @@ var BvProxy = (function()
                 this.GetUiContentStylesAsync(fxCallback, userData);
             }.bind(this);
         
-            this.fxRequireJS("bgeigie_viewer_min.js", true, cb, null);
+            this.fxRequireJS(GetContentBaseUrl() + "bgeigie_viewer_min.js", true, cb, null);
         }//else
     };
     
@@ -2223,7 +2358,7 @@ var BvProxy = (function()
         if (this._noreqs) return;
         
         var i = document.getElementById("bv_bvImgPreview");
-        if (i.src == null || i.src.length == 0) i.src = "bgpreview_118x211.png";
+        if (i.src == null || i.src.length == 0) i.src = GetContentBaseUrl() + "bgpreview_118x211.png";
     
         BvProxy.aListId("bv_btnDoneX", "click", function() { this.btnDoneOnClick(); }.bind(this) );
         BvProxy.aListId("bv_btnOptions", "click", function() { this.UI_ShowAdvPanel(); }.bind(this) );
@@ -2468,7 +2603,7 @@ var BvProxy = (function()
             return; 
         }//if
         
-        var url = "bgeigie_viewer_inline.html";
+        var url = GetContentBaseUrl() + "bgeigie_viewer_inline.html";
         var req = new XMLHttpRequest();
         req.open("GET", url, true);
         req.onreadystatechange = function()
@@ -2505,7 +2640,7 @@ var BvProxy = (function()
         this.fxInjectLoadingSpinner(e2, "#FFF", 2, 144);
         document.body.appendChild(e2);
 
-        var url = "bgeigie_viewer_inline.css";
+        var url = GetContentBaseUrl() + "bgeigie_viewer_inline.css";
         var req = new XMLHttpRequest();
         req.open("GET", url, true);
         req.onreadystatechange = function()
@@ -2523,15 +2658,6 @@ var BvProxy = (function()
         req.send(null);
     };
     
-    /*
-    BvProxy.prototype.fxSwapClassToHideElId = function(elementid, classHidden, classVisible, isHidden)
-    {
-        var el = document.getElementById(elementid);
-        if       (el != null &&  isHidden && el.className == classVisible) el.className = classHidden;
-        else if  (el != null && !isHidden && el.className == classHidden)  el.className = classVisible;
-    };
-    */
-
     // === static/class ===
     
     BvProxy.GetApiDateTimeParam = function(rfc_date, isStartDate) 
@@ -2580,7 +2706,6 @@ var BvProxy = (function()
 
     return BvProxy;
 })();
-
 
 
 
@@ -2674,7 +2799,7 @@ var FlyToExtent = (function()
     // first, don't bother if the user is already looking at it.
     
     var vis        = FlyToExtent.GetCurrentVisibleExtent();
-    var already_in = vis[6] <= z; // past max zoom level isn't in, at all.
+    var already_in = true;//vis[6] <= z; // past max zoom level isn't in, at all.
     
     if (already_in)
     {
@@ -2985,7 +3110,6 @@ function ShowLocationText(txt)
     es.margin = "auto";
     es.textAlign = "center";
     es.opacity = 0.0;
-    //el.style.cssText = "position:absolute;display:block;top:0px;bottom:0px;left:0px;right:0px;width:"+el_width.toFixed(0)+"px;height:"+el_height.toFixed(0)+"px;margin:auto;text-align:center;opacity:0.0;";
     
     var el2 = document.createElement("div");
     var es2 = el2.style;
@@ -3017,7 +3141,6 @@ function ShowLocationText(txt)
     es3.margin = "auto";
     es3.border = "1px solid #000";
     es3.backgroundColor = "#FFF";
-    //es3.boxShadow = "0px 0px 5px #000";
     es3.zIndex = "0";
     el.appendChild(el3);
     
@@ -3087,40 +3210,108 @@ function AnimateElementFadeOut(el, opacity, stride)
     if (opacity  > 0.0) requestAnimationFrame(function() { AnimateElementFadeOut(el, opacity, stride) });
 }
 
-function InjectLoadingSpinner(el, color, str_w, px_size) // str_w must be 2, unfortunately.
+
+var LoadingSpinnerHelper = (function()
 {
-    if (color == null) color = "#000";
-    if (str_w == null) str_w = "2";
-    var wh = px_size == null ? 38 : parseInt(px_size);
+    function LoadingSpinnerHelper() 
+    {
+    }
+        
+    LoadingSpinnerHelper.DoesStyleExist = function(src, t)
+    {
+        var d = false;
     
-    el.innerHTML = "<div style='position:absolute;top:0;bottom:0;left:0;right:0;display:block;margin:auto;width:"+wh+"px;height:"+wh+"px;vertical-align:middle;text-align:center;pointer-events:none;'>"
-        + "<svg width='"+wh+"' height='"+wh+"' viewBox='0 0 38 38' xmlns='http://www.w3.org/2000/svg' stroke='"+color+"'>"
-        + "<g fill='none' fill-rule='evenodd'><g transform='translate(1 1)' stroke-width='" + str_w + "'>"
-        + "<circle stroke-opacity='.5' cx='18' cy='18' r='18'/>"
-        + "<path d='M36 18c0-9.94-8.06-18-18-18'>"
-        + "<animateTransform attributeName='transform' type='rotate' from='0 18 18' to='360 18 18' dur='1s' repeatCount='indefinite'/>"
-        + "</path></g></g></svg>"
-        + "</div>";
-}
+        for (var i=0; i<document.styleSheets.length; i++)
+        {
+            var r = document.styleSheets[i].cssRules || document.styleSheets[i].rules || new Array();
+
+            for (var n in r)
+            {
+                if (r[n].type == t && r[n].name == src)
+                {
+                    d = true;
+                    break;
+                }//if
+            }//for
+        
+            if (d) break;
+        }//for
+    
+        return d;
+    };
+    
+    LoadingSpinnerHelper.InjectLoadingSpinnerStyleIfNeeded = function()
+    {
+        if (LoadingSpinnerHelper.DoesStyleExist("animation-ls-rotate", window.CSSRule.KEYFRAMES_RULE)) return;
+    
+        var kfn = "keyframes animation-ls-rotate { 100% { ";
+        var trr = "transform: rotate(360deg); } }" + " \n ";
+    
+        var css = "@-webkit-" + kfn + "-webkit-" + trr
+                + "@-moz-"    + kfn + "-moz-"    + trr
+                + "@-o-"      + kfn + "-o-"      + trr
+                + "@"         + kfn              + trr;
+    
+        var els       = document.createElement("style");
+        els.type      = "text/css";
+        els.innerHTML = css;
+        document.getElementsByTagName("head")[0].appendChild(els);
+    };
+    
+    LoadingSpinnerHelper.GetHexC = function(s,i)
+    {
+        return parseInt("0x" + (s!=null&&s.length==4 ? s.substring(i+1,i+2)+s.substring(i+1,i+2) : s!=null&&s.length==7?s.substring(i*2+1,i*2+3) : "0") );
+    };
+
+    LoadingSpinnerHelper.HexColorToRGBA = function(src, a)
+    {
+        return "rgba(" + LoadingSpinnerHelper.GetHexC(src,0) + ", " + LoadingSpinnerHelper.GetHexC(src,1) + ", " + LoadingSpinnerHelper.GetHexC(src,2) + ", " + a + ")";
+    };
+    
+    LoadingSpinnerHelper.InjectLoadingSpinner = function(el, color, str_w, px_size)
+    {
+        if (color == null) color = "#000";
+        if (str_w == null) str_w = "2";
+        var wh = px_size == null ? 38 : parseInt(px_size);
+    
+        if (px_size > 18) px_size -= 16; // correct for CSS-SVG diffs
+        str_w += 6;                      // correct for CSS-SVG diffs
+    
+        var c0 = LoadingSpinnerHelper.HexColorToRGBA(color, 0.5);
+        var c1 = LoadingSpinnerHelper.HexColorToRGBA(color, 1.0);
+
+        LoadingSpinnerHelper.InjectLoadingSpinnerStyleIfNeeded();
+        
+        var anim = "animation: animation-ls-rotate 1000ms linear infinite;";
+        var bdr  = "border-radius: 999px;";
+    
+        var css =  "position:absolute;top:0;bottom:0;left:0;right:0;display:block;margin:auto;"
+                     + "vertical-align:middle;text-align:center;pointer-events:none;"
+                     + "width:" + wh + "px;"
+                     + "height:"+ wh + "px;"
+                     + "border: " + str_w + "px"
+                     + " solid "  + c0 + ";"
+                     + "border-left-color: " + c1 + ";"
+                     + "-webkit-" + bdr
+                     +    "-moz-" + bdr
+                     +            + bdr
+                     + "-webkit-" + anim
+                     +    "-moz-" + anim
+                     +      "-o-" + anim
+                     +              anim;
+        
+        var div = document.createElement("div");
+        div.style.cssText = css;
+
+        while (el.firstChild) 
+        {
+            el.removeChild(el.firstChild);
+        }//while
+    
+        el.appendChild(div); // don't contaminate styles of parent element
+    };
+    
+    return LoadingSpinnerHelper;
+})();
 
 
-
-
-
-
-
-                                 
-/*
-function CheckEndian()
-{
-    var a = new ArrayBuffer(4);
-    var b = new Uint8Array(a);
-    var c = new Uint32Array(a);
-    b[0]  = 0xa1;
-    b[1]  = 0xb2;
-    b[2]  = 0xc3;
-    b[3]  = 0xd4;
-    if(c[0] == 0xd4c3b2a1) console.log('little endian');
-    if(c[0] == 0xa1b2c3d4) console.log('big endian');
-}//CheckEndian
-*/
