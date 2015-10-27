@@ -219,7 +219,7 @@ hud.js is loaded only on-demand.
 
 #### scale64_60x854.png
 
-scale64_854x60.png is the symbology scale displayed at the bottom-right hand corner of the screen.
+scale64_60x854.png is the symbology scale displayed at the bottom-right hand corner of the screen.
 
 #### schoriz_362x44.png
 
@@ -348,23 +348,39 @@ safecast.media.mit.edu's tiles are also created by Lionel Bergeret's Python inte
 
 In both cases, Retile is also run in a cron job to reprocess the tiles.  The OS X app exports all zoom levels of tiles, but Retile is used to assemble these 256x256 tiles into 512x512 tiles for Retina/HDPI displays.  Both 256x256 and 512x512 are actively in use.  For Lionel's interpolated tiles, Retile creates all zoom levels other than 13 for 256x256 tiles, and further assembles them into 512x512 tiles for Retina/HDPI displays.
 
-Contingency planning: Any OS X machine can generate tiles with the Safecast app for OS X, and these can be hosted on any web server.  However, the logistics of the number of files involved make it somewhat impractical to update a remote host daily.  Realistically, another OS X server would need to be set up and configured.  For lesser disasters, the server is partially backed up via CrashPlan, but anything necessitating a new OS install would require some configuration work.  The daily tile sets are not backed up, but archives of the static tilesets are.  There are dependencies to specific URLs for this server with no fallback.
-
-Note: cron jobs are used to clean up after the interpolation script; if this is not done, all free disk space will be exhausted on the server.
-
+Contingency planning: Any OS X machine can generate tiles with the Safecast app for OS X, and these can be hosted on any web server.  However, the logistics of the number of files involved make it somewhat impractical to update a remote host daily.  Realistically, another OS X server would need to be set up and configured.  For lesser disasters, the server is partially backed up via CrashPlan, but anything necessitating a new OS install would require some configuration work.  The daily tile sets are not backed up, but archives of the static tilesets are.  There are dependencies to specific URLs for this server with no fallback.  
+  
+As of 2015-10-27, all tilesets are now hosted on Amazon S3, rather than this server directly.  While this server is still required to generate new tiles and update the tilesets, in the event of a server failure the last synchronized version of the tiles on S3 will remain accessible to users.
+  
+#### s3.amazonaws.com  
+  
+This Amazon S3 region (`us-east-1`) is located in North Virginia, USA and this text refers to map tile-specific buckets on `s3.amazonaws.com`, of which there are many.  Only `te512.safecast.org.s3.amazonaws.com` and `tg512.safecast.org.s3.amazonaws.com` are updated on a regular, daily basis.  All other buckets contain static tilesets.  Note the origin of the data for the static tilesets and its processing is beyond the scope of this document.  
+  
+Cron jobs on `safecast.media.mit.edu` run `s3cmd sync` to push any new tiles as needed.  `s3cmd put` is used to always upload the single master tile used as an index by bitstore.js such that the client displays the date correctly, as not all changes to the dataset will manifest in that master index tile changing.  
+  
+#### s3-ap-northeast-1.amazonaws.com  
+  
+This S3 region is located in Tokyo, Japan and is used to provide better accessibility to Japanese users, as the latency between Japan and a US east coast server is significant.  
+  
+After tiles on `safecast.media.mit.edu` are synchronized with `s3.amazonaws.com`, another script runs on  to synchronize `te512.safecast.org.s3.amazonaws.com` with `te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com`, and `tg512.safecast.org.s3.amazonaws.com` with `tg512jp.safecast.org.s3-ap-northeast-1.amazonaws.com`.  
+  
+Note that latency between `safecast.media.mit.edu` and `s3-ap-northeast-1.amazonaws.com` is very significant for a large number of files, which is why the bucket-to-bucket sychronization is used -- it takes much, much longer to sync to Japan from `safecast.media.mit.edu`.  
+  
+All of the buckets used for static tilesets follow the same naming convention, such that the Japan region has "jp" suffixed to the first part of the bucket name.  
+  
 #### Safecast Amazon S3
 
-Safecast's Amazon S3 server is used by api.safecast.org to store bGeigie log files after they have been submitted as a long-term, static archive.  These are referenced by the bgeigie_imports.json API on api.safecast.org as a URL, and bgeigie_viewer.js downloads and parses them directly for display.
+This refers specifically to the `safecast-production` bucket on `s3.amazonaws.com` (`us-east-1` region).
 
-Contingency planning: the log files can be stored on any server, though I am uncertain if they are being archived anywhere but S3 currently.  There are dependencies to specific URLs for this server with no fallback.
+`safecast-production.s3.amazonaws.com` is used by api.safecast.org to store bGeigie log files after they have been submitted as a long-term, static archive.  These are referenced by the bgeigie_imports.json API on api.safecast.org as a URL, and bgeigie_viewer.js downloads and parses them directly for display.
 
-Note: the files are stored uncompressed; eventually, it would be nice to have these compressed instead, which would significantly reduce download times when using bgeigie_viewer.js.
-
+Contingency planning: none, other than the redundancies provided by S3.
+  
 #### rt.safecast.org
 
-rt.safecast.org is the Real-Time sensor server, which uses a combination of data pulled from api.safecast.org and data stored within WordPress to provide higher-level and admin functionality.
+`rt.safecast.org` is the Real-Time sensor server, which uses a combination of data pulled from api.safecast.org and data stored within WordPress to provide higher-level and admin functionality.
 
-rt.safecast.org provides devices.json, a list of all RT sensors which is used directly by rt_viewer.js.
+`rt.safecast.org` provides `devices.json`, a list of all RT sensors which is used directly by rt_viewer.js.
 
 Contingency planning: unknown.  There are dependencies to specific URLs for this server with no fallback.
 
