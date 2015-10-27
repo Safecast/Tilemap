@@ -936,7 +936,7 @@ var ClientZoomHelper = (function()
     
     ClientZoomHelper.GetUrlForTile512 = function(xy, z, layerId, normal_max_z, base_url, idx)
     {
-        z = ClientZoomHelper.GetClampedZoomLevelForIdx(idx, z); // moved to top to test non-retina fix
+        z = ClientZoomHelper.GetClampedZoomLevelForIdx(idx, z);
     
         if (!ClientZoomHelper.fxGetIsRetina() && z > 0 && z < normal_max_z) z -= 1;
     
@@ -947,16 +947,6 @@ var ClientZoomHelper = (function()
             return null;
         }//if
         
-        /*
-        if (base_url.indexOf("media.mit.edu") > -1)
-        {
-            return base_url + "512/" + z + "/" + nXY.x + "/" + nXY.y + ".png";
-        }
-        else
-        {
-            return base_url + "/" + z + "/" + nXY.x + "/" + nXY.y + ".png";
-        }
-        */
         return ClientZoomHelper.GetUrlFromTemplate(base_url, nXY.x, nXY.y, z);
     };
     
@@ -972,7 +962,6 @@ var ClientZoomHelper = (function()
             return null;
         }//if
 
-        //return base_url + "/" + z + "/" + nXY.x + "/" + nXY.y + ".png";
         return ClientZoomHelper.GetUrlFromTemplate(base_url, nXY.x, nXY.y, z);
     };
     
@@ -1073,20 +1062,54 @@ var ClientZoomHelper = (function()
     ClientZoomHelper.InitGmapsLayers_CreateAll = function()
     {
         var x = new Array();
-        var zs = 0;//-1;
+       // var zs = 0;//-1;
         
-        var te512url = "http://te512" + (_use_jp_region ? "jp" : "") + ".safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-        var tg512url = "http://tg512" + (_use_jp_region ? "jp" : "") + ".safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-       
+        //var te512url = "http://te512" + (_use_jp_region ? "jp" : "") + ".safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        //var tg512url = "http://tg512" + (_use_jp_region ? "jp" : "") + ".safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
+        var te512url = _use_jp_region ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                      : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
+        var tg512url = _use_jp_region ? "http://tg512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                      : "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+
+        var nnsa_url = _use_jp_region ? "http://nnsajp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                      : "http://nnsa.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+
+        var nure_url = _use_jp_region ? "http://nurejp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                      : "http://nure.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+
+        var au_url   = _use_jp_region ? "http://aujp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                      : "http://au.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+
+        var aist_url = _use_jp_region ? "http://aistjp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                      : "http://aist.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+
+        var te13_url = _use_jp_region ? "http://te20130415jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                      : "http://te20130415.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+
+        var te14_url = _use_jp_region ? "http://te20140311jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                      : "http://te20140311.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+
         //var te512url = is_jp ? "http://te512jp.safecast.org.s3.amazonaws.com" : "http://safecast.media.mit.edu/tilemap/TileExport";
         //var tg512url = is_jp ? "http://tg512jp.safecast.org.s3.amazonaws.com" : "http://safecast.media.mit.edu/tilemap/TileGriddata";
         
         //x.push( ClientZoomHelper.InitGmapsLayers_Create( 0, 2,  17+zs, 1.0, 512, "http://safecast.media.mit.edu/tilemap/TileExport") );
         //x.push( ClientZoomHelper.InitGmapsLayers_Create( 1, 2,  17+zs, 0.8, 512, "http://safecast.media.mit.edu/tilemap/TileExport") );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 0, 2,  17+zs, 1.0, 512, te512url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 1, 2,  17+zs, 1.0, 512, te512url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 0, 2,  17, 1.0, 512, te512url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 1, 2,  17, 1.0, 512, te512url) );
         //x.push( ClientZoomHelper.InitGmapsLayers_Create( 2, 8,  15+zs, 0.5, 512, "http://safecast.media.mit.edu/tilemap/TileGriddata") );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 2, 8,  15+zs, 0.5, 512, tg512url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 2, 8,  15, 0.5, 512, tg512url) );
+        
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 3, 3,  16, 1.0, 512, nnsa_url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 4, 6,  12, 0.7, 512, nure_url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 5, 16, 12, 0.7, 512, au_url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 6, 9,  12, 0.7, 512, aist_url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 7, 9,  15, 1.0, 512, "http://safecast.media.mit.edu/tilemap/TestIDW/{z}/{x}/{y}.png") );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 8, 2,  17, 1.0, 512, te13_url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 9, 2,  17, 1.0, 512, te14_url) );
+
+        /*
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 3, 3,  16+zs, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TileExportNNSA/{z}/{x}/{y}.png") );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 4, 6,  12+zs, 0.7, 256, "http://safecast.media.mit.edu/tilemap/TileExportNURE/{z}/{x}/{y}.png") );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 5, 16, 12+zs, 0.7, 256, "http://safecast.media.mit.edu/tilemap/TileExportAU/{z}/{x}/{y}.png") );
@@ -1094,7 +1117,7 @@ var ClientZoomHelper = (function()
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 7, 9,  15+zs, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW/{z}/{x}/{y}.png") );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 8, 2,  17+zs, 1.0, 512, "http://safecast.media.mit.edu/tilemap/tiles20130415sc512/{z}/{x}/{y}.png") );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 9, 2,  17+zs, 1.0, 512, "http://safecast.media.mit.edu/tilemap/tiles20140311sc512/{z}/{x}/{y}.png") );
-    
+        */
         return x;
     };
     
@@ -1803,23 +1826,16 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId02 = function()
     {
-        //var url   = "http://safecast.media.mit.edu/tilemap/TileExport/{z}/{x}/{y}.png";
         //var url   = "http://safecast.media.mit.edu/tilemap/TileExport512/{z}/{x}/{y}.png";
-        //var url   = "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
         
-        var url   = _use_jp_region ? "http://te512jp.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png" : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
-        
-        //var url   = is_jp ? "http://te512jp.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png" : "http://safecast.media.mit.edu/tilemap/TileExport512/{z}/{x}/{y}.png";        
+        var url = _use_jp_region ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                 : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
 
         var opts2 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, maxz:4, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb2  = function(dstr)
         {
-            //if (this.ddlLayers != null && this.ddlLayers[0] && this.ddlLayers[0].text && this.ddlLayers[1] && this.ddlLayers[1].text)
             if (this.ddlLayers != null)
             {
-                //this.ddlLayers[0].text += " " + dstr;
-                //this.ddlLayers[1].text += " " + dstr;
-                
                 for (var i=0; i<this.ddlLayers.options.length; i++)
                 {
                     var o = this.ddlLayers.options[i];
@@ -1837,22 +1853,16 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId08 = function()
     {
-        //var url   = "http://safecast.media.mit.edu/tilemap/TileGriddata/{z}/{x}/{y}.png";
         //var url   = "http://safecast.media.mit.edu/tilemap/TileGriddata512/{z}/{x}/{y}.png";
-        //var url   = "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
         
-        var url   = _use_jp_region ? "http://tg512jp.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png" : "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-        
-        //var url   = is_jp ? "http://tg512jp.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png" : "http://safecast.media.mit.edu/tilemap/TileGriddata512/{z}/{x}/{y}.png";
-        
+        var url = _use_jp_region ? "http://tg512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                 : "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
+
         var opts8 = new LBITSOptions({ lldim:1, ll:1, multi:1, maxz:5, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb8  = function(dstr)
         {
-            //if (this.ddlLayers != null && this.ddlLayers[2] && this.ddlLayers[2].text)
             if (this.ddlLayers != null)
             {
-                //this.ddlLayers[2].text += " " + dstr;
-                
                 for (var i=0; i<this.ddlLayers.options.length; i++) 
                 {
                     var o = this.ddlLayers.options[i];
@@ -1871,28 +1881,40 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId03 = function()
     {
-        var url   = "http://safecast.media.mit.edu/tilemap/TileExportNNSA/{z}/{x}/{y}.png";
+        //var url   = "http://safecast.media.mit.edu/tilemap/TileExportNNSA/{z}/{x}/{y}.png";
+        var url = _use_jp_region ? "http://nnsajp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                 : "http://nnsa.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+
         var opts3 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
         this._layerBitstores.push(new LBITS(3, 1, 16, url, 1, 0, opts3, null));
     };
 
     BitsProxy.prototype.Init_LayerId06 = function()
     {
-        var url   = "http://safecast.media.mit.edu/tilemap/TileExportNURE/{z}/{x}/{y}.png";
+        //var url   = "http://safecast.media.mit.edu/tilemap/TileExportNURE/{z}/{x}/{y}.png";
+        var url = _use_jp_region ? "http://nurejp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                 : "http://nure.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
         var opts6 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
         this._layerBitstores.push(new LBITS(6, 1, 12, url, 0, 0, opts6, null));
     };
     
     BitsProxy.prototype.Init_LayerId09 = function()
     {
-        var url   = "http://safecast.media.mit.edu/tilemap/TileExportAIST/{z}/{x}/{y}.png";
+        //var url   = "http://safecast.media.mit.edu/tilemap/TileExportAIST/{z}/{x}/{y}.png";
+        var url = _use_jp_region ? "http://aistjp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                 : "http://aist.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+
         var opts9 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
         this._layerBitstores.push(new LBITS(9, 1, 12, url, 1, 0, opts9, null));
     };
 
     BitsProxy.prototype.Init_LayerId16 = function()
     {
-        var url    = "http://safecast.media.mit.edu/tilemap/TileExportAU/{z}/{x}/{y}.png";
+        //var url    = "http://safecast.media.mit.edu/tilemap/TileExportAU/{z}/{x}/{y}.png";
+        var url = _use_jp_region ? "http://aujp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                 : "http://au.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
         var opts16 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
         this._layerBitstores.push(new LBITS(16, 1, 12, url, 1, 1, opts16, null));
     };
