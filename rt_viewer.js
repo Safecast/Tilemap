@@ -5,16 +5,6 @@
 // This code is released into the public domain.
 // ==============================================
 
-// In general, the RT Sensor Viewer is a simplified version of the bGeigie Log Viewer.
-// It does not use a web worker, or use a data transfer management class.
-// Manual marker management is limited to changing the icons for scale as needed when zooming.
-// Various other things such as chart combining are done for multiple sensors at one location.
-// 
-// This is likely the simplest component of the Safecast web map to add to any Google Maps API
-// map, because it only requires one line of code and has no dependencies.
-
-
-
 // =================================
 // Requirements (Files):
 // =================================
@@ -37,6 +27,40 @@
 // 3. Add a log by URL directly
 // -------------------------------
 // bvm.GetSensorsFromUrlAsync("http://realtime.safecast.org/wp-content/uploads/devices.json");
+
+
+// =================================
+// Optional - Data Transfer UI
+// =================================
+//
+// To display a UI showing download progress to the user, a div with a specific ID is required.
+// This div is used to inject HTML, as Google Maps does with "map_canvas" above.
+// External CSS styles and an image are also required.
+//
+// 1. HTML Div
+// -------------------------------
+// <div id="bv_transferBar" class="bv_transferBarHidden"></div>
+//
+// 2. World Map PNG (256x256)
+// -------------------------------
+// By default, "world_155a_z0.png" should be in the same path.
+//
+// 3. CSS Styles (many)
+// -------------------------------
+// Required styles are as follows.
+//
+// #bv_transferBar { position:absolute;top:0;bottom:0;left:0;right:0;margin:auto;padding:10px 0px 20px 20px;border:0px;background-color:rgba(255, 255, 255, 0.75);font-size:80%; }
+// .bv_transferBarVisible { visibility:visible;z-index:8;width:276px;height:286px;overflow:visible; }
+// .bv_transferBarHidden { visibility:hidden;z-index:-9000;width:0px;height:0px;overflow:hidden; }
+// .bv_FuturaFont { font-size:100%;font-family:Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif; }
+// .bv_hline { overflow:hidden;text-align:center; }
+// .bv_hline:before, .bv_hline:after { background-color:#000;content:"";display:inline-block;height:1px;position:relative;vertical-align:middle;width:50%; }
+// .bv_hline:before { right:0.5em;margin-left:-50%; }
+// .bv_hline:after { left:0.5em;margin-right:-50%; }
+//
+// Note the font can be anything, but should be about that size.
+// That font class is also used for marker info windows.
+
 
 
 
@@ -97,7 +121,7 @@ var RTVM = (function()
             },
             urls:
             {
-                world_155a_z0:"world_155a_z0.png" // not in use, removed transfer view
+                world_155a_z0:"world_155a_z0.png"
             }
         };
         
@@ -422,6 +446,8 @@ var RTICO = (function()
         
         // ------------------------ inner dot -------------------------------
         
+        //if (w_px > 12)
+        //{
         ctx.beginPath(); // fill with variable color
             ctx.arc(ox, oy, inner_r, 0, 2 * Math.PI);
             ctx.fillStyle = c_fill;
@@ -433,6 +459,24 @@ var RTICO = (function()
             ctx.lineWidth   = w_px > 12 ? 1.5 * scale : 0.75 * scale;
         ctx.stroke();
 
+        /*
+        }
+        else
+        {
+            ctx.beginPath(); // fill with variable color
+                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
+                ctx.fillStyle = c_green;
+            ctx.fill();
+            
+            ctx.beginPath(); // stroke black outline
+                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
+                ctx.strokeStyle = "rgba(0,0,0," + this.alpha0 + ")";
+                ctx.lineWidth   = 3.5 * scale;
+            ctx.stroke();
+            
+            a1 = 0.0;
+        }
+        */
         if (this.red1 > 0)
         {
             var min_angle = 0.0;
@@ -442,6 +486,8 @@ var RTICO = (function()
             
             for (var i=0; i<steps; i++)
             {
+                //if (i % 2 == 0)
+                //{
                     var start_angle = parseFloat(i) * step_size;
                     var end_angle   = start_angle + step_size * 0.75;
                 
@@ -473,6 +519,7 @@ var RTICO = (function()
             ctx.lineWidth   = Math.max(0.5 * scale, 0.5);
         ctx.stroke();
         
+                //}//if
             }//for
             
         }//if
@@ -542,7 +589,7 @@ var RTICO = (function()
         return { width:p[0], height:p[1], fill_alpha:p[2], stroke_alpha:p[3], shadow_radius:p[4], show_bearing_tick:p[5] };
     };
     
-    RTICO.IconStyleSm     = 0; // all of these are currently ignored / unused
+    RTICO.IconStyleSm     = 0;
     RTICO.IconStyleMdB    = 1;
     RTICO.IconStyleMd     = 2;
     RTICO.IconStyleLgB    = 3;
@@ -577,6 +624,7 @@ var RTMKS = (function()
         this.fontCssClass = fontCssClass;
         
         this.mkType   = iconType;       // Predefined marker templates.
+        //this.isRetina = isRetina;       // Enables @2x marker icon resolution.
         this.pxScale  = pxScale == null || pxScale < 1.0 ? 1.0 : pxScale;
         this.width    = 20;             // Marker icon width, in non-retina pixels
         this.height   = 20;             // Marker icon height, in non-retina pixels
@@ -714,6 +762,7 @@ var RTMKS = (function()
         {
             google.maps.event.clearInstanceListeners(this.markers[i]);
             this.markers[i].setMap(null);
+            //this.onmaps[m_idxs[i]] = 0;
         }//for
         
         RTMKS.vfill(0, this.onmaps, 0, this.onmaps.length);
@@ -780,6 +829,7 @@ var RTMKS = (function()
     
     RTMKS.prototype.IsSensorOffline = function(idx)
     {
+        //var d = new Date();
         return this.create_ss - this.times[idx] > 3600;
     };
     
@@ -787,11 +837,15 @@ var RTMKS = (function()
     {
         if (this.lats == null) return;
         
-        var rsn = 2;
+        var rsn     = 2;
+        //var d       = new Date();
+        //var ss_now  = d.getTime() * 0.001;
+        //var ss_thr  = (ss_now - 60.0 * 60.0 * 24.0) >>> 0;
         
         for (var i=0; i<this.lats.length; i++)
         {
             if (this.onmaps[i] == 0)
+                //&& this.times[i] > ss_thr)
             {
                 this.onmaps[i] = 1;
                 
@@ -799,7 +853,7 @@ var RTMKS = (function()
                 var lon = this.lons[i];
                 var dre = this.dres[i];
                 
-                for (var j=0; j<this.lats.length; j++) // find any other sensors at this location, use max value.  todo: account for offline sensors.
+                for (var j=0; j<this.lats.length; j++)
                 {
                     if (   lat == this.lats[j]
                         && lon == this.lons[j]
@@ -830,6 +884,7 @@ var RTMKS = (function()
         var anch = new google.maps.Point(w_pt >> 1, h_pt >> 1);
         var icon = { url:icon_url, size:size, anchor:anch };
                    
+        //if (this.pxScale > 1.0) { icon.scaledSize = new google.maps.Size(w_pt, h_pt); }
         icon.scaledSize = new google.maps.Size(w_pt, h_pt);
         
         var yx     = new google.maps.LatLng(lat, lon);
@@ -907,7 +962,7 @@ var RTMKS = (function()
         var d     = new Date(unixMS);
         var sdate = d.toISOString().substring( 0, 10);
         var stime = d.toISOString().substring(11, 16);
-        var sdre  = this.dres[i].toFixed(2);
+        var sdre  = RTMKS.GetStringWithTwoFractionalDigits(this.dres[i]);
         
         var imgurls = new Array();
         
@@ -916,11 +971,14 @@ var RTMKS = (function()
             if (   this.lats[j] == this.lats[i]
                 && this.lons[j] == this.lons[i])
             {
-                imgurls.push(this.imgtxt[j]); // show all sensors at this exact lat/lon, no epsilon
+                imgurls.push(this.imgtxt[j]);
             }//if
         }//for
                  
+        //return RTMKS.GetInfoWindowHtmlForParams(sdre, this.cpms[i], sdate, stime, this.ids[i], this.locstxt[i], this.imgtxt[i], this.linktxt[i], null);//this.fontCssClass);
         return RTMKS.GetInfoWindowHtmlForParams(sdre, this.times[i], this.cpms[i], sdate, stime, this.ids[i], this.locstxt[i], imgurls, this.linktxt[i], null);//this.fontCssClass);
+        
+        //RTMKS.GetInfoWindowHtmlForParams = function(dre, cpm, date, time, id, loc, imgurl, fontCssClass)
     };
     
     RTMKS.prototype.AttachInfoWindow = function(marker)
@@ -972,9 +1030,10 @@ var RTMKS = (function()
             times[i] = unixMS == null ? 0.0 : parseInt(unixMS * 0.001);    
             
             locstxt[i] = rts[i].location;
-            imgtxt[i] = "http://gamma.tar.bz/nGeigies/" + ids[i] + "_640x400.png?t=" + ss_now; // hack: override with external image for now
+            //imgtxt[i] = rts[i].chart_url;
+            imgtxt[i] = "http://gamma.tar.bz/nGeigies/" + ids[i] + "_640x400.png?t=" + ss_now;
             
-            if (cpms[i] >= (dres[i] / 334.0) * 0.9 && cpms[i] <= (dres[i] / 334.0) * 1.1) // hack: fix DRE conversion to match map symbology
+            if (cpms[i] >= (dres[i] / 334.0) * 0.9 && cpms[i] <= (dres[i] / 334.0) * 1.1)
             {
                 dres[i] = cpms[i] / 350.0;
             }//if
@@ -1011,11 +1070,17 @@ var RTMKS = (function()
     
     RTMKS.GetInfoWindowHtmlForParams = function(dre, unixSS, cpm, date, time, id, loc, imgurls, linkurl, fontCssClass)
     {   
+        //imgurl = "cat-trolling.gif";
+        
         var html = "<table style='width:320px;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;' "
                + (fontCssClass != null ? "class='" + fontCssClass + "' " : "") 
+               //+ "style='width:320px;'>"
                + "<tr><td style='text-align:center;font-size:14px;'>" + loc + "</td></tr>";
-        
-        // hack: if offline > 30 days, show the last measurment as the chart won't have it
+               //+ "<tr><td align='center'><a href='" + linkurl + "' target=_blank>" + loc + "</a></td></tr>"
+               //+ "<tr><td align='center'>DRE: " + dre + "</td></tr>"
+               //+ "<tr><td align='center'>CPM: " + cpm + "</td></tr>"
+               //+ "<tr><td align='center'>" + "Updated:" + time + " " + date + " UTC</td></tr>"
+               
         if (unixSS < (new Date()).getTime() * 0.001 - 30.0 * 24.0 * 60.0 * 60.0)
         {
             html += "<tr><td>&nbsp;</td></tr>";
@@ -1024,21 +1089,42 @@ var RTMKS = (function()
                   + dre + " \u00B5" + "Sv/h"
                   + " (Last Updated: "
                   + date 
+                  //+ ", " + time + " UTC"
                   + ")"
                   + "</td></tr>";
         }//if
-        
-        // show all sensor charts at this exact location
+               
         for (var i=0; i<imgurls.length; i++)
         {
-            html += "<tr><td style='text-align:center;'><img width='320' height='200' border=0 src='" + imgurls[i] + "'/></td></tr>";
+            html += "<tr><td style='text-align:center;'><img style='image-rendering:auto;image-rendering:-webkit-optimize-contrast;image-rendering:optimize-contrast;' width='320' height='200' border=0 src='" + imgurls[i] + "'/></td></tr>";
         }//for
-        
-        // todo: show links for all charts as well?
+               
+               //+ "<tr><td style='text-align:center;'><img width='320' height='200' border=0 src='" + imgurl + "'/></td></tr>"
+               //+ "<tr style='height:1px;'><td>&nbsp;</td></tr>"
         html += "<tr><td style='line-height:20px;'><a style='color:rgb(66,114,219);font-size:12px;text-decoration:none;' href='" + linkurl + "' target=_blank>more info</a></td></tr>"
-              + "</table>";
+               //+ "<tr style='height:1px;'><td style='height:1px;'>&nbsp;</td></tr>"
+               //+ "<tr><td style='height:1px; padding: 0px;'><hr style='border-style: none; height:1px;' /></td></tr>"
+               + "</table>";
+               //+ "<div style='height:4px;'>&nbsp;</div>"
+               // disabling due to ID in graph bkg
+               /*
+               + "<div "
+               + (fontCssClass != null ? "class='"+ fontCssClass + "' " : "")
+               + "style='position:absolute;top:0;left:0;font-size:70%;color:#999999;'>" + id + "</div>";
+               */
+//padding:4px 4px 4px 0px;  
 
         return html;
+    };
+    
+    RTMKS.GetStringWithTwoFractionalDigits = function(x) // this is a terrible implementation
+    {
+        var sx = "" + RTMKS.RoundToD(x, 2);
+             if (sx.length == 3 && x < 10.0) sx += "0";    //  9.0
+        else if (sx.length == 1 && x < 10.0) sx += ".00";  //  9
+        else if (sx.length == 4 && x >= 10.0 && x < 100.0) sx += "0";    // 99.9
+        else if (sx.length == 2 && x >= 10.0 && x < 100.0) sx += ".00";  // 99
+        return sx;
     };
     
     // based on the client's screen size and extent, find the center and zoom level
