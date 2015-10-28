@@ -942,12 +942,10 @@ var ClientZoomHelper = (function()
     
         var nXY = ClientZoomHelper.fxGetNormalizedCoord(xy, z);
     
-        /*
         if (!nXY || !ClientZoomHelper.fxShouldLoadTile(layerId, nXY.x, nXY.y, z))
         {
             return null;
         }//if
-        */
         
         return ClientZoomHelper.GetUrlFromTemplate(base_url, nXY.x, nXY.y, z);
     };
