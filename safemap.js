@@ -938,14 +938,16 @@ var ClientZoomHelper = (function()
     {
         z = ClientZoomHelper.GetClampedZoomLevelForIdx(idx, z);
     
-        if (!ClientZoomHelper.fxGetIsRetina() && z > 0 && z < normal_max_z) z -= 1;
+        if (!ClientZoomHelper.fxGetIsRetina() && z > 0 && z <= normal_max_z) z -= 1;
     
         var nXY = ClientZoomHelper.fxGetNormalizedCoord(xy, z);
     
+        /*
         if (!nXY || !ClientZoomHelper.fxShouldLoadTile(layerId, nXY.x, nXY.y, z))
         {
             return null;
         }//if
+        */
         
         return ClientZoomHelper.GetUrlFromTemplate(base_url, nXY.x, nXY.y, z);
     };
@@ -981,7 +983,8 @@ var ClientZoomHelper = (function()
         {
             if (i == idx || (idx == 0 && i == 2))
             {
-                lz = o[i].ext_tile_size > 256 && !hdpi && z < o[i].ext_actual_max_z ? z - 1 : z;  //  z--   for 512x512 tiles on non-retina displays only
+                //lz = o[i].ext_tile_size > 256 && !hdpi && z <= o[i].ext_actual_max_z + 1 ? z - 1 : z;  //  z--   for 512x512 tiles on non-retina displays only
+                lz = o[i].ext_tile_size > 256 && !hdpi ? z - 1 : z;
                 lr = o[i].ext_tile_size > 256 &&  hdpi ? 1     : 0;  // px>>=1 for 512x512 tiles on     retina displays only
                 sz = -1;
         
@@ -1018,7 +1021,12 @@ var ClientZoomHelper = (function()
     ClientZoomHelper.GetClampedZoomLevelForIdx = function(idx, z)
     {
         var o  = ClientZoomHelper.fxGetLayers();
-        var dz = o == null || z <= o[idx].ext_actual_max_z ? z : o[idx].ext_actual_max_z;        
+        
+        var mz = o[idx].ext_actual_max_z + (o[idx].ext_tile_size > 256 && !ClientZoomHelper.fxGetIsRetina() ? 1 : 0);
+        var dz = o == null || z <= mz ? z : mz;        
+        
+        //var dz = o == null || z <= o[idx].ext_actual_max_z ? z : o[idx].ext_actual_max_z;        
+        
         return dz;
     };
     
