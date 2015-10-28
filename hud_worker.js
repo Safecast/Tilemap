@@ -134,7 +134,7 @@ var HUDQ = (function()
         {
             var val;
 
-            if (url.indexOf("Griddata") > -1) // ugly hack
+            if (url.indexOf("Griddata") > -1 || url.indexOf("tg512") > -1) // ugly hack
             {
                 val = this.lionel_lut.GetValuesForColor_RGB888(src[idx], src[idx+1], src[idx+2]);
             }//if
@@ -324,7 +324,7 @@ var HUDQ = (function()
         var vs  = { xs:null, ys:null, is:null };
         var ds  = null;
         var sr  = 1;
-        var at  = url.indexOf("TestIDW") > -1 ? 1 : url.indexOf("tiles20130415sc") > -1 || url.indexOf("tiles20140311sc") > -1 ? 254 : 255; // HACK, fix on server later.  // WTF // url.indexOf("TileExportAIST") > -1 ? 1 : 
+        var at  = url.indexOf("TestIDW") > -1 ? 1 : url.indexOf("tiles20130415sc") > -1 || url.indexOf("tiles20140311sc") > -1 || url.indexOf("te20130415") > -1 || url.indexOf("te20140311") > -1 ? 254 : 255; // HACK, fix on server later.
 
         ret_mpx = ret_mpx % w; // offset to tile origin
         ret_mpy = ret_mpy % h;

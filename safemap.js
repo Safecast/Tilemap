@@ -1105,7 +1105,7 @@ var ClientZoomHelper = (function()
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 4, 6,  12, 0.7, 512, nure_url) );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 5, 16, 12, 0.7, 512, au_url) );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 6, 9,  12, 0.7, 512, aist_url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 7, 9,  15, 1.0, 512, "http://safecast.media.mit.edu/tilemap/TestIDW/{z}/{x}/{y}.png") );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 7, 9,  15, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW/{z}/{x}/{y}.png") );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 8, 2,  17, 1.0, 512, te13_url) );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 9, 2,  17, 1.0, 512, te14_url) );
 
@@ -1885,7 +1885,7 @@ var BitsProxy = (function()
         var url = _use_jp_region ? "http://nnsajp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                  : "http://nnsa.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
-        var opts3 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
+        var opts3 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(3, 1, 16, url, 1, 0, opts3, null));
     };
 
@@ -1895,7 +1895,7 @@ var BitsProxy = (function()
         var url = _use_jp_region ? "http://nurejp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                  : "http://nure.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
         
-        var opts6 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
+        var opts6 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(6, 1, 12, url, 0, 0, opts6, null));
     };
     
@@ -1905,7 +1905,7 @@ var BitsProxy = (function()
         var url = _use_jp_region ? "http://aistjp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                  : "http://aist.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
-        var opts9 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
+        var opts9 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(9, 1, 12, url, 1, 0, opts9, null));
     };
 
@@ -1915,7 +1915,7 @@ var BitsProxy = (function()
         var url = _use_jp_region ? "http://aujp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                  : "http://au.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
         
-        var opts16 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc });
+        var opts16 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(16, 1, 12, url, 1, 1, opts16, null));
     };
 
