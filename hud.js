@@ -969,15 +969,15 @@ var HUD = (function()
             {
                 if (r.z > 0)
                 {
-                    //r.x >>= 1;
-                    //r.y >>= 1;
-                    //r.z  -= 1;
+                    r.x >>= 1;
+                    r.y >>= 1;
+                    r.z  -= 1;
 
                     //r.px = r.px % 2 == 0 ? r.px : r.tile_size + r.px;
                     //r.py = r.py % 2 == 0 ? r.py : r.tile_size + r.py;
                     
-                    r.px <<= 1;
-                    r.py <<= 1;
+                    //r.px <<= 1;
+                    //r.py <<= 1;
                     
                     //r.tile_size = layer.tile_size;
                 }//if
