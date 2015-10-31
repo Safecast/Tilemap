@@ -144,8 +144,8 @@ Amazon S3 Configuration
 
 1. Create a bucket on `us-east-1` (.va.us):
  * `s3cmd mb s3://te512.safecast.org`
-2. Create a bucket on `ap-northeast-1` (.jp) with "jp" suffixed to the prefix of that:
- * `s3cmd mb s3://nurejp.safecast.org --region=ap-northeast-1`
+2. Create a bucket on `ap-northeast-1` (.jp) with "jp" suffixed to the prefix of the previous name:
+ * `s3cmd mb s3://te512jp.safecast.org --region=ap-northeast-1`
 3. Create a CORS file named `s3_cors.xml`:
  * `<?xml version="1.0" encoding="UTF-8"?>`
  * `<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">`
