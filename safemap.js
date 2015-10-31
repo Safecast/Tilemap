@@ -445,10 +445,18 @@ function InitFont_CrimsonText() // free Optimus Princeps clone
     _did_init_font_crimson_text = true;
 }
 
-function InitShowLocationIfDefault()
+function IsDefaultLocation()
 {
     var yxz = GetUserLocationFromQuerystring();    
-    if (yxz.yx == null) requestAnimationFrame(function() { ShowLocationText("Honshu, Japan"); });
+    return yxz.yx == null;
+}
+
+function InitShowLocationIfDefault()
+{
+    if (IsDefaultLocation() && getParam("logids") == null)
+    {
+        requestAnimationFrame(function() { ShowLocationText("Honshu, Japan"); });
+    }
 }
 
 
@@ -647,9 +655,9 @@ function InitContextMenu()
                        + '<li class="separator"></li>'
                        + '<li><a href="#zoomIn" class="FuturaFont">Zoom In</a></li>'
                        + '<li><a href="#zoomOut" class="FuturaFont">Zoom Out</a></li>'
-                       + '<li><a href="#centerHere" class="FuturaFont">Center Map Here</a></li>'
-                       + '<li class="separator"></li>'
-                       + '<li><a href="#zoomLimitBreak" class="FuturaFont">Zoom Limit Break</a></li>';
+                       + '<li><a href="#centerHere" class="FuturaFont">Center Map Here</a></li>';
+                       //+ '<li class="separator"></li>'
+                       //+ '<li><a href="#zoomLimitBreak" class="FuturaFont">Zoom Limit Break</a></li>';
     document.getElementById("map_canvas").appendChild(cm);
 
     var clickLL;
@@ -981,7 +989,6 @@ var ClientZoomHelper = (function()
         {
             if (i == idx || (idx == 0 && i == 2))
             {
-                //lz = o[i].ext_tile_size > 256 && !hdpi && z <= o[i].ext_actual_max_z + 1 ? z - 1 : z;  //  z--   for 512x512 tiles on non-retina displays only
                 lz = o[i].ext_tile_size > 256 && !hdpi ? z - 1 : z;
                 lr = o[i].ext_tile_size > 256 &&  hdpi ? 1     : 0;  // px>>=1 for 512x512 tiles on     retina displays only
                 sz = -1;
@@ -1023,8 +1030,6 @@ var ClientZoomHelper = (function()
         var mz = o[idx].ext_actual_max_z + (o[idx].ext_tile_size > 256 && !ClientZoomHelper.fxGetIsRetina() ? 1 : 0);
         var dz = o == null || z <= mz ? z : mz;        
         
-        //var dz = o == null || z <= o[idx].ext_actual_max_z ? z : o[idx].ext_actual_max_z;        
-        
         return dz;
     };
     
@@ -1035,7 +1040,6 @@ var ClientZoomHelper = (function()
     {
         var o = { opacity:alpha, 
              ext_layer_id:layerId, 
-         //ext_url_template:url+(tile_size == 512 && url.indexOf("safecast.media.mit.edu") > -1 ? "512" : "") + "/{z}/{x}/{y}.png",
          ext_url_template:url,
          ext_actual_max_z:(tile_size == 512 ? maxz-1 : maxz),
             ext_tile_size:tile_size,
@@ -1068,10 +1072,6 @@ var ClientZoomHelper = (function()
     ClientZoomHelper.InitGmapsLayers_CreateAll = function()
     {
         var x = new Array();
-       // var zs = 0;//-1;
-        
-        //var te512url = "http://te512" + (_use_jp_region ? "jp" : "") + ".safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-        //var tg512url = "http://tg512" + (_use_jp_region ? "jp" : "") + ".safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
         
         var te512url = _use_jp_region ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                       : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
@@ -1097,14 +1097,8 @@ var ClientZoomHelper = (function()
         var te14_url = _use_jp_region ? "http://te20140311jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                       : "http://te20140311.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
-        //var te512url = is_jp ? "http://te512jp.safecast.org.s3.amazonaws.com" : "http://safecast.media.mit.edu/tilemap/TileExport";
-        //var tg512url = is_jp ? "http://tg512jp.safecast.org.s3.amazonaws.com" : "http://safecast.media.mit.edu/tilemap/TileGriddata";
-        
-        //x.push( ClientZoomHelper.InitGmapsLayers_Create( 0, 2,  17+zs, 1.0, 512, "http://safecast.media.mit.edu/tilemap/TileExport") );
-        //x.push( ClientZoomHelper.InitGmapsLayers_Create( 1, 2,  17+zs, 0.8, 512, "http://safecast.media.mit.edu/tilemap/TileExport") );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 0, 2,  17, 1.0, 512, te512url) );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 1, 2,  17, 1.0, 512, te512url) );
-        //x.push( ClientZoomHelper.InitGmapsLayers_Create( 2, 8,  15+zs, 0.5, 512, "http://safecast.media.mit.edu/tilemap/TileGriddata") );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 2, 8,  15, 0.5, 512, tg512url) );
         
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 3, 3,  16, 1.0, 512, nnsa_url) );
@@ -1115,15 +1109,6 @@ var ClientZoomHelper = (function()
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 8, 2,  17, 1.0, 512, te13_url) );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 9, 2,  17, 1.0, 512, te14_url) );
 
-        /*
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 3, 3,  16+zs, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TileExportNNSA/{z}/{x}/{y}.png") );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 4, 6,  12+zs, 0.7, 256, "http://safecast.media.mit.edu/tilemap/TileExportNURE/{z}/{x}/{y}.png") );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 5, 16, 12+zs, 0.7, 256, "http://safecast.media.mit.edu/tilemap/TileExportAU/{z}/{x}/{y}.png") );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 6, 9,  12+zs, 0.7, 256, "http://safecast.media.mit.edu/tilemap/TileExportAIST/{z}/{x}/{y}.png") );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 7, 9,  15+zs, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW/{z}/{x}/{y}.png") );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 8, 2,  17+zs, 1.0, 512, "http://safecast.media.mit.edu/tilemap/tiles20130415sc512/{z}/{x}/{y}.png") );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 9, 2,  17+zs, 1.0, 512, "http://safecast.media.mit.edu/tilemap/tiles20140311sc512/{z}/{x}/{y}.png") );
-        */
         return x;
     };
     
@@ -1482,11 +1467,8 @@ function GetCurrentInstanceSelectedLayerIdx()
 
 function SetCurrentInstanceSelectedLayerIdx(idx)
 {
-    if (   idx != null)
-        //&& idx  > 0
-        //&& idx <= GetCurrentInstanceMaxLayerIdx())
+    if (idx != null)
     {
-        //document.getElementById("layers").selectedIndex = idx;
         var el = document.getElementById("layers");
         for (var i=0; i<el.options.length; i++)
         {
@@ -2359,6 +2341,7 @@ var BvProxy = (function()
         this.fxRequireJS            = function(url, isAsync, fxCallback, userData) { RequireJS(url, isAsync, fxCallback, userData); }.bind(this);
         this.fxInjectLoadingSpinner = function(el, color, str_w, size_px) { LoadingSpinnerHelper.InjectLoadingSpinner(el, color, str_w, size_px); }.bind(this);
         this.fxUpdateMapExtent      = function() { MapExtent_OnChange(200); }.bind(this);
+        this.fxIsDefaultLocation    = function() { return IsDefaultLocation(); }.bind(this);
     }
     
     BvProxy.prototype.ExecuteWithAsyncLoadIfNeeded = function(fxCallback, userData)
@@ -2477,7 +2460,11 @@ var BvProxy = (function()
     {
         if (this._noreqs) return this.ShowRequirementsError();
     
-        var cb = function(userData) { this._bvm.SetZoomToLogExtent(false); this._bvm.AddLogsByQueryFromString(userData); }.bind(this);
+        var cb = function(userData) 
+        {
+            this._bvm.SetZoomToLogExtent(this.fxIsDefaultLocation()); 
+            this._bvm.AddLogsByQueryFromString(userData); 
+        }.bind(this);
         this.ExecuteWithAsyncLoadIfNeeded(cb, csv);
     };
 
