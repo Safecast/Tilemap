@@ -1,0 +1,148 @@
+#!/bin/bash
+
+today="$(date +%Y%m%d)"
+
+# Download the safecast dataset
+/usr/local/bin/wget https://api.safecast.org/system/mclean.tar.gz -O ${today}_measurements.tgz
+tar xvfz ${today}_measurements.tgz
+mv mclean-out.csv ${today}_measurements.csv
+
+# Precompute the griddata
+time python safecastAPIPrecompute.py ${today}_measurements.csv -m -g 5000
+
+# Rebuild coastlines
+time python safecastCoastline.py -s safecast.pickle data/JPN_adm1.shp
+cp coastline.pickle data/coastline.pickle
+
+# Setup the precomputed data
+cp safecast.pickle tiles/renderer/.
+cp data/coastline.pickle tiles/renderer/.
+cp data/waterbodies.pickle tiles/renderer/.
+
+cd tiles/renderer/
+rm -rf cached TileGriddata uncovered
+
+# Start rendering tiles
+time python prebuildtiles2.py -z 13
+mv cached TileGriddata
+cd TileGriddata
+#find . -size -855c -name *.png | xargs rm
+#find . -type f -name '*.png' -exec bash -c "pngcrush -rem text {} /tmp/crush.png && mv /tmp/crush.png {}" \;
+
+echo '{' > metadata.json
+echo '    "version": "1", ' >> metadata.json
+echo '    "name": "Safecast Interpolation Map", ' >> metadata.json
+echo '    "description": "'$(date +%Y-%m-%d)'", ' >> metadata.json
+echo '    "bounds":"124.057617,24.447150,145.810547,43.357138"' >> metadata.json
+echo '}' >> metadata.json
+
+cd ..
+tar cvfz ${today}_TileGriddata.tgz TileGriddata/
+
+# Copy to server
+mv ${today}_TileGriddata.tgz /Library/WebServer/Documents/tilemap/.
+cd /Library/WebServer/Documents/tilemap/
+tar xvfz ${today}_TileGriddata.tgz
+
+
+# =========================================
+# 2015-10-21 ND: Set paths for less clutter
+# =========================================
+
+PATH=$PATH:/usr/bin
+PATH=$PATH:/bin
+PATH=$PATH:/usr/sbin
+PATH=$PATH:/usr/local/bin
+PATH=$PATH:/Users/safecast/Safecast/Retile/app/
+
+export PATH
+
+# ==================================================
+# 2015-10-21 ND: Cleanup Temporary Files
+# ==================================================
+
+rm -f /Users/safecast/Safecast/safemaps/*.csv
+rm -f /Users/safecast/Safecast/safemaps/*.tgz
+rm -f /Library/WebServer/Documents/tilemap/*_TileGriddata.tgz
+
+# ===============================================================
+# 2015-10-21 ND: Replace Retile hardcoding with explicit commands
+# ===============================================================
+
+echo "============================="
+echo "Retile - Creating z=12 -> z=0"
+echo "============================="
+
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/13 /Library/WebServer/Documents/tilemap/TileGriddata
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/12 /Library/WebServer/Documents/tilemap/TileGriddata
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/11 /Library/WebServer/Documents/tilemap/TileGriddata
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/10 /Library/WebServer/Documents/tilemap/TileGriddata
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/9 /Library/WebServer/Documents/tilemap/TileGriddata
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/8 /Library/WebServer/Documents/tilemap/TileGriddata
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/7 /Library/WebServer/Documents/tilemap/TileGriddata
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/6 /Library/WebServer/Documents/tilemap/TileGriddata
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/5 /Library/WebServer/Documents/tilemap/TileGriddata
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/4 /Library/WebServer/Documents/tilemap/TileGriddata
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/3 /Library/WebServer/Documents/tilemap/TileGriddata
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/2 /Library/WebServer/Documents/tilemap/TileGriddata
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/1 /Library/WebServer/Documents/tilemap/TileGriddata
+
+echo "=============================="
+echo "Retile - Creating z=13 -> z=14"
+echo "=============================="
+
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/13 /Library/WebServer/Documents/tilemap/TileGriddata -zIn -interpEX
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/14 /Library/WebServer/Documents/tilemap/TileGriddata -zIn -interpEX
+
+echo "==============================="
+echo "Retile - Creating 512x512 Tiles"
+echo "==============================="
+
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/15 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/14 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/13 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/12 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/11 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/10 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/9 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/8 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/7 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/6 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/5 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/4 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/3 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/2 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+Retile /Library/WebServer/Documents/tilemap/TileGriddata/1 /Library/WebServer/Documents/tilemap/TileGriddata512 -Assemble
+
+
+# ==================================================
+# 2015-10-14 ND: Add s3 upload of tiles after Retile
+# ==================================================
+
+# 1. Sync tiles to .us S3 region
+cd /Library/WebServer/Documents/tilemap/TileGriddata512
+s3cmd sync 0 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+s3cmd sync 1 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+s3cmd sync 3 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+s3cmd sync 4 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+s3cmd sync 5 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+s3cmd sync 6 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+s3cmd sync 7 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+s3cmd sync 8 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+s3cmd sync 9 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+s3cmd sync 10 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+s3cmd sync 11 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+s3cmd sync 12 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+time s3cmd sync 13 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+time s3cmd sync 14 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+time s3cmd sync 15 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+
+# 2. Force upload the zoom levels used to set the date in the UI, otherwise it may appear nothing changed.
+touch ./2/3/1.png
+s3cmd put --recursive 2 s3://tg512.safecast.org --acl-public
+
+# 3. Sync .us region -> .jp region
+time aws s3 sync s3://tg512.safecast.org s3://tg512jp.safecast.org --source-region us-east-1 --region ap-northeast-1 --acl public-read --delete
+
+# 4. Force updated timestamps on index tiles for .jp
+s3cmd put --recursive 2 s3://tg512jp.safecast.org --acl-public --region=ap-northeast-1
