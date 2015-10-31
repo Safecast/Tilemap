@@ -603,7 +603,6 @@ var RTMKS = (function()
         this.fontCssClass = fontCssClass;
         
         this.mkType   = iconType;       // Predefined marker templates.
-        //this.isRetina = isRetina;       // Enables @2x marker icon resolution.
         this.pxScale  = pxScale == null || pxScale < 1.0 ? 1.0 : pxScale;
         this.width    = 20;             // Marker icon width, in non-retina pixels
         this.height   = 20;             // Marker icon height, in non-retina pixels
@@ -645,8 +644,6 @@ var RTMKS = (function()
         this.last_z  = 0;
         
         this.AddGmapsListener_ZoomChanged();
-        
-        //this.ApplyMarkerType(); // must fire on init
     }//RTMKS
     
     RTMKS.prototype.SetNewCustomMarkerOptions = function(width, height, alpha_fill, alpha_stroke, shadow_radius, hasBearingTick)
@@ -741,7 +738,6 @@ var RTMKS = (function()
         {
             google.maps.event.clearInstanceListeners(this.markers[i]);
             this.markers[i].setMap(null);
-            //this.onmaps[m_idxs[i]] = 0;
         }//for
         
         RTMKS.vfill(0, this.onmaps, 0, this.onmaps.length);
@@ -797,7 +793,10 @@ var RTMKS = (function()
                 ico.scaledSize = new google.maps.Size(this.width * scale, this.height * scale);
                 ico.anchor     = new google.maps.Point(this.width * scale * 0.5, this.height * scale * 0.5);
                 var offline    = this.create_ss - this.times[this.markers[i].ext_id] > 3600;
-                ico.url        = this.GetIconCached(this.markers[i].getZIndex(), offline, this.width, this.height, this.pxScale * scale);
+                
+                var lutidx     = this.markers[i].getZIndex() + (this.markers[i].getZIndex() < 0 ? 1000 : 0);
+                
+                ico.url        = this.GetIconCached(lutidx, offline, this.width, this.height, this.pxScale * scale);
                 
                 this.markers[i].setIcon(ico);
             }//if
@@ -808,7 +807,6 @@ var RTMKS = (function()
     
     RTMKS.prototype.IsSensorOffline = function(idx)
     {
-        //var d = new Date();
         return this.create_ss - this.times[idx] > 3600;
     };
     
@@ -816,7 +814,7 @@ var RTMKS = (function()
     {
         if (this.lats == null) return;
         
-        var rsn     = 2;
+        var rsn = 2;
         
         for (var i=0; i<this.lats.length; i++)
         {
