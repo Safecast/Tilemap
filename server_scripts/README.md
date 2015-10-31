@@ -142,9 +142,9 @@ eg: `/Library/WebServer/documents/tilemap/TileExport/.htaccess`
 Amazon S3 Configuration
 =======================
 
-1. Create a bucket on `us-east-1` (.va.us) with some potentially CNAME'able name, such as `s3://te512.safecast.org`
+1. Create a bucket on `us-east-1` (.va.us):
  * `s3cmd mb s3://te512.safecast.org`
-2. Create a bucket on `ap-northeast-1` (.jp) with "jp" suffixed to the prefix of that, eg: `s3://te512jp.safecast.org`
+2. Create a bucket on `ap-northeast-1` (.jp) with "jp" suffixed to the prefix of that:
  * `s3cmd --region=ap-northeast-1 mb s3://nurejp.safecast.org`
 3. Create a CORS file named `s3_cors.xml`:
  * `<?xml version="1.0" encoding="UTF-8"?>`
@@ -157,12 +157,16 @@ Amazon S3 Configuration
  * `</CORSConfiguration>`
 4. Apply CORS to each region's bucket.
  * `s3cmd setcors s3_cors.xml s3://te512.safecast.org`
- * `s3cmd --region=ap-northeast-1 setcors s3_cors.xml s3://te512jp.safecast.org`
+ * `s3cmd setcors s3_cors.xml s3://te512jp.safecast.org --region=ap-northeast-1 `
 5. Use `s3cmd sync` to upload to the initial `us-east-1` bucket.
  * `cd /Library/WebServer/Documents/tilemap/TileExport512`
  * `s3cmd sync 0 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
-6. Use `aws sync` to synchronize between regions, as latency with s3cmd to other regions is too high.
+6. Use `aws sync` to synchronize between regions:
  * `aws s3 sync s3://te512.safecast.org s3://te512jp.safecast.org --source-region us-east-1 --region ap-northeast-1 --acl public-read --delete`
+7. Force update the index tile used by bitstore.js so the client's date display is updated correctly:
+ * `touch ./0/0/0.png`
+ * `s3cmd put --recursive 0 s3://te512.safecast.org --acl-public`
+ * `s3cmd put --recursive 0 s3://te512jp.safecast.org --acl-public --region=ap-northeast-1`
 
 Now, tiles will be available at:
 
