@@ -459,24 +459,6 @@ var RTICO = (function()
             ctx.lineWidth   = w_px > 12 ? 1.5 * scale : 0.75 * scale;
         ctx.stroke();
 
-        /*
-        }
-        else
-        {
-            ctx.beginPath(); // fill with variable color
-                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-                ctx.fillStyle = c_green;
-            ctx.fill();
-            
-            ctx.beginPath(); // stroke black outline
-                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-                ctx.strokeStyle = "rgba(0,0,0," + this.alpha0 + ")";
-                ctx.lineWidth   = 3.5 * scale;
-            ctx.stroke();
-            
-            a1 = 0.0;
-        }
-        */
         if (this.red1 > 0)
         {
             var min_angle = 0.0;
@@ -486,10 +468,8 @@ var RTICO = (function()
             
             for (var i=0; i<steps; i++)
             {
-                //if (i % 2 == 0)
-                //{
-                    var start_angle = parseFloat(i) * step_size;
-                    var end_angle   = start_angle + step_size * 0.75;
+                var start_angle = parseFloat(i) * step_size;
+                var end_angle   = start_angle + step_size * 0.75;
                 
         ctx.beginPath(); // stroke thick black outline
             ctx.arc(ox, oy, outer_r, start_angle, end_angle);
@@ -518,8 +498,7 @@ var RTICO = (function()
             ctx.strokeStyle = c_green;
             ctx.lineWidth   = Math.max(0.5 * scale, 0.5);
         ctx.stroke();
-        
-                //}//if
+
             }//for
             
         }//if
@@ -838,14 +817,10 @@ var RTMKS = (function()
         if (this.lats == null) return;
         
         var rsn     = 2;
-        //var d       = new Date();
-        //var ss_now  = d.getTime() * 0.001;
-        //var ss_thr  = (ss_now - 60.0 * 60.0 * 24.0) >>> 0;
         
         for (var i=0; i<this.lats.length; i++)
         {
             if (this.onmaps[i] == 0)
-                //&& this.times[i] > ss_thr)
             {
                 this.onmaps[i] = 1;
                 
@@ -884,7 +859,6 @@ var RTMKS = (function()
         var anch = new google.maps.Point(w_pt >> 1, h_pt >> 1);
         var icon = { url:icon_url, size:size, anchor:anch };
                    
-        //if (this.pxScale > 1.0) { icon.scaledSize = new google.maps.Size(w_pt, h_pt); }
         icon.scaledSize = new google.maps.Size(w_pt, h_pt);
         
         var yx     = new google.maps.LatLng(lat, lon);
@@ -892,7 +866,7 @@ var RTMKS = (function()
         
         marker.setPosition(yx);
         marker.setIcon(icon);
-        marker.setZIndex(lutidx);
+        marker.setZIndex(lutidx + (offline ? -1000 : 0));
         marker.ext_id = marker_id;
         marker.setMap(this.mapref);
         
@@ -906,9 +880,9 @@ var RTMKS = (function()
         var w_px = width  * pxScale;
         var h_px = height * pxScale;
         
-        var r1 = offline ? 220 :   0; // was offline=228
-        var g1 = offline ? 220 : 255; // was offline=255
-        var b1 = offline ? 220 :   0; // was offline=0
+        var r1 = offline ? 220 :   0;
+        var g1 = offline ? 220 : 255;
+        var b1 = offline ? 220 :   0;
         var a0 = offline ? 0.7 : 1.0;
         var a1 = offline ? 0.7 : 1.0;
         
@@ -975,10 +949,7 @@ var RTMKS = (function()
             }//if
         }//for
                  
-        //return RTMKS.GetInfoWindowHtmlForParams(sdre, this.cpms[i], sdate, stime, this.ids[i], this.locstxt[i], this.imgtxt[i], this.linktxt[i], null);//this.fontCssClass);
-        return RTMKS.GetInfoWindowHtmlForParams(sdre, this.times[i], this.cpms[i], sdate, stime, this.ids[i], this.locstxt[i], imgurls, this.linktxt[i], null);//this.fontCssClass);
-        
-        //RTMKS.GetInfoWindowHtmlForParams = function(dre, cpm, date, time, id, loc, imgurl, fontCssClass)
+        return RTMKS.GetInfoWindowHtmlForParams(sdre, this.times[i], this.cpms[i], sdate, stime, this.ids[i], this.locstxt[i], imgurls, this.linktxt[i], null);
     };
     
     RTMKS.prototype.AttachInfoWindow = function(marker)
@@ -1070,16 +1041,9 @@ var RTMKS = (function()
     
     RTMKS.GetInfoWindowHtmlForParams = function(dre, unixSS, cpm, date, time, id, loc, imgurls, linkurl, fontCssClass)
     {   
-        //imgurl = "cat-trolling.gif";
-        
         var html = "<table style='width:320px;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;' "
                + (fontCssClass != null ? "class='" + fontCssClass + "' " : "") 
-               //+ "style='width:320px;'>"
                + "<tr><td style='text-align:center;font-size:14px;'>" + loc + "</td></tr>";
-               //+ "<tr><td align='center'><a href='" + linkurl + "' target=_blank>" + loc + "</a></td></tr>"
-               //+ "<tr><td align='center'>DRE: " + dre + "</td></tr>"
-               //+ "<tr><td align='center'>CPM: " + cpm + "</td></tr>"
-               //+ "<tr><td align='center'>" + "Updated:" + time + " " + date + " UTC</td></tr>"
                
         if (unixSS < (new Date()).getTime() * 0.001 - 30.0 * 24.0 * 60.0 * 60.0)
         {
@@ -1089,7 +1053,6 @@ var RTMKS = (function()
                   + dre + " \u00B5" + "Sv/h"
                   + " (Last Updated: "
                   + date 
-                  //+ ", " + time + " UTC"
                   + ")"
                   + "</td></tr>";
         }//if
@@ -1099,20 +1062,8 @@ var RTMKS = (function()
             html += "<tr><td style='text-align:center;'><img style='image-rendering:auto;image-rendering:-webkit-optimize-contrast;image-rendering:optimize-contrast;' width='320' height='200' border=0 src='" + imgurls[i] + "'/></td></tr>";
         }//for
                
-               //+ "<tr><td style='text-align:center;'><img width='320' height='200' border=0 src='" + imgurl + "'/></td></tr>"
-               //+ "<tr style='height:1px;'><td>&nbsp;</td></tr>"
         html += "<tr><td style='line-height:20px;'><a style='color:rgb(66,114,219);font-size:12px;text-decoration:none;' href='" + linkurl + "' target=_blank>more info</a></td></tr>"
-               //+ "<tr style='height:1px;'><td style='height:1px;'>&nbsp;</td></tr>"
-               //+ "<tr><td style='height:1px; padding: 0px;'><hr style='border-style: none; height:1px;' /></td></tr>"
                + "</table>";
-               //+ "<div style='height:4px;'>&nbsp;</div>"
-               // disabling due to ID in graph bkg
-               /*
-               + "<div "
-               + (fontCssClass != null ? "class='"+ fontCssClass + "' " : "")
-               + "style='position:absolute;top:0;left:0;font-size:70%;color:#999999;'>" + id + "</div>";
-               */
-//padding:4px 4px 4px 0px;  
 
         return html;
     };

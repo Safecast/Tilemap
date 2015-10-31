@@ -453,7 +453,7 @@ function IsDefaultLocation()
 
 function InitShowLocationIfDefault()
 {
-    if (IsDefaultLocation() && getParam("logids") == null)
+    if (IsDefaultLocation() && getParam("logids").length == 0)
     {
         requestAnimationFrame(function() { ShowLocationText("Honshu, Japan"); });
     }
