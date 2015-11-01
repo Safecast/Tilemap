@@ -1814,8 +1814,6 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId02 = function()
     {
-        //var url   = "http://safecast.media.mit.edu/tilemap/TileExport512/{z}/{x}/{y}.png";
-        
         var url = _use_jp_region ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                  : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
 
@@ -1841,8 +1839,6 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId08 = function()
     {
-        //var url   = "http://safecast.media.mit.edu/tilemap/TileGriddata512/{z}/{x}/{y}.png";
-        
         var url = _use_jp_region ? "http://tg512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                  : "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
 
@@ -1869,44 +1865,37 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId03 = function()
     {
-        //var url   = "http://safecast.media.mit.edu/tilemap/TileExportNNSA/{z}/{x}/{y}.png";
         var url = _use_jp_region ? "http://nnsajp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                  : "http://nnsa.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
         var opts3 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
-        // this._layerBitstores.push(new LBITS(3, 1, 15, url, 1, 0, opts3, null));
         this._layerBitstores.push(new LBITS(3, 5, 15, url, 28, 12, opts3, null));
     };
 
     BitsProxy.prototype.Init_LayerId06 = function()
     {
-        //var url   = "http://safecast.media.mit.edu/tilemap/TileExportNURE/{z}/{x}/{y}.png";
         var url = _use_jp_region ? "http://nurejp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                  : "http://nure.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
         
-        var opts6 = new LBITSOptions({ lldim:1, ll:1, maxz:1, maxn:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
+        var opts6 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(6, 1, 11, url, 0, 0, opts6, null));
     };
     
     BitsProxy.prototype.Init_LayerId09 = function()
     {
-        //var url   = "http://safecast.media.mit.edu/tilemap/TileExportAIST/{z}/{x}/{y}.png";
         var url = _use_jp_region ? "http://aistjp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                  : "http://aist.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
         var opts9 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
-        //this._layerBitstores.push(new LBITS(9, 1, 11, url, 1, 0, opts9, null));
         this._layerBitstores.push(new LBITS(9, 2, 11, url, 3, 1, opts9, null));
     };
 
     BitsProxy.prototype.Init_LayerId16 = function()
     {
-        //var url    = "http://safecast.media.mit.edu/tilemap/TileExportAU/{z}/{x}/{y}.png";
         var url = _use_jp_region ? "http://aujp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                  : "http://au.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
         
         var opts16 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
-        //this._layerBitstores.push(new LBITS(16, 1, 11, url, 1, 1, opts16, null));
         this._layerBitstores.push(new LBITS(16, 2, 11, url, 3, 2, opts16, null));
     };
 
