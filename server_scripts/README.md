@@ -114,17 +114,17 @@ those is `sudo su`; by itself, `sudo` alone will often and randomly fail.
 Under the appropriate main path section:
 
 ```
-     Header set Access-Control-Allow-Origin "*"
-     # 2015-05-10 ND: expiration rules for better caching
-     ExpiresActive On
-     ExpiresByType image/png "access plus 4 hours"
-     ExpiresByType image/jpeg "access plus 4 hours"
-     ExpiresByType text/html "access plus 4 hours"
-     ExpiresByType text/css "access plus 4 hours"
-     ExpiresByType text/javascript "access plus 4 hours"
-     ExpiresByType application/javascript "access plus 4 hours"
-     # 2015-05-11 ND: new redirect for null tiles
-     FallbackResource /tilemap/null.png
+Header set Access-Control-Allow-Origin "*"
+# 2015-05-10 ND: expiration rules for better caching
+ExpiresActive On
+ExpiresByType image/png "access plus 4 hours"
+ExpiresByType image/jpeg "access plus 4 hours"
+ExpiresByType text/html "access plus 4 hours"
+ExpiresByType text/css "access plus 4 hours"
+ExpiresByType text/javascript "access plus 4 hours"
+ExpiresByType application/javascript "access plus 4 hours"
+# 2015-05-11 ND: new redirect for null tiles
+FallbackResource /tilemap/null.png
 ```
      
 Note that here, "null.png" is a 1x1 pixel transparent PNG file.
@@ -146,24 +146,30 @@ Amazon S3 Configuration
  * `s3cmd mb s3://te512.safecast.org`
 2. Create a bucket on `ap-northeast-1` (.jp) with "jp" suffixed to the prefix of the previous name:
  * `s3cmd mb s3://te512jp.safecast.org --region=ap-northeast-1`
-3. Create a CORS file named `s3_cors.xml`:
- * `<?xml version="1.0" encoding="UTF-8"?>`
- * `<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">`
-  * `  <CORSRule>`
-   * `    <AllowedOrigin>*</AllowedOrigin>`
-   * `    <AllowedMethod>GET</AllowedMethod>`
-   * `    <AllowedHeader>Authorization</AllowedHeader>`
-  * `  </CORSRule>`
- * `</CORSConfiguration>`
-4. Apply CORS to each region's bucket.
+3. Apply CORS to each region's bucket. (s3_cors.xml at end of this document)
  * `s3cmd setcors s3_cors.xml s3://te512.safecast.org`
  * `s3cmd setcors s3_cors.xml s3://te512jp.safecast.org --region=ap-northeast-1 `
-5. Use `s3cmd sync` to upload to the initial `us-east-1` bucket.
+4. Sync/upload to the .us bucket:
  * `cd /Library/WebServer/Documents/tilemap/TileExport512`
- * `s3cmd sync 0 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
-6. Use `aws sync` to synchronize between regions:
+ * `s3cmd sync 1 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 2 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 3 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 4 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 5 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 6 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 7 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 8 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 9 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 10 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 11 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 12 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 13 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 14 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 15 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * `s3cmd sync 16 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+5. Synchronize the buckets remotely between regions:
  * `aws s3 sync s3://te512.safecast.org s3://te512jp.safecast.org --source-region us-east-1 --region ap-northeast-1 --acl public-read --delete`
-7. Force update the index tile used by bitstore.js so the client's date display is updated correctly:
+6. Force update the index tile used by bitstore.js so the client's date display is updated correctly:
  * `touch ./0/0/0.png`
  * `s3cmd put --recursive 0 s3://te512.safecast.org --acl-public`
  * `s3cmd put --recursive 0 s3://te512jp.safecast.org --acl-public --region=ap-northeast-1`
@@ -185,7 +191,7 @@ Example Command-Line For Running App
 More info on command line parameters can be obtained by running the app from a terminal with -help.
 
 ```
-     /Applications/GeigerBotOSX.app/Contents/MacOS/GeigerBotOSX -autorun -p2 -cust -perfectIdx -allsubs -subdirs0 -z17 >> /Users/safecast/tilemap.log 2>&1
+/Applications/GeigerBotOSX.app/Contents/MacOS/GeigerBotOSX -autorun -p2 -cust -perfectIdx -allsubs -subdirs0 -z17 >> /Users/safecast/tilemap.log 2>&1
 ```
 
 bulktar.sh Script
@@ -194,22 +200,35 @@ bulktar.sh Script
 A useful shell script for creating a TAR archive of map tiles, as the normal command will fail due to the number of tiles.  This also excludes the Apple metadata file bloat.  After creating it, run chmod 777 (or whatever) to make it executable.  Note that your current path should be the root level of an individual set of tiles, eg: `/Library/WebServer/documents/tilemap/TileExport`
 
 ```
-     #!/bin/sh
-     set COPYFILE_DISABLE=1
-     COPYFILE_DISABLE=1; export COPYFILE_DISABLE
-     find . -name '*.png' -print | tar -zcf bulk.tar.gz --files-from -
-     unset COPYFILE_DISABLE; export COPYFILE_DISABLE
+#!/bin/sh
+set COPYFILE_DISABLE=1
+COPYFILE_DISABLE=1; export COPYFILE_DISABLE
+find . -name '*.png' -print | tar -zcf bulk.tar.gz --files-from -
+unset COPYFILE_DISABLE; export COPYFILE_DISABLE
 ```
 
 Full Production Crontab (2015-10-31)
 ====================================
 
 ```
-     0 6 * * * /Users/safecast/Safecast/safemaps/autobuild.sh >> /Users/safecast/safemap.log 2>&1
-     30 01 * * * /Users/safecast/Safecast/TileExportRetileAndSyncS3.sh >> /Users/safecast/tilemap.log 2>&1
-     */3 * * * * /Users/safecast/Safecast/Databot/processMail.sh
-     */3 * * * * /Users/safecast/Safecast/Databot-JP/processMail.sh
-     1 * * * * /Library/WebServer/Documents/radangel/update.sh >> /Library/WebServer/Documents/radangel/radangel.log 2>&1
+0 6 * * * /Users/safecast/Safecast/safemaps/autobuild.sh >> /Users/safecast/safemap.log 2>&1
+30 01 * * * /Users/safecast/Safecast/TileExportRetileAndSyncS3.sh >> /Users/safecast/tilemap.log 2>&1
+*/3 * * * * /Users/safecast/Safecast/Databot/processMail.sh
+*/3 * * * * /Users/safecast/Safecast/Databot-JP/processMail.sh
+1 * * * * /Library/WebServer/Documents/radangel/update.sh >> /Library/WebServer/Documents/radangel/radangel.log 2>&1
+```
+
+Amazon S3 CORS File (s3_cors.xml)
+=================================
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+    <CORSRule>
+        <AllowedOrigin>*</AllowedOrigin>
+        <AllowedMethod>GET</AllowedMethod>
+        <AllowedHeader>Authorization</AllowedHeader>
+    </CORSRule>
+</CORSConfiguration>
 ```
 
 Contingency Planning
