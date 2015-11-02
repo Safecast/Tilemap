@@ -1776,7 +1776,6 @@ var BitsProxy = (function()
     
     BitsProxy.prototype.LegacyInitForSelection = function()
     {
-        //var idx = this.ddlLayers.selectedIndex;
         var idx = GetCurrentInstanceSelectedLayerIdx();
         if (idx <= 2 || idx >= 7) return;
         
@@ -1817,7 +1816,7 @@ var BitsProxy = (function()
         var url = _use_jp_region ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                  : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
 
-        var opts2 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, maxz:4, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
+        var opts2 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, maxz:3, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb2  = function(dstr)
         {
             if (this.ddlLayers != null)
