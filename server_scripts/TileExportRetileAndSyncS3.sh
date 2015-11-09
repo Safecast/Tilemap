@@ -69,14 +69,14 @@ time aws s3 sync 16 s3://te512.safecast.org/16 --acl public-read --delete --cach
 
 # ============= 6. Amazon S3 - Force Update z=0 For Date on Client =============
 touch ./0/0/0.png
-aws s3 cp 0 s3://te512.safecast.org/0 --acl public-read --recursive
+aws s3 sync 0 s3://te512.safecast.org/0 --acl public-read --delete --cache-control "max-age=60"
 
 
 # ================ 7. Amazon S3 - Sync .us Region -> .jp Region ================
 
 time aws s3 sync s3://te512.safecast.org s3://te512jp.safecast.org --source-region us-east-1 --region ap-northeast-1 --acl public-read --delete --cache-control "max-age=7200"
 
-aws s3 cp 0 s3://te512jp.safecast.org/0 --acl public-read --recursive --region ap-northeast-1
+aws s3 sync 0 s3://te512jp.safecast.org/0 --acl public-read --delete --cache-control "max-age=60" --region ap-northeast-1
 
 
 
