@@ -1,10 +1,9 @@
 ## Server Use of the Safecast OS X Application
-##### 2015-10-31 Nick Dolezal, Version 1.1
 
 Abstract
 ========
 
-The Safecast app for OS X was designed primarily to facilitate the export of autonomously updated Safecast map tiles.  Currently, in runs on the production server `safecast.media.mit.edu` in this role.  Also used are Lionel's Python interpolation script, s3cmd, aws CLI, and Retile.
+The Safecast app for OS X was designed primarily to facilitate the export of autonomously updated Safecast map tiles.  Currently, in runs on the production server `safecast.media.mit.edu` in this role.  Also used are Lionel's Python interpolation script, the Amazon aws CLI, and Retile.
 
 Introduction
 ============
@@ -151,28 +150,22 @@ Amazon S3 Configuration
  * `s3cmd setcors s3_cors.xml s3://te512jp.safecast.org --region=ap-northeast-1 `
 4. Sync/upload to the .us bucket:
  * `cd /Library/WebServer/Documents/tilemap/TileExport512`
+ * Using s3cmd:
  * `s3cmd sync 1 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 2 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 3 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 4 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 5 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 6 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 7 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 8 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 9 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 10 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 11 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 12 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 13 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 14 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 15 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
- * `s3cmd sync 16 s3://te512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"`
+ * Or, using the aws CLI:
+ * `aws s3 sync 12 s3://te512.safecast.org/12 --acl public-read --delete --cache-control "max-age=7200"``
+ * (repeat for all zoom levels)
 5. Synchronize the buckets remotely between regions:
- * `aws s3 sync s3://te512.safecast.org s3://te512jp.safecast.org --source-region us-east-1 --region ap-northeast-1 --acl public-read --delete`
+ * `aws s3 sync s3://te512.safecast.org s3://te512jp.safecast.org --source-region us-east-1 --region ap-northeast-1 --acl public-read --delete --cache-control "max-age=7200"`
+ * (a remote server sync is used here for performance; a local sync to the ap-northeast-1 region will also work, but will be slower)
 6. Force update the index tile used by bitstore.js so the client's date display is updated correctly:
  * `touch ./0/0/0.png`
+ * Using s3cmd:
  * `s3cmd put --recursive 0 s3://te512.safecast.org --acl-public`
  * `s3cmd put --recursive 0 s3://te512jp.safecast.org --acl-public --region=ap-northeast-1`
+ * Or, using the aws CLI:
+ * `aws s3 cp 0 s3://te512.safecast.org/0 --acl public-read --recursive`
+ * `aws s3 cp 0 s3://te512jp.safecast.org/0 --acl public-read --recursive --region ap-northeast-1`
 
 Now, tiles will be available at:
 
@@ -182,8 +175,8 @@ Now, tiles will be available at:
 Notes:
 
 * Specifying `--acl-public` (s3cmd) or `--acl public-read` (aws) must be done in every put/cp/sync command.
-* aws-cli is multithreaded and significantly faster than s3cmd, but lacks some capabilities, such as md5sum-based synchronization.
-* If using aws to sync local files remotely, note that the syntax is different and the initial path specified must be appended to the remote bucket.
+* aws-cli is multithreaded and significantly faster than s3cmd, but synchronizes using the local file's modified date, rather than md5sum as s3cmd does.
+* If using aws to sync local files remotely, note that the syntax is different from s3cmd and the initial path specified must be appended to the remote bucket.
 
 Example Command-Line For Running App
 ====================================
