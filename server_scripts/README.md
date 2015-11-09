@@ -141,6 +141,8 @@ eg: `/Library/WebServer/documents/tilemap/TileExport/.htaccess`
 Amazon S3 Configuration
 =======================
 
+0. Increase the number of aws threads; the default is 10, which is extremely slow for a sync to Japan.
+ * `aws configure set default.s3.max_concurrent_requests 100`
 1. Create a bucket on `us-east-1` (.va.us):
  * `s3cmd mb s3://te512.safecast.org`
 2. Create a bucket on `ap-northeast-1` (.jp) with "jp" suffixed to the prefix of the previous name:
@@ -155,17 +157,16 @@ Amazon S3 Configuration
  * Or, using the aws CLI:
  * `aws s3 sync 12 s3://te512.safecast.org/12 --acl public-read --delete --cache-control "max-age=7200"``
  * (repeat for all zoom levels)
-5. Synchronize the buckets remotely between regions:
- * `aws s3 sync s3://te512.safecast.org s3://te512jp.safecast.org --source-region us-east-1 --region ap-northeast-1 --acl public-read --delete --cache-control "max-age=7200"`
- * (a remote server sync is used here for performance; a local sync to the ap-northeast-1 region will also work, but will be slower)
+5. Synchronize to the .jp bucket, as above, but with a region specified.
+ * (a remote server sync is only faster with a limited number of threads)
 6. Force update the index tile used by bitstore.js so the client's date display is updated correctly:
  * `touch ./0/0/0.png`
  * Using s3cmd:
  * `s3cmd put --recursive 0 s3://te512.safecast.org --acl-public`
  * `s3cmd put --recursive 0 s3://te512jp.safecast.org --acl-public --region=ap-northeast-1`
  * Or, using the aws CLI:
- * `aws s3 cp 0 s3://te512.safecast.org/0 --acl public-read --recursive`
- * `aws s3 cp 0 s3://te512jp.safecast.org/0 --acl public-read --recursive --region ap-northeast-1`
+ * `aws s3 sync 0 s3://te512.safecast.org/0 --acl public-read --delete`
+ * `aws s3 sync 0 s3://te512jp.safecast.org/0 --acl public-read --delete --region ap-northeast-1`
 
 Now, tiles will be available at:
 
