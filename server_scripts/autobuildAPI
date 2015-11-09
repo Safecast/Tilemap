@@ -121,28 +121,29 @@ Retile /Library/WebServer/Documents/tilemap/TileGriddata/1 /Library/WebServer/Do
 
 # 1. Sync tiles to .us S3 region
 cd /Library/WebServer/Documents/tilemap/TileGriddata512
-s3cmd sync 0 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
-s3cmd sync 1 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
-s3cmd sync 3 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
-s3cmd sync 4 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
-s3cmd sync 5 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
-s3cmd sync 6 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
-s3cmd sync 7 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
-s3cmd sync 8 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
-s3cmd sync 9 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
-s3cmd sync 10 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
-s3cmd sync 11 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
-s3cmd sync 12 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
-time s3cmd sync 13 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
-time s3cmd sync 14 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
-time s3cmd sync 15 s3://tg512.safecast.org --acl-public --add-header="Cache-Control:max-age=7200"
+aws s3 sync 0 s3://tg512.safecast.org/0 --acl public-read --delete --cache-control "max-age=7200"
+aws s3 sync 1 s3://tg512.safecast.org/1 --acl public-read --delete --cache-control "max-age=7200"
+aws s3 sync 3 s3://tg512.safecast.org/3 --acl public-read --delete --cache-control "max-age=7200"
+aws s3 sync 4 s3://tg512.safecast.org/4 --acl public-read --delete --cache-control "max-age=7200"
+aws s3 sync 5 s3://tg512.safecast.org/5 --acl public-read --delete --cache-control "max-age=7200"
+aws s3 sync 6 s3://tg512.safecast.org/6 --acl public-read --delete --cache-control "max-age=7200"
+aws s3 sync 7 s3://tg512.safecast.org/7 --acl public-read --delete --cache-control "max-age=7200"
+aws s3 sync 8 s3://tg512.safecast.org/8 --acl public-read --delete --cache-control "max-age=7200"
+aws s3 sync 9 s3://tg512.safecast.org/9 --acl public-read --delete --cache-control "max-age=7200"
+aws s3 sync 10 s3://tg512.safecast.org/10 --acl public-read --delete --cache-control "max-age=7200"
+aws s3 sync 11 s3://tg512.safecast.org/11 --acl public-read --delete --cache-control "max-age=7200"
+aws s3 sync 12 s3://tg512.safecast.org/12 --acl public-read --delete --cache-control "max-age=7200"
+time aws s3 sync 13 s3://tg512.safecast.org/13 --acl public-read --delete --cache-control "max-age=7200"
+time aws s3 sync 14 s3://tg512.safecast.org/14 --acl public-read --delete --cache-control "max-age=7200"
+time aws s3 sync 15 s3://tg512.safecast.org/15 --acl public-read --delete --cache-control "max-age=7200"
+
 
 # 2. Force upload the zoom levels used to set the date in the UI, otherwise it may appear nothing changed.
 touch ./2/3/1.png
-s3cmd put --recursive 2 s3://tg512.safecast.org --acl-public
+aws s3 cp 2 s3://tg512.safecast.org/2 --acl public-read --recursive
 
 # 3. Sync .us region -> .jp region
-time aws s3 sync s3://tg512.safecast.org s3://tg512jp.safecast.org --source-region us-east-1 --region ap-northeast-1 --acl public-read --delete
+time aws s3 sync s3://tg512.safecast.org s3://tg512jp.safecast.org --source-region us-east-1 --region ap-northeast-1 --acl public-read --delete --cache-control "max-age=7200"
 
 # 4. Force updated timestamps on index tiles for .jp
-s3cmd put --recursive 2 s3://tg512jp.safecast.org --acl-public --region=ap-northeast-1
+aws s3 cp 2 s3://tg512jp.safecast.org/2 --acl public-read --recursive --region ap-northeast-1
