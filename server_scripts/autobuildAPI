@@ -88,7 +88,7 @@ Retile /Library/WebServer/Documents/tilemap/TileGriddata/2 /Library/WebServer/Do
 Retile /Library/WebServer/Documents/tilemap/TileGriddata/1 /Library/WebServer/Documents/tilemap/TileGriddata
 
 echo "=============================="
-echo "Retile - Creating z=13 -> z=14"
+echo "Retile - Creating z=14 to z=15"
 echo "=============================="
 
 Retile /Library/WebServer/Documents/tilemap/TileGriddata/13 /Library/WebServer/Documents/tilemap/TileGriddata -zIn -interpEX
@@ -135,8 +135,6 @@ aws s3 sync 11 s3://tg512.safecast.org/11 --acl public-read --delete --cache-con
 aws s3 sync 12 s3://tg512.safecast.org/12 --acl public-read --delete --cache-control "max-age=7200"
 time aws s3 sync 13 s3://tg512.safecast.org/13 --acl public-read --delete --cache-control "max-age=7200"
 time aws s3 sync 14 s3://tg512.safecast.org/14 --acl public-read --delete --cache-control "max-age=7200"
-time aws s3 sync 15 s3://tg512.safecast.org/15 --acl public-read --delete --cache-control "max-age=7200"
-
 
 # 2. Force upload the zoom levels used to set the date in the UI, otherwise it may appear nothing changed.
 touch ./2/3/1.png
@@ -157,7 +155,6 @@ aws s3 sync 11 s3://tg512jp.safecast.org/11 --acl public-read --delete --cache-c
 aws s3 sync 12 s3://tg512jp.safecast.org/12 --acl public-read --delete --cache-control "max-age=7200" --region ap-northeast-1
 time aws s3 sync 13 s3://tg512jp.safecast.org/13 --acl public-read --delete --cache-control "max-age=7200" --region ap-northeast-1
 time aws s3 sync 14 s3://tg512jp.safecast.org/14 --acl public-read --delete --cache-control "max-age=7200" --region ap-northeast-1
-time aws s3 sync 15 s3://tg512jp.safecast.org/15 --acl public-read --delete --cache-control "max-age=7200" --region ap-northeast-1
 
 # 4. Force updated timestamps on index tiles for .jp
 aws s3 sync 2 s3://tg512jp.safecast.org/2 --acl public-read --delete --cache-control "max-age=60" --region ap-northeast-1
