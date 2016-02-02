@@ -3226,6 +3226,8 @@ var LoadingSpinnerHelper = (function()
     LoadingSpinnerHelper.DoesStyleExist = function(src, t)
     {
         var d = false;
+        
+        if ("MozAppearance" in document.documentElement.style) return d; // 2016-02-01 ND: workaround for Firefox bug
     
         for (var i=0; i<document.styleSheets.length; i++)
         {
