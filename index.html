@@ -226,6 +226,139 @@ body
    vertical-align:middle;
 }
 
+
+
+
+
+
+#tsPanel
+{
+    display:none;
+    position:absolute;
+    top:86px;
+    left:10px;
+    z-index:5;
+    vertical-align:top;
+    padding:0px;
+    background-color:rgba(255, 255, 255, 0.0);
+}
+
+#tsPanelTitle
+{
+    width:175px;
+    font-size:19px;
+    text-align:center;
+    vertical-align:middle;
+    padding:1px 0px 1px 0px;
+    -webkit-border-radius:3 3 0 0;
+    -moz-border-radius:3 3 0 0;
+    border-radius:3px 3px 0px 0px;
+    background-color:#FFF;
+}
+
+#tsPanelContent
+{
+    -webkit-border-radius:0 3 3 3;
+    -moz-border-radius:0 3 3 3;
+    border-radius:0px 3px 3px 3px;
+    background-color:rgba(255, 255, 255, 0.85);
+}
+
+#tsPanelContentTitle
+{
+    font-size:10px;
+    text-align:left;
+    vertical-align:middle;
+    padding:1px 0px 1px 30px;
+}
+
+#tsPanelContentTable
+{
+    width:227px;
+    height:92px;
+    border:0px;
+    padding:0px 5px 0px 5px;
+    border-spacing:0px;
+    border-collapse:collapse;
+}
+
+
+.tsInfoTd, .tsDateTd { white-space: nowrap; }
+
+.tsInfoTd   { text-align:left;   padding:3px 0px 3px 0px; font-size:9px; margin-bottom:5px; }
+.tsDateTd   { text-align:center; padding:0px;             font-size:16px; }
+.tsSliderTd { text-align:center; padding-top:15px; }
+
+
+
+.tsInfoLabel, .tsInfoSubLabel { padding:0px 0px 0px 10px; }
+
+.tsInfoLabel    { font-size:19px; }
+.tsInfoSubLabel { font-size:10px; }
+
+
+
+
+
+#tsStartDate, #tsEndDate
+{ 
+    text-align:center; 
+    vertical-align:middle; 
+    padding:4px 10px 4px 10px; 
+    -webkit-border-radius:3;
+    -moz-border-radius:3;
+    border-radius:3px;
+    background-color:#FFF; 
+}
+
+
+
+
+
+#tsSliderContainer
+{
+    position:relative;
+    width:100%;
+    height:36px;
+}
+
+#tsTickImage, #tsSliderSubcontainer
+{
+    display:block;
+    position:absolute;
+    width:200px;
+    left:0px;
+    right:0px;
+    margin:0px auto 0px auto;
+    padding:0px;
+}
+
+#tsTickImage
+{
+    top:0px;
+    height:4px;
+}
+
+#tsSliderSubcontainer
+{
+    top:10px;
+    height:15px;
+}
+
+#tsSlider 
+{ 
+    width:200px;
+    height:15px;
+    margin:0px;
+    padding:0px;
+}
+
+
+
+
+
+
+
 .gm-style 
 {
     font-size:12px;
@@ -318,6 +451,7 @@ function Init()
         _gelid("imgScale").src = IdxBaseUrl() + "scale64_60x854.png";
         _gelid("imgScale").title = "Yes, it's actually 4x LOG10s.  Very loggy.";
         _gelid("scale").style.visibility = "visible";
+        _gelid("tsTickImage").src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAABCAMAAADHLAisAAAABlBMVEVfMDCamppiRWYmAAAAAXRSTlMAQObYZgAAABdJREFUeNpjYEABjIwMRAFi1Y2aSKpKABFLABVQjyGWAAAAAElFTkSuQmCC";
     }, 450);
 }
 
@@ -357,23 +491,57 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
             </table>
         </div>
         <div id="bottombar0">
-            <select id="layers" onChange="return Layers_OnChange();" class="FuturaFont">
+            <select id="layers" onChange="return LayersHelper.UiLayers_OnChange();" class="FuturaFont">
                 <option class="layer" value="11" id="layers_11">&nbsp;None</option>
                 <option class="layer" value="0" id="layers_0">&nbsp;Safecast</option>
-                <option class="layer" value="1" id="layers_1">&nbsp;&#9492; SC Points</option>
-                <option class="layer" value="2" id="layers_2">&nbsp;&#9492; SC Interp.</option>
+                <option class="layer" value="1" id="layers_1">&nbsp;&#9492; Points</option>
+                <option class="layer" value="2" id="layers_2">&nbsp;&#9492; Interpolation</option>
+                <option class="layer" value="12" id="layers_12">&nbsp;Safecast Snapshots...</option>
                 <option class="layer" value="8" id="layers_8">&nbsp;Safecast 2013-04-15</option>
                 <option class="layer" value="9" id="layers_9">&nbsp;Safecast 2014-03-11</option>
                 <option class="layer" value="3" id="layers_3">&nbsp;NNSA Japan 2011-06-30</option>
                 <option class="layer" value="4" id="layers_4">&nbsp;USGS/GSC NURE ~1980</option>
                 <option class="layer" value="5" id="layers_5">&nbsp;Geoscience Australia 2010</option>
                 <option class="layer" value="6" id="layers_6">&nbsp;AIST/JGS Natural Bkg</option>
-                <option class="layer" value="7" id="layers_7">&nbsp;(Interpolation Test)</option>
                 <option class="layer" value="10" id="layers_10">&nbsp;Add bGeigie Log...</option>
             </select>
         </div>
     </div> 
 </form>
+
+
+<div id="tsPanel" class="FuturaFont">
+    <div id="tsPanelTitle">スナップショット</div>
+    <div id="tsPanelContent">
+        <div id="tsPanelContentTitle">SAFECAST SNAPSHOTS</div>
+        <table id="tsPanelContentTable">
+            <tr>
+                <td class="tsInfoTd">
+                    <span class="tsInfoLabel">開始日</span><br/> 
+                    <span class="tsInfoSubLabel">START DATE</span>
+                </td>
+                <td class="tsInfoTd">
+                    <span class="tsInfoLabel">終了日</span><br/>
+                    <span class="tsInfoSubLabel">&nbsp;END DATE</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="tsDateTd"><span id="tsStartDate">2011-03-11</span></td>
+                <td class="tsDateTd"><span id="tsEndDate">2011-09-10</span></td>
+            </tr>
+            <tr>
+                <td colspan="2" class="tsSliderTd">
+                    <div id="tsSliderContainer">
+                        <img id="tsTickImage" width="200" height="4">
+                        <div id="tsSliderSubcontainer">
+                            <input type="range" id="tsSlider" value="13" min="13" max="22" step="1" onChange="TimeSliceUI.tsSlider_OnChange();">
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
 
 
 <div id="popup" style="display:none;"></div>
@@ -383,6 +551,12 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
 <div id="warning_message"></div>
 </body>
 </html>
+
+
+
+
+
+
 
 
 

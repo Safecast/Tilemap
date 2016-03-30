@@ -42,6 +42,7 @@ var _zoom_limit_break = false;
 var _no_hdpi_tiles    = false;
 var _img_scaler_idx   = 1;
 var _use_jp_region    = false;
+var _show_last_slice  = false;
 
 
 // ============ LEGACY SUPPORT =============
@@ -227,6 +228,7 @@ function initialize()
     InitBasemaps(); // must occur after "map" ivar is set
     InitGmapsLayers();
 
+    InitTimeSliceUI();
     InitDefaultRasterLayerOrOverrideFromQuerystring();
     
     MapExtent_OnChange(1); //fire on init for client zoom
@@ -272,13 +274,13 @@ function initialize()
 function GetIsRetina() 
 { 
     return !_no_hdpi_tiles && window.devicePixelRatio > 1.5; 
-}
+}//GetIsRetina
 
 
 function InitGmapsLayers()
 {
     if (overlayMaps == null) overlayMaps = ClientZoomHelper.InitGmapsLayers_CreateAll();
-}
+}//InitGmapsLayers
 
 
 
@@ -381,6 +383,10 @@ function GetDefaultBasemapOrOverrideFromQuerystring()
     return GetMapTypeIdForBasemapIdx(midx);
 }//GetDefaultBasemapOrOverrideFromQuerystring
 
+function InitTimeSliceUI()
+{
+    TimeSliceUI.SetSliderIdxToDefault();
+}
 
 function InitDefaultRasterLayerOrOverrideFromQuerystring()
 {
@@ -389,10 +395,15 @@ function InitDefaultRasterLayerOrOverrideFromQuerystring()
     
     if (lidx == -1)
     {
-        SetCurrentInstanceSelectedLayerIdx(0); // set default if nothing is selected
+        LayersHelper.SetSelectedIdx(0); // set default if nothing is selected
     }//if
     
-    SetCurrentInstanceSelectedLayerIdxAndSynchronizeWithInstanceMap(lidx);
+    LayersHelper.SetSelectedIdxAndSync(lidx);
+    
+    if (LayersHelper.IsIdxTimeSlice(lidx))
+    {
+        TimeSliceUI.SetPanelHidden(false);
+    }//if    
 }//InitDefaultRasterLayerOrOverrideFromQuerystring
 
 function InitZoomLimitBreak()
@@ -443,82 +454,81 @@ function InitFont_CrimsonText() // free Optimus Princeps clone
     head.appendChild(el);
     
     _did_init_font_crimson_text = true;
-}
+}//InitFont_CrimsonText
 
 function IsDefaultLocation()
 {
     var yxz = GetUserLocationFromQuerystring();    
     return yxz.yx == null;
-}
+}//IsDefaultLocation
 
 function InitShowLocationIfDefault()
 {
     if (IsDefaultLocation() && getParam("logids").length == 0)
     {
         requestAnimationFrame(function() { ShowLocationText("Honshu, Japan"); });
-    }
-}
+    }//if
+}//InitShowLocationIfDefault
 
 
 
 
-    function SetStyleFromCSS(sel, t, css)
-    {
-        var d = false;
+function SetStyleFromCSS(sel, t, css)
+{
+    var d = false;
         
-        for (var i=0; i<document.styleSheets.length; i++)
-        {
-            var r = document.styleSheets[i].href == null ? (document.styleSheets[i].cssRules || document.styleSheets[i].rules || new Array()) : new Array();
+    for (var i=0; i<document.styleSheets.length; i++)
+    {
+        var r = document.styleSheets[i].href == null ? (document.styleSheets[i].cssRules || document.styleSheets[i].rules || new Array()) : new Array();
 
-            for (var n in r)
+        for (var n in r)
+        {
+            if (r[n].type == t && r[n].selectorText == sel)
             {
-                if (r[n].type == t && r[n].selectorText == sel)
-                {
-                    r[n].style.cssText = css;
-                    d = true;
-                    break;
-                }//if
-            }//for
-        
-            if (d) break;
+                r[n].style.cssText = css;
+                d = true;
+                break;
+            }//if
         }//for
-    }//GetStyleFromCSS
-    
-    
-    
-    function GetCssForScaler(s)
-    {
-        var ir = "image-rendering:";
-        var a = new Array();
-
-        a.push([1, ir+"optimizeSpeed;"]);
-        a.push([1, ir+"-moz-crisp-edges;"]);
-        a.push([1, ir+"-o-crisp-edges;"]);
-        a.push([1, ir+"-webkit-optimize-contrast;"]);
-        a.push([1, ir+"optimize-contrast;"]);
-        a.push([1, ir+"crisp-edges;"]);
-        a.push([1, ir+"pixelated;"]);
-        a.push([1, "-ms-interpolation-mode:nearest-neighbor;"]);
-
-        var d = "";
         
-        for (var i=0; i<a.length; i++)
-        {
-            if (a[i][0] <= s) d += a[i][1] + " \n ";
-        }//for
-
-        return d;
-    }//GetCssForScaler
+        if (d) break;
+    }//for
+}//GetStyleFromCSS
     
-
     
-    function ToggleScaler()
-    {
-        _img_scaler_idx = _img_scaler_idx == 1 ? 0 : _img_scaler_idx + 1;
+function GetCssForScaler(s)
+{
+    var ir = "image-rendering:";
+    var a = new Array();
+
+    a.push([1, ir+"optimizeSpeed;"]);
+    a.push([1, ir+"-moz-crisp-edges;"]);
+    a.push([1, ir+"-o-crisp-edges;"]);
+    a.push([1, ir+"-webkit-optimize-contrast;"]);
+    a.push([1, ir+"optimize-contrast;"]);
+    a.push([1, ir+"crisp-edges;"]);
+    a.push([1, ir+"pixelated;"]);
+    a.push([1, "-ms-interpolation-mode:nearest-neighbor;"]);
+
+    var d = "";
         
-        var css = GetCssForScaler(_img_scaler_idx);
-        SetStyleFromCSS(".noblur img", 1, css);
-    }//ToggleScaler
+    for (var i=0; i<a.length; i++)
+    {
+        if (a[i][0] <= s) d += a[i][1] + " \n ";
+    }//for
+
+    return d;
+}//GetCssForScaler
+    
+
+    
+function ToggleScaler()
+{
+    _img_scaler_idx = _img_scaler_idx == 1 ? 0 : _img_scaler_idx + 1;
+        
+    var css = GetCssForScaler(_img_scaler_idx);
+    SetStyleFromCSS(".noblur img", 1, css);
+}//ToggleScaler
 
 
 
@@ -590,7 +600,7 @@ function InitMainMenu()
                 document.getElementById("map_canvas").style.className = _no_hdpi_tiles ? "noblur" : null;
                 overlayMaps = null;
                 InitGmapsLayers();
-                SynchronizeInstanceSelectedLayerAndInstanceMap();
+                LayersHelper.SyncSelectedWithMap();
                 var c = GetMapInstanceYXZ();
                 ClientZoomHelper.SynchronizeLayersToZoomLevel(c.z);
                 break;
@@ -759,45 +769,55 @@ function ApplyAndSetZoomLimitBreakIfNeeded()
     map.setMapTypeId(GetMapTypeIdForBasemapIdx(oldIdx));
 }
 
+function GetFormattedSafecastApiQuerystring(lat, lon, dist, start_date_iso, end_date_iso)
+{
+    var url = "https://api.safecast.org/en-US/measurements?utf8=%E2%9C%93"
+            + "&latitude=" + lat.toFixed(6)
+            + "&longitude="+ lon.toFixed(6)
+            + "&distance=" + Math.ceil(dist)
+            + "&captured_after="  + encodeURIComponent(start_date_iso)
+            + "&captured_before=" + encodeURIComponent(end_date_iso)
+            + "&since=&until=&commit=Filter";
+
+    return url;
+}//GetFormattedSafecastApiQuerystring
+
 function QuerySafecastApiAsync(lat, lon, z)
 {
-    var url = 'https://api.safecast.org/en-US/measurements?utf8=%E2%9C%93&latitude=';
-    url += RoundToD(lat,6)+'&longitude='+RoundToD(lon,6);
-    url += '&distance='+Math.ceil(M_LatPxZ(lat, 1+1<<Math.max(z-13.0,0.0), z));
-    url += '&captured_after=11%2F03%2F2011+00%3A00%3A00';
-    url += '&captured_before='+GetDTQS()+'&since=&until=&commit=Filter';
-    window.open(url);
-}
-
-// returns max days in month, used for "wrapping" to the next month by GetDTQS()
-function GetMaxDDForMM(mm) { return mm == 2 ? 28 : mm == 4 || mm == 6 || mm == 8 || mm == 9 || mm == 11 ? 30 : 31; }
-
-// returns string for the end date of an API query, which is the current day + 1.  this
-// is done as a sanity check against bad date values in the database.  the API only accepts
-// some non-standard date format.
-function GetDTQS()
-{
-    var d  = new Date();
-    var dd = (d.getUTCDate()+2);  // offset by 1 due to zero-based index, then offset by another 1 for sanity filter
-    var mm = (d.getUTCMonth()+1); // offset by 1 due to zero-based index
-    var yy = d.getUTCFullYear();
+    var start_date_iso, end_date_iso;
+    var dist = M_LatPxZ(lat, 1+1<<Math.max(z-13.0,0.0), z);
+    var idx  = LayersHelper.GetSelectedIdx();
     
-    if (GetMaxDDForMM(mm) < dd) // prevent +1 day from returning an invalid date
+    if (LayersHelper.IsIdxTimeSlice(idx))
     {
-        dd = 1;
-        yy = mm == 12 ? yy + 1 : yy;
-        mm = mm != 12 ? mm + 1 : 1;
+        var ds = SafecastDateHelper.GetTimeSliceLayerDateRangeInclusiveForIdxUTC(idx);
+        
+        start_date_iso = ds.s;
+          end_date_iso = ds.e;
     }//if
+    else
+    {
+        start_date_iso = "2011-03-10T00:00:00Z";
+        
+        var d1 = new Date();
+        var t1 = d1.getTime();
+        t1 += 24.0 * 60.0 * 60.0 * 1000.0; // pad by one day
+        d1.setTime(t1);
+        
+        end_date_iso = d1.toISOString();
+    }//else
     
-    return ""+ dd + "%2F" + mm + "%2F" + yy + "+00%3A00%3A00";
-}//GetDTQS
+    var url = GetFormattedSafecastApiQuerystring(lat, lon, dist, start_date_iso, end_date_iso);
 
-// returns double-precision floating point value x rounded to d base-10 decimal places
-function RoundToD(x,d) { return Math.round(x*Math.pow(10.0,d))/Math.pow(10.0,d); }
+    window.open(url);
+}//QuerySafecastApiAsync
 
 // returns meters per pixel for a given EPSG:3857 Web Mercator zoom level, for the
 // given latitude and number of pixels.
-function M_LatPxZ(lat,px,z) { return (Math.cos(lat*Math.PI/180.0)*2.0*Math.PI*6378137.0/(256.0*Math.pow(2.0,z)))*px; }
+function M_LatPxZ(lat, px, z) 
+{
+    return (Math.cos(lat*Math.PI/180.0)*2.0*Math.PI*6378137.0/(256.0*Math.pow(2.0,z)))*px; 
+}//M_LatPxZ
 
 
 
@@ -846,35 +866,6 @@ function GetAboutContentAsync()
 
 
 
-function Layers_OnChange() 
-{
-    var newIdx = GetCurrentInstanceSelectedLayerIdx();
-    
-    if (newIdx == _lastLayerIdx) return;
-
-    if (IsLayerIdxAddLog(newIdx))
-    {
-        SetCurrentInstanceSelectedLayerIdx(_lastLayerIdx);
-        ApplyAndSetZoomLimitBreakIfNeeded();
-        _bvProxy.ShowAddLogsPanel();
-    }//if
-    else
-    {    
-        // 2015-02-12 ND: don't init bitstores for other layers until needed.
-        _bitsProxy.LegacyInitForSelection();
-        
-        SynchronizeInstanceSelectedLayerAndInstanceMap();
-        
-        MapExtent_OnChange(100); // force URL update
-        
-        if (!IsLayerIdxNull(newIdx))
-        {    
-            FlyToExtent.GoToPresetLocationIdIfNeeded(newIdx);
-        }//if
-    }//else
-}//Layers_OnChange()
-
-
 //  -1: ???
 //   0: dragend event
 //   1: zoom_changed event
@@ -906,7 +897,7 @@ function MapExtent_SetUpdatePanCooldown()
         }//else
     };
     setTimeout(end_cooldown, 250);
-}
+}//MapExtent_SetUpdatePanCooldown
 
 
 function GetMapQueryStringUrl(isFull)
@@ -925,7 +916,150 @@ function GetMapQueryStringUrl(isFull)
     if (logs != null && logs.length > 0) url += "&logids=" + logs;
     
     return url;
-}
+}//GetMapQueryStringUrl
+
+
+
+// nb: eventually, SafecastDateHelper, ClientZoomHelper, and LayersHelper
+//     should be combined into a single instanced class.
+var SafecastDateHelper = (function()
+{
+    function SafecastDateHelper()
+    {
+    }
+    
+    SafecastDateHelper.JST_OFFSET_MS = 32400000.0; // 9 * 60 * 60 * 1000
+    
+    // For a date 2011-03-10T15:00:00Z, returns 20110310, or YY+MM+DD
+    SafecastDateHelper.TrimIsoDateToFilenamePart = function(d)
+    {
+        return d.substring(0, 4) + d.substring(5, 7) + d.substring(8, 10);
+    };
+    
+    SafecastDateHelper.GetShortIsoDate = function(d)
+    {
+        return d.substring(0, 10);
+    };
+    
+    SafecastDateHelper.GetTimeSliceLayerDateRangesUTC = function()
+    {
+        // Format: ISO dates.  Start date is inclusive, end date is exclusive
+        //     eg: end date "15:00:00Z" means < 15:00:00Z, or <= 14:59:59.999Z
+        
+        // nb: The base format is not used directly, but necessary for all others.
+        //     Thus, a new mutable copy is returned.
+        
+        var ds = [ { i:13, s:"2011-03-10T15:00:00Z", e:"2011-09-10T15:00:00Z" }, 
+                   { i:14, s:"2011-09-10T15:00:00Z", e:"2012-03-10T15:00:00Z" }, 
+                   { i:15, s:"2012-03-10T15:00:00Z", e:"2012-09-10T15:00:00Z" }, 
+                   { i:16, s:"2012-09-10T15:00:00Z", e:"2013-03-10T15:00:00Z" }, 
+                   { i:17, s:"2013-03-10T15:00:00Z", e:"2013-09-10T15:00:00Z" }, 
+                   { i:18, s:"2013-09-10T15:00:00Z", e:"2014-03-10T15:00:00Z" }, 
+                   { i:19, s:"2014-03-10T15:00:00Z", e:"2014-09-10T15:00:00Z" }, 
+                   { i:20, s:"2014-09-10T15:00:00Z", e:"2015-03-10T15:00:00Z" }, 
+                   { i:21, s:"2015-03-10T15:00:00Z", e:"2015-09-10T15:00:00Z" }, 
+                   { i:22, s:"2015-09-10T15:00:00Z", e:"2016-03-10T15:00:00Z" }];
+        
+        return ds;
+    };
+    
+    SafecastDateHelper.IsLayerIdxTimeSliceLayerDateRangeIdx = function(idx)
+    {
+        var src   = SafecastDateHelper.GetTimeSliceLayerDateRangesUTC();
+        var is_ts = false;
+        
+        for (var i=0; i<src.length; i++)
+        {
+            if (src[i].i == idx)
+            {
+                is_ts = true;
+                break;
+            }//if
+        }//for
+        
+        return is_ts;
+    };
+    
+    SafecastDateHelper.GetIsoDateForIsoDateAndTimeIntervalMs = function(d, ti)
+    {
+        var d0 = new Date(d);
+        var t0 = d0.getTime() + ti;
+        d0.setTime(t0);
+        return d0.toISOString();
+    };
+    
+    SafecastDateHelper.GetTimeSliceLayerDateRangeForIdxUTC = function(idx)
+    {
+        var ds = SafecastDateHelper.GetTimeSliceLayerDateRangesUTC();
+        var d  = null;
+        
+        for (var i=0; i<ds.length; i++)
+        {
+            if (ds[i].i == idx)
+            {
+                d = ds[i];
+                break;
+            }//if
+        }//for
+        
+        if (d == null)
+        {
+            d = { i:0, s:"1970-01-01T00:00:00Z", e:"1970-01-01T00:00:00Z" };
+        }//if
+        
+        return d;
+    };
+    
+    // By default the dates are exclusive of the end date as noted.
+    // This subtracts one second from the end dates to make them work with
+    // a BETWEEN query.
+    SafecastDateHelper.GetTimeSliceLayerDateRangeInclusiveForIdxUTC = function(idx)
+    {
+        var d  = SafecastDateHelper.GetTimeSliceLayerDateRangeForIdxUTC(idx);
+        
+        d.e = SafecastDateHelper.GetIsoDateForIsoDateAndTimeIntervalMs(d.e, -1000.0);
+        
+        return d;
+    };
+    
+    // Converts { s:"2011-03-10T15:00:00Z", e:"2011-09-10T15:00:00Z" } 
+    //   to "2011031020110910" for consistent filename references.
+    SafecastDateHelper.GetTimeSliceDateRangesFilenames = function()
+    {
+        var src  = SafecastDateHelper.GetTimeSliceLayerDateRangesUTC();
+        var dest = new Array();
+        
+        for (var i=0; i<src.length; i++)
+        {
+            var d0 = SafecastDateHelper.TrimIsoDateToFilenamePart(src[i].s);
+            var d1 = SafecastDateHelper.TrimIsoDateToFilenamePart(src[i].e);
+            
+            dest.push( { i:src[i].i, d:(d0 + d1) } );
+        }//for
+        
+        return dest;
+    };
+    
+    // Converts ISO date string into JST-offset date with the end date
+    // having 1 second subtracted, then truncates them into "YYYY-MM-DD"
+
+    SafecastDateHelper.GetTimeSliceDateRangeLabelsForIdxJST = function(idx)
+    {
+        var d = SafecastDateHelper.GetTimeSliceLayerDateRangeInclusiveForIdxUTC(idx);
+        
+        d.s = SafecastDateHelper.GetIsoDateForIsoDateAndTimeIntervalMs(d.s, SafecastDateHelper.JST_OFFSET_MS);
+        d.e = SafecastDateHelper.GetIsoDateForIsoDateAndTimeIntervalMs(d.e, SafecastDateHelper.JST_OFFSET_MS);
+        d.s = SafecastDateHelper.GetShortIsoDate(d.s);
+        d.e = SafecastDateHelper.GetShortIsoDate(d.e);
+        
+        return d;
+    };
+    
+    return SafecastDateHelper;
+})();
+
+
+
 
 var ClientZoomHelper = (function()
 {
@@ -936,10 +1070,12 @@ var ClientZoomHelper = (function()
     ClientZoomHelper.fxGetNormalizedCoord  = function(xy, z)   { return GetNormalizedCoord(xy, z); }; // static
     ClientZoomHelper.fxShouldLoadTile      = function(l,x,y,z) { return _bitsProxy.ShouldLoadTile(l, x, y, z); };
     ClientZoomHelper.fxGetIsRetina         = function()        { return GetIsRetina(); };
-    ClientZoomHelper.fxGetSelectedLayerIdx = function()        { return GetCurrentInstanceSelectedLayerIdx(); };
+    ClientZoomHelper.fxGetSelectedLayerIdx = function()        { return LayersHelper.GetSelectedIdx(); };
     ClientZoomHelper.fxClearMapLayers      = function()        { map.overlayMapTypes.clear(); };
-    ClientZoomHelper.fxSyncMapLayers       = function()        { SynchronizeInstanceSelectedLayerAndInstanceMap(); };
+    ClientZoomHelper.fxSyncMapLayers       = function()        { LayersHelper.SyncSelectedWithMap(); };
     ClientZoomHelper.fxGetLayers           = function()        { return overlayMaps; };
+    ClientZoomHelper.fxGetTimeSliceDates   = function()        { return SafecastDateHelper.GetTimeSliceDateRangesFilenames(); }
+    ClientZoomHelper.fxGetUseJpRegion      = function()        { return _use_jp_region; };
     
     
     ClientZoomHelper.GetUrlForTile512 = function(xy, z, layerId, normal_max_z, base_url, idx)
@@ -1020,9 +1156,9 @@ var ClientZoomHelper = (function()
 
         if (cleared) ClientZoomHelper.fxSyncMapLayers(); // must re-add to map to finally take effect
     };
-    
-    
-    
+
+
+
     ClientZoomHelper.GetClampedZoomLevelForIdx = function(idx, z)
     {
         var o  = ClientZoomHelper.fxGetLayers();
@@ -1068,34 +1204,41 @@ var ClientZoomHelper = (function()
             
         return url;
     };
+    
+
+    
 
     ClientZoomHelper.InitGmapsLayers_CreateAll = function()
     {
         var x = new Array();
         
-        var te512url = _use_jp_region ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                      : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        var isJ = ClientZoomHelper.fxGetUseJpRegion();
         
-        var tg512url = _use_jp_region ? "http://tg512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                      : "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        var te512url = isJ ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                           : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
+        var tg512url = isJ ? "http://tg512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                           : "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
-        var nnsa_url = _use_jp_region ? "http://nnsajp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                      : "http://nnsa.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        var nnsa_url = isJ ? "http://nnsajp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                           : "http://nnsa.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
-        var nure_url = _use_jp_region ? "http://nurejp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                      : "http://nure.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        var nure_url = isJ ? "http://nurejp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                           : "http://nure.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
-        var au_url   = _use_jp_region ? "http://aujp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                      : "http://au.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        var au_url   = isJ ? "http://aujp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                           : "http://au.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
-        var aist_url = _use_jp_region ? "http://aistjp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                      : "http://aist.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        var aist_url = isJ ? "http://aistjp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                           : "http://aist.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
-        var te13_url = _use_jp_region ? "http://te20130415jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                      : "http://te20130415.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        var te13_url = isJ ? "http://te20130415jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                           : "http://te20130415.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
-        var te14_url = _use_jp_region ? "http://te20140311jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                      : "http://te20140311.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        var te14_url = isJ ? "http://te20140311jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                           : "http://te20140311.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
+        var ts = ClientZoomHelper.fxGetTimeSliceDates();
 
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 0, 2,  17, 1.0, 512, te512url) );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 1, 2,  17, 1.0, 512, te512url) );
@@ -1108,6 +1251,34 @@ var ClientZoomHelper = (function()
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 7, 9,  15, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW/{z}/{x}/{y}.png") );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 8, 2,  17, 1.0, 512, te13_url) );
         x.push( ClientZoomHelper.InitGmapsLayers_Create( 9, 2,  17, 1.0, 512, te14_url) );
+        
+        //   idx | Description
+        // ------|-------------------
+        //    10 | Add bGeigie Log...
+        //    11 | None (no layer)
+        //    12 | Time Slice Slider UI Toggle
+        //    13 | Time Slice: 2011-03-10 - 2011-09-10
+        //    14 | Time Slice: 2011-09-10 - 2012-03-10
+        //    15 | Time Slice: 2012-03-10 - 2012-09-10
+        //    16 | Time Slice: 2012-09-10 - 2013-03-10
+        //    17 | Time Slice: 2013-03-10 - 2013-09-10
+        //    18 | Time Slice: 2013-09-10 - 2014-03-10
+        //    19 | Time Slice: 2014-03-10 - 2014-09-10
+        //    20 | Time Slice: 2014-09-10 - 2015-03-10
+        //    21 | Time Slice: 2015-03-10 - 2015-09-10
+        //    22 | Time Slice: 2015-09-10 - 2016-03-10
+        
+        x.push(null);
+        x.push(null);
+        x.push(null);
+        
+        for (var i=0; i<ts.length; i++)
+        {
+            var u = "http://te" + ts[i].d + (isJ ? "jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                                                 : ".safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png");
+                                                            
+            x.push( ClientZoomHelper.InitGmapsLayers_Create(ts[i].i, 2, 17, 1.0, 512, u) );
+        }//for
 
         return x;
     };
@@ -1140,7 +1311,7 @@ function MapExtent_OnChange(eventId)
     
     if (updateLayers)
     {
-        q.lidx = GetCurrentInstanceSelectedLayerIdx();
+        q.lidx = LayersHelper.GetSelectedIdx();
     }//if
 
     if (q.midx == -1) q.midx = GetCurrentInstanceBasemapIdx();
@@ -1152,20 +1323,18 @@ function MapExtent_OnChange(eventId)
         _disable_alpha = q.midx == 10 || q.midx == 11; // pure black / white
     
         // sync the raster tile overlay alpha with the determination made above
-             if ( _disable_alpha && overlayMaps[4].opacity != 1.0) SetLayersAlphaDisabled(true);
-        else if (!_disable_alpha && overlayMaps[4].opacity == 1.0) SetLayersAlphaDisabled(false);
+             if ( _disable_alpha && overlayMaps[4].opacity != 1.0) LayersHelper.SetAlphaDisabled(true);
+        else if (!_disable_alpha && overlayMaps[4].opacity == 1.0) LayersHelper.SetAlphaDisabled(false);
         
-        if (!initLoad && map.overlayMapTypes.getLength() > 0) SynchronizeInstanceSelectedLayerAndInstanceMap(); // reload overlay if basemap changes
+        if (!initLoad && map.overlayMapTypes.getLength() > 0) LayersHelper.SyncSelectedWithMap(); // reload overlay if basemap changes
     }//if
     
     
     
     if (updateZ || updateLayers || updateBasemap) // zoom_changed
     {
-        //console.log("MapExtent_OnChange: Applying zoom hack...");
         c = GetMapInstanceYXZ();
         ClientZoomHelper.SynchronizeLayersToZoomLevel(c.z);
-        //ApplyZoomHack(c.z);
     }//if
     
     
@@ -1184,12 +1353,12 @@ function MapExtent_OnChange(eventId)
         if (q.lidx == 0 && overlayMaps[2].opacity == 1.0)
         {
             overlayMaps[2].opacity = 0.5;
-            SynchronizeInstanceSelectedLayerAndInstanceMap();
+            LayersHelper.SyncSelectedWithMap();
         }//if
         else if (q.lidx == 2 && _disable_alpha && overlayMaps[2].opacity != 1.0)
         {
             overlayMaps[2].opacity = 1.0;
-            SynchronizeInstanceSelectedLayerAndInstanceMap();
+            LayersHelper.SyncSelectedWithMap();
         }//if
     }//if
         
@@ -1205,14 +1374,7 @@ function MapExtent_OnChange(eventId)
     history.pushState(null, null, url);
 }//MapExtent_OnChange
 
-function SetLayersAlphaDisabled(isDisabled)
-{
-    overlayMaps[1].opacity = isDisabled ? 1.0 : 0.5;
-    overlayMaps[2].opacity = isDisabled ? 1.0 : 0.5;
-    overlayMaps[4].opacity = isDisabled ? 1.0 : 0.7;
-    overlayMaps[5].opacity = isDisabled ? 1.0 : 0.7;
-    overlayMaps[6].opacity = isDisabled ? 1.0 : 0.7;
-}//SetLayersAlphaDisabled
+
 
 
 function codeAddress() 
@@ -1443,99 +1605,250 @@ function GetMapTypeIdForBasemapIdx(idx)
     return mapType;
 }//GetMapTypeIdForBasemapIdx
 
-function IsLayerIdxNull(idx)
-{
-    return idx == 11;
-}
 
-function IsLayerIdxAddLog(idx)
-{
-    return idx == 10;
-}
 
-function GetCurrentInstanceMaxLayerIdx()
-{
-    return document.getElementById("layers").length > 1 ? document.getElementById("layers").length - 1 : 0;
-}
 
-function GetCurrentInstanceSelectedLayerIdx()
-{
-    //return document.getElementById("layers").selectedIndex;
-    var el = document.getElementById("layers");
-    return parseInt(el.options[el.selectedIndex].value);
-}
 
-function SetCurrentInstanceSelectedLayerIdx(idx)
+
+
+var LayersHelper = (function()
 {
-    if (idx != null)
+    function LayersHelper() 
     {
-        var el = document.getElementById("layers");
-        for (var i=0; i<el.options.length; i++)
-        {
-            var o = el.options[i];
-            
-            if (o.value == idx)
-            {
-                el.selectedIndex = i;
-                break;
-            }//if
-        }//for
-    }//if
-}//SetCurrentInstanceSelectedLayerIdx
+    }
+    
+    LayersHelper.GetLayerDdl      = function ()   { return document.getElementById("layers"); };
+    LayersHelper.SetLastLayerIdx  = function(idx) { _lastLayerIdx = idx; };
+    LayersHelper.GetLastLayerIdx  = function()    { return _lastLayerIdx; };
+    LayersHelper.GetRenderTest    = function()    { return _test_client_render; };
+    LayersHelper.GmapsSetAt       = function(i,o) { map.overlayMapTypes.setAt(i, o); };
+    LayersHelper.GmapsNewLayer    = function(o)   { return new google.maps.ImageMapType(o); };
+    LayersHelper.GmapsClearLayers = function()    { map.overlayMapTypes.clear(); };
+    LayersHelper.GetOverlayMaps   = function()    { return overlayMaps; };
+    LayersHelper.HudSetLayers     = function(ar)  { _hudProxy.SetLayers(ar); };
+    LayersHelper.HudUpdate        = function()    { _hudProxy.Update(); };
+    LayersHelper.SetTsPanelHidden = function(h)   { TimeSliceUI.SetPanelHidden(h); };
+    LayersHelper.ShowAddLogPanel  = function()    { _bvProxy.ShowAddLogsPanel(); };
+    LayersHelper.InitBitsLegacy   = function()    { _bitsProxy.LegacyInitForSelection(); };
+    LayersHelper.MapExtentChanged = function(i)   { MapExtent_OnChange(i); };
+    LayersHelper.FlyToExtentByIdx = function(idx) { FlyToExtent.GoToPresetLocationIdIfNeeded(idx); };
+    LayersHelper.GetTsSliderIdx   = function()    { return TimeSliceUI.GetSliderIdx(); };
+    LayersHelper.SetTsSliderIdx   = function()    { return TimeSliceUI.SetSliderIdx(); };
+    LayersHelper.GetShowLastSlice = function()    { return _show_last_slice; };
+    LayersHelper.GetIsLayerIdxTS  = function(idx) { return SafecastDateHelper.IsLayerIdxTimeSliceLayerDateRangeIdx(idx) };
 
-function SetCurrentInstanceSelectedLayerIdxAndSynchronizeWithInstanceMap(idx)
-{
-    SetCurrentInstanceSelectedLayerIdx(idx);
-    SynchronizeInstanceSelectedLayerAndInstanceMap();
-}
-
-
-function RemoveAllRasterLayersFromInstanceMap()
-{
-    map.overlayMapTypes.clear();
-    _hudProxy.SetLayers(new Array());
-}
-
-function RasterLayer_DataBind_Gmaps(idxs)
-{
-    var hud_layers = new Array();
-
-    for (var i=0; i<idxs.length; i++)
+    LayersHelper.LAYER_IDX_ADD_LOG     = 10;
+    LayersHelper.LAYER_IDX_NULL        = 11;
+    LayersHelper.LAYER_IDX_TS_UI_PROXY = 12;
+    
+    LayersHelper.IsIdxNull = function(idx)
     {
-        var gmaps_layer = new google.maps.ImageMapType(overlayMaps[idxs[i]]);
-        map.overlayMapTypes.setAt(i, gmaps_layer);
+        return idx == LayersHelper.LAYER_IDX_NULL;
+    };
+    
+    LayersHelper.IsIdxAddLog = function(idx)
+    {
+        return idx == LayersHelper.LAYER_IDX_ADD_LOG;
+    };
+    
+    LayersHelper.IsIdxTimeSliceUiProxy = function(idx)
+    {
+        return idx == LayersHelper.LAYER_IDX_TS_UI_PROXY;
+    };
+    
+    LayersHelper.IsIdxTimeSlice = function (idx)
+    {
+        return LayersHelper.GetIsLayerIdxTS(idx);
+    };
+    
+    LayersHelper.GetMaxIdx = function() // unused
+    {
+        var el = LayersHelper.GetLayerDdl();
+        return el.length > 1 ? el.length - 1 : 0;
+    };
+    
+    LayersHelper.GetSelectedDdlIdx = function()
+    {
+        var el  = LayersHelper.GetLayerDdl();
+        var idx = parseInt(el.options[el.selectedIndex].value);
         
-        hud_layers.push({     urlTemplate: overlayMaps[idxs[i]].ext_url_template, 
-                          bitstoreLayerId: overlayMaps[idxs[i]].ext_layer_id });
-    }//for
+        return idx;
+    };
     
-    _hudProxy.SetLayers(hud_layers);
-}//RasterLayer_DataBind_Gmaps
-
-function AddRasterLayerToInstanceMapByIdx(idx)
-{
-    RasterLayer_DataBind_Gmaps([idx]);
-}
-
-
-function AddSingleRasterLayerToInstanceMapByIdx(idx)
-{
-    RemoveAllRasterLayersFromInstanceMap();
-
-    if (!IsLayerIdxNull(idx))
+    LayersHelper.GetSelectedIdx = function()
     {
-        if (idx == 0 && !_test_client_render) RasterLayer_DataBind_Gmaps([2, 0]);
-        else AddRasterLayerToInstanceMapByIdx(idx);
-    }//if
+        var idx = LayersHelper.GetSelectedDdlIdx();
+        
+        if (LayersHelper.IsIdxTimeSliceUiProxy(idx))
+        {
+            idx = LayersHelper.GetTsSliderIdx();
+        }//if
+        
+        return idx;
+    };
     
-    _lastLayerIdx = idx;
-}//AddSingleRasterLayerToInstanceMapByIdx
+    LayersHelper.SetSelectedIdx = function(idx)
+    {
+        if (LayersHelper.IsIdxTimeSlice(idx))
+        {
+            var ddl_idx = LayersHelper.GetSelectedDdlIdx();
+        
+            if (!LayersHelper.IsIdxTimeSliceUiProxy(ddl_idx))
+            {
+                LayersHelper.SetTsSliderIdx(idx);
+            
+                idx = LayersHelper.LAYER_IDX_TS_UI_PROXY;
+            }//if
+            else
+            {
+                return;
+            }//else
+        }//if
+    
+        if (idx != null)
+        {
+            var el = LayersHelper.GetLayerDdl();
+            for (var i=0; i<el.options.length; i++)
+            {
+                var o = el.options[i];
+            
+                if (o.value == idx)
+                {
+                    el.selectedIndex = i;
+                    break;
+                }//if
+            }//for
+        }//if
+    };
+    
+    LayersHelper.SetSelectedIdxAndSync = function(idx)
+    {
+        LayersHelper.SetSelectedIdx(idx);
+        LayersHelper.SyncSelectedWithMap();
+    };
+    
+    LayersHelper.SyncSelectedWithMap = function()
+    {
+        var idx = LayersHelper.GetSelectedIdx();
+        LayersHelper.ClearAndAddToMapByIdx(idx);
+    };
+    
+    LayersHelper.ClearAndAddToMapByIdx = function(idx)
+    {
+        LayersHelper.RemoveAllFromMap();
+
+        if (!LayersHelper.IsIdxNull(idx))
+        {
+            if (idx == 0 && !LayersHelper.GetRenderTest()) 
+            {
+                LayersHelper.AddToMapByIdxs([2, 0]); // standard hack for points + interpolation default layer
+            }//if
+            else if (LayersHelper.IsIdxTimeSlice(idx) && LayersHelper.GetShowLastSlice())
+            {
+                var last_idx = idx - 1; // potentially bad
+                
+                if (LayersHelper.IsIdxTimeSlice(last_idx))
+                {
+                    LayersHelper.AddToMapByIdxs([last_idx, idx]);
+                }//if
+                else
+                {
+                    LayersHelper.AddToMapByIdx(idx);
+                }//else
+            }//else if
+            else 
+            {
+                LayersHelper.AddToMapByIdx(idx);
+            }//else
+        }//if
+    
+        LayersHelper.SetLastLayerIdx(idx);
+    };
+    
+    LayersHelper.AddToMapByIdx = function(idx)
+    {
+        LayersHelper.AddToMapByIdxs([idx]);
+    };
+    
+    LayersHelper.AddToMapByIdxs = function(idxs)
+    {
+        var hud_layers = new Array();
+        var omaps      = LayersHelper.GetOverlayMaps();
+
+        for (var i=0; i<idxs.length; i++)
+        {
+            var gmaps_layer = LayersHelper.GmapsNewLayer(omaps[idxs[i]]);
+            
+            LayersHelper.GmapsSetAt(i, gmaps_layer);
+        
+            hud_layers.push({     urlTemplate: omaps[idxs[i]].ext_url_template, 
+                              bitstoreLayerId: omaps[idxs[i]].ext_layer_id });
+        }//for
+    
+        LayersHelper.HudSetLayers(hud_layers);
+    };
+    
+    LayersHelper.RemoveAllFromMap = function()
+    {
+        LayersHelper.GmapsClearLayers();
+        LayersHelper.HudSetLayers(new Array());
+    };
+    
+    LayersHelper.SetAlphaDisabled = function(isDisabled)
+    {
+        overlayMaps[1].opacity = isDisabled ? 1.0 : 0.5;
+        overlayMaps[2].opacity = isDisabled ? 1.0 : 0.5;
+        overlayMaps[4].opacity = isDisabled ? 1.0 : 0.7;
+        overlayMaps[5].opacity = isDisabled ? 1.0 : 0.7;
+        overlayMaps[6].opacity = isDisabled ? 1.0 : 0.7;
+    };
+    
+    LayersHelper.UiLayers_OnChange = function()
+    {
+        var  newIdx = LayersHelper.GetSelectedIdx();
+        var lastIdx = LayersHelper.GetLastLayerIdx();
+    
+        if (newIdx == lastIdx) return;
+    
+        if (LayersHelper.IsIdxAddLog(newIdx))
+        {
+            LayersHelper.SetSelectedIdx(lastIdx);
+            LayersHelper.ShowAddLogPanel();
+        }//if
+        else
+        {
+            if (   !LayersHelper.IsIdxTimeSliceUiProxy(newIdx)
+                && !LayersHelper.IsIdxTimeSlice(newIdx))
+            {
+                LayersHelper.SetTsPanelHidden(true);
+            }//if
+            else
+            {
+                LayersHelper.SetTsPanelHidden(false);
+            }//else
+        
+            // 2015-02-12 ND: don't init bitstores for other layers until needed.
+            LayersHelper.InitBitsLegacy();
+        
+            LayersHelper.SyncSelectedWithMap();
+        
+            LayersHelper.MapExtentChanged(100); // force URL update
+        
+            if (!LayersHelper.IsIdxNull(newIdx))
+            {    
+                LayersHelper.FlyToExtentByIdx(newIdx);
+                LayersHelper.HudUpdate();
+            }//if
+        }//else
+    };
+    
+    return LayersHelper;
+})();
 
 
-function SynchronizeInstanceSelectedLayerAndInstanceMap()
-{
-    AddSingleRasterLayerToInstanceMapByIdx(GetCurrentInstanceSelectedLayerIdx());
-}
+
+
+
 
 function GetDogeTileForXY(x, y)
 {
@@ -1776,14 +2089,34 @@ var BitsProxy = (function()
     
     BitsProxy.prototype.LegacyInitForSelection = function()
     {
-        var idx = GetCurrentInstanceSelectedLayerIdx();
-        if (idx <= 2 || idx >= 7) return;
+        var idx = BitsProxy.GetSelectedLayerIdx();
+        if (idx <= 2 || idx >= 8) return;
         
         var layerId = idx == 3 ? 3 // todo: define these more formally somewhere.
                     : idx == 4 ? 6
                     : idx == 5 ? 16
-                    : idx == 6 ? 9  : 9;
-        
+                    : idx == 6 ? 9
+                    : idx == 7 ? 9
+                    :            2;
+
+        // idx | layerId | desc
+        // ----|---------|------
+        //   0 |  2      | sc p+i   always loaded
+        //   1 |  2      | sc p     always loaded
+        //   2 |  8      | sc i     always loaded
+        //   3 |  3      | nnsa
+        //   4 |  6      | nure
+        //   5 | 16      | au
+        //   6 |  9      | aist
+        //   7 |  9      | test_idw
+        //   8 |  2      | historical 13    always loaded
+        //   9 |  2      | historical 14    always loaded
+        //  10 |         | add proxy
+        //  11 |         | NULL
+        //  12 |         | time slice proxy
+        //  13 |  2      | time slice min   always loaded
+        //  22 |  2      | time slice max   always loaded
+
         this.InitForLayerIdIfNeeded(layerId);
     };
     
@@ -1813,8 +2146,9 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId02 = function()
     {
-        var url = _use_jp_region ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                 : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
+        var isJ = BitsProxy.GetUseJpRegion();
+        var url = isJ ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                      : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
 
         var opts2 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, maxz:3, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb2  = function(dstr)
@@ -1838,8 +2172,9 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId08 = function()
     {
-        var url = _use_jp_region ? "http://tg512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                 : "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
+        var isJ = BitsProxy.GetUseJpRegion();
+        var url = isJ ? "http://tg512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                      : "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
 
         var opts8 = new LBITSOptions({ lldim:1, ll:1, multi:1, maxz:5, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb8  = function(dstr)
@@ -1864,8 +2199,9 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId03 = function()
     {
-        var url = _use_jp_region ? "http://nnsajp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                 : "http://nnsa.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        var isJ = BitsProxy.GetUseJpRegion();
+        var url = isJ ? "http://nnsajp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                      : "http://nnsa.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
         var opts3 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(3, 5, 15, url, 28, 12, opts3, null));
@@ -1873,8 +2209,9 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId06 = function()
     {
-        var url = _use_jp_region ? "http://nurejp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                 : "http://nure.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        var isJ = BitsProxy.GetUseJpRegion();
+        var url = isJ ? "http://nurejp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                      : "http://nure.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
         
         var opts6 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(6, 1, 11, url, 0, 0, opts6, null));
@@ -1882,8 +2219,9 @@ var BitsProxy = (function()
     
     BitsProxy.prototype.Init_LayerId09 = function()
     {
-        var url = _use_jp_region ? "http://aistjp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                 : "http://aist.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        var isJ = BitsProxy.GetUseJpRegion();
+        var url = isJ ? "http://aistjp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                      : "http://aist.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
         var opts9 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(9, 2, 11, url, 3, 1, opts9, null));
@@ -1891,8 +2229,9 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId16 = function()
     {
-        var url = _use_jp_region ? "http://aujp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                 : "http://au.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        var isJ = BitsProxy.GetUseJpRegion();
+        var url = isJ ? "http://aujp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+                      : "http://au.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
         
         var opts16 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(16, 2, 11, url, 3, 2, opts16, null));
@@ -2100,7 +2439,7 @@ var BitsProxy = (function()
         //var max_z = this.GetBaseMaxZForLayer(layerId);
         
         // *** HACK ***
-        if (GetIsRetina() && z == max_z)
+        if (BitsProxy.GetIsRetina() && z == max_z)
         {
             z--;
             x>>>=1;
@@ -2188,16 +2527,7 @@ var BitsProxy = (function()
         v[2]  += v[0];
         v[3]  += v[1];
     };
-        
-    BitsProxy.relsrc = GetContentBaseUrl() + "bitstore_min.js";
-    BitsProxy.bitsrc = "http://safecast.org/tilemap/bitstore_min.js";
-    BitsProxy.pngsrc = "http://safecast.org/tilemap/png_zlib_worker_min.js";
-    
-    BitsProxy.CheckRequirements = function()
-    {
-        return !QueryString_IsParamEqual("noIndices", "1") && !IsBrowserOldIE() && "ArrayBuffer" in window && "bind" in Function.prototype;
-    };
-    
+            
     BitsProxy.vfill = function(x,d,n) { for(var i=0;i<n;i++)d[i]=x; };
     BitsProxy.vcopy = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
     
@@ -2208,6 +2538,22 @@ var BitsProxy = (function()
         if (src != null) BitsProxy.vcopy(dest, 0, src, 0, src.length);
         dest[idx] = val;
         return dest;
+    };
+    
+    BitsProxy.GetIsRetina                 = function()     { return GetIsRetina(); };
+    BitsProxy.GetQueryString_IsParamEqual = function(p, v) { return QueryString_IsParamEqual(p, v); };
+    BitsProxy.GetIsBrowserOldIE           = function()     { return IsBrowserOldIE(); };
+    BitsProxy.GetSelectedLayerIdx         = function()     { return LayersHelper.GetSelectedIdx(); };
+    BitsProxy.GetUseJpRegion              = function()     { return _use_jp_region; };
+    BitsProxy.GetContentBaseUrl           = function()     { return GetContentBaseUrl(); };
+    
+    BitsProxy.relsrc = BitsProxy.GetContentBaseUrl() + "bitstore_min.js";
+    BitsProxy.bitsrc = "http://safecast.org/tilemap/bitstore_min.js";
+    BitsProxy.pngsrc = "http://safecast.org/tilemap/png_zlib_worker_min.js";
+    
+    BitsProxy.CheckRequirements = function()
+    {
+        return !BitsProxy.GetQueryString_IsParamEqual("noIndices", "1") && !BitsProxy.GetIsBrowserOldIE() && "ArrayBuffer" in window && "bind" in Function.prototype;
     };
     
     return BitsProxy;
@@ -2235,6 +2581,24 @@ var HudProxy = (function()
             this.BindEventsUI();
         }//if
     }
+    
+    HudProxy.prototype.Update = function()
+    {
+        if (this._hud != null && this._btnToggleStateOn)
+        {
+            this._hud.last.px = -1;
+            this._hud.last.py = -1;
+            this._hud.MapExtent_OnChange();
+        }//if
+    };
+    
+    HudProxy.prototype.Enable = function()
+    {
+        if (this._hud == null || !this._btnToggleStateOn)
+        {
+            this.btnToggleOnClick();
+        }//if
+    };
     
     HudProxy.prototype.ExecuteWithAsyncLoadIfNeeded = function(fxCallback, userData)
     {
@@ -2510,16 +2874,11 @@ var BvProxy = (function()
     
     BvProxy.prototype.UI_GetExtraQueryStringParams = function()
     {
-        return this.UI_GetQueryType() == 0 ? "" 
-               : this.UI_GetStartDateParamIfPresent() 
+        return  (this.UI_GetQueryType() == 0 ? "" : this.UI_GetStartDateParamIfPresent())
                + this.UI_GetEndDateParamIfPresent() 
                + this.UI_GetStatusTypeParamIfPresent(); 
     };
-    
-    
-    
-    
-    
+        
     BvProxy.prototype.UI_SetDefaultParallelism = function()
     {
         if (parseInt(BvProxy.elVal("bv_tbParallelism")) == 1)
@@ -2679,7 +3038,9 @@ var BvProxy = (function()
         var mm = rfc_date.substring(5, 5+2);
         var dd = rfc_date.substring(8, 8+2);
         
-        return mm + "%2F" + dd + "%2F" + yy + "+" + (isMidnight ? "00%3A00%3A00" : "23%3A59%3A59");
+        // 2016-03-26 ND: weird date format doesn't seem needed anymore, going with ISO dates
+        //return mm + "%2F" + dd + "%2F" + yy + "+" + (isMidnight ? "00%3A00%3A00" : "23%3A59%3A59");
+        return yy + "-" + mm + "-" + dd + "T" + (isMidnight ? "00%3A00%3A00" : "23%3A59%3A59") + "Z";
     };
     
     BvProxy.CheckRequirements = function()
@@ -2737,7 +3098,7 @@ var FlyToExtent = (function()
     
     //FlyToExtent.MapRef             = window.map;
     FlyToExtent.fxShowLocationText = function(txt) { ShowLocationText(txt); };
-    FlyToExtent.fxUpdateMapExtent  = function() { MapExtent_OnChange(0); MapExtent_OnChange(1); };
+    FlyToExtent.fxUpdateMapExtent  = function()    { MapExtent_OnChange(0); MapExtent_OnChange(1); };
     
     FlyToExtent.GoToPresetLocationIdIfNeeded = function(locId)
     {
@@ -3321,5 +3682,82 @@ var LoadingSpinnerHelper = (function()
     
     return LoadingSpinnerHelper;
 })();
+
+
+
+
+
+
+
+var TimeSliceUI = (function()
+{
+    function TimeSliceUI() 
+    {
+    }
+    
+    TimeSliceUI.GetPanelDiv       = function()    { return document.getElementById("tsPanel"); };
+    TimeSliceUI.GetSliderEl       = function()    { return document.getElementById("tsSlider"); };
+    TimeSliceUI.GetStartDateEl    = function()    { return document.getElementById("tsStartDate"); };
+    TimeSliceUI.GetEndDateEl      = function()    { return document.getElementById("tsEndDate"); };
+    TimeSliceUI.SetLayerAndSync   = function(idx) { LayersHelper.SetSelectedIdxAndSync(idx); };
+    TimeSliceUI.BitsLegacyInit    = function()    { _bitsProxy.LegacyInitForSelection(); };
+    TimeSliceUI.SyncLayerWithMap  = function()    { LayersHelper.SyncSelectedWithMap(); };
+    TimeSliceUI.MapExtentOnChange = function(i)   { MapExtent_OnChange(i); };
+    TimeSliceUI.EnableHud         = function()    { _hudProxy.Enable(); };
+    TimeSliceUI.UpdateHud         = function()    { _hudProxy.Update(); };
+    TimeSliceUI.GetLabelsForIdx   = function(idx) { return SafecastDateHelper.GetTimeSliceDateRangeLabelsForIdxJST(idx); };
+    
+    TimeSliceUI.SetPanelHidden = function(isHidden)
+    {
+        var el = TimeSliceUI.GetPanelDiv();
+        el.style.display = isHidden ? "none" : "block";
+        
+        if (!isHidden)
+        {
+            TimeSliceUI.EnableHud();
+        }//if
+    };
+    
+    TimeSliceUI.SetSliderIdx = function(idx)
+    {
+        var s = TimeSliceUI.GetSliderEl();
+        s.value = idx;
+    };
+    
+    TimeSliceUI.GetSliderIdx = function()
+    {
+        var s = TimeSliceUI.GetSliderEl();
+        var i = parseInt(s.value);
+        
+        return i;
+    };
+    
+    TimeSliceUI.SetSliderIdxToDefault = function()
+    {
+        TimeSliceUI.SetSliderIdx(13);
+    };
+    
+    TimeSliceUI.tsSlider_OnChange = function()
+    {    
+        var s   = TimeSliceUI.GetSliderEl();
+        var idx = parseInt(s.value);
+        var ds  = TimeSliceUI.GetLabelsForIdx(idx);
+        
+        TimeSliceUI.GetStartDateEl().innerHTML = ds.s;
+        TimeSliceUI.GetEndDateEl().innerHTML   = ds.e;
+                
+        TimeSliceUI.SetLayerAndSync(idx);
+        
+        TimeSliceUI.BitsLegacyInit();
+        TimeSliceUI.SyncLayerWithMap();
+        TimeSliceUI.MapExtentOnChange(100);     // force URL update
+        TimeSliceUI.UpdateHud();
+    };
+    
+    return TimeSliceUI;
+})();
+
+
+
 
 
