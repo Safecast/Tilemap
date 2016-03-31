@@ -104,6 +104,9 @@ body
     padding: 0px 5px 0px 5px;
     font-size: 80%;
     vertical-align: top;
+    -webkit-border-radius:3;
+    -moz-border-radius:3;
+    border-radius:3px;
 }
 
 #logo2, #bottombar0, .hud_btnW, #logo271, #imgScale, #hud_btnToggle { -webkit-user-select: none; -webkit-user-drag: none; }
@@ -146,10 +149,10 @@ body
    
 #map_canvas { width:100%; height:100%; }
 
-.FuturaFont, .gm-style
+.FuturaFont, .gm-style, .poi-info-window div, .poi-info-window a
 {
     font-size:100%;
-    font-family:Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif;
+    font-family:Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif !important;
 }
 
 #popup
@@ -224,6 +227,7 @@ body
    height:18px;
    font-size:11px;
    vertical-align:middle;
+   width:171px;
 }
 
 
@@ -352,30 +356,6 @@ body
     margin:0px;
     padding:0px;
 }
-
-
-
-
-
-
-
-.gm-style 
-{
-    font-size:12px;
-    font-weight:normal;
-    text-decoration:none;
-}
-
-.gm-style .gm-style-iw { font-size:12px; overflow-y:auto; }
-.gm-style .gm-iw { -webkit-user-select:none; }
-.gm-style .gm-iw .gm-title { font-size:14px; }
-
-.gm-style .gm-iw .gm-basicinfo 
-{
-    font-size:11px;
-    line-height:18px;
-    padding-bottom:12px;
-}
 </style>
 
 <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
@@ -416,18 +396,21 @@ function ShowBrowserWarningWindowIfNeeded()
 
 function InitGMapsStyleHack()
 {
-    var fr = function() {
-        var ds = _gelid("map_canvas").getElementsByTagName("div");
+    var ff = "Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic',Roboto,'Segoe UI',Helvetica,Arial,sans-serif";
+    var fr = function(el_name) {
+        var ds = _gelid("map_canvas").getElementsByTagName(el_name);
         if (ds == null) return;
         for (var i=0; i<ds.length; i++) {
             var s = ds[i].style;
             if (s != null && s.fontFamily != null && s.fontFamily.indexOf("Roboto") > -1 && s.fontFamily.indexOf("Futura") == -1) {
-                ds[i].style.fontFamily = "Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic',Roboto,'Segoe UI',Helvetica,Arial,sans-serif";
+                ds[i].style.fontFamily = ff;
             }
         }
-    };    
-    window.setTimeout(fr, 500);
-    window.setTimeout(fr, 2000); // long delay for the basemap DDL if it doesn't load fast.
+    };
+    
+    window.setTimeout(fr("div"), 500);
+    window.setTimeout(fr("div"), 4000); // long delay for the basemap DDL if it doesn't load fast.
+    window.setTimeout(fr("a"), 8000); // long delay for the basemap DDL if it doesn't load fast.
 }
 
 function Init()

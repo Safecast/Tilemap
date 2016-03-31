@@ -1077,7 +1077,6 @@ var ClientZoomHelper = (function()
     ClientZoomHelper.fxGetTimeSliceDates   = function()        { return SafecastDateHelper.GetTimeSliceDateRangesFilenames(); }
     ClientZoomHelper.fxGetUseJpRegion      = function()        { return _use_jp_region; };
     
-    
     ClientZoomHelper.GetUrlForTile512 = function(xy, z, layerId, normal_max_z, base_url, idx)
     {
         z = ClientZoomHelper.GetClampedZoomLevelForIdx(idx, z);
@@ -1123,7 +1122,7 @@ var ClientZoomHelper = (function()
     
         for (i=0; i<o.length; i++)
         {
-            if (i == idx || (idx == 0 && i == 2))
+            if ((i == idx || (idx == 0 && i == 2)) && o[i] != null)
             {
                 lz = o[i].ext_tile_size > 256 && !hdpi ? z - 1 : z;
                 lr = o[i].ext_tile_size > 256 &&  hdpi ? 1     : 0;  // px>>=1 for 512x512 tiles on     retina displays only
