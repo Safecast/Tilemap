@@ -38,7 +38,6 @@ var _did_init_font_crimson_text = false; // cached init state
 
 
 // ========== USER PREFS =============
-var _zoom_limit_break = false;
 var _no_hdpi_tiles    = false;
 var _img_scaler_idx   = 1;
 var _use_jp_region    = false;
@@ -62,7 +61,6 @@ var pureBlackMapType     = null;
 var pureWhiteMapType     = null;
 var darkMapType          = null;
 var grayMapType          = null;
-
 
 // ============= TEST ================
 var _test_client_render = false; // should be off here by default
@@ -197,7 +195,7 @@ function initialize()
     var map_options = 
     {
                             zoom: z,
-                         maxZoom: (_zoom_limit_break ? 21 : 21),
+                         maxZoom: 21,
                           center: yx,
                      scrollwheel: true,
                      zoomControl: true,
@@ -225,10 +223,10 @@ function initialize()
     
     map = new google.maps.Map(document.getElementById("map_canvas"), map_options);
 
-    InitBasemaps(); // must occur after "map" ivar is set
-    InitGmapsLayers();
+    BasemapHelper.InitBasemaps(); // must occur after "map" ivar is set
+    ClientZoomHelper.InitGmapsLayers();
 
-    InitTimeSliceUI();
+    TimeSliceUI.Init();
     InitDefaultRasterLayerOrOverrideFromQuerystring();
     
     MapExtent_OnChange(1); //fire on init for client zoom
@@ -268,93 +266,210 @@ function initialize()
 
 
 
-
-
-
 function GetIsRetina() 
 { 
     return !_no_hdpi_tiles && window.devicePixelRatio > 1.5; 
 }//GetIsRetina
 
 
-function InitGmapsLayers()
+
+
+
+
+
+
+
+
+
+var BasemapHelper = (function()
 {
-    if (overlayMaps == null) overlayMaps = ClientZoomHelper.InitGmapsLayers_CreateAll();
-}//InitGmapsLayers
-
-
-
-
-
-
-
-
-
-function GetGmapsMapStyled_Dark()
-{
-    return [ {"stylers": [ { "invert_lightness": true }, { "saturation": -100 } ] },
-             { "featureType": "water", "stylers": [ { "lightness": -100 } ] },
-             { "elementType": "labels", "stylers": [ {  "lightness": -57  }, { "visibility": "on" } ] },
-             { "featureType": "administrative", "elementType": "geometry", "stylers": [ { "lightness": -57 } ] } ];
-}//GetGmapsMapStyled_Dark
-
-function GetGmapsMapStyled_Gray() //-62 -> -9
-{
-    return [ { "featureType": "water", "stylers": [ { "saturation": -100 }, { "lightness": -30  } ] },
-             { "stylers": [ { "saturation": -100 }, { "lightness": 50 } ] },
-             { "elementType": "labels.icon", "stylers": [ { "invert_lightness": true }, { "gamma": 9.99 }, { "lightness": 79 } ] } ];
-}//GetGmapsMapStyled_Dark
-
-function NewGmapsBasemap(min_z, max_z, tile_size, is_png, alt, name, base_url)
-{
-    var o =
+    function BasemapHelper()
     {
-        getTileUrl: function(xy, z) { var nXY = GetNormalizedCoord(xy, z); return nXY == null ? null : base_url + "/" + z + "/" + nXY.x + "/" + nXY.y + (is_png ? ".png" : ".jpg") ; },
-          tileSize: new google.maps.Size(tile_size, tile_size),
-           minZoom: min_z,
-           maxZoom: max_z,
-              name: name,
-               alt: alt != null ? alt : name
+    }
+    
+    BasemapHelper.GetCurrentInstanceBasemapIdx = function()
+    {
+        var mapType = map.getMapTypeId();
+        var idx     = 0;
+
+        switch (mapType)
+        {
+            case google.maps.MapTypeId.ROADMAP:
+                idx = 0;
+                break;
+            case google.maps.MapTypeId.SATELLITE:
+                idx = 1;
+                break;
+            case google.maps.MapTypeId.HYBRID:
+                idx = 2;
+                break;
+            case google.maps.MapTypeId.TERRAIN:
+                idx = 3;
+                break;
+            case "gray":
+                idx = 4;
+                break;
+            case "dark":
+                idx = 5;
+                break;
+            case "toner":
+                idx = 6;
+                break;
+            case "tlite":
+                idx = 7;
+                break;
+            case "wcolor":
+                idx = 8;
+                break;
+            case "mapnik":
+                idx = 9;
+                break;
+            case "black":
+                idx = 10;
+                break;
+            case "white":
+                idx = 11;
+                break;
+            default:
+                idx = 0;
+                break;
+        }//switch
+
+        return idx;
+    };
+
+    BasemapHelper.GetMapTypeIdForBasemapIdx = function(idx)
+    {
+        var mapType = null;
+
+        switch (idx)
+        {
+            case 0:
+                mapType = google.maps.MapTypeId.ROADMAP;
+                break;
+            case 1:
+                mapType = google.maps.MapTypeId.SATELLITE;
+                break;
+            case 2:
+                mapType = google.maps.MapTypeId.HYBRID;
+                break;
+            case 3:
+                mapType = google.maps.MapTypeId.TERRAIN;
+                break;
+            case 4:
+                mapType = "gray";
+                break;
+            case 5:
+                mapType = "dark";
+                break;
+            case 6:
+                mapType = "toner";
+                break;
+            case 7:
+                mapType = "tlite";
+                break;
+            case 8:
+                mapType = "wcolor";
+                break;
+            case 9:
+                mapType = "mapnik";
+                break;
+            case 10:
+                mapType = "black";
+                break;
+            case 11:
+                mapType = "white";
+                break;
+            default:
+                mapType = google.maps.MapTypeId.ROADMAP;
+                break;
+        }//switch
+
+        return mapType;
     };
     
-    return new google.maps.ImageMapType(o);
-}//NewGmapsBasemap
-
-function NewGmapsBasemapConst(tile_size, alt, name, tile_url) // single tile for all requests
-{
-    var o =
+    BasemapHelper.fxGetNormalizedCoord = function(xy, z) { return GetNormalizedCoord(xy, z); };
+    
+    BasemapHelper.GetGmapsMapStyled_Dark = function()
     {
-        getTileUrl: function(xy, z) { return tile_url; },
-          tileSize: new google.maps.Size(tile_size, tile_size),
-           minZoom: 0,
-           maxZoom: 23,
-              name: name,
-               alt: alt != null ? alt : name
+        return [ {"stylers": [ { "invert_lightness": true }, { "saturation": -100 } ] },
+                 { "featureType": "water", "stylers": [ { "lightness": -100 } ] },
+                 { "elementType": "labels", "stylers": [ {  "lightness": -57  }, { "visibility": "on" } ] },
+                 { "featureType": "administrative", "elementType": "geometry", "stylers": [ { "lightness": -57 } ] } ];
+    };
+
+    BasemapHelper.GetGmapsMapStyled_Gray = function()
+    {
+        return [ { "featureType": "water", "stylers": [ { "saturation": -100 }, { "lightness": -30  } ] },
+                 { "stylers": [ { "saturation": -100 }, { "lightness": 50 } ] },
+                 { "elementType": "labels.icon", "stylers": [ { "invert_lightness": true }, { "gamma": 9.99 }, { "lightness": 79 } ] } ];
+    };
+
+    BasemapHelper.NewGmapsBasemap = function(min_z, max_z, tile_size, is_png, alt, name, base_url)
+    {
+        var o =
+        {
+            getTileUrl: function(xy, z) { var nXY = BasemapHelper.fxGetNormalizedCoord(xy, z); return nXY == null ? null : base_url + "/" + z + "/" + nXY.x + "/" + nXY.y + (is_png ? ".png" : ".jpg") ; },
+              tileSize: new google.maps.Size(tile_size, tile_size),
+               minZoom: min_z,
+               maxZoom: max_z,
+                  name: name,
+                   alt: alt != null ? alt : name
+        };
+    
+        return new google.maps.ImageMapType(o);
+    };
+
+    BasemapHelper.NewGmapsBasemapConst = function(tile_size, alt, name, tile_url) // single tile for all requests
+    {
+        var o =
+        {
+            getTileUrl: function(xy, z) { return tile_url; },
+              tileSize: new google.maps.Size(tile_size, tile_size),
+               minZoom: 0,
+               maxZoom: 23,
+                  name: name,
+                   alt: alt != null ? alt : name
+        };
+    
+        return new google.maps.ImageMapType(o);
+    };
+
+    BasemapHelper.InitBasemaps = function()
+    {
+        tonerMapType  = BasemapHelper.NewGmapsBasemap(0, 19, 256, true, null, "Stamen Toner", "http://tile.stamen.com/toner");
+        tliteMapType  = BasemapHelper.NewGmapsBasemap(0, 19, 256, true, null, "Stamen Toner Lite", "http://tile.stamen.com/toner-lite");
+        wcolorMapType = BasemapHelper.NewGmapsBasemap(0, 19, 256, false, null, "Stamen Watercolor", "http://tile.stamen.com/watercolor");
+        mapnikMapType = BasemapHelper.NewGmapsBasemap(0, 19, 256, true,  null, "OpenStreetMap", "http://tile.openstreetmap.org");
+        pureBlackMapType = BasemapHelper.NewGmapsBasemapConst(256, "Pure Black World Tendency", "None (Black)", "http://safecast.media.mit.edu/tilemap/black.png");
+        pureWhiteMapType = BasemapHelper.NewGmapsBasemapConst(256, "Pure White World Tendency", "None (White)", "http://safecast.media.mit.edu/tilemap/white.png");
+        grayMapType = new google.maps.StyledMapType(BasemapHelper.GetGmapsMapStyled_Gray(), {name: "Map (Gray)"});
+        darkMapType = new google.maps.StyledMapType(BasemapHelper.GetGmapsMapStyled_Dark(), {name: "Map (Dark)"});
+    
+        map.mapTypes.set( "toner", tonerMapType);
+        map.mapTypes.set( "tlite", tliteMapType);
+        map.mapTypes.set("wcolor", wcolorMapType);
+        map.mapTypes.set("mapnik", mapnikMapType);
+        map.mapTypes.set(  "gray", grayMapType);
+        map.mapTypes.set(  "dark", darkMapType);
+        map.mapTypes.set( "black", pureBlackMapType);
+        map.mapTypes.set( "white", pureWhiteMapType);
     };
     
-    return new google.maps.ImageMapType(o);
-}//NewGmapsBasemapConst
+    return BasemapHelper;
+})();
 
-function InitBasemaps()
-{
-    tonerMapType  = NewGmapsBasemap(0, 19, 256, true, null, "Stamen Toner", "http://tile.stamen.com/toner");
-    tliteMapType  = NewGmapsBasemap(0, 19, 256, true, null, "Stamen Toner Lite", "http://tile.stamen.com/toner-lite");
-    wcolorMapType = NewGmapsBasemap(0, 19, 256, false, null, "Stamen Watercolor", "http://tile.stamen.com/watercolor");
-    mapnikMapType = NewGmapsBasemap(0, 19, 256, true,  null, "OpenStreetMap", "http://tile.openstreetmap.org");
-    pureBlackMapType = NewGmapsBasemapConst(256, "Pure Black World Tendency", "None (Black)", "http://safecast.media.mit.edu/tilemap/black.png");
-    pureWhiteMapType = NewGmapsBasemapConst(256, "Pure White World Tendency", "None (White)", "http://safecast.media.mit.edu/tilemap/white.png");
-    grayMapType = new google.maps.StyledMapType(GetGmapsMapStyled_Gray(), {name: "Map (Gray)"});
-    darkMapType = new google.maps.StyledMapType(GetGmapsMapStyled_Dark(), {name: "Map (Dark)"});
-    
-    map.mapTypes.set( "toner", tonerMapType);
-    map.mapTypes.set( "tlite", tliteMapType);
-    map.mapTypes.set("wcolor", wcolorMapType);
-    map.mapTypes.set("mapnik", mapnikMapType);
-    map.mapTypes.set(  "gray", grayMapType);
-    map.mapTypes.set(  "dark", darkMapType);
-    map.mapTypes.set( "black", pureBlackMapType);
-    map.mapTypes.set( "white", pureWhiteMapType);
-}//InitBasemaps
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -380,13 +495,15 @@ function GetDefaultBasemapOrOverrideFromQuerystring()
     if (midx == -1) midx = QueryString_GetParamAsInt("midx");
     if (midx == -1) midx = 0;
 
-    return GetMapTypeIdForBasemapIdx(midx);
+    return BasemapHelper.GetMapTypeIdForBasemapIdx(midx);
 }//GetDefaultBasemapOrOverrideFromQuerystring
 
+/*
 function InitTimeSliceUI()
 {
     TimeSliceUI.SetSliderIdxToDefault();
 }
+*/
 
 function InitDefaultRasterLayerOrOverrideFromQuerystring()
 {
@@ -405,11 +522,6 @@ function InitDefaultRasterLayerOrOverrideFromQuerystring()
         TimeSliceUI.SetPanelHidden(false);
     }//if    
 }//InitDefaultRasterLayerOrOverrideFromQuerystring
-
-function InitZoomLimitBreak()
-{
-    _zoom_limit_break = QueryString_IsParamEqual("b", "1") || QueryString_IsParamEqual("zlb", "1") ? 1 : _zoom_limit_break;
-}//InitZoomLimitBreak
 
 function GetUserLocationFromQuerystring()
 {
@@ -666,8 +778,6 @@ function InitContextMenu()
                        + '<li><a href="#zoomIn" class="FuturaFont">Zoom In</a></li>'
                        + '<li><a href="#zoomOut" class="FuturaFont">Zoom Out</a></li>'
                        + '<li><a href="#centerHere" class="FuturaFont">Center Map Here</a></li>';
-                       //+ '<li class="separator"></li>'
-                       //+ '<li><a href="#zoomLimitBreak" class="FuturaFont">Zoom Limit Break</a></li>';
     document.getElementById("map_canvas").appendChild(cm);
 
     var clickLL;
@@ -715,9 +825,6 @@ function InitContextMenu()
                 case 'showIndices2':
                     ShowBitmapIndexVisualization(false, 4);
                     break;
-                case 'zoomLimitBreak':
-                    ApplyAndSetZoomLimitBreakIfNeeded();
-                    break;
                 case 'apiQuery':
                     QuerySafecastApiAsync(clickLL.lat(), clickLL.lng(), map.getZoom());
                     break;
@@ -757,17 +864,6 @@ function InitContextMenu()
         google.maps.event.addListener(map, events[i], hide_cb);
     }//for
 }//contextMenuInitialize
-
-function ApplyAndSetZoomLimitBreakIfNeeded()
-{
-    if (_zoom_limit_break) return;
-    
-    _zoom_limit_break = true;
-    var oldIdx  = GetCurrentInstanceBasemapIdx();
-    map.maxZoom = 21;
-    map.setMapTypeId(null);
-    map.setMapTypeId(GetMapTypeIdForBasemapIdx(oldIdx));
-}
 
 function GetFormattedSafecastApiQuerystring(lat, lon, dist, start_date_iso, end_date_iso)
 {
@@ -911,7 +1007,6 @@ function GetMapQueryStringUrl(isFull)
     var url = q.urlyxz;
     
     if (q.lidx > 0)        url += "&l=" + q.lidx;
-    //if (_zoom_limit_break) url += "&b=1";
     if (q.midx > 0)        url += "&m=" + q.midx;
     if (logs != null && logs.length > 0) url += "&logids=" + logs;
     
@@ -1074,6 +1169,7 @@ var ClientZoomHelper = (function()
     ClientZoomHelper.fxClearMapLayers      = function()        { map.overlayMapTypes.clear(); };
     ClientZoomHelper.fxSyncMapLayers       = function()        { LayersHelper.SyncSelectedWithMap(); };
     ClientZoomHelper.fxGetLayers           = function()        { return overlayMaps; };
+    ClientZoomHelper.fxSetLayers           = function(o)       { overlayMaps = o; };
     ClientZoomHelper.fxGetTimeSliceDates   = function()        { return SafecastDateHelper.GetTimeSliceDateRangesFilenames(); }
     ClientZoomHelper.fxGetUseJpRegion      = function()        { return _use_jp_region; };
     
@@ -1171,14 +1267,15 @@ var ClientZoomHelper = (function()
     
     
     // layerId is for bitstores. a proxy layerId should be used for similar secondary layers to reduce memory use.
-    ClientZoomHelper.InitGmapsLayers_Create = function(idx, layerId, maxz, alpha, tile_size, url)
+    ClientZoomHelper.InitGmapsLayers_Create = function(idx, layerId, is_layer_id_proxy, maxz, alpha, tile_size, url)
     {
         var o = { opacity:alpha, 
              ext_layer_id:layerId, 
          ext_url_template:url,
          ext_actual_max_z:(tile_size == 512 ? maxz-1 : maxz),
             ext_tile_size:tile_size,
-                  ext_idx:idx};
+                  ext_idx:idx,
+    ext_is_layer_id_proxy:is_layer_id_proxy };
     
         if (tile_size == 512)
         {
@@ -1239,17 +1336,17 @@ var ClientZoomHelper = (function()
         
         var ts = ClientZoomHelper.fxGetTimeSliceDates();
 
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 0, 2,  17, 1.0, 512, te512url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 1, 2,  17, 1.0, 512, te512url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 2, 8,  15, 0.5, 512, tg512url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 0, 2,  false, 17, 1.0, 512, te512url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 1, 2,  false, 17, 1.0, 512, te512url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 2, 8,  false, 15, 0.5, 512, tg512url) );
         
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 3, 3,  16, 1.0, 512, nnsa_url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 4, 6,  12, 0.7, 512, nure_url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 5, 16, 12, 0.7, 512, au_url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 6, 9,  12, 0.7, 512, aist_url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 7, 9,  15, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW/{z}/{x}/{y}.png") );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 8, 2,  17, 1.0, 512, te13_url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 9, 2,  17, 1.0, 512, te14_url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 3, 3,  false, 16, 1.0, 512, nnsa_url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 4, 6,  false, 12, 0.7, 512, nure_url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 5, 16, false, 12, 0.7, 512, au_url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 6, 9,  false, 12, 0.7, 512, aist_url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 7, 9,  true,  15, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW/{z}/{x}/{y}.png") );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 8, 2,  true,  17, 1.0, 512, te13_url) );
+        x.push( ClientZoomHelper.InitGmapsLayers_Create( 9, 2,  true,  17, 1.0, 512, te14_url) );
         
         //   idx | Description
         // ------|-------------------
@@ -1276,15 +1373,45 @@ var ClientZoomHelper = (function()
             var u = "http://te" + ts[i].d + (isJ ? "jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                                  : ".safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png");
                                                             
-            x.push( ClientZoomHelper.InitGmapsLayers_Create(ts[i].i, 2, 17, 1.0, 512, u) );
+            x.push( ClientZoomHelper.InitGmapsLayers_Create(ts[i].i, 2, true, 17, 1.0, 512, u) );
         }//for
 
         return x;
     };
     
+    ClientZoomHelper.GetLayerForIdx = function(idx, layers)
+    {
+        var layer = null;
+
+        if (layers != null)
+        {
+            for (var i=0; i<layers.length; i++)
+            {
+                if (layers[i] != null && layers[i].ext_idx == idx)
+                {
+                    layer = layers[i];
+                    break;
+                }//if
+            }//for
+        }//if
+            
+        return layer;
+    };    
+    
+    ClientZoomHelper.InitGmapsLayers = function()
+    {
+        var o = ClientZoomHelper.fxGetLayers();
+        
+        if (o == null)
+        {
+            o = ClientZoomHelper.InitGmapsLayers_CreateAll();
+            ClientZoomHelper.fxSetLayers(o);
+        }//if
+    };
     
     return ClientZoomHelper;
 })();
+
 
 
 function MapExtent_OnChange(eventId)
@@ -1313,12 +1440,12 @@ function MapExtent_OnChange(eventId)
         q.lidx = LayersHelper.GetSelectedIdx();
     }//if
 
-    if (q.midx == -1) q.midx = GetCurrentInstanceBasemapIdx();
+    if (q.midx == -1) q.midx = BasemapHelper.GetCurrentInstanceBasemapIdx();
 
     if (updateBasemap) // either init load, or basemap was changed
     {
-        q.midx = GetCurrentInstanceBasemapIdx();
-        q.mt   = GetMapTypeIdForBasemapIdx(q.midx);
+        q.midx = BasemapHelper.GetCurrentInstanceBasemapIdx();
+        q.mt   = BasemapHelper.GetMapTypeIdForBasemapIdx(q.midx);
         _disable_alpha = q.midx == 10 || q.midx == 11; // pure black / white
     
         // sync the raster tile overlay alpha with the determination made above
@@ -1502,108 +1629,6 @@ function GetMapInstanceYXZ()
     
     return { y:y, x:x, z:z };
 }//GetMapInstanceYXZ
-
-function GetCurrentInstanceBasemapIdx()
-{
-    var mapType = map.getMapTypeId();
-    var idx     = 0;
-
-    switch (mapType)
-    {
-         case google.maps.MapTypeId.ROADMAP:
-              idx = 0;
-              break;
-         case google.maps.MapTypeId.SATELLITE:
-              idx = 1;
-              break;
-         case google.maps.MapTypeId.HYBRID:
-              idx = 2;
-              break;
-         case google.maps.MapTypeId.TERRAIN:
-              idx = 3;
-              break;
-         case "gray":
-              idx = 4;
-              break;
-         case "dark":
-              idx = 5;
-              break;
-         case "toner":
-              idx = 6;
-              break;
-         case "tlite":
-              idx = 7;
-              break;
-         case "wcolor":
-              idx = 8;
-              break;
-         case "mapnik":
-              idx = 9;
-              break;
-         case "black":
-              idx = 10;
-              break;
-         case "white":
-              idx = 11;
-              break;
-         default:
-              idx = 0;
-              break;
-    }//switch
-
-    return idx;
-}//GetCurrentInstanceBasemapIdx
-
-function GetMapTypeIdForBasemapIdx(idx)
-{
-    var mapType = null;
-
-    switch (idx)
-    {
-         case 0:
-              mapType = google.maps.MapTypeId.ROADMAP;
-              break;
-         case 1:
-              mapType = google.maps.MapTypeId.SATELLITE;
-              break;
-         case 2:
-              mapType = google.maps.MapTypeId.HYBRID;
-              break;
-         case 3:
-              mapType = google.maps.MapTypeId.TERRAIN;
-              break;
-         case 4:
-              mapType = "gray";
-              break;
-         case 5:
-              mapType = "dark";
-              break;
-         case 6:
-              mapType = "toner";
-              break;
-         case 7:
-              mapType = "tlite";
-              break;
-         case 8:
-              mapType = "wcolor";
-              break;
-         case 9:
-              mapType = "mapnik";
-              break;
-         case 10:
-              mapType = "black";
-              break;
-         case 11:
-              mapType = "white";
-              break;
-         default:
-              mapType = google.maps.MapTypeId.ROADMAP;
-              break;
-    }//switch
-
-    return mapType;
-}//GetMapTypeIdForBasemapIdx
-
 
 
 
@@ -2050,6 +2075,8 @@ var BitsProxy = (function()
         if (this.use_bitstores) this.LoadAsync();
     }
     
+    BitsProxy.prototype.fxGetLayerForIdx = function(idx) { return ClientZoomHelper.GetLayerForIdx(idx, overlayMaps); };
+    
     // 2015-08-31 ND: reduce function call and enum overhead when loading tiles
     BitsProxy.prototype.CacheAddTileWHZ = function(layerId, px, z)
     {
@@ -2091,13 +2118,21 @@ var BitsProxy = (function()
         var idx = BitsProxy.GetSelectedLayerIdx();
         if (idx <= 2 || idx >= 8) return;
         
+        var layer = this.fxGetLayerForIdx(idx);
+        
+        var layerId = layer != null ? layer.ext_layer_id : -1;
+        
+        if (layerId == -1) return;
+        
+        /*
         var layerId = idx == 3 ? 3 // todo: define these more formally somewhere.
                     : idx == 4 ? 6
                     : idx == 5 ? 16
                     : idx == 6 ? 9
                     : idx == 7 ? 9
                     :            2;
-
+        */
+        
         // idx | layerId | desc
         // ----|---------|------
         //   0 |  2      | sc p+i   always loaded
@@ -3734,6 +3769,11 @@ var TimeSliceUI = (function()
     TimeSliceUI.SetSliderIdxToDefault = function()
     {
         TimeSliceUI.SetSliderIdx(13);
+    };
+    
+    TimeSliceUI.Init = function()
+    {
+        TimeSliceUI.SetSliderIdxToDefault();
     };
     
     TimeSliceUI.tsSlider_OnChange = function()
