@@ -83,6 +83,9 @@ var RTVM = (function()
         this.mapRef   = map;
         this.isMobile = RTVM.IsPlatformMobile();
         this.mks      = null; // marker manager
+        this.failures = 0;
+        this.fail_max = (86400 * 365) / 600;
+        this.last_tx  = 0;
         
         this.dataBinds = dataBinds;
         
@@ -106,6 +109,7 @@ var RTVM = (function()
     {
         this.Init_MKS();
         this.InitMarkersAsync();
+        this.InitConnectionWatchdog();
     };
     
     RTVM.prototype.Init_DataBindDefaults = function()
@@ -135,9 +139,14 @@ var RTVM = (function()
     
     RTVM.prototype.InitMarkersAsync = function()
     {
-        var d       = new Date();
-        var ss_now  = "" + (parseInt(d.getTime() * 0.001));
-        this.GetJSONAsync("http://realtime.safecast.org/wp-content/uploads/devices.json?t=" + ss_now);
+        this.GetJSONAsync("http://realtime.safecast.org/wp-content/uploads/devices.json");
+    };
+    
+    RTVM.prototype.InitConnectionWatchdog = function()
+    {
+        setTimeout(function() {
+            this.ConnectionWatchdog();
+        }.bind(this), 10 * 60 * 1000);
     };
 
 
@@ -146,43 +155,78 @@ var RTVM = (function()
     //                            Event handlers - abstracted download methods
     // =======================================================================================================
 
+    // Some network failures that break the auto-refresh do not appear to raise an event,
+    // so this serves as a failsafe for those cases.
+    //
+    RTVM.prototype.ConnectionWatchdog = function()
+    {
+        if ((new Date()).getTime() - this.last_tx > 20 * 60 * 1000)
+        {
+            console.log("RTVM.prototype.ConnectionWatchdog: >20 mins since last connection attempt, restarting connection...");
+            this.InitMarkersAsync();
+        }//if
+        
+        setTimeout(function() {
+            this.ConnectionWatchdog();
+        }.bind(this), 10 * 60 * 1000);
+    };
+
     RTVM.prototype.GetJSONAsync = function(url)
     {
+        var d           = new Date();
+        var ss_now      = "" + (parseInt(d.getTime() * 0.001));
+        var url_nocache = url + "?t=" + ss_now;
+        
         var cb = function(response, userData)
         {
-            console.log("RTVM: Got response.");
-            
             var success = response != null && response.length > 0;
         
             if (success)
             {
-                var obj = JSON.parse(response);
+                var obj = null;
                 
-                console.log("RTVM: Parsed obj.");
+                try
+                {
+                    obj = JSON.parse(response);
+                }
+                catch (err)
+                {
+                    console.log("RTVM: JSON parsing exception.");
+                }
                 
                 if (obj != null)
                 {
-                    console.log("RTVM: Calling data fx...");
-                
                     this.mks.AddSensorDataFromJson(obj);
-                    
-                    setTimeout(function() {
-                        this.mks.AddMarkersToMap();
-                    }.bind(this), 1000);
+                    this.mks.AddMarkersToMap();
                 }//if
                 else
                 {
                     success = false;
+                    this.failures = this.failures + 1;
                 }//else
             }//if
+            else
+            {
+                this.failures = this.failures + 1;
+            }//else
         
             if (!success)
             {
                 console.log("RTVM: Error getting sensors from URL: %s", url);
             }//if
+            
+            var after_ms = (success ? 60 : 600) * 1000; // 1 min normally, 10 mins on failure
+            
+            if (this.failures < this.fail_max)
+            {
+                setTimeout(function() {
+                    this.last_tx = (new Date()).getTime();
+                    this.GetJSONAsync(url);
+                }.bind(this), after_ms);
+            }//if
         }.bind(this);
         
-        RTVM.GetAsync_HTTP(url, null, null, cb, null);
+        RTVM.GetAsync_HTTP(url_nocache, null, null, cb, null);
     };
     
     // =======================================================================================================
@@ -260,6 +304,13 @@ var RTVM = (function()
                     fxCallback(req.response, userData);
                 }//else
             }//if
+            else if (req.readyState === 4)
+            {
+                // This attemps to trap Chrome's ERR_NETWORK_CHANGED
+                // and other network failures which cause the updates to stop.
+                console.log("RTVM.GetAsync_HTTP: req.readyState == 4, req.status == %d.  Retrying.", req.status);
+                fxCallback(null, userData);
+            }//else if
         };
         
         req.send(null);
@@ -471,70 +522,66 @@ var RTICO = (function()
                 var start_angle = parseFloat(i) * step_size;
                 var end_angle   = start_angle + step_size * 0.75;
                 
-        ctx.beginPath(); // stroke thick black outline
-            ctx.arc(ox, oy, outer_r, start_angle, end_angle);
-            ctx.strokeStyle = "rgba(0,0,0," + a1 + ")";
-            ctx.lineWidth   = Math.max(3.5 * scale, 3.5);
-        ctx.stroke();
+                ctx.beginPath(); // stroke thick black outline
+                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
+                    ctx.strokeStyle = "rgba(0,0,0," + a1 + ")";
+                    ctx.lineWidth   = Math.max(3.5 * scale, 3.5);
+                ctx.stroke();
         
-        ctx.beginPath(); // stroke thinner green inner arc
-            ctx.arc(ox, oy, outer_r, start_angle, end_angle);
-            ctx.strokeStyle = c_green;
-            ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
-        ctx.stroke();
+                ctx.beginPath(); // stroke thinner green inner arc
+                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
+                    ctx.strokeStyle = c_green;
+                    ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
+                ctx.stroke();
         
-        // By default, looks a bit dark due to antialiasing with black,
-        // so stroke green 2x more at decreasing widths.
+                // By default, looks a bit dark due to antialiasing with black,
+                // so stroke green 2x more at decreasing widths.
         
-        ctx.beginPath(); // repeat green stroke
-            ctx.arc(ox, oy, outer_r, start_angle, end_angle);
-            ctx.strokeStyle = c_green;
-            ctx.lineWidth   = Math.max(1.0 * scale, 1.0);
-        ctx.stroke();
+                ctx.beginPath(); // repeat green stroke
+                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
+                    ctx.strokeStyle = c_green;
+                    ctx.lineWidth   = Math.max(1.0 * scale, 1.0);
+                ctx.stroke();
         
                 
-        ctx.beginPath(); // repeat green stroke
-            ctx.arc(ox, oy, outer_r, start_angle, end_angle);
-            ctx.strokeStyle = c_green;
-            ctx.lineWidth   = Math.max(0.5 * scale, 0.5);
-        ctx.stroke();
-
+                ctx.beginPath(); // repeat green stroke
+                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
+                    ctx.strokeStyle = c_green;
+                    ctx.lineWidth   = Math.max(0.5 * scale, 0.5);
+                ctx.stroke();
             }//for
-            
         }//if
         else
         {
+            // ------------------------ outer ring -------------------------------
+            ctx.beginPath(); // stroke thick black outline
+                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
+                ctx.strokeStyle = "rgba(0,0,0," + a1 + ")";
+                ctx.lineWidth   = Math.max(3.5 * scale, 3.5);
+            ctx.stroke();
+        
+            ctx.beginPath(); // stroke thinner green inner arc
+                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
+                ctx.strokeStyle = c_green;
+                ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
+            ctx.stroke();
+        
+            // By default, looks a bit dark due to antialiasing with black,
+            // so stroke green 2x more at decreasing widths.
+        
+            ctx.beginPath(); // repeat green stroke
+                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
+                ctx.strokeStyle = c_green;
+                ctx.lineWidth   = Math.max(1.0 * scale, 1.0);
+            ctx.stroke();
+        
 
-        // ------------------------ outer ring -------------------------------
-        ctx.beginPath(); // stroke thick black outline
-            ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-            ctx.strokeStyle = "rgba(0,0,0," + a1 + ")";
-            ctx.lineWidth   = Math.max(3.5 * scale, 3.5);
-        ctx.stroke();
-        
-        ctx.beginPath(); // stroke thinner green inner arc
-            ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-            ctx.strokeStyle = c_green;
-            ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
-        ctx.stroke();
-        
-        // By default, looks a bit dark due to antialiasing with black,
-        // so stroke green 2x more at decreasing widths.
-        
-        ctx.beginPath(); // repeat green stroke
-            ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-            ctx.strokeStyle = c_green;
-            ctx.lineWidth   = Math.max(1.0 * scale, 1.0);
-        ctx.stroke();
-        
-
-        ctx.beginPath(); // repeat green stroke
-            ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-            ctx.strokeStyle = c_green;
-            ctx.lineWidth   = Math.max(0.5 * scale, 0.5);
-        ctx.stroke();
-        
-        }
+            ctx.beginPath(); // repeat green stroke
+                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
+                ctx.strokeStyle = c_green;
+                ctx.lineWidth   = Math.max(0.5 * scale, 0.5);
+            ctx.stroke();
+        }//else
         
         this.url = c.toDataURL("image/png");
     };
@@ -611,6 +658,7 @@ var RTMKS = (function()
         this.shd_r    = 0.0;            // Marker icon shadow radius, pixels.
         this.icons    = new Array();
         
+        this.lut_rsn  = 2;                       // 256 >> 128 >> 64 colors
         this.lut      = new RTLUT(0.03, 65.535); // The LUT gets the RGB values for a value.
 
         this.mapref  = mapRef;
@@ -740,7 +788,10 @@ var RTMKS = (function()
             this.markers[i].setMap(null);
         }//for
         
-        RTMKS.vfill(0, this.onmaps, 0, this.onmaps.length);
+        if (this.onmaps != null)
+        {
+            RTMKS.vfill(0, this.onmaps, 0, this.onmaps.length);
+        }//if
         
         this.markers = new Array();
     };
@@ -769,6 +820,54 @@ var RTMKS = (function()
         this.zoomlistener = google.maps.event.addListener(this.mapref, "zoom_changed", fxRefresh);
     };
     
+    // Synchronizes marker icons with marker data.  This assumes that 
+    // indices are consistent between passes.
+    // 
+    // Note this only handles:
+    // 1. Scaling icons for current zoom level
+    // 2. Data change: DRE
+    // 3. Data change: Offline status
+    // 4. Position change: lat/lon
+    //
+    RTMKS.prototype.UpdateIconsForMarkers = function()
+    {
+        var z     = this.mapref.getZoom();
+        var scale = RTMKS.GetIconScaleFactorForZ(z);
+
+        for (var i=0; i<this.markers.length; i++)
+        {
+            var ico     = this.markers[i].getIcon();
+            var dre     = this.dres[this.markers[i].ext_id];
+            var offline = this.IsSensorOffline(this.markers[i].ext_id);
+            var lutidx  = this.lut.GetIdxForValue(dre, this.lut_rsn);
+            var zindex  = RTMKS.GetMarkerZIndexForAttributes(lutidx, offline);
+            var lat     = this.lats[this.markers[i].ext_id];
+            var lon     = this.lons[this.markers[i].ext_id];
+            
+            if (   lat != this.markers[i].getPosition().lat()
+                || lon != this.markers[i].getPosition().lng())
+            {
+                this.markers[i].setPosition(new google.maps.LatLng(lat, lon));
+            }//if
+
+            if (ico.scaledSize.width != this.width * scale
+                || offline != this.markers[i].ext_offline
+                ||  lutidx != this.markers[i].ext_lut_idx)
+            {
+                ico.size       = new google.maps.Size(this.width * scale, this.height * scale);
+                ico.scaledSize = new google.maps.Size(this.width * scale, this.height * scale);
+                ico.anchor     = new google.maps.Point(this.width * scale * 0.5, this.height * scale * 0.5);
+                ico.url        = this.GetIconCached(lutidx, offline, this.width, this.height, this.pxScale * scale);
+                
+                this.markers[i].setIcon(ico);
+                this.markers[i].setZIndex(zindex);
+                this.markers[i].ext_offline = offline;
+                this.markers[i].ext_lut_idx = lutidx;
+            }//if
+        }//for
+    };
+
+
     RTMKS.prototype.RescaleIcons = function()
     {
         if (this.mapref == null || this.markers.length == 0) return;
@@ -781,30 +880,19 @@ var RTMKS = (function()
             return;
         }//if
         
-        var scale = RTMKS.GetIconScaleFactorForZ(z);
-        
-        for (var i=0; i<this.markers.length; i++)
-        {
-            var ico = this.markers[i].getIcon();
-            
-            if (ico.scaledSize.width != this.width * scale)
-            {
-                ico.size       = new google.maps.Size(this.width * scale, this.height * scale);
-                ico.scaledSize = new google.maps.Size(this.width * scale, this.height * scale);
-                ico.anchor     = new google.maps.Point(this.width * scale * 0.5, this.height * scale * 0.5);
-                var offline    = this.create_ss - this.times[this.markers[i].ext_id] > 3600;
-                
-                var lutidx     = this.markers[i].getZIndex() + (this.markers[i].getZIndex() < 0 ? 1000 : 0);
-                
-                ico.url        = this.GetIconCached(lutidx, offline, this.width, this.height, this.pxScale * scale);
-                
-                this.markers[i].setIcon(ico);
-            }//if
-        }//for
-        
+        this.UpdateIconsForMarkers();
         this.last_z = z;
     };
-    
+
+
+    RTMKS.prototype.UpdateIconsForData = function()
+    {
+        if (this.mapref == null || this.markers.length == 0) return;
+        
+        this.UpdateIconsForMarkers();
+    };
+
+
     RTMKS.prototype.IsSensorOffline = function(idx)
     {
         return this.create_ss - this.times[idx] > 3600;
@@ -813,8 +901,6 @@ var RTMKS = (function()
     RTMKS.prototype.AddMarkersToMap = function()
     {
         if (this.lats == null) return;
-        
-        var rsn = 2;
         
         for (var i=0; i<this.lats.length; i++)
         {
@@ -825,20 +911,9 @@ var RTMKS = (function()
                 var lat = this.lats[i];
                 var lon = this.lons[i];
                 var dre = this.dres[i];
+                var idx = this.lut.GetIdxForValue(dre, this.lut_rsn);
                 
-                for (var j=0; j<this.lats.length; j++)
-                {
-                    if (   lat == this.lats[j]
-                        && lon == this.lons[j]
-                        && dre  < this.dres[j])
-                    {
-                        dre = this.dres[j];
-                    }//if
-                }//for
-                
-                var lutidx = this.lut.GetIdxForValue(dre, rsn);
-                
-                this.AddMarker(i, lat, lon, lutidx, this.IsSensorOffline(i));
+                this.AddMarker(i, lat, lon, idx, this.IsSensorOffline(i));
             }//if
         }//for
         
@@ -861,11 +936,14 @@ var RTMKS = (function()
         
         var yx     = new google.maps.LatLng(lat, lon);
         var marker = new google.maps.Marker();
+        var zindex = RTMKS.GetMarkerZIndexForAttributes(lutidx, offline);
         
         marker.setPosition(yx);
         marker.setIcon(icon);
-        marker.setZIndex(lutidx + (offline ? -1000 : 0));
+        marker.setZIndex(zindex);
         marker.ext_id = marker_id;
+        marker.ext_lut_idx = lutidx;
+        marker.ext_offline = offline;
         marker.setMap(this.mapref);
         
         this.AttachInfoWindow(marker);
@@ -915,39 +993,103 @@ var RTMKS = (function()
         return url;
     };
     
+    // This is the primary function that should be called from any data fetch.
+    //
+    RTMKS.prototype.RefreshSensorDataFromJson = function(obj)
+    {
+        var need_reload = false;
+        var need_icons  = false;
+        var nowSS       = (new Date().getTime() / 1000.0) >>> 0;
+        var o           = RTMKS.ParseJSON(obj);
+
+        if (!RTMKS.ArrayCompare(o.ids, this.ids))
+        {
+            need_reload = true;
+        }//if
+
+        if (need_reload)
+        {
+            this.create_ss = nowSS;
+            this.RemoveAllMarkersFromMapAndPurgeData();
+            this.AddData(o.dres, o.cpms, o.ids, o.times, o.lons, o.lats, o.locstxt, o.imgtxt, o.linktxt);
+        }//if
+        else
+        {
+            if (   !RTMKS.ArrayCompareAbsThr(o.lons, this.lons, 0.00001)
+                || !RTMKS.ArrayCompareAbsThr(o.lats, this.lats, 0.00001))
+            {
+                // nb: epsilon used in case of future devices with active GPS, so minor positional
+                //     error doesn't constantly cause flickering of icons.
+                need_icons = true;
+                this.lats  = o.lats;
+                this.lons  = o.lons;
+            }//if
+        
+            if (!RTMKS.ArrayCompare(o.dres, this.dres))
+            {
+                need_icons = true;
+                this.dres  = o.dres;
+                this.cpms  = o.cpms; // assume CPMs will change only if DREs change
+            }//if
+
+            if (!RTMKS.ArrayCompare(o.times, this.times))
+            {
+                need_icons     = true;
+                this.times     = o.times; // update the times even if the offline status didn't change.
+                this.create_ss = nowSS;
+            }//if
+            
+            // don't bother checking for changes, just reassign pointers
+            this.locstxt = o.locstxt;
+            this.imgtxt  = o.imgtxt;
+            this.linktxt = o.linktxt;
+            
+            if (need_icons)
+            {
+                this.UpdateIconsForData();
+            }//if
+        }//else
+    };
+    
     // someday, "id" will be a unique autoincrement ID, but for now it's the same as the index.
     RTMKS.prototype.GetIdxForMarkerId = function(marker_id)
     {
         return marker_id;
     };
 
-
     RTMKS.prototype.GetInfoWindowContentForId = function(marker_id)
     {
-        var i = this.GetIdxForMarkerId(marker_id);
+        var idx = this.GetIdxForMarkerId(marker_id);
         
-        if (this.cpms == null || i < 0 || i > this.cpms.length) return "";
+        if (this.ids == null || idx < 0 || idx > this.ids.length) return "";
         
-        var url = this.imgtxt[i];
+        var fontcss = null;
+        var imgs    = new Array();
+        var ids     = new Array();
+        var times   = new Array();
+        var urls    = new Array();
+        var dres    = new Array();
+        var cpms    = new Array();
         
-        var unixMS = parseFloat(this.times[i]) * 1000.0;        
-        var d     = new Date(unixMS);
-        var sdate = d.toISOString().substring( 0, 10);
-        var stime = d.toISOString().substring(11, 16);
-        var sdre  = RTMKS.GetStringWithTwoFractionalDigits(this.dres[i]);
+        // Build an Array of all sensors at that lat/lon, as the API
+        // does not have sensor grouping.  The only singular value
+        // used is the location name.
         
-        var imgurls = new Array();
-        
-        for (var j=0; j<this.cpms.length; j++)
+        for (var i=0; i<this.cpms.length; i++)
         {
-            if (   this.lats[j] == this.lats[i]
-                && this.lons[j] == this.lons[i])
+            if (   this.lats[i] == this.lats[idx]
+                && this.lons[i] == this.lons[idx])
             {
-                imgurls.push(this.imgtxt[j]);
+                imgs.push(this.imgtxt[i]);
+                urls.push(this.linktxt[i]);
+                ids.push(this.ids[i]);
+                times.push(this.times[i]);
+                dres.push(this.dres[i].toFixed(2));
+                cpms.push(this.cpms[i]);
             }//if
         }//for
                  
-        return RTMKS.GetInfoWindowHtmlForParams(sdre, this.times[i], this.cpms[i], sdate, stime, this.ids[i], this.locstxt[i], imgurls, this.linktxt[i], null);
+        return RTMKS.GetInfoWindowHtmlForParams(this.locstxt[idx], imgs, ids, times, urls, dres, cpms, fontcss);
     };
     
     RTMKS.prototype.AttachInfoWindow = function(marker)
@@ -960,57 +1102,91 @@ var RTMKS = (function()
     
     RTMKS.prototype.OpenRetainedInfoWindow = function(marker)
     {
-        if (this.inforef == null) this.inforef = new google.maps.InfoWindow({size: new google.maps.Size(320, 220)});
-        else this.inforef.close(); 
+        if (this.inforef == null) 
+        {
+            this.inforef = new google.maps.InfoWindow({size: new google.maps.Size(320, 220)});
+        }//if
+        else
+        {
+            this.inforef.close();
+        }//else
+        
         this.inforef.setContent(this.GetInfoWindowContentForId(marker.ext_id));
         this.inforef.open(this.mapref, marker);
     };
+    
+    // Sorts JSON array by a less-than-threshold comparison, then ascending by value.
+    //
+    // This is used by the code to sort the sensors such that offline sensors are at
+    // the end of the array, while online sensors are sorted by id.
+    //
+    RTMKS.SortJSONLtThr = function(src, prop, prop_thr, thr)
+    {
+        src = src.sort(function(a, b) 
+        {
+            var a_thr = a[prop_thr] < thr;
+            var b_thr = b[prop_thr] < thr;
+            
+            if ((a_thr && b_thr) || (!a_thr && !b_thr))
+            {
+                return a[prop] > b[prop] ?  1 
+                     : a[prop] < b[prop] ? -1 : 0;
+            }//if
+            else if (a_thr)
+            {
+                return 1;
+            }//else if
+            else
+            {
+                return -1;
+            }//else
+        });
+        
+        return src;
+    };
 
+    RTMKS.ArrayCompareAbsThr = function(src0, src1, thr)
+    {
+        var is_eq = (src0 != null && src1 != null && src0.length == src1.length) || (src0 == null && src1 == null);
+        
+        if (is_eq && src0 != null && src1 != null)
+        {
+            for (var i=0; i<src0.length; i++)
+            {
+                if (Math.abs(src0[i] - src1[i]) > thr)
+                {
+                    is_eq = false;
+                    break;
+                }//if
+            }//for
+        }//if
+        
+        return is_eq;
+    };
 
-    // [{"id":"106","lat":"37.442836","lon":"-122.128094","location":"USA, California, Palo Alto, Triple El (2)","updated":"2015-02-18T01:46:26Z","usvh":"0.124","cpm":"15","chart_url":"http:\/\/rt.safecast.org\/plots\/106_small.png","chart_width":480,"chart_height":200},
+    RTMKS.ArrayCompare = function(src0, src1)
+    {
+        var is_eq = (src0 != null && src1 != null && src0.length == src1.length) || (src0 == null && src1 == null);
+        
+        if (is_eq && src0 != null && src1 != null)
+        {
+            for (var i=0; i<src0.length; i++)
+            {
+                if (src0[i] != src1[i])
+                {
+                    is_eq = false;
+                    break;
+                }//if
+            }//for
+        }//if
+        
+        return is_eq;
+    };
+    
 
     RTMKS.prototype.AddSensorDataFromJson = function(obj)
     {
-        var rts = obj;
-        var n   = rts.length;
-        
-        var d       = new Date();
-        var ss_now  = "" + (parseInt(d.getTime() * 0.001));
-        
-        var lats    = new Float64Array(n);
-        var lons    = new Float64Array(n);
-        var cpms    = new Float32Array(n);
-        var dres    = new Float32Array(n);
-        var ids     = new Int32Array(n);
-        var times   = new Uint32Array(n);
-        var locstxt = new Array(n);
-        var imgtxt  = new Array(n);
-        var linktxt = new Array(n);
-        
-        for (var i=0; i<n; i++)
-        {
-            lats[i] = parseFloat(rts[i].lat);
-            lons[i] = parseFloat(rts[i].lon);
-            cpms[i] = parseFloat(rts[i].cpm);
-            dres[i] = parseFloat(rts[i].usvh);
-            ids[i]  = parseInt(rts[i].id);
-            
-            var unixMS = rts[i].updated != null ? Date.parse(rts[i].updated) : 0.0;
-            times[i] = unixMS == null ? 0.0 : parseInt(unixMS * 0.001);    
-            
-            locstxt[i] = rts[i].location;
-            //imgtxt[i] = rts[i].chart_url;
-            imgtxt[i] = "http://gamma.tar.bz/nGeigies/" + ids[i] + "_640x400.png?t=" + ss_now;
-            
-            if (cpms[i] >= (dres[i] / 334.0) * 0.9 && cpms[i] <= (dres[i] / 334.0) * 1.1)
-            {
-                dres[i] = cpms[i] / 350.0;
-            }//if
-            
-            linktxt[i] = rts[i].article_url;
-        }//for
-        
-        this.AddData(dres, cpms, ids, times, lons, lats, locstxt, imgtxt, linktxt);
+        this.RefreshSensorDataFromJson(obj);
     };
 
     
@@ -1031,49 +1207,267 @@ var RTMKS = (function()
         
         console.log("MKS.AddData: Added %d items, new total = %d.", newcpms.length, this.cpms.length);
     };
+
+    
+    // Contarary to the function name, the JSON String must already be parsed
+    // via JSON.parse, and converted to an Array of JSON Objects.
+    RTMKS.ParseJSON = function(obj)
+    {
+        for (var i=0; i<obj.length; i++) // numeric cast for sort
+        {
+            obj[i].id      = parseInt(obj[i].id);
+            obj[i].unix_ms = Date.parse(obj[i].updated);
+        }//if
+        
+        var thr     = (new Date().getTime()) - 3600.0 * 1000.0;
+        var rts     = RTMKS.SortJSONLtThr(obj, "id", "unix_ms", thr);
+        var n       = rts.length;
+        
+        var lats    = new Float64Array(n);
+        var lons    = new Float64Array(n);
+        var cpms    = new Float32Array(n);
+        var dres    = new Float32Array(n);
+        var ids     = new Int32Array(n);
+        var times   = new Uint32Array(n);
+        var locstxt = new Array(n);
+        var imgtxt  = new Array(n);
+        var linktxt = new Array(n);
+        
+        for (var i=0; i<n; i++)
+        {
+            lats[i] = parseFloat(rts[i].lat);
+            lons[i] = parseFloat(rts[i].lon);
+            cpms[i] = parseFloat(rts[i].cpm);
+            dres[i] = parseFloat(rts[i].usvh);
+            ids[i]  = parseInt(rts[i].id);
+            
+            var unixMS = rts[i].updated != null ? Date.parse(rts[i].updated) : 0.0;
+            times[i]   = unixMS == null ? 0.0 : parseInt(unixMS / 1000.0);
+            locstxt[i] = rts[i].location;
+            //imgtxt[i] = rts[i].chart_url;            
+            imgtxt[i]  = "http://107.161.164.166/plots_new/out/" + ids[i] + "_640x400.png";
+            linktxt[i] = rts[i].article_url;
+        }//for
+        
+        return { dres:dres, cpms:cpms, ids:ids, times:times, lons:lons, lats:lats, locstxt:locstxt, imgtxt:imgtxt, linktxt:linktxt };
+    };
+    
+    RTMKS.GetMarkerZIndexForAttributes = function(lutidx, offline)
+    {
+        return lutidx + (offline ? -1000 : 0);
+    };
     
     RTMKS.GetIconScaleFactorForZ = function(z)
     {
+        // For zoom levels > 7, the scale is always 100%.
+        // Otherwise, it's:
+        //   10% base
+        // + 90% scaled value of [0% - 87.5%], linear, based on zoom level.
+        
         return z > 7 ? 1.0 : 0.1 + (1.0 - (8 - z) * 0.125) * 0.9;
     };
     
-    RTMKS.GetInfoWindowHtmlForParams = function(dre, unixSS, cpm, date, time, id, loc, imgurls, linkurl, fontCssClass)
-    {   
-        var html = "<table style='width:320px;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;' "
-               + (fontCssClass != null ? "class='" + fontCssClass + "' " : "") 
-               + "<tr><td style='text-align:center;font-size:14px;'>" + loc + "</td></tr>";
-               
-        if (unixSS < (new Date()).getTime() * 0.001 - 30.0 * 24.0 * 60.0 * 60.0)
-        {
-            html += "<tr><td>&nbsp;</td></tr>";
+    RTMKS.GetElapsedTimeText = function(unixSS)
+    {
+        unixSS = parseFloat(unixSS);
+        var nowSS  = new Date().getTime() / 1000.0;
+        var diffSS = nowSS - unixSS;
+        var dest   = null;
+        var trs    = new Array();
         
-            html += "<tr><td style='text-align:center;'>"
-                  + dre + " \u00B5" + "Sv/h"
-                  + " (Last Updated: "
-                  + date 
-                  + ")"
-                  + "</td></tr>";
-        }//if
-               
-        for (var i=0; i<imgurls.length; i++)
+        // Don't show negative time if there are clock sync issues.
+        // This clamps to a minimum value, but it might be better
+        // to display an error instead.
+        if (diffSS < 1.0)
         {
-            html += "<tr><td style='text-align:center;'><img style='image-rendering:auto;image-rendering:-webkit-optimize-contrast;image-rendering:optimize-contrast;' width='320' height='200' border=0 src='" + imgurls[i] + "'/></td></tr>";
+            diffSS = 1.0;
+        }//if
+        
+        trs.push(["sec",    1, "秒"]);
+        trs.push(["min",   60, "分"]);
+        trs.push(["hour",   3600, "時間"]);
+        trs.push(["day",   86400, "日"]);
+        trs.push(["week",  86400*  7, "週間"]);
+        trs.push(["month", 86400* 28, "ヶ月"]);
+        trs.push(["year",  86400*365, "年"]);
+        
+        for (var i=0; i<trs.length - 1; i++)
+        {
+            if (diffSS < trs[i+1][1]
+                && Math.round(diffSS / trs[i][1]) * trs[i][1] < trs[i+1][1]) // above is probably redundant
+            {
+                dest = { value:trs[i][1], text:trs[i][0], jptext:trs[i][2] };
+                break;
+            }//if
         }//for
-               
-        html += "<tr><td style='line-height:20px;'><a style='color:rgb(66,114,219);font-size:12px;text-decoration:none;' href='" + linkurl + "' target=_blank>more info</a></td></tr>"
-               + "</table>";
+        
+        if (dest == null)
+        {
+            dest = { value:trs[trs.length-1][1], text:trs[trs.length-1][0], jptext:trs[trs.length-1][2] };
+        }//if
+        
+        dest.value = Math.round(diffSS / dest.value);
+
+        if (dest.value > 1.0 && dest.text != "sec" && dest.text != "min")
+        {
+            dest.text += "s";
+        }//if
+
+        return dest;
+    };
+
+    RTMKS.GetInfoWindowHtmlForParams = function(loc, imgurls, ids, unixSSs, linkurls, dres, cpms, fontCssClass)        
+    {
+        var nowSS = (new Date().getTime() / 1000.0) >>> 0;
+        var cwhs  = RTMKS.GetClientViewSize();
+        var mini  = cwhs[0] <= 450;
+        var tblw  = mini ? 320-30-10-50 : 320; // Google's styles seem to add 30 x-axis pixels of padding
+        var w_pt  = 320;
+        var h_pt  = 200;
+        var html  = "";
+        var jpago = "前";
+        
+        // nb: everything not a graph gets a left margin / padding of 15px
+        //     to match the visual center of the graph (because right-side Google padding)
+        //     don't do this in mini mode since no graph is displayed.
+    
+        html += "<table style='"
+             +  "width:" + tblw + "px;border:0px;padding:0px;"
+             +  (!mini ? "margin-right:15px;" : "")
+             +  "margin-left:23px;"
+             +  "border-spacing:0px;border-collapse:collapse;"
+             +  "'"
+             +  (fontCssClass != null ? " class='" + fontCssClass + "'" : "")
+             +  ">";
+
+        // Title: Location
+
+        html += "<tr>";
+        html += "<td colspan=2 style='text-align:center;font-size:16px;'>";
+        html += (!mini ? "<span style='padding-left:15px;'>" : "")
+             +  loc 
+             +  (!mini ? "</span>" : "");
+        html += "</td>";
+        html += "</tr>";
+        
+        for (var i=0; i<ids.length; i++)
+        {
+            var elapsedtxt = RTMKS.GetElapsedTimeText(unixSSs[i]);
+            
+            if (mini)
+            {
+                // Subtitle: Sensor ID (if not showing graph)
+                
+                html += "<tr>";
+                html += "<td colspan=2 style='padding:10px 1px 1px 1px;'>";
+                html += "<table style="
+                     +  "'"
+                     +  "width:" + tblw + "px;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;"
+                     +  "'"
+                     +  (fontCssClass != null ? " class='" + fontCssClass + "'" : "")
+                     +  ">"
+                     +  "<tr>"
+                     +  "<td colspan='2' style='padding:0px; text-align:center;'>"
+                     +  "<div style='font-size:14px; left:0; right:0;' class='sc_hline'>"
+                     +  "ID " + ids[i]
+                     +  "</div>"
+                     +  "</td>"
+                     +  "</tr>"
+                     +  "</table>";
+                html += "</td>";
+                html += "</tr>";
+            }//if
+            
+            // Detail: DRE
+            
+            html += "<tr>";
+            
+            html += "<td style='text-align:center; padding-top:10px; width:" + (tblw >>> 1) + "px;'>";
+            html += "<span title='" + cpms[i] + " CPM'>"
+                 +  (!mini ? "<span style='padding-left:55px;'>" : "")
+                 +  "<span style='font-size:14px;'>"
+                 +  dres[i]
+                 +  "</span>"
+                 +  "<span style='font-weight:lighter; font-size:12px;'>"
+                 +  " \u00B5" + "Sv/h"
+                 +  "</span>"
+                 +  (!mini ? "</span>" : "");
+            html += "</span>";
+            html += "</td>";
+            
+            // Detail: Last Updated
+            
+            var d     = new Date(parseFloat(unixSSs[i]) * 1000.0);
+            var sdate = d.toISOString().substring( 0, 10);
+            var stime = d.toISOString().substring(11, 16);
+            
+            html += "<td style='text-align:center; padding-top:10px; width:" + (tblw >>> 1) + "px;'>";
+            html += "<span title='" + sdate + " " + stime + " UTC'>"
+                 +  (!mini ? "<span style='padding-right:40px;'>" : "")
+                 +  "<span style='font-size:14px;'>"
+                 +  elapsedtxt.value
+                 +  "</span>"
+                 +  "<span style='font-weight:lighter; font-size:12px;'>"
+                 +  " " + elapsedtxt.jptext + jpago
+                 +  "</span>"
+                 +  (!mini ? "</span>" : "")
+                 +  "</span>";
+            html += "</td>";
+            
+            html += "</tr>";
+            
+            // Detail: Last Updated Subtitle
+            
+            html += "<tr>";
+            html += "<td style='text-align:center; width:" + (tblw >>> 1) + "px;'>";
+            html += "&nbsp;";
+            html += "</td>";
+            html += "<td style='text-align:center; vertical-align:top; width:" + (tblw >>> 1) + "px;'>";
+            html += "<span style='vertical-align:top;' title='" + sdate + " " + stime + " UTC'>"
+                 +  (!mini ? "<span style='padding-right:40px; vertical-align:top;'>" : "")
+                 +  "<span style='font-weight:lighter; font-size:10px; vertical-align:top;'>"
+                 +  " " + elapsedtxt.text + " ago"
+                 +  "</span>"
+                 +  (!mini ? "</span>" : "")
+                 +  "</span>";
+            html += "</td>";
+            
+            html += "</tr>";
+            
+            // Detail: Chart
+            
+            if (!mini)
+            {
+                html += "<tr>";
+                html += "<td colspan=2 style='text-align:center;'>";
+                html += "<img style='image-rendering:auto;image-rendering:-webkit-optimize-contrast;image-rendering:optimize-contrast;'"
+                     +  " width='"  + w_pt + "'"
+                     +  " height='" + h_pt + "'" 
+                     +  " border=0"
+                     +  " src='" + imgurls[i] + "?t=" + nowSS + "'/>";
+                html += "</td>";
+                html += "</tr>";
+            }//if
+            
+            // Detail: External Link
+            
+            html += "<tr"
+                 +  (i < ids.length - 1 ? " style='border-bottom:1px solid gainsboro;'" : "")
+                 +  ">";
+
+            html += "<td colspan=2 style='line-height:20px;'>";
+            html += "<a style='color:rgb(66,114,219);font-size:12px;text-decoration:none;vertical-align:bottom;'"
+                 +  " href='" + linkurls[i] + "' target=_blank>"
+                 +  "詳細 · more info"
+                 +  "</a>";
+            html += "</td>";
+
+            html += "</tr>";
+        }//for
+
+        html += "</table>";
 
         return html;
-    };
-    
-    RTMKS.GetStringWithTwoFractionalDigits = function(x) // this is a terrible implementation
-    {
-        var sx = "" + RTMKS.RoundToD(x, 2);
-             if (sx.length == 3 && x < 10.0) sx += "0";    //  9.0
-        else if (sx.length == 1 && x < 10.0) sx += ".00";  //  9
-        else if (sx.length == 4 && x >= 10.0 && x < 100.0) sx += "0";    // 99.9
-        else if (sx.length == 2 && x >= 10.0 && x < 100.0) sx += ".00";  // 99
-        return sx;
     };
     
     // based on the client's screen size and extent, find the center and zoom level

@@ -711,7 +711,7 @@ function InitMainMenu()
                 _no_hdpi_tiles = !_no_hdpi_tiles;
                 document.getElementById("map_canvas").style.className = _no_hdpi_tiles ? "noblur" : null;
                 overlayMaps = null;
-                InitGmapsLayers();
+                ClientZoomHelper.InitGmapsLayers();
                 LayersHelper.SyncSelectedWithMap();
                 var c = GetMapInstanceYXZ();
                 ClientZoomHelper.SynchronizeLayersToZoomLevel(c.z);
