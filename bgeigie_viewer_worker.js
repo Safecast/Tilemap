@@ -227,6 +227,8 @@ self.ParseLogFileToVectors = function(log, logbuffer, userData, deci, logId, wor
     var last_lat = -9000.0;
     var last_lon = -9000.0;
     var last_i   = -1;
+    var high_n   = 0;
+    var high_thr = 330.0;
     
     // summary stats
     var ss = { n:0, dist_meters:0.0, time_ss:0.0, sum_usvh:0.0, mean_usvh:0.0, de_usv:0.0, min_usvh:9000.0, max_usvh:-9000.0, min_alt_meters:9000.0, max_alt_meters:-9000.0, min_kph:9000.0, max_kph:-9000.0, logId:logId };
@@ -263,11 +265,15 @@ self.ParseLogFileToVectors = function(log, logbuffer, userData, deci, logId, wor
                 blon = parseFloat(s_longitude);
                 bcpm = parseFloat(s_cpm);
                 
+                high_n = bcpm > high_thr ? 0 : high_n + 1; // samples since last high range measurement
+                
                 if (s_cp5s != null && s_cp5s.length > 0) // was: 750.0
                 {
                     bcpm5s = parseFloat(s_cp5s) * 12.0; // CPS for 5s -> CPM
                     
-                    if (bcpm > 330.0 && bcpm5s > 0.0 && bcpm5s > bcpm * 0.1 && bcpm5s < bcpm * 10.0)
+                    if (bcpm5s > 0.0 
+                        && (   (bcpm > high_thr && bcpm5s > bcpm * 0.1 && bcpm5s < bcpm * 10.0)
+                            || (high_n < 20)))
                     {
                         bcpm = bcpm5s; // replace if at a high CPM and seems valid
                     }//if
@@ -345,10 +351,10 @@ self.ParseLogFileToVectors = function(log, logbuffer, userData, deci, logId, wor
     if (ss.n > 0)
     {
         ss.time_ss    = ss.n * 5.0;
-        ss.sum_usvh  *= 0.002857142857143;
+        ss.sum_usvh  *= 0.0029940119760479;
         ss.mean_usvh  = ss.sum_usvh / ss.n;
-        ss.min_usvh  *= 0.002857142857143;
-        ss.max_usvh  *= 0.002857142857143;
+        ss.min_usvh  *= 0.0029940119760479;
+        ss.max_usvh  *= 0.0029940119760479;
     
         self.postMessage( {op:"SUMMARY_STATS", summary_stats:ss, worker_id:worker_id } );
     }//if

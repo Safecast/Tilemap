@@ -2660,7 +2660,7 @@ var MKS = (function()
         var sdate = d.toISOString().substring( 0, 10);
         var stime = d.toISOString().substring(11, 19);
         var sdeg  = this.degs[i] > 0 ? "" + parseInt(MKS.UnpackDegreeValue(this.degs[i])) : "N/A";
-        var sdre  = (this.cpms[i] * 0.0028571428571429).toFixed(2);
+        var sdre  = (this.cpms[i] * 0.0029940119760479).toFixed(2);
                  
         return MKS.GetInfoWindowHtmlForParams(sdre, this.cpms[i], this.alts[i], sdeg, sdate, stime, this.logids[i], this.fontCssClass);
     };
