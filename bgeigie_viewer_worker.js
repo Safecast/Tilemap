@@ -273,7 +273,7 @@ self.ParseLogFileToVectors = function(log, logbuffer, userData, deci, logId, wor
                     
                     if (bcpm5s > 0.0 
                         && (   (bcpm > high_thr && bcpm5s > bcpm * 0.1 && bcpm5s < bcpm * 10.0)
-                            || (high_n < 20)))
+                            || (high_n < 13)))
                     {
                         bcpm = bcpm5s; // replace if at a high CPM and seems valid
                     }//if
