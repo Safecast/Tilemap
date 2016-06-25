@@ -498,12 +498,7 @@ function GetDefaultBasemapOrOverrideFromQuerystring()
     return BasemapHelper.GetMapTypeIdForBasemapIdx(midx);
 }//GetDefaultBasemapOrOverrideFromQuerystring
 
-/*
-function InitTimeSliceUI()
-{
-    TimeSliceUI.SetSliderIdxToDefault();
-}
-*/
+
 
 function InitDefaultRasterLayerOrOverrideFromQuerystring()
 {
@@ -652,7 +647,7 @@ function InitMainMenu()
     var menu = document.createElement("ul");
     menu.id = "mainMenu";
     menu.style.display = "none";
-
+    
     menu.innerHTML = '<li id="menuToggleRetina"><a href="#toggleRetina" class="FuturaFont" title="Disabling this can make small points easier to see at the cost of resolution.">HDPI Tiles On/Off</a></li>'
                    + '<li class="separator"></li>'
                    + '<li id="menuToggleSensors"><a href="#toggleSensors" class="FuturaFont" title="Add or remove RT sensor icons.">RT Sensors On/Off</a></li>'
@@ -2859,7 +2854,7 @@ var BvProxy = (function()
         var csv         = BvProxy.elVal("bv_tbLogIDs");
         var queryTypeId = this.UI_GetQueryType();
         var params      = this.UI_GetExtraQueryStringParams();
-        var pageLimit   = this.UI_GetMaxPages();
+        var pageLimit   = 320;//this.UI_GetMaxPages();
     
         if (   (   csv == null ||    csv.length == 0)
             && (params == null || params.length == 0)
@@ -2880,6 +2875,11 @@ var BvProxy = (function()
 
 
     // *** UI Binds ****
+    
+    BvProxy.prototype.UI_GetSubtypeParamIfPresent = function()
+    {
+        return BvProxy.ddlVal("bv_ddlSubtype");
+    };
 
     BvProxy.prototype.UI_GetStatusTypeParamIfPresent = function()
     {
@@ -2901,16 +2901,17 @@ var BvProxy = (function()
         return BvProxy.ddlIdx("bv_ddlQueryType");
     };
     
-    BvProxy.prototype.UI_GetMaxPages = function()
-    {
-        return parseInt(BvProxy.ddlVal("bv_ddlMaxPages"));
-    };
+    //BvProxy.prototype.UI_GetMaxPages = function()
+    //{
+    //    return parseInt(BvProxy.ddlVal("bv_ddlMaxPages"));
+    //};
     
     BvProxy.prototype.UI_GetExtraQueryStringParams = function()
     {
         return  (this.UI_GetQueryType() == 0 ? "" : this.UI_GetStartDateParamIfPresent())
                + this.UI_GetEndDateParamIfPresent() 
-               + this.UI_GetStatusTypeParamIfPresent(); 
+               + this.UI_GetStatusTypeParamIfPresent()
+               + this.UI_GetSubtypeParamIfPresent();
     };
         
     BvProxy.prototype.UI_SetDefaultParallelism = function()
@@ -2949,7 +2950,8 @@ var BvProxy = (function()
         BvProxy.elDis("bv_tbStartDate", d);
         BvProxy.elDis("bv_tbEndDate", d);
         BvProxy.elDis("bv_ddlStatusType", d);
-        BvProxy.elDis("bv_ddlMaxPages", d);
+        //BvProxy.elDis("bv_ddlMaxPages", d);
+        BvProxy.elDis("bv_ddlSubtype", d);
         this.UI_UpdateTbPlaceholderText();
     };
 
@@ -3068,6 +3070,8 @@ var BvProxy = (function()
     
     BvProxy.GetApiDateTimeForRFCDate = function(rfc_date, isMidnight)
     {
+        rfc_date = new Date(rfc_date).toISOString();
+    
         var yy = rfc_date.substring(0, 0+4);
         var mm = rfc_date.substring(5, 5+2);
         var dd = rfc_date.substring(8, 8+2);

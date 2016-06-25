@@ -11,13 +11,13 @@
             <img id="bv_imgDoneX" border=0 width="13" height="13" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA0AAAANBAMAAACAxflPAAAABlBMVEX///9/f39icvWHAAAAAXRSTlMAQObYZgAAAClJREFUGNNjYEAHggwMjAIgWgCEgBxBRkGIBJgLEmBA5sPkYeph+lEBAE+rAYd+VgGrAAAAAElFTkSuQmCC" />
         </div>
     </div>
-    <div style="overflow-y:auto;width:357px;height:165px;">
+    <div style="overflow-y:auto;width:357px;height:165px;"> <!-- 130/165 /-->
         <table style="width:337px;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;" class="bv_FuturaFont">
             <tr>
                 <td colspan="2" style="padding:0px;">
-                    <img id="bv_bvImgPreview" border=0 width=71 height=127 style="float:right; padding:4px 14px 4px 4px;" />
-                    A bGeigie log contains the original data points upon which the Safecast map tiles are based.<br/><br/>
-                    This offers additional information and resolution, but is limited to a smaller subset of data.<br/><br/>
+                    <img id="bv_bvImgPreview" border=0 width=71 height=127 style="float:right; padding:4px 14px 4px 4px;" /> <!-- 59x106, 71x127 /-->
+                    <span id="bv_bvLabelHelp00">A bGeigie log contains the original data points upon which the Safecast map tiles are based.</span><br/><br/>
+                    <span id="bv_bvLabelHelp01">This offers additional information and greater resolution, but is limited to a smaller subset of data.</span><br/><br/>
                     <table style="width:100%;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;" class="bv_FuturaFont">
                         <tr>
                             <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">To Add</td>
@@ -32,24 +32,16 @@
                             <td style="vertical-align:top; padding:4px;">Click "Remove All" to remove all logs added to the map.</td>
                         </tr>
                         <tr>
-                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">Tip 1/5</td>
+                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">Tip 1/3</td>
                             <td style="vertical-align:top; padding:4px;">To search by date, select "Text" but leave the text field empty.</td>
                         </tr>
                         <tr>
-                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">Tip 2/5</td>
-                            <td style="vertical-align:top; padding:4px;">To not include aircraft flights, set the status type to "Approved."</td>
-                        </tr>
-                        <tr>
-                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">Tip 3/5</td>
+                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">Tip 2/3</td>
                             <td style="vertical-align:top; padding:4px;">If using Street View, it's recommended to use a larger marker size, such as 32px.</td>
                         </tr>
                         <tr>
-                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">Tip 4/5</td>
-                            <td style="vertical-align:top; padding:4px;">For best performance when displaying many logs, disable the bearing line on the marker.</td>
-                        </tr>
-                        <tr>
-                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">Tip 5/5</td>
-                            <td style="vertical-align:top; padding:4px;">The bearing line is not accurate in Street View or 45 degree aerial imagery views.</td>
+                            <td style="vertical-align:top; text-align:right; white-space: nowrap; padding:4px;">Tip 3/3</td>
+                            <td style="vertical-align:top; padding:4px;">The heading line is not accurate in Street View or 45 degree aerial imagery views.</td>
                         </tr>
                     </table>
                 </td>
@@ -95,6 +87,15 @@
                     </select>
                 </td>
                 <td style="vertical-align:middle; padding:5px;">
+                    <select id="bv_ddlSubtype" style="width:153px" disabled class="bv_FuturaFont">
+                        <option value="">&nbsp;All Subtypes</option>
+                        <option value="&subtype=None,Drive">&nbsp;Drive</option>
+                        <option value="&subtype=Cosmic">&nbsp;Cosmic</option>
+                        <option value="&subtype=Surface">&nbsp;Surface</option>
+                    </select>
+                </td>
+                <!--
+                <td style="vertical-align:middle; padding:5px;">
                     <select id="bv_ddlMaxPages" style="width:153px" disabled class="bv_FuturaFont">
                         <option value="1">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;25</option>
                         <option value="2">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;50</option>
@@ -110,10 +111,24 @@
                         <option value="320">&nbsp;Max Logs:&nbsp;8000</option>
                     </select>
                 </td>
+                /-->
+                <!--
+            </tr>
+            <tr>
+                <td style="vertical-align:middle; padding:5px;">
+                    <select id="bv_ddlSubtype" style="width:153px" disabled class="bv_FuturaFont">
+                        <option value="">&nbsp;All Subtypes</option>
+                        <option value="&subtype=None,Drive">&nbsp;Drive</option>
+                        <option value="&subtype=Cosmic">&nbsp;Cosmic</option>
+                        <option value="&subtype=Surface">&nbsp;Surface</option>
+                    </select>
+                </td>
+                <td>&nbsp;</td>
             </tr>
             <tr>
                 <td colspan="2" style="text-align: center; height:1px; padding: 0px;"><hr style="border-style: none none solid; height:1px;" /></td>
             </tr>
+            /-->
             <tr>
                 <td style="vertical-align:middle; text-align: center; padding:5px;">
                     <button id="bv_btnOptions" class="bv_btnW" style="width:100px;">Options...</button>
@@ -156,9 +171,9 @@
                 <td valign="middle" style="padding:5px;">
                     <select id="bv_ddlMarkerType" class="bv_FuturaFont">
                         <option value="0">&nbsp;&nbsp;7px</option>
-                        <option value="1">&nbsp;10px + bearing line</option>
+                        <option value="1">&nbsp;10px + heading line</option>
                         <option selected value="2">&nbsp;10px</option>
-                        <option value="3">&nbsp;16px + bearing line</option>
+                        <option value="3">&nbsp;16px + heading line</option>
                         <option value="4">&nbsp;16px</option>
                         <option value="9000">&nbsp;Custom</option>
                     </select>
@@ -171,7 +186,7 @@
                 </td>
             </tr>
             <tr id="bv_trMarkerBearing" style="display:none;">
-                <td style="text-align:right; vertical-align:middle; padding:5px; white-space:nowrap;">Bearing Line?</td>
+                <td style="text-align:right; vertical-align:middle; padding:5px; white-space:nowrap;">Heading Line?</td>
                 <td style="vertical-align:middle; padding:5px;">
                     <input id="bv_chkMarkerBearing" disabled type="checkbox">
                 </td>

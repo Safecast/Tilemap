@@ -2053,8 +2053,10 @@ var MKS = (function()
             if ((   m > z 
                 ||  y < y0 
                 ||  y > y1 
-                || (x < x0 || (ex0 != 0xFFFFFFFF && x < ex0))
-                || (x > x1 || (ex1 != 0xFFFFFFFF && x > ex1)) )
+                || (x < x0 && (ex0 == 0xFFFFFFFF || x < ex0))
+                || (x > x1 && (ex1 == 0xFFFFFFFF || x > ex1)) ) // 2016-06-18 ND: test 180th fix
+                //|| (x < x0 || (ex0 != 0xFFFFFFFF && x < ex0))
+                //|| (x > x1 || (ex1 != 0xFFFFFFFF && x > ex1)) )
                )
             {
                 this.RecycleMarker(this.markers[i]);
@@ -2779,14 +2781,14 @@ var MKS = (function()
         
         console.log("MKS.AddData: Added %d items, new total = %d.", newcpms.length, this.cpms.length);
         
-        newminzs = null;
-        newcpms = null;
-        newalts = null;
-        newdegs = null;
+        newminzs  = null;
+        newcpms   = null;
+        newalts   = null;
+        newdegs   = null;
         newlogids = null;
-        newtimes = null;
-        newmxs = null;
-        newmys = null;
+        newtimes  = null;
+        newmxs    = null;
+        newmys    = null;
     };
     
     
