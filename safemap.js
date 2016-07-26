@@ -1652,7 +1652,7 @@ var LayersHelper = (function()
     LayersHelper.MapExtentChanged = function(i)   { MapExtent_OnChange(i); };
     LayersHelper.FlyToExtentByIdx = function(idx) { FlyToExtent.GoToPresetLocationIdIfNeeded(idx); };
     LayersHelper.GetTsSliderIdx   = function()    { return TimeSliceUI.GetSliderIdx(); };
-    LayersHelper.SetTsSliderIdx   = function()    { return TimeSliceUI.SetSliderIdx(); };
+    LayersHelper.SetTsSliderIdx   = function(idx) { return TimeSliceUI.SetSliderIdx(idx); };
     LayersHelper.GetShowLastSlice = function()    { return _show_last_slice; };
     LayersHelper.GetIsLayerIdxTS  = function(idx) { return SafecastDateHelper.IsLayerIdxTimeSliceLayerDateRangeIdx(idx) };
 
