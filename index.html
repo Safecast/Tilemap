@@ -356,6 +356,13 @@ body
     margin:0px;
     padding:0px;
 }
+
+/* HACK for Safari OS X Gmaps performance bug */
+/* https://code.google.com/p/gmaps-api-issues/issues/detail?id=7756 */
+_:-webkit-full-screen, _::-webkit-full-page-media, _:future, :root #map_canvas div { 
+    -webkit-transform:translateZ(0px);
+    -webkit-backface-visibility:hidden; 
+}
 </style>
 
 <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
