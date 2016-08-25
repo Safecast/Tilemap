@@ -68,7 +68,10 @@ time aws s3 sync 15 s3://te512.safecast.org/15 --acl public-read --delete --cach
 time aws s3 sync 16 s3://te512.safecast.org/16 --acl public-read --delete --cache-control "max-age=7200"
 
 # ============= 6. Amazon S3 - Force Update z=0 For Date on Client =============
-touch ./0/0/0.png
+if test `find "/Users/safecast/Library/Containers/com.ndolezal.GeigerBotOSX/Data/Documents/safecast-2014-03-11.sqlite" -mmin -1440`
+then
+    touch ./0/0/0.png
+fi
 aws s3 sync 0 s3://te512.safecast.org/0 --acl public-read --delete --cache-control "max-age=60"
 
 
