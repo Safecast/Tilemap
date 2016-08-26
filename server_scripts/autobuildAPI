@@ -137,7 +137,10 @@ time aws s3 sync 13 s3://tg512.safecast.org/13 --acl public-read --delete --cach
 time aws s3 sync 14 s3://tg512.safecast.org/14 --acl public-read --delete --cache-control "max-age=7200"
 
 # 2. Force upload the zoom levels used to set the date in the UI, otherwise it may appear nothing changed.
-touch ./2/3/1.png
+if test `find "/Users/safecast/Safecast/safemaps/tiles/renderer/TileGriddata/13/6919/3521.png" -mmin -1440`
+then
+    touch ./2/3/1.png
+fi
 aws s3 sync 2 s3://tg512.safecast.org/2 --acl public-read --delete --cache-control "max-age=60"
 
 # 3. Sync -> .jp region
