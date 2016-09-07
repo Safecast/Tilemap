@@ -35,7 +35,11 @@ var _disable_alpha    = false;           // hack for media request regarding lay
 var _cm_hidden        = true;            // state of menu visibility - cached to reduce CPU hit on map pans
 var _mainMenu_hidden  = true;            // state of menu visibility - cached to reduce CPU hit on map pans
 var _did_init_font_crimson_text = false; // cached init state
-
+var _ui_layer_idx     = 0;
+var _ui_menu_layers_more_visible = false;
+var _system_os_ios = navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i);
+var _last_history_push_ms = -1;
+var _img_tile_shadow_idx = -1;
 
 // ========== USER PREFS =============
 var _no_hdpi_tiles    = false;
@@ -198,16 +202,16 @@ function initialize()
                          maxZoom: 21,
                           center: yx,
                      scrollwheel: true,
-                     zoomControl: true,
+                     zoomControl: MenuHelper.GetZoomButtonsEnabledPref(),
                       panControl: false,
                     scaleControl: true,
-                  mapTypeControl: true,
+                  mapTypeControl: false,
                streetViewControl: true,
                navigationControl: true,
               overviewMapControl: false,
-        streetViewControlOptions: { position: google.maps.ControlPosition.LEFT_BOTTOM },
-              zoomControlOptions: { position: google.maps.ControlPosition.LEFT_BOTTOM },
-            rotateControlOptions: { position: google.maps.ControlPosition.LEFT_BOTTOM },
+        streetViewControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
+              zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
+            rotateControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
         navigationControlOptions: { style: google.maps.NavigationControlStyle.DEFAULT },
            mapTypeControlOptions: {
                                      position: google.maps.ControlPosition.TOP_RIGHT,
@@ -220,7 +224,7 @@ function initialize()
                                   },
                        mapTypeId: GetDefaultBasemapOrOverrideFromQuerystring()
     };
-    
+
     map = new google.maps.Map(document.getElementById("map_canvas"), map_options);
 
     BasemapHelper.InitBasemaps(); // must occur after "map" ivar is set
@@ -228,15 +232,15 @@ function initialize()
 
     TimeSliceUI.Init();
     InitDefaultRasterLayerOrOverrideFromQuerystring();
-    
+
     MapExtent_OnChange(1); //fire on init for client zoom
-    
+
     // arbitrarily space out some loads / init that don't need to happen right now, so as not to block on the main thread here.
-    
+
     setTimeout(function() {
         InitMapExtent_OnChange();
     }, 250);
-    
+
     setTimeout(function() {
         InitLogIdsFromQuerystring();
     }, 500);
@@ -244,21 +248,19 @@ function initialize()
     setTimeout(function() {
         RtViewer_Init();
     }, 1000);
-    
+
     setTimeout(function() {
         InitShowLocationIfDefault();
     }, 1500);
-        
+
     setTimeout(function() {
         InitAboutMenu(); 
         InitContextMenu(); 
-        InitMainMenu();
-        (map.getStreetView()).setOptions({ zoomControlOptions: { position: google.maps.ControlPosition.LEFT_BOTTOM }, panControlOptions: { position: google.maps.ControlPosition.LEFT_BOTTOM }, enableCloseButton:true, imageDateControl:true, addressControlOptions:{ position: google.maps.ControlPosition.LEFT_BOTTOM } });
+        (map.getStreetView()).setOptions({ zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM }, panControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM }, enableCloseButton:true, imageDateControl:true, addressControlOptions:{ position: google.maps.ControlPosition.TOP_RIGHT } });
     }, 2000);
-    
+
     setTimeout(function() {
         WhatsNewShowIfNeeded();
-        //WarningShowIfNeeded();
     }, 3000);
 }//initialize
 
@@ -485,7 +487,7 @@ function InitLogIdsFromQuerystring()
     
     if (logIds != null && logIds.length > 0)
     {
-        _bvProxy.AddLogsCSV(logIds);
+        _bvProxy.AddLogsCSV(logIds, false);
     }//if
 }//InitLogIdsFromQuerystring
 
@@ -507,8 +509,9 @@ function InitDefaultRasterLayerOrOverrideFromQuerystring()
     
     if (lidx == -1)
     {
-        LayersHelper.SetSelectedIdx(0); // set default if nothing is selected
-    }//if
+        lidx = 0; // set default if nothing is selected
+        //LayersHelper.SetSelectedIdx(lidx); 
+    }//if    
     
     LayersHelper.SetSelectedIdxAndSync(lidx);
     
@@ -571,13 +574,11 @@ function IsDefaultLocation()
 
 function InitShowLocationIfDefault()
 {
-    if (IsDefaultLocation() && getParam("logids").length == 0)
+    if (IsDefaultLocation() && getParam("logids").length == 0 && "requestAnimationFrame" in window)
     {
         requestAnimationFrame(function() { ShowLocationText("Honshu, Japan"); });
     }//if
 }//InitShowLocationIfDefault
-
-
 
 
 function SetStyleFromCSS(sel, t, css)
@@ -601,8 +602,8 @@ function SetStyleFromCSS(sel, t, css)
         if (d) break;
     }//for
 }//GetStyleFromCSS
-    
-    
+
+
 function GetCssForScaler(s)
 {
     var ir = "image-rendering:";
@@ -637,122 +638,37 @@ function ToggleScaler()
     SetStyleFromCSS(".noblur img", 1, css);
 }//ToggleScaler
 
-
-
-function InitMainMenu() 
+function ToggleTileShadow()
 {
-    if (IsBrowserOldIE()) return;
+    var n = "#map_canvas > div:first-child > div:first-child > div:first-child > div:first-child > div:nth-last-of-type(1)";
+    if (_img_tile_shadow_idx == -1)
+    {
+        var s = document.createElement("style");
+        s.type = "text/css";
+        s.innerHTML =   n + "\n"
+                    + "{" + "\n"
+                    + "}" + "\n";
+        document.head.appendChild(s);
+        _img_tile_shadow_idx = 0;
+        LayersHelper.SyncSelectedWithMap(); // hack to force layers to match known heirarchy, only seems to be needed once(?)
+    }//if
+
+    _img_tile_shadow_idx = _img_tile_shadow_idx == 1 ? 0 : _img_tile_shadow_idx + 1;
+
+    var css;
     
-    var clickLL;
-    var menu = document.createElement("ul");
-    menu.id = "mainMenu";
-    menu.style.display = "none";
+    if (_img_tile_shadow_idx == 1)
+    {
+        css = "    " + "-webkit-filter: drop-shadow(2px 2px 2px #000);" + " \n "
+            + "    " + "filter: drop-shadow(2px 2px 2px #000);"         + " \n ";        
+    }//if
+    else
+    {
+        css = "";
+    }//else
     
-    menu.innerHTML = '<li id="menuToggleRetina"><a href="#toggleRetina" class="FuturaFont" title="Disabling this can make small points easier to see at the cost of resolution.">HDPI Tiles On/Off</a></li>'
-                   + '<li class="separator"></li>'
-                   + '<li id="menuToggleSensors"><a href="#toggleSensors" class="FuturaFont" title="Add or remove RT sensor icons.">RT Sensors On/Off</a></li>'
-                   + '<li id="menuToggleScale"><a href="#toggleScale" class="FuturaFont" title="Show or hide the LUT scale in the lower-right corner.">Scale On/Off</a></li>'
-                   + '<li class="separator"></li>'
-                   + '<li><a href="#apiQuery" class="FuturaFont" title="Perform API query for the centroid of the visible extent.  For touch devices.  Use reticle to aim.">API Query @ Center</a></li>'
-                   + '<li class="separator"></li>'
-                   + '<li id="menuToggleScaler"><a href="#toggleScaler" class="FuturaFont" title="Increases sharpness at the cost of aliasing.  Bilinear or bicubic are used if disabled.">Toggle Tile Scaler</a></li>';
-
-    document.body.appendChild(menu);
-
-    var fxShowMenu = function(e)
-    {
-        _mainMenu_hidden = false;
-        AnimateElementFadeIn(menu, -1.0, 0.166666666667);
-        menu.style.top  = "30px";
-        menu.style.left = "30px";
-        document.getElementById("menuToggleSensors").firstChild.innerHTML = "<input type=checkbox" + (_rtvm != null && _rtvm.GetMarkerCount() > 0 ? " checked=checked" : "") + "> Sensor Markers";
-        document.getElementById("menuToggleScale").firstChild.innerHTML = "<input type=checkbox" + (document.getElementById("imgScale").style.display != "none" ? " checked=checked" : "") + "> Map Scale";
-        document.getElementById("menuToggleRetina").firstChild.innerHTML = "<input type=checkbox" + (!_no_hdpi_tiles ? " checked=checked" : "") + "> HDPI Tiles";
-        document.getElementById("menuToggleRetina").style.display         = window.devicePixelRatio > 1.5 ? null : "none";
-        document.getElementById("menuToggleScaler").firstChild.innerHTML = "<input type=checkbox" + (_img_scaler_idx > 0 ? " checked=checked" : "") + "> NN Tile Scaler";
-    };
-
-    document.getElementById("logo271").addEventListener("click", fxShowMenu, false);
-
-    var fxClickLeft = function()
-    {
-        var action = this.getAttribute("href").substr(1);        
-        var retVal = false;                        
-        switch (action) 
-        {
-            case "toggleScaler":
-                ToggleScaler();
-                break;
-            case "toggleSensors":
-                if (_rtvm != null)
-                {
-                    if (_rtvm.GetMarkerCount() > 0)
-                    {
-                        _rtvm.RemoveAllMarkersFromMapAndPurgeData();
-                        _rtvm.ClearGmapsListeners();
-                    }//if
-                    else
-                    {
-                        _rtvm.InitMarkersAsync();
-                        _rtvm.AddGmapsListeners();
-                    }//else
-                }//if
-                break;
-            case "toggleScale":
-                var simg = document.getElementById("imgScale");
-                simg.style.display = simg.style.display == null || simg.style.display.length == 0 ? "none" : null;
-                break;
-            case "toggleRetina":
-                _no_hdpi_tiles = !_no_hdpi_tiles;
-                document.getElementById("map_canvas").style.className = _no_hdpi_tiles ? "noblur" : null;
-                overlayMaps = null;
-                ClientZoomHelper.InitGmapsLayers();
-                LayersHelper.SyncSelectedWithMap();
-                var c = GetMapInstanceYXZ();
-                ClientZoomHelper.SynchronizeLayersToZoomLevel(c.z);
-                break;
-            case "apiQuery":
-                var yx = GetNormalizedMapCentroid();
-                QuerySafecastApiAsync(yx.y, yx.x, map.getZoom());
-                break;
-            case "null":
-                break;
-            default:
-                retVal = true;
-                break;
-        }//switch
-        
-        _mainMenu_hidden   = true; 
-        menu.style.display = "none";
-        
-        return retVal;
-    };
-
-    var as = menu.getElementsByTagName("a");
-    
-    for (var i=0; i<as.length; i++)
-    {
-        as[i].addEventListener("click", fxClickLeft, false);
-        as[i].addEventListener("mouseover", function() { this.parentNode.className = "hover"; }.bind(as[i]), false);
-        as[i].addEventListener("mouseout",  function() { this.parentNode.className = null;    }.bind(as[i]), false);
-    }
-
-    var events = [ "click" ]; //"maptypeid_changed",  "dragstart", "zoom_changed"
-
-    var hide_cb = function()
-    {
-        if (!_mainMenu_hidden)
-        { 
-            _mainMenu_hidden   = true; 
-            menu.style.display = "none";
-        }//if
-    };
-
-    for (var i=0; i<events.length; i++)
-    {
-        google.maps.event.addListener(map, events[i], hide_cb);
-    }//for
-}//InitMainMenu
+    SetStyleFromCSS(n, 1, css);
+}
 
 
 
@@ -762,6 +678,8 @@ function InitMainMenu()
 function InitContextMenu() 
 {
     if (IsBrowserOldIE() || map == null) return;
+    
+    if (navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)) return;
 
     // Original from http://justgizzmo.com/2010/12/07/google-maps-api-v3-context-menu/
     
@@ -801,26 +719,26 @@ function InitContextMenu()
         var retVal = false;                        
         switch (action) 
         {
-                case 'zoomIn':
+                case "zoomIn":
                     map.setZoom(map.getZoom() + 3);
                     map.panTo(clickLL);
                     break;
-                case 'zoomOut':
+                case "zoomOut":
                     map.setZoom(map.getZoom() - 3);
                     map.panTo(clickLL);
                     break;
-                case 'centerHere':
+                case "centerHere":
                     map.panTo(clickLL);
                     break;
-                case 'null':
+                case "null":
                     break;
-                case 'showIndices1':
+                case "showIndices1":
                     ShowBitmapIndexVisualization(true, 4);
                     break;
-                case 'showIndices2':
+                case "showIndices2":
                     ShowBitmapIndexVisualization(false, 4);
                     break;
-                case 'apiQuery':
+                case "apiQuery":
                     QuerySafecastApiAsync(clickLL.lat(), clickLL.lng(), map.getZoom());
                     break;
                 default:
@@ -1035,10 +953,10 @@ var SafecastDateHelper = (function()
     {
         // Format: ISO dates.  Start date is inclusive, end date is exclusive
         //     eg: end date "15:00:00Z" means < 15:00:00Z, or <= 14:59:59.999Z
-        
+
         // nb: The base format is not used directly, but necessary for all others.
         //     Thus, a new mutable copy is returned.
-        
+
         var ds = [ { i:13, s:"2011-03-10T15:00:00Z", e:"2011-09-10T15:00:00Z" }, 
                    { i:14, s:"2011-09-10T15:00:00Z", e:"2012-03-10T15:00:00Z" }, 
                    { i:15, s:"2012-03-10T15:00:00Z", e:"2012-09-10T15:00:00Z" }, 
@@ -1048,8 +966,16 @@ var SafecastDateHelper = (function()
                    { i:19, s:"2014-03-10T15:00:00Z", e:"2014-09-10T15:00:00Z" }, 
                    { i:20, s:"2014-09-10T15:00:00Z", e:"2015-03-10T15:00:00Z" }, 
                    { i:21, s:"2015-03-10T15:00:00Z", e:"2015-09-10T15:00:00Z" }, 
-                   { i:22, s:"2015-09-10T15:00:00Z", e:"2016-03-10T15:00:00Z" }];
-        
+                   { i:22, s:"2015-09-10T15:00:00Z", e:"2016-03-10T15:00:00Z" } ];
+                   //{ i:23, s:"2016-03-10T15:00:00Z", e:"2016-09-10T15:00:00Z" },    // not implemeneted
+                   //{ i:24, s:"2016-09-10T15:00:00Z", e:"2017-03-10T15:00:00Z" },    // not implemeneted
+                   //{ i:25, s:"2017-03-10T15:00:00Z", e:"2017-09-10T15:00:00Z" },    // not implemeneted
+                   //{ i:26, s:"2017-09-10T15:00:00Z", e:"2018-03-10T15:00:00Z" },    // not implemeneted
+                   //{ i:27, s:"2018-03-10T15:00:00Z", e:"2018-09-10T15:00:00Z" },    // not implemeneted
+                   //{ i:28, s:"2018-09-10T15:00:00Z", e:"2019-03-10T15:00:00Z" },    // not implemeneted
+                   //{ i:29, s:"2019-03-10T15:00:00Z", e:"2019-09-10T15:00:00Z" },    // not implemeneted
+                   //{ i:30, s:"2019-09-10T15:00:00Z", e:"2020-03-10T15:00:00Z" } ];  // not implemeneted
+
         return ds;
     };
     
@@ -1057,7 +983,7 @@ var SafecastDateHelper = (function()
     {
         var src   = SafecastDateHelper.GetTimeSliceLayerDateRangesUTC();
         var is_ts = false;
-        
+
         for (var i=0; i<src.length; i++)
         {
             if (src[i].i == idx)
@@ -1066,7 +992,7 @@ var SafecastDateHelper = (function()
                 break;
             }//if
         }//for
-        
+
         return is_ts;
     };
     
@@ -1082,7 +1008,7 @@ var SafecastDateHelper = (function()
     {
         var ds = SafecastDateHelper.GetTimeSliceLayerDateRangesUTC();
         var d  = null;
-        
+
         for (var i=0; i<ds.length; i++)
         {
             if (ds[i].i == idx)
@@ -1091,12 +1017,12 @@ var SafecastDateHelper = (function()
                 break;
             }//if
         }//for
-        
+
         if (d == null)
         {
             d = { i:0, s:"1970-01-01T00:00:00Z", e:"1970-01-01T00:00:00Z" };
         }//if
-        
+
         return d;
     };
     
@@ -1106,9 +1032,9 @@ var SafecastDateHelper = (function()
     SafecastDateHelper.GetTimeSliceLayerDateRangeInclusiveForIdxUTC = function(idx)
     {
         var d  = SafecastDateHelper.GetTimeSliceLayerDateRangeForIdxUTC(idx);
-        
+
         d.e = SafecastDateHelper.GetIsoDateForIsoDateAndTimeIntervalMs(d.e, -1000.0);
-        
+
         return d;
     };
     
@@ -1118,7 +1044,7 @@ var SafecastDateHelper = (function()
     {
         var src  = SafecastDateHelper.GetTimeSliceLayerDateRangesUTC();
         var dest = new Array();
-        
+
         for (var i=0; i<src.length; i++)
         {
             var d0 = SafecastDateHelper.TrimIsoDateToFilenamePart(src[i].s);
@@ -1126,7 +1052,7 @@ var SafecastDateHelper = (function()
             
             dest.push( { i:src[i].i, d:(d0 + d1) } );
         }//for
-        
+
         return dest;
     };
     
@@ -1136,12 +1062,12 @@ var SafecastDateHelper = (function()
     SafecastDateHelper.GetTimeSliceDateRangeLabelsForIdxJST = function(idx)
     {
         var d = SafecastDateHelper.GetTimeSliceLayerDateRangeInclusiveForIdxUTC(idx);
-        
+
         d.s = SafecastDateHelper.GetIsoDateForIsoDateAndTimeIntervalMs(d.s, SafecastDateHelper.JST_OFFSET_MS);
         d.e = SafecastDateHelper.GetIsoDateForIsoDateAndTimeIntervalMs(d.e, SafecastDateHelper.JST_OFFSET_MS);
         d.s = SafecastDateHelper.GetShortIsoDate(d.s);
         d.e = SafecastDateHelper.GetShortIsoDate(d.e);
-        
+
         return d;
     };
     
@@ -1156,7 +1082,7 @@ var ClientZoomHelper = (function()
     function ClientZoomHelper() 
     {
     }
-    
+
     ClientZoomHelper.fxGetNormalizedCoord  = function(xy, z)   { return GetNormalizedCoord(xy, z); }; // static
     ClientZoomHelper.fxShouldLoadTile      = function(l,x,y,z) { return _bitsProxy.ShouldLoadTile(l, x, y, z); };
     ClientZoomHelper.fxGetIsRetina         = function()        { return GetIsRetina(); };
@@ -1171,16 +1097,16 @@ var ClientZoomHelper = (function()
     ClientZoomHelper.GetUrlForTile512 = function(xy, z, layerId, normal_max_z, base_url, idx)
     {
         z = ClientZoomHelper.GetClampedZoomLevelForIdx(idx, z);
-    
+
         if (!ClientZoomHelper.fxGetIsRetina() && z > 0 && z <= normal_max_z) z -= 1;
-    
+
         var nXY = ClientZoomHelper.fxGetNormalizedCoord(xy, z);
-    
+
         if (!nXY || !ClientZoomHelper.fxShouldLoadTile(layerId, nXY.x, nXY.y, z))
         {
             return null;
         }//if
-        
+
         return ClientZoomHelper.GetUrlFromTemplate(base_url, nXY.x, nXY.y, z);
     };
     
@@ -1358,6 +1284,12 @@ var ClientZoomHelper = (function()
         //    20 | Time Slice: 2014-09-10 - 2015-03-10
         //    21 | Time Slice: 2015-03-10 - 2015-09-10
         //    22 | Time Slice: 2015-09-10 - 2016-03-10
+        //    23 | Time Slice: 2016-03-10 - 2016-09-10  // not implemented
+        // ...
+        //    30 | Time Slice: 2019-09-10 - 2020-03-10  // not implemented
+        
+        // 10001 | Add Cosmic Logs
+        // 10002 | Add Surface Logs
         
         x.push(null);
         x.push(null);
@@ -1491,9 +1423,24 @@ function MapExtent_OnChange(eventId)
     
     var url = GetMapQueryStringUrl(true); // 2015-03-30 ND: false -> true so all logids are present, must test performance
 
-    if (!initLoad)
-    history.pushState(null, null, url);
+    if (!initLoad) MapExtent_DispatchHistoryPushState(url);
+    //history.pushState(null, null, url);
 }//MapExtent_OnChange
+
+function MapExtent_DispatchHistoryPushState(url)
+{
+    var ms = (new Date()).getTime();
+    _last_history_push_ms = ms;
+    
+    setTimeout(function() 
+    {
+        if (ms == _last_history_push_ms)
+        {
+            history.pushState(null, null, url);
+        }//if
+    }, _system_os_ios ? 1000 : 250);
+}
+
 
 
 
@@ -1636,7 +1583,7 @@ var LayersHelper = (function()
     {
     }
     
-    LayersHelper.GetLayerDdl      = function ()   { return document.getElementById("layers"); };
+    //LayersHelper.GetLayerDdl      = function ()   { return document.getElementById("layers"); };
     LayersHelper.SetLastLayerIdx  = function(idx) { _lastLayerIdx = idx; };
     LayersHelper.GetLastLayerIdx  = function()    { return _lastLayerIdx; };
     LayersHelper.GetRenderTest    = function()    { return _test_client_render; };
@@ -1648,21 +1595,42 @@ var LayersHelper = (function()
     LayersHelper.HudUpdate        = function()    { _hudProxy.Update(); };
     LayersHelper.SetTsPanelHidden = function(h)   { TimeSliceUI.SetPanelHidden(h); };
     LayersHelper.ShowAddLogPanel  = function()    { _bvProxy.ShowAddLogsPanel(); };
+    LayersHelper.AddLogsCosmic    = function()    { _bvProxy.AddLogsCSV("cosmic", true); };
+    LayersHelper.AddLogsSurface   = function()    { _bvProxy.AddLogsCSV("surface", true); };
     LayersHelper.InitBitsLegacy   = function()    { _bitsProxy.LegacyInitForSelection(); };
     LayersHelper.MapExtentChanged = function(i)   { MapExtent_OnChange(i); };
     LayersHelper.FlyToExtentByIdx = function(idx) { FlyToExtent.GoToPresetLocationIdIfNeeded(idx); };
-    LayersHelper.GetTsSliderIdx   = function()    { return TimeSliceUI.GetSliderIdx(); };
-    LayersHelper.SetTsSliderIdx   = function()    { return TimeSliceUI.SetSliderIdx(); };
+    LayersHelper.GetTsSliderIdx   = function()    { return TimeSliceUI.GetSliderIdx();    };
+    LayersHelper.SetTsSliderIdx   = function(idx) { return TimeSliceUI.SetSliderIdx(idx); };
     LayersHelper.GetShowLastSlice = function()    { return _show_last_slice; };
     LayersHelper.GetIsLayerIdxTS  = function(idx) { return SafecastDateHelper.IsLayerIdxTimeSliceLayerDateRangeIdx(idx) };
 
-    LayersHelper.LAYER_IDX_ADD_LOG     = 10;
-    LayersHelper.LAYER_IDX_NULL        = 11;
-    LayersHelper.LAYER_IDX_TS_UI_PROXY = 12;
+    LayersHelper.LAYER_IDX_ADD_LOG         = 10;
+    LayersHelper.LAYER_IDX_NULL            = 11;
+    LayersHelper.LAYER_IDX_TS_UI_PROXY     = 12;
+    LayersHelper.LAYER_IDX_ADD_LOG_COSMIC  = 10001;
+    LayersHelper.LAYER_IDX_ADD_LOG_SURFACE = 10002;
     
     LayersHelper.IsIdxNull = function(idx)
     {
         return idx == LayersHelper.LAYER_IDX_NULL;
+    };
+    
+    LayersHelper.IsIdxAddLogOrPreset = function(idx)
+    {
+        return idx == LayersHelper.LAYER_IDX_ADD_LOG
+            || idx == LayersHelper.LAYER_IDX_ADD_LOG_COSMIC
+            || idx == LayersHelper.LAYER_IDX_ADD_LOG_SURFACE;
+    };
+    
+    LayersHelper.IsIdxAddLogCosmic = function(idx)
+    {
+        return idx == LayersHelper.LAYER_IDX_ADD_LOG_COSMIC;
+    };
+    
+    LayersHelper.IsIdxAddLogSurface = function(idx)
+    {
+        return idx == LayersHelper.LAYER_IDX_ADD_LOG_SURFACE;
     };
     
     LayersHelper.IsIdxAddLog = function(idx)
@@ -1680,16 +1648,23 @@ var LayersHelper = (function()
         return LayersHelper.GetIsLayerIdxTS(idx);
     };
     
+    /*
     LayersHelper.GetMaxIdx = function() // unused
     {
         var el = LayersHelper.GetLayerDdl();
         return el.length > 1 ? el.length - 1 : 0;
     };
+    */
     
     LayersHelper.GetSelectedDdlIdx = function()
     {
+        /*
         var el  = LayersHelper.GetLayerDdl();
         var idx = parseInt(el.options[el.selectedIndex].value);
+        */
+        //var idx = MenuOptionsGetSelectedValue("ul_menu_layers");
+        
+        var idx = _ui_layer_idx;
         
         return idx;
     };
@@ -1711,7 +1686,7 @@ var LayersHelper = (function()
         if (LayersHelper.IsIdxTimeSlice(idx))
         {
             var ddl_idx = LayersHelper.GetSelectedDdlIdx();
-        
+            
             if (!LayersHelper.IsIdxTimeSliceUiProxy(ddl_idx))
             {
                 LayersHelper.SetTsSliderIdx(idx);
@@ -1726,17 +1701,10 @@ var LayersHelper = (function()
     
         if (idx != null)
         {
-            var el = LayersHelper.GetLayerDdl();
-            for (var i=0; i<el.options.length; i++)
-            {
-                var o = el.options[i];
+            _ui_layer_idx = idx;
             
-                if (o.value == idx)
-                {
-                    el.selectedIndex = i;
-                    break;
-                }//if
-            }//for
+            MenuHelper.OptionsClearSelection("ul_menu_layers");
+            MenuHelper.OptionsSetSelection("ul_menu_layers", idx);
         }//if
     };
     
@@ -1798,6 +1766,8 @@ var LayersHelper = (function()
         {
             var gmaps_layer = LayersHelper.GmapsNewLayer(omaps[idxs[i]]);
             
+            //console.log("LayersHelper.AddToMapByIdxs: Added idx=%d to map", idxs[i]);
+            
             LayersHelper.GmapsSetAt(i, gmaps_layer);
         
             hud_layers.push({     urlTemplate: omaps[idxs[i]].ext_url_template, 
@@ -1826,15 +1796,30 @@ var LayersHelper = (function()
     {
         var  newIdx = LayersHelper.GetSelectedIdx();
         var lastIdx = LayersHelper.GetLastLayerIdx();
-    
+        var  isDone = false;
+        
         if (newIdx == lastIdx) return;
     
         if (LayersHelper.IsIdxAddLog(newIdx))
         {
             LayersHelper.SetSelectedIdx(lastIdx);
             LayersHelper.ShowAddLogPanel();
+            isDone = true;
         }//if
-        else
+        else if (LayersHelper.IsIdxAddLogCosmic(newIdx))
+        {
+            newIdx = LayersHelper.LAYER_IDX_NULL;
+            LayersHelper.SetSelectedIdx(newIdx);
+            LayersHelper.AddLogsCosmic();
+        }//else if
+        else if (LayersHelper.IsIdxAddLogSurface(newIdx))
+        {
+            newIdx = LayersHelper.LAYER_IDX_NULL;
+            LayersHelper.SetSelectedIdx(newIdx);
+            LayersHelper.AddLogsSurface();
+        }//else if
+        
+        if (!isDone)
         {
             if (   !LayersHelper.IsIdxTimeSliceUiProxy(newIdx)
                 && !LayersHelper.IsIdxTimeSlice(newIdx))
@@ -1858,7 +1843,7 @@ var LayersHelper = (function()
                 LayersHelper.FlyToExtentByIdx(newIdx);
                 LayersHelper.HudUpdate();
             }//if
-        }//else
+        }//if
     };
     
     return LayersHelper;
@@ -2182,18 +2167,8 @@ var BitsProxy = (function()
         var opts2 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, maxz:3, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb2  = function(dstr)
         {
-            if (this.ddlLayers != null)
-            {
-                for (var i=0; i<this.ddlLayers.options.length; i++)
-                {
-                    var o = this.ddlLayers.options[i];
-            
-                    if (o.value == 0 || o.value == 1)
-                    {
-                        o.text += " " + dstr;
-                    }//if
-                }//for
-            }//if
+            document.getElementById("menu_layers_0_date_label").innerHTML = dstr;
+            document.getElementById("menu_layers_1_date_label").innerHTML = dstr;
         }.bind(this);
     
         this._layerBitstores.push(new LBITS(2, 0, 16, url, 0, 0, opts2, dcb2));
@@ -2208,19 +2183,7 @@ var BitsProxy = (function()
         var opts8 = new LBITSOptions({ lldim:1, ll:1, multi:1, maxz:5, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb8  = function(dstr)
         {
-            if (this.ddlLayers != null)
-            {
-                for (var i=0; i<this.ddlLayers.options.length; i++) 
-                {
-                    var o = this.ddlLayers.options[i];
-            
-                    if (o.value == 2)
-                    {
-                        o.text += " " + dstr;
-                        break;
-                    }//if
-                }//for
-            }//if
+            document.getElementById("menu_layers_2_date_label").innerHTML = dstr;
         }.bind(this);
     
         this._layerBitstores.push(new LBITS(8, 2, 14, url, 3, 1, opts8, dcb8));
@@ -2234,6 +2197,8 @@ var BitsProxy = (function()
 
         var opts3 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(3, 5, 15, url, 28, 12, opts3, null));
+        // this._layerBitstores.push(new LBITS(3, 2, 15, url, 3, 1, opts3, null));
+        // wat? nnsa.safecast.org.s3.amazonaws.com/6/56.65625/24.625.png?d=17026:1 GET http://nnsa.safecast.org.s3.amazonaws.com/6/56.65625/24.625.png?d=17026 403 (Forbidden)
     };
 
     BitsProxy.prototype.Init_LayerId06 = function()
@@ -2837,13 +2802,13 @@ var BvProxy = (function()
         this.ExecuteWithAsyncLoadIfNeeded(cb, null);
     };
 
-    BvProxy.prototype.AddLogsCSV = function(csv)
+    BvProxy.prototype.AddLogsCSV = function(csv, auto_zoom)
     {
         if (this._noreqs) return this.ShowRequirementsError();
     
         var cb = function(userData) 
         {
-            this._bvm.SetZoomToLogExtent(this.fxIsDefaultLocation()); 
+            this._bvm.SetZoomToLogExtent(auto_zoom || this.fxIsDefaultLocation()); 
             this._bvm.AddLogsByQueryFromString(userData); 
         }.bind(this);
         this.ExecuteWithAsyncLoadIfNeeded(cb, csv);
@@ -3148,29 +3113,29 @@ var FlyToExtent = (function()
             case 8: // i'm
             case 9: // falling
             case 1: // through
-                p = [-163.0, -78.1, 178.0, 63.5, 17, "Earth"];
+                p = [-163.0, -78.1, 178.0, 85.05, 0, 17, "Earth"];
                 break;
             case 2:
-                p = [124.047, 24.309, 146.433, 46.116, 15, "Japan"];
+                p = [124.047, 24.309, 146.433, 46.116, 5, 15, "Japan"];
                 break;
             case 3:
-                p = [138.785, 35.143, 141.125, 38.234, 16, "Honshu, Japan"];
+                p = [138.785, 35.143, 141.125, 38.234, 6, 16, "Honshu, Japan"];
                 break;
             case 4:
-                p = [-168.08, 24.712, -53.337, 71.301, 12, "North America"];
+                p = [-168.08, 24.712, -53.337, 71.301, 1, 12, "North America"];
                 break;
             case 5:
-                p = [112.81, -43.07, 154.29, -9.85, 12, "Australia"];
+                p = [112.81, -43.07, 154.29, -9.85, 2, 12, "Australia"];
                 break;
             case 6:
-                p = [124.047, 24.309, 146.433, 46.116, 12, "Japan"];
+                p = [124.047, 24.309, 146.433, 46.116, 5, 12, "Japan"];
                 break;
             case 7:
-                p = [129.76, 31.21, 144.47, 45.47, 15, "Japan"];
+                p = [129.76, 31.21, 144.47, 45.47, 5, 15, "Japan"];
                 break;
         }//switch
     
-        if (p != null) FlyToExtent.GoToLocationWithTextIfNeeded(p[0], p[1], p[2], p[3], p[4], p[5])
+        if (p != null) FlyToExtent.GoToLocationWithTextIfNeeded(p[0], p[1], p[2], p[3], p[4], p[5], p[6])
     };
     
     FlyToExtent.GetCurrentVisibleExtent = function()
@@ -3199,12 +3164,17 @@ var FlyToExtent = (function()
         return !(ex0[2] < ex1[0] || ex0[0] > ex1[2] || ex0[3] < ex1[1] || ex0[1] > ex1[3]);
     };
     
-    FlyToExtent.GoToLocationWithTextIfNeeded = function(x0, y0, x1, y1, z, txt)
+    FlyToExtent.GoToLocationWithTextIfNeeded = function(x0, y0, x1, y1, min_z, z, txt)
     {
     // first, don't bother if the user is already looking at it.
     
     var vis        = FlyToExtent.GetCurrentVisibleExtent();
     var already_in = true;//vis[6] <= z; // past max zoom level isn't in, at all.
+    
+    if (already_in)
+    {
+        already_in = vis[6] >= min_z; // past min zoom level of layer
+    }//if
     
     if (already_in)
     {
@@ -3216,7 +3186,7 @@ var FlyToExtent = (function()
         }//if
     }//if
     
-    if (already_in) return;
+    if (already_in || !("requestAnimationFrame" in window)) return;
 
     // but if they aren't looking at it, then fly to it.
 
@@ -3480,81 +3450,153 @@ var FlyToExtent = (function()
 // ================================= TEMPORARY UI TEXT / IMAGES ==================================
 // ===============================================================================================
 
+function GetLocationText_Container(w_px, h_px)
+{
+    var e           = document.createElement("div");
+    var s           = e.style;
+    
+    e.id            = "location_text";
+    s.pointerEvents = "none";
+    s.position      = "absolute"; // rel position: DkS2 style; abs position: DkS1 style
+    s.display       = "block";
+    s.top           = "0px";
+    s.bottom        = "0px";
+    s.left          = "0px";
+    s.right         = "0px";
+    s.width         = w_px.toFixed(0) + "px";
+    s.height        = h_px.toFixed(0) + "px";
+    s.margin        = "auto";
+    s.textAlign     = "center";
+    s.opacity       = "0.0";
+    s.transition    = "0.25s opacity";    // 2016-08-11 ND: Test for CSS3 animation
+
+    return e;
+}
+
+function GetLocationText_Text(txt, font_size, stroke_width, is_webkit)
+{
+    var e = document.createElement("div");
+    var s = e.style;
+
+    s.fontFamily    = "'Crimson Text'";
+    s.fontSize      = font_size.toFixed(0) + "px";
+    s.textAlign     = "center";
+    s.verticalAlign = "middle";
+    s.color         = "#FFF";
+    s.zIndex        = "1";
+    s.position      = "absolute";
+    s.left          = "0px";
+    s.right         = "0px";
+    s.margin        = "auto";
+
+    if (is_webkit)
+    {
+        s["-webkit-text-fill-color"]   = "#FFF";
+        s["-webkit-text-stroke-color"] = "#000";
+        s["-webkit-text-stroke-width"] = stroke_width.toFixed(1) + "px";
+        s.textShadow                   = "0px 0px 1px #000";
+    }//if
+    else
+    {
+        s.textShadow = "0px 0px 2px #000";
+    }//else
+
+    e.innerHTML = txt;
+    
+    return e;
+}
+
+function GetLocationText_Hr(w_px, h_px, t_px)
+{
+    var e = document.createElement("hr");
+    var s = e.style;
+    
+    s.position        = "absolute";
+    s.width           = w_px.toFixed(0) + "px";
+    s.height          = h_px.toFixed(0) + "px";
+    s.top             = t_px.toFixed(0) + "px";
+    s.left            = "0px";
+    s.right           = "0px";
+    s.margin          = "auto";
+    s.border          = "1px solid #000";
+    s.zIndex          = "0";
+    s.backgroundColor = "#FFF";
+
+    return e;
+}
+
+function GetLocationText_TextShadowLabel(txt, font_size, ox, oy, sx, sy, sr)
+{
+    var e = GetLocationText_Text(txt, font_size, 0, false);
+    var s = e.style;
+
+    s.color      = "#000";
+    s.zIndex     = "0";
+    s.top        = oy.toFixed(0) + "px";
+    s.textShadow = sx.toFixed(0) + "px" + " "
+                 + sy.toFixed(0) + "px" + " "
+                 + sr.toFixed(0) + "px" + " #000";
+    if (ox > 0)
+    {
+        s.left   = ox.toFixed(0) + "px";
+    }//if
+    else if (ox < 0)
+    {
+        ox      *= -1.0;
+        s.right  = ox.toFixed(0) + "px";
+    }//else if
+
+    return e;
+}
+
 function ShowLocationText(txt)
 {
     InitFont_CrimsonText();
-    
-    var el = document.createElement("div");
-    
+
     var map_w = (window.outerWidth || window.innerWidth || document.getElementById("map_canvas").offsetWidth) - 60.0;
-    
-    if (map_w * window.devicePixelRatio < 400) return;
-    
-    var scale = map_w < 1200 && map_w != 0 ? map_w / 1200.0 : 1.0;
-    
-    var el_width = Math.floor(1200.0 * scale);
-    var el_height = Math.floor(144.0 * scale);
+
+    if (map_w * window.devicePixelRatio < 400) { return; }
+
+    var is_webkit    = "WebkitAppearance" in document.documentElement.style;
+
+    var scale        = map_w < 1200 && map_w != 0 ? map_w / 1200.0 : 1.0;
+
+    var el_width     = Math.floor(1200.0 * scale);
+    var el_height    = Math.floor(144.0 * scale);
     var el2_fontsize = Math.floor(96.0 * scale);
-    var el2_str_w = 2.0 * scale;
-    
-    var el3_top = el2_fontsize + Math.ceil(5.0 * scale); //122; // DkS2 style = 27.0 * scale
-    var el3_width = Math.floor(el_width * 0.9383); //1126;
+    var el2_str_w    = 2.0 * scale;
+    var el3_top      = el2_fontsize + Math.ceil(5.0 * scale); //122; // DkS2 style = 27.0 * scale
+
+    if (!is_webkit) el3_top += 2.0 * scale; // 2016-08-11 ND: outset border means need to shift 1px down
+
+    var el3_width  = Math.floor(el_width * 0.9383); //1126;
     var el3_height = Math.ceil(3.0 * scale);
-    
-    el.id = "location_text";
-    var es = el.style;
-    es.pointerEvents = "none";
-    es.position = "absolute"; // rel position: DkS2 style; abs position: DkS1 style
-    es.display = "block";
-    es.top = "0px";
-    es.bottom = "0px";
-    es.left = "0px";
-    es.right = "0px";
-    es.width = el_width.toFixed(0) + "px";
-    es.height = el_height.toFixed(0) + "px";
-    es.margin = "auto";
-    es.textAlign = "center";
-    es.opacity = 0.0;
-    
-    var el2 = document.createElement("div");
-    var es2 = el2.style;
-    es2.fontFamily = "Crimson Text";
-    es2.fontSize = el2_fontsize.toFixed(0) + "px";
-    es2.textAlign = "center";
-    es2.verticalAlign = "middle";
-    es2.textShadow = "0px 0px 1px #000";
-    es2.color = "#FFF";
-    es2["-webkit-text-fill-color"] = "#FFF";
-    es2["-webkit-text-stroke-color"] = "#000";
-    es2["-webkit-text-stroke-width"] = el2_str_w.toFixed(1) + "px";
-    es2.zIndex = "1";
-    es2.position = "absolute";
-    es2.left = "0px";
-    es2.right = "0px";
-    es2.margin = "auto";
-    el2.innerHTML = txt;
+    var el         = GetLocationText_Container(el_width, el_height);
+    var el2        = GetLocationText_Text(txt, el2_fontsize, el2_str_w, is_webkit);
+    var el3        = GetLocationText_Hr(el3_width, el3_height, el3_top);
+
     el.appendChild(el2);
-    
-    var el3 = document.createElement("hr");
-    var es3 = el3.style;
-    es3.height = el3_height.toFixed(0) + "px";
-    es3.width = el3_width.toFixed(0) + "px";
-    es3.position = "absolute";
-    es3.top = el3_top.toFixed(0) + "px";
-    es3.left = "0px";
-    es3.right = "0px";
-    es3.margin = "auto";
-    es3.border = "1px solid #000";
-    es3.backgroundColor = "#FFF";
-    es3.zIndex = "0";
     el.appendChild(el3);
-    
+
+    if (!is_webkit)
+    {
+        var el_t4 = GetLocationText_TextShadowLabel(txt, el2_fontsize,  0, -2,  1,  0, 0);
+        var el_t5 = GetLocationText_TextShadowLabel(txt, el2_fontsize,  0,  2, -1,  0, 0);
+        var el_t8 = GetLocationText_TextShadowLabel(txt, el2_fontsize,  2,  0,  0,  1, 0);
+        var el_t9 = GetLocationText_TextShadowLabel(txt, el2_fontsize, -2,  0,  0, -1, 0);
+
+        el.appendChild(el_t4);
+        el.appendChild(el_t5);
+        el.appendChild(el_t8);
+        el.appendChild(el_t9);
+    }//if
+
     document.body.appendChild(el);
-    
+
     var cbFade = function()
     {
         setTimeout(function() {
-            AnimateElementFadeOut(el, 1.0, -0.033333333333 * 2.0);
+            el.style.opacity = "0.0";
         }, 2000);
         
         setTimeout(function() {
@@ -3574,9 +3616,11 @@ function ShowLocationText(txt)
     
     audio.play();
     */
-    //setTimeout(function() {
-        AnimateElementFadeIn(el, 0.0, 0.033333333333 * 10.0, cbFade);
-    //}, 250);
+    
+    setTimeout(function() {
+        el.style.opacity = "1.0";
+        setTimeout(cbFade, 250 + 18);
+    }, 17);
 }//ShowLocationText
 
 // The "animate" functions use requestAnimationFrame, so timing is not
@@ -3625,9 +3669,9 @@ var LoadingSpinnerHelper = (function()
     LoadingSpinnerHelper.DoesStyleExist = function(src, t)
     {
         var d = false;
-        
+
         if ("MozAppearance" in document.documentElement.style) return d; // 2016-02-01 ND: workaround for Firefox bug
-    
+
         for (var i=0; i<document.styleSheets.length; i++)
         {
             var r = document.styleSheets[i].cssRules || document.styleSheets[i].rules || new Array();
@@ -3640,13 +3684,13 @@ var LoadingSpinnerHelper = (function()
                     break;
                 }//if
             }//for
-        
+
             if (d) break;
         }//for
     
         return d;
     };
-    
+
     LoadingSpinnerHelper.InjectLoadingSpinnerStyleIfNeeded = function()
     {
         if (LoadingSpinnerHelper.DoesStyleExist("animation-ls-rotate", window.CSSRule.KEYFRAMES_RULE)) return;
@@ -3664,7 +3708,7 @@ var LoadingSpinnerHelper = (function()
         els.innerHTML = css;
         document.getElementsByTagName("head")[0].appendChild(els);
     };
-    
+
     LoadingSpinnerHelper.GetHexC = function(s,i)
     {
         return parseInt("0x" + (s!=null&&s.length==4 ? s.substring(i+1,i+2)+s.substring(i+1,i+2) : s!=null&&s.length==7?s.substring(i*2+1,i*2+3) : "0") );
@@ -3683,15 +3727,15 @@ var LoadingSpinnerHelper = (function()
     
         if (px_size > 18) px_size -= 16; // correct for CSS-SVG diffs
         str_w += 6;                      // correct for CSS-SVG diffs
-    
+
         var c0 = LoadingSpinnerHelper.HexColorToRGBA(color, 0.5);
         var c1 = LoadingSpinnerHelper.HexColorToRGBA(color, 1.0);
 
         LoadingSpinnerHelper.InjectLoadingSpinnerStyleIfNeeded();
-        
+
         var anim = "animation: animation-ls-rotate 1000ms linear infinite;";
         var bdr  = "border-radius: 999px;";
-    
+
         var css =  "position:absolute;top:0;bottom:0;left:0;right:0;display:block;margin:auto;"
                      + "vertical-align:middle;text-align:center;pointer-events:none;"
                      + "width:" + wh + "px;"
@@ -3714,7 +3758,7 @@ var LoadingSpinnerHelper = (function()
         {
             el.removeChild(el.firstChild);
         }//while
-    
+
         el.appendChild(div); // don't contaminate styles of parent element
     };
     
@@ -3732,7 +3776,7 @@ var TimeSliceUI = (function()
     function TimeSliceUI() 
     {
     }
-    
+
     TimeSliceUI.GetPanelDiv       = function()    { return document.getElementById("tsPanel"); };
     TimeSliceUI.GetSliderEl       = function()    { return document.getElementById("tsSlider"); };
     TimeSliceUI.GetStartDateEl    = function()    { return document.getElementById("tsStartDate"); };
@@ -3744,18 +3788,40 @@ var TimeSliceUI = (function()
     TimeSliceUI.EnableHud         = function()    { _hudProxy.Enable(); };
     TimeSliceUI.UpdateHud         = function()    { _hudProxy.Update(); };
     TimeSliceUI.GetLabelsForIdx   = function(idx) { return SafecastDateHelper.GetTimeSliceDateRangeLabelsForIdxJST(idx); };
-    
+    TimeSliceUI.GetTimeSliceIdxs  = function()    { return SafecastDateHelper.GetTimeSliceLayerDateRangesUTC() };
+
     TimeSliceUI.SetPanelHidden = function(isHidden)
     {
         var el = TimeSliceUI.GetPanelDiv();
         el.style.display = isHidden ? "none" : "block";
-        
-        if (!isHidden)
-        {
-            TimeSliceUI.EnableHud();
-        }//if
     };
-    
+
+    // nb: This approach has the following flaws:
+    //
+    // 1. It assumes the static date array is ordered chronologically, with equal intervals.
+    // 2. It assumes the time slice layers' indices are contiguous, without gaps.
+    //
+    // If either of these assumptions is untrue, then InitSliderRange() must also construct a
+    // lookup table, mapping contiguous slider indices to the underlying layer indices.
+    //
+    TimeSliceUI.InitSliderRange = function()
+    {
+        var s = TimeSliceUI.GetSliderEl();
+        var o = TimeSliceUI.GetTimeSliceIdxs();
+
+        var min =  65535;
+        var max = -65535;
+
+        for (var i=0; i<o.length; i++)
+        {
+            min = Math.min(o[i].i, min);
+            max = Math.max(o[i].i, max);
+        }//for
+        
+        s.min = min;
+        s.max = max;
+    };
+
     TimeSliceUI.SetSliderIdx = function(idx)
     {
         var s = TimeSliceUI.GetSliderEl();
@@ -3766,7 +3832,6 @@ var TimeSliceUI = (function()
     {
         var s = TimeSliceUI.GetSliderEl();
         var i = parseInt(s.value);
-        
         return i;
     };
     
@@ -3799,6 +3864,1041 @@ var TimeSliceUI = (function()
     
     return TimeSliceUI;
 })();
+
+
+
+
+function GetMenuStringsEn()
+{
+    var s = 
+    {
+        MENU_ADDRESS_PLACEHOLDER:"Find Address",
+        MENU_TOGGLE_RETICLE_LABEL:"Crosshair",
+        MENU_LAYERS_TITLE:"Layers",
+        MENU_DONATE_LABEL:"Donate",
+        MENU_BLOG_LABEL:"News",
+        MENU_ABOUT_LABEL:"About this map",
+        MENU_ADVANCED_TITLE:"Advanced",
+        MENU_HDPI_LABEL:"High Res Tiles",
+        MENU_SCALE_LABEL:"Map Scale",
+        MENU_NN_SCALER_LABEL:"NN Tile Scaler",
+        MENU_ZOOM_BUTTONS_LABEL:"Zoom Buttons",
+        MENU_TILE_SHADOW_LABEL:"Tile Shadow",
+        MENU_API_QUERY_CENTER_LABEL:"Query API @ Center",
+        MENU_LAYERS_11_LABEL:"None",
+        MENU_LAYERS_11_DATE_LABEL:null,
+        MENU_LAYERS_0_LABEL:"Safecast",
+        MENU_LAYERS_0_DATE_LABEL:"",
+        MENU_LAYERS_1_LABEL:"&nbsp;&nbsp;Points",
+        MENU_LAYERS_1_DATE_LABEL:"",
+        MENU_LAYERS_2_LABEL:"&nbsp;&nbsp;Interpolation",
+        MENU_LAYERS_2_DATE_LABEL:"",
+        MENU_LAYERS_12_LABEL:"Safecast Snapshots...",
+        MENU_LAYERS_12_DATE_LABEL:null,
+        MENU_LAYERS_8_LABEL:"Safecast Points",
+        MENU_LAYERS_8_DATE_LABEL:"2013-04-15",
+        MENU_LAYERS_9_LABEL:"Safecast Points",
+        MENU_LAYERS_9_DATE_LABEL:"2014-03-11",
+        MENU_LAYERS_3_LABEL:"NNSA Japan",
+        MENU_LAYERS_3_DATE_LABEL:"2011-06-30",
+        MENU_LAYERS_4_LABEL:"USGS/GSC NURE",
+        MENU_LAYERS_4_DATE_LABEL:"1980",
+        MENU_LAYERS_5_LABEL:"Geoscience Australia",
+        MENU_LAYERS_5_DATE_LABEL:"2010",
+        MENU_LAYERS_6_LABEL:"AIST/GSJ Natural Bkg",
+        MENU_LAYERS_6_DATE_LABEL:null,
+        MENU_LAYERS_10_LABEL:"Add bGeigie Log...",
+        MENU_LAYERS_10_DATE_LABEL:null,
+        MENU_LAYERS_10001_LABEL:"Add Cosmic Logs...",
+        MENU_LAYERS_10001_DATE_LABEL:null,
+        MENU_LAYERS_MORE_LABEL:"List All",
+        MENU_BASEMAP_TITLE:"Basemap",
+        MENU_BASEMAP_0_LABEL:"Map",
+        MENU_BASEMAP_1_LABEL:"Satellite",
+        MENU_BASEMAP_2_LABEL:"Satellite (Labeled)",
+        MENU_BASEMAP_3_LABEL:"Terrain",
+        MENU_BASEMAP_4_LABEL:"Map (Gray)",
+        MENU_BASEMAP_5_LABEL:"Map (Dark)",
+        MENU_BASEMAP_6_LABEL:"Stamen Toner",
+        MENU_BASEMAP_7_LABEL:"Stamen Toner Light",
+        MENU_BASEMAP_8_LABEL:"Stamen Watercolor",
+        MENU_BASEMAP_9_LABEL:"OpenStreetMap",
+        MENU_BASEMAP_10_LABEL:"None (Black)",
+        MENU_BASEMAP_11_LABEL:"None (White)",
+        MENU_LOGS_TITLE:"bGeigie Logs",
+        MENU_LOGS_0_LABEL:"Search...",
+        MENU_LOGS_1_LABEL:"Add Cosmic Logs",
+        MENU_LOGS_2_LABEL:"Remove All",
+        MENU_LOGS_3_LABEL:"Options",
+        MENU_REALTIME_TITLE:"Realtime",
+        MENU_REALTIME_0_LABEL:"Radiation Sensors",
+        MENU_LANGUAGE_CHANGE_TEXT:"Note: The new language setting will not be applied to the Google Maps labels until this page is reloaded."
+    };
+    
+    return s;
+}
+
+function GetMenuStringsJa()
+{
+    var s = 
+    {
+        MENU_ADDRESS_PLACEHOLDER:"住所検索",
+        MENU_TOGGLE_RETICLE_LABEL:"クロスヘア",
+        MENU_LAYERS_TITLE:"レイヤ",
+        MENU_DONATE_LABEL:"SAFECASTへの支援",
+        MENU_BLOG_LABEL:"ニュース",
+        MENU_ABOUT_LABEL:"このマップについて",
+        MENU_ADVANCED_TITLE:"詳細",
+        MENU_HDPI_LABEL:"高解像度のタイル",
+        MENU_SCALE_LABEL:"地図データの規模",
+        MENU_NN_SCALER_LABEL:"最近傍補間タイルのスケーラー",
+        MENU_ZOOM_BUTTONS_LABEL:"ズームボタン",
+        MENU_TILE_SHADOW_LABEL:"レイヤーの影",
+        MENU_API_QUERY_CENTER_LABEL:"（地図の中心に）APIクエリの実行",
+        MENU_LAYERS_11_LABEL:"なし",
+        MENU_LAYERS_11_DATE_LABEL:null,
+        MENU_LAYERS_0_LABEL:"Safecast",
+        MENU_LAYERS_0_DATE_LABEL:"",
+        MENU_LAYERS_1_LABEL:"&nbsp;&nbsp;ポイント",
+        MENU_LAYERS_1_DATE_LABEL:"",
+        MENU_LAYERS_2_LABEL:"&nbsp;&nbsp;空間的補間",
+        MENU_LAYERS_2_DATE_LABEL:"",
+        MENU_LAYERS_12_LABEL:"Safecast スナップショット",
+        MENU_LAYERS_12_DATE_LABEL:null,
+        MENU_LAYERS_8_LABEL:"Safecast ポイント",
+        MENU_LAYERS_8_DATE_LABEL:"2013-04-15",
+        MENU_LAYERS_9_LABEL:"Safecast ポイント",
+        MENU_LAYERS_9_DATE_LABEL:"2014-03-11",
+        MENU_LAYERS_3_LABEL:"NNSA 日本",
+        MENU_LAYERS_3_DATE_LABEL:"2011-06-30",
+        MENU_LAYERS_4_LABEL:"USGS/GSC NURE",
+        MENU_LAYERS_4_DATE_LABEL:"1980",
+        MENU_LAYERS_5_LABEL:"Geoscience Australia",
+        MENU_LAYERS_5_DATE_LABEL:"2010",
+        MENU_LAYERS_6_LABEL:"産総研/GSJ 自然放射能",
+        MENU_LAYERS_6_DATE_LABEL:null,
+        MENU_LAYERS_10_LABEL:"bGeigieログファイルを追加します",
+        MENU_LAYERS_10_DATE_LABEL:null,
+        MENU_LAYERS_10001_LABEL:"宇宙放射線のログファイルを追加します",
+        MENU_LAYERS_10001_DATE_LABEL:null,
+        MENU_LAYERS_MORE_LABEL:"全てのリスト",
+        MENU_BASEMAP_TITLE:"基礎地図",
+        MENU_BASEMAP_0_LABEL:"地図",
+        MENU_BASEMAP_1_LABEL:"航空写真",
+        MENU_BASEMAP_2_LABEL:"ラベル付きの航空写真",
+        MENU_BASEMAP_3_LABEL:"地形",
+        MENU_BASEMAP_4_LABEL:"地図 (グレー)",
+        MENU_BASEMAP_5_LABEL:"地図 (黒)",
+        MENU_BASEMAP_6_LABEL:"Stamen Toner",
+        MENU_BASEMAP_7_LABEL:"Stamen Toner Light",
+        MENU_BASEMAP_8_LABEL:"Stamen Watercolor",
+        MENU_BASEMAP_9_LABEL:"OpenStreetMap",
+        MENU_BASEMAP_10_LABEL:"なし（黒）",
+        MENU_BASEMAP_11_LABEL:"なし（白）",
+        MENU_LOGS_TITLE:"bGeigieログ",
+        MENU_LOGS_0_LABEL:"検索",
+        MENU_LOGS_1_LABEL:"宇宙放射線のログ追加",
+        MENU_LOGS_2_LABEL:"全削除",
+        MENU_LOGS_3_LABEL:"オプション",
+        MENU_REALTIME_TITLE:"リアルタイム",
+        MENU_REALTIME_0_LABEL:"放射線センサー",
+        MENU_LANGUAGE_CHANGE_TEXT:"注記：このページがリロードされるまで、新しい言語設定は、Googleマップのラベルには適用されません。"
+    };
+    
+    return s;
+}
+
+/* // dump strings
+var en = GetMenuStringsEn();
+var ja = GetMenuStringsJa();
+var d = "\n";
+for (var k in en) { d += k + "|" + en[k] + "|" + ja[k] + "\n"; }
+console.log(d);
+*/
+
+
+
+var MenuHelper = (function()
+{
+    function MenuHelper()
+    {
+    }
+    
+    // should only be called after safemap.js is loaded
+    MenuHelper.InitLoadAsync = function()
+    {
+        var el   = ElCr("script");
+        el.async = true;
+        el.type  = "text/javascript";
+        var cb   = function(e) 
+        { 
+            slideout = new Slideout({
+                'panel': document.getElementById('panel'),
+                'menu': document.getElementById('menu'),
+                //'itemToMove':"both",
+                'padding': 256,
+                'tolerance': 70
+            });
+
+            MenuHelper.InitLanguage();
+            MenuHelper.InitEventOverrides();
+            MenuHelper.InitEvents();
+
+            setTimeout(function() {
+                MenuHelper.SyncBasemap();
+                MenuHelper.InitLayers_ApplyVisibilityStyles();
+                ElGet("menu").style.removeProperty("display");
+            }, 50);
+
+            setTimeout(function() {
+                ElGet("menu-header").style.backgroundImage = "url('schoriz_362x44.png')";
+            }, 500);
+
+            setTimeout(MenuHelper.InitReticleFromPref, 1000);
+            setTimeout(MenuHelper.InitAdvancedSection, 2000);
+
+            ElGet("logo2").style.visibility = "visible";
+
+            el.removeEventListener("load", cb); 
+        };
+        
+        AList(el, "load", cb);
+        el.src = "slideout.min.js";
+        var head = document.getElementsByTagName("head")[0];
+        head.appendChild(el);
+    };
+
+
+    // removes default events from slideout.js, should be called after "slideout = new Slideout(..."
+    MenuHelper.InitEventOverrides = function()
+    {
+        var s=slideout,d=window.document,m=window.navigator.msPointerEnabled;
+        var p=s.panel;
+        var t={'s':m?'MSPointerDown':'touchstart','m':m?'MSPointerMove':'touchmove','e':m?'MSPointerUp':'touchend'};
+        var r=function(e,a,b){e.removeEventListener(a,b);};
+        r(d,t.m,s._preventMove);
+        r(p,t.s,s._resetTouchFn);
+        r(p,'touchcancel',s._onTouchCancelFn);
+        r(p,t.e,s._onTouchEndFn);
+        r(p,t.m,s._onTouchMoveFn);
+        r(d,'scroll',s._onScrollFn);
+    };
+
+
+    // binds misc UI events, can be init immediately
+    MenuHelper.InitEvents = function()
+    {
+        document.querySelector(".js-slideout-toggle").addEventListener("click", function(e) 
+        {
+            if (slideout.isOpen()) MenuHelper.CloseAnimationHack();
+            else MenuHelper.OpenAnimationHack();
+            slideout.toggle();
+        }, false);
+
+        // document.querySelector(".menu").addEventListener("click", function(e) { if (e.target.nodeName === "A") { MenuHelper.CloseAnimationHack(); slideout.close(); } }, false);
+
+        if (!_nua("mobile") && !_nua("iPhone") && !_nua("iPad") && !_nua("Android"))
+        {
+            AListId("hud_btnToggle", "mouseover", function() 
+            {
+                var s = ElGet("imgMenuReticle").style;
+                s.opacity           = "1.0";
+                s.filter            = "url(#sc_colorize)"; 
+                s["-webkit-filter"] = "url(#sc_colorize)"; 
+            });
+
+            AListId("hud_btnToggle", "mouseout",  function() 
+            {
+                var s = ElGet("imgMenuReticle").style;
+                s.removeProperty("opacity");
+                s.removeProperty("filter");
+                s.removeProperty("-webkit-filter");
+            });
+            
+            var s0 = ["hud_btnToggle", "menu_realtime_0", "menu_scale", "menu_zoom_buttons", "menu_hdpi", "menu_nnscaler", "menu_tile_shadow"];
+            
+            for (var i=0; i<s0.length; i++)
+            {
+                ElGet(s0[i]).className += " tooltip";
+            }//for
+            
+            var s1 = ["menu_logs_0", "menu_logs_1", "menu_logs_2", "menu_logs_3", "menu_apiquery"];
+            
+            for (var i=0; i<s1.length; i++)
+            {
+                ElGet(s1[i]).parentElement.className += " tooltip";
+            }//for
+        }//if
+
+        var acc = document.getElementsByClassName("btn_accordion");
+
+        for (var i = 0; i < acc.length; i++) 
+        {
+            acc[i].addEventListener("click", function(e)
+            {
+                this.classList.toggle("active");
+                this.parentElement.nextElementSibling.classList.toggle("show");
+            }, false);
+        }//for
+    };
+
+
+    // requires safemap.js load
+    MenuHelper.InitAdvancedSection = function()
+    {            
+        if (window.devicePixelRatio < 1.5) ElGet("menu_hdpi").parentElement.style.display = "none";
+    
+        ElGet("chkMenuHdpi").checked = !_no_hdpi_tiles;
+        ElGet("menu_hdpi").addEventListener("click", function()
+        {
+            _no_hdpi_tiles = !_no_hdpi_tiles;
+
+            var el = ElGet("map_canvas");
+
+            if (_no_hdpi_tiles)
+            {
+                el.className = (el.className != null ? el.className + " " : "") + "noblur";
+            }//if
+            else
+            {
+                el.className = el.className.replace(/ noblur/, "");
+                el.className = el.className.replace(/noblur/, "");
+            }//else            
+
+            overlayMaps = null;
+            ClientZoomHelper.InitGmapsLayers();
+            LayersHelper.SyncSelectedWithMap();
+            ClientZoomHelper.SynchronizeLayersToZoomLevel(GetMapInstanceYXZ().z);
+            ElGet("chkMenuHdpi").checked = !_no_hdpi_tiles;
+        }, false);
+
+
+        ElGet("chkMenuScale").checked = ElGet("imgScale").style.display != "none";
+        ElGet("menu_scale").addEventListener("click", function()
+        {
+            var s = ElGet("imgScale");
+            var v = s.style.display != "none";
+
+            if (v) { s.style.display = "none"; }
+            else   { s.style.removeProperty("display"); }
+
+            ElGet("chkMenuScale").checked = !v;
+        }, false);
+
+
+        ElGet("chkMenuNnScaler").checked = _img_scaler_idx > 0;
+        ElGet("menu_nnscaler").addEventListener("click", function()
+        {
+            ToggleScaler();
+            ElGet("chkMenuNnScaler").checked = _img_scaler_idx > 0;
+        }, false);
+
+
+        ElGet("chkMenuRealtime0").checked = true;
+        ElGet("menu_realtime_0").addEventListener("click", function()
+        {
+            var e = false;
+            if (_rtvm != null && _rtvm.GetMarkerCount() > 0)
+            {
+                _rtvm.RemoveAllMarkersFromMapAndPurgeData();
+                _rtvm.ClearGmapsListeners();
+                _rtvm.SetEnabled(false);
+            }//if
+            else if (_rtvm != null)
+            {
+                _rtvm.InitMarkersAsync();
+                _rtvm.AddGmapsListeners();
+                _rtvm.SetEnabled(true);
+                e = true;
+            }//else
+            ElGet("chkMenuRealtime0").checked = e;
+        }, false);
+
+
+        ElGet("chkMenuZoomButtons").checked = map.zoomControl;
+        ElGet("menu_zoom_buttons").addEventListener("click", function()
+        {
+            var s = !map.zoomControl;
+            map.setOptions({zoomControl:s});
+            ElGet("chkMenuZoomButtons").checked = s;
+            MenuHelper.SetZoomButtonsEnabledPref(s);
+        }, false);
+
+
+        ElGet("chkMenuTileShadow").checked = _img_tile_shadow_idx > 0;
+        ElGet("menu_tile_shadow").addEventListener("click", function()
+        {
+            ToggleTileShadow();
+            ElGet("chkMenuTileShadow").checked = _img_tile_shadow_idx > 0;
+        }, false);
+
+
+        ElGet("menu_apiquery").addEventListener("click", function()
+        {
+            var yx = GetNormalizedMapCentroid();
+            QuerySafecastApiAsync(yx.y, yx.x, map.getZoom());
+        }, false);
+    };
+
+    // requires binds for layers and basemaps 
+    MenuHelper.InitLabelsFromStrings = function(s)
+    {
+        ElGet("address").placeholder             = s.MENU_ADDRESS_PLACEHOLDER;
+        ElGet("lblMenuToggleReticle").innerHTML  = s.MENU_TOGGLE_RETICLE_LABEL;
+        ElGet("lblMenuLayersTitle").innerHTML    = s.MENU_LAYERS_TITLE;
+        ElGet("lblMenuMore").innerHTML           = s.MENU_LAYERS_MORE_LABEL;
+        ElGet("lblMenuLogsTitle").innerHTML      = s.MENU_LOGS_TITLE;
+        ElGet("aMenuDonate").innerHTML           = s.MENU_DONATE_LABEL;
+        ElGet("aMenuBlog").innerHTML             = s.MENU_BLOG_LABEL;
+        ElGet("show").innerHTML                  = s.MENU_ABOUT_LABEL;
+        ElGet("lblMenuBasemapTitle").innerHTML   = s.MENU_BASEMAP_TITLE;
+        ElGet("lblMenuAdvancedTitle").innerHTML  = s.MENU_ADVANCED_TITLE;
+        ElGet("lblMenuHdpi").innerHTML           = s.MENU_HDPI_LABEL;
+        ElGet("lblMenuScale").innerHTML          = s.MENU_SCALE_LABEL;
+        ElGet("lblMenuNnScaler").innerHTML       = s.MENU_NN_SCALER_LABEL;
+        ElGet("lblMenuZoomButtons").innerHTML    = s.MENU_ZOOM_BUTTONS_LABEL;
+        ElGet("lblMenuTileShadow").innerHTML     = s.MENU_TILE_SHADOW_LABEL;
+        ElGet("menu_apiquery").innerHTML         = s.MENU_API_QUERY_CENTER_LABEL;
+        ElGet("lblMenuRealtimeTitle").innerHTML  = s.MENU_REALTIME_TITLE;
+        ElGet("menu_realtime_0_label").innerHTML = s.MENU_REALTIME_0_LABEL;
+
+        // layers    
+        var a = MenuHelperStub.GetLayerIdxs_All();
+
+        for (var i=0; i<a.length; i++)
+        {
+            ElGet("menu_layers_"+a[i]+"_label").innerHTML = s["MENU_LAYERS_"+a[i]+"_LABEL"];
+            
+            var dls =     s["MENU_LAYERS_"+a[i]+"_DATE_LABEL"];
+            var dle = ElGet("menu_layers_"+a[i]+"_date_label");
+
+            if (dls != null)
+            {
+                if (dls.length > 0) dle.innerHTML = dls;
+            }//if
+            else
+            {
+                dle.style.display = "none";
+            }//else
+        }//for
+
+        // basemaps
+        var b = MenuHelperStub.GetBasemapIdxs_All();
+
+        for (var i=0; i<b.length; i++)
+        {
+            ElGet("menu_basemap_"+b[i]).innerHTML = s["MENU_BASEMAP_"+b[i]+"_LABEL"];
+        }//for
+
+        // logs
+        var c = MenuHelperStub.GetLogIdxs_All();
+
+        for (var i=0; i<c.length; i++)
+        {
+            ElGet("menu_logs_"+c[i]).innerHTML = s["MENU_LOGS_"+c[i]+"_LABEL"];
+        }//for
+    };
+
+
+    // requires binds for layers
+    MenuHelper.InitLayers_ApplyVisibilityStyles = function()
+    {
+        var a = MenuHelperStub.GetLayerIdxs_NotAlways();
+
+        for (var i=0; i<a.length; i++)
+        {
+            var el = ElGet("menu_layers_" + a[i]);
+
+            var ps = el.parentElement.style;
+            ps.transition = "0.6s ease-in-out";
+            ps.overflow   = "hidden";
+
+            if (el.className != null && el.className.indexOf("menu_option_selected") == -1)
+            {
+                ps.maxHeight  = "0";
+                ps.opacity    = "0";
+            }//if
+        }//for
+        
+        var ls = ElGet("sectionMenuLogs").style;
+        ls.transition = "0.6s ease-in-out";
+        ls.overflow   = "hidden";
+        ls.maxHeight  = "0";
+        ls.opacity    = "0";
+
+        var rs = ElGet("sectionMenuRealtime").style;
+        rs.transition = "0.6s ease-in-out";
+        rs.overflow   = "hidden";
+        rs.maxHeight  = "0";
+        rs.opacity    = "0";
+
+        ElGet("sectionMenuLogs").style.display = "none";
+        ElGet("sectionMenuRealtime").style.display = "none";
+    };
+
+    // nb: this is disabled as resizing the GMaps content area breaks GMaps due to an internal bug
+    MenuHelper.OpenAnimationHack = function()
+    {
+        //ElGet("map_canvas").style.right = "0";
+
+        //setTimeout(function() {
+        //    ElGet("map_canvas").style.right = null;
+        //}, 318);
+    };
+
+    // For some reason only the CSS3 open animation works when overriding slideout.js using
+    // CSS styles.  At -256 x-shift there is no animation, but there is at -255 x-shift.
+    // However -255 -> -256 doesn't work because it restarts the entire animation, so this
+    // hack moves it to -255, then hides it, waits, moves it to -256 without animation, then
+    // restores the original styles.
+    MenuHelper.CloseAnimationHack = function()
+    {
+        ElGet("menu").style.transition = "0.3s";
+        ElGet("menu").style["-webkit-transition"] = "0.3s";
+        ElGet("menu").style.transform = "translateX(" + -255 + "px)";
+        ElGet("scale").style.transform      = "translateX(0px)";
+        ElGet("tsPanel").style.transform    = "translateX(0px)";
+
+        setTimeout(function() {
+            ElGet("menu").style.removeProperty("transition");
+            ElGet("menu").style.removeProperty("-webkit-transition");
+            ElGet("menu").style.display = "none";
+
+            setTimeout(function() {
+                ElGet("menu").style.removeProperty("transform");
+                ElGet("menu").style.removeProperty("display");
+                ElGet("scale").style.removeProperty("transform");
+                ElGet("tsPanel").style.removeProperty("transform");
+            },300);
+        }, 250);
+    };
+
+
+    MenuHelper.MoreLayers_OnClick = function()
+    {
+        var a = MenuHelperStub.GetLayerIdxs_Normal();
+
+        _ui_menu_layers_more_visible = !_ui_menu_layers_more_visible;
+
+        for (var i=0; i<a.length; i++)
+        {
+            var el = ElGet("menu_layers_" + a[i]);
+            var vis = _ui_menu_layers_more_visible || (el.className != null && el.className.indexOf("menu_option_selected") > -1);
+            el.parentElement.style.maxHeight = vis ? "500px" : "0";
+            el.parentElement.style.opacity   = vis ? "1"     : "0";
+        }//for
+
+        ElGet("chkMenuLayersMore").checked = _ui_menu_layers_more_visible;
+
+
+        var fxToggleLogStyles = function()
+        {
+            var b = ["sectionMenuLogs", "sectionMenuRealtime"];
+
+            for (var i=0; i<b.length; i++)
+            {
+                var el = ElGet(b[i]);
+                var vis = _ui_menu_layers_more_visible;
+                el.style.maxHeight = vis ? "1024px" : "0";
+                el.style.opacity   = vis ? "1"      : "0";
+            }//for
+        };
+
+        var fxToggleLogVis = function()
+        {
+            if (_ui_menu_layers_more_visible)
+            {
+                ElGet("sectionMenuLogs").style.removeProperty("display");
+                ElGet("sectionMenuRealtime").style.removeProperty("display");
+                ElGet("sectionMenuLogs").style.removeProperty("overflow");
+                ElGet("sectionMenuRealtime").style.removeProperty("overflow");
+            }//if
+            else
+            {
+                ElGet("sectionMenuLogs").style.display = "none";
+                ElGet("sectionMenuRealtime").style.display = "none";
+                ElGet("sectionMenuLogs").style.overflow = "hidden";
+                ElGet("sectionMenuRealtime").style.overflow = "hidden";
+            }//else
+        };
+
+        if (_ui_menu_layers_more_visible)
+        {
+            fxToggleLogVis();
+            setTimeout(fxToggleLogStyles, 18);
+        }//if
+        else
+        {
+            fxToggleLogStyles();
+            setTimeout(fxToggleLogVis, 618);
+        }//else
+    };
+
+
+    MenuHelper.ddlLanguage_OnChange = function()
+    {
+        var d = ElGet("ddlLanguage");
+        var s = d.options[d.selectedIndex].value;
+        MenuHelper.SetLanguage(s);
+        MenuHelper.SetLanguagePref(s);
+
+        var ms = MenuHelper.GetStringsForLanguage(s);
+        alert(ms.MENU_LANGUAGE_CHANGE_TEXT);
+    };
+
+
+    MenuHelper.SetLanguage = function(s)
+    {
+        MenuHelper.InitLabelsFromStrings(MenuHelper.GetStringsForLanguage(s));
+    };
+
+
+    MenuHelper.GetStringsForLanguage = function(s)
+    {
+        return s == "en" ? GetMenuStringsEn() : GetMenuStringsJa();
+    };
+
+
+    MenuHelper.GetEffectiveLanguagePref = function()
+    {
+        var s = MenuHelper.GetLanguagePref();
+
+        if (s == null)
+        {
+            s = (new Date()).getTimezoneOffset() == -540 ? "ja" : "en"; // JST
+        }//if
+
+        return s;
+    };
+
+
+    MenuHelper.GetLanguagePref = function()
+    {
+        return localStorage.getItem("PREF_LANGUAGE");
+    };
+
+
+    MenuHelper.SetLanguagePref = function(s)
+    {
+        localStorage.setItem("PREF_LANGUAGE", s);
+    };
+
+
+    MenuHelper.InitLanguage = function()
+    {
+        var s = MenuHelper.GetEffectiveLanguagePref();
+
+        MenuHelper.SetLanguage(s);
+
+        var d = ElGet("ddlLanguage");
+        for (var i=0; i<d.options.length; i++)
+        {
+            if (d.options[i].value == s)
+            {
+                d.selectedIndex = i;
+                break;
+            }//if
+        }//for
+    };
+
+
+    MenuHelper.Hud_btnToggle_Click = function()
+    {
+        var hud_on = _hudProxy._hud == null || !_hudProxy._btnToggleStateOn;
+        ElGet("chkMenuToggleReticle").checked = hud_on;
+        MenuHelper.SetReticleEnabledPref(hud_on);
+    };
+
+
+    MenuHelper.GetReticleEnabledPref = function()
+    {
+        var s = localStorage.getItem("PREF_RETICLE_ENABLED");
+        return s != null && s == "1";
+    };
+
+
+    MenuHelper.SetReticleEnabledPref = function(s)
+    {
+        localStorage.setItem("PREF_RETICLE_ENABLED", s ? "1" : "0");
+    };
+
+
+    MenuHelper.GetZoomButtonsEnabledPref = function()
+    {
+        var s = localStorage.getItem("PREF_ZOOM_BUTTONS_ENABLED");
+        return s != null && s == "1";
+    };
+
+
+    MenuHelper.SetZoomButtonsEnabledPref = function(s)
+    {
+        localStorage.setItem("PREF_ZOOM_BUTTONS_ENABLED", s ? "1" : "0");
+    };
+
+
+    MenuHelper.InitReticleFromPref = function()
+    {
+        if (MenuHelper.GetReticleEnabledPref())
+        {
+            _hudProxy.Enable();
+            ElGet("chkMenuToggleReticle").checked = true;
+        }//if
+    };
+
+
+    MenuHelper.OptionsClearSelection = function(ul_id)
+    {
+        var ul = ElGet(ul_id);
+        var ns = ul.children;
+    
+        for (var i=0; i<ns.length; i++)
+        {
+            var el = ns[i].firstChild;
+
+            if (el.className != null && el.className.length > 0)
+            {
+                el.className = el.className.replace(/ menu_option_selected/, "");
+                el.className = el.className.replace(/menu_option_selected/, "");
+            }//if
+        }//for
+    };
+
+
+    MenuHelper.OptionsGetSelectedValue = function(ul_id)
+    {
+        var ul = ElGet(ul_id);
+        var ns = ul.children;
+        var idx = -1;
+
+        for (var i=0; i<ns.length; i++)
+        {
+            var el = ns[i].firstChild;
+        
+            if (el.className != null && el.className.indexOf("menu_option_selected") >= 0)
+            {
+                idx = parseInt(el.getAttribute("value"));
+                break;
+            }//if
+        }//for
+
+        return idx;
+    };
+
+
+    MenuHelper.OptionsSetSelection = function(ul_id, value)
+    {
+        var ul = ElGet(ul_id);
+        var ns = ul.children;
+
+        for (var i=0; i<ns.length; i++)
+        {
+            var el = ns[i].firstChild;
+
+            if (el.getAttribute("value")!= null && parseInt(el.getAttribute("value")) == value)
+            {
+                el.className = (el.className != null ? el.className + " " : "") + "menu_option_selected";
+                break;
+            }//if
+        }//for
+    };
+
+
+    MenuHelper.SyncBasemap = function()
+    {
+        var idx = BasemapHelper.GetCurrentInstanceBasemapIdx();
+
+        MenuHelper.OptionsClearSelection("ul_menu_basemap");
+        MenuHelper.OptionsSetSelection("ul_menu_basemap", idx);
+    };
+
+
+    return MenuHelper;
+})();
+
+
+
+
+var MenuHelperStub = (function()
+{
+    function MenuHelperStub()
+    {
+    }
+
+    MenuHelperStub.Init = function()
+    {
+        MenuHelperStub.InitLayers_BindLayers();
+        MenuHelperStub.InitBasemap_BindBasemap();
+    };
+
+
+    MenuHelperStub.InitLayers_BindMore = function()
+    {
+        // Add "more layers" linkbutton
+        var ul = ElGet("ul_menu_layers");
+        var li = ElCr("li"), div = ElCr("div"), s0 = ElCr("span"), d0 = ElCr("div");
+        var c  = ElCr("input"), cd0 = ElCr("div"), cd1 = ElCr("div");
+
+        ul.style.marginTop = "0px";
+
+        li.id = "li_menu_morelayers";
+
+        div.id           = "lnkMenuLayersMore";
+        div.style.height = "22px";
+        div.style.width  = "200px";
+        div.className    = "menu-prefs-chk-item";
+
+        s0.id               = "lblMenuMore";
+        s0.style.marginLeft = "auto";
+        s0.style.fontSize   = "14px";
+
+        d0.style.marginLeft = "10px";
+
+        c.id        = "chkMenuLayersMore";
+        c.type      = "checkbox";
+        c.className = "ios-switch scgreen";
+
+        AList(div, "click", function() { MenuHelper.MoreLayers_OnClick() });
+
+        cd0.appendChild(cd1);
+         d0.appendChild(c);
+         d0.appendChild(cd0);
+        div.appendChild(s0);
+        div.appendChild(d0);
+         li.appendChild(div);
+         ul.appendChild(li);
+    };
+
+
+    MenuHelperStub.InitLayers_BindLayers = function()
+    {
+        MenuHelperStub.InitLayers_BindMore();
+
+        var ids = MenuHelperStub.GetLayerIdxs_All();
+
+        var cb = function(idx)
+        {
+            MenuHelper.OptionsClearSelection("ul_menu_layers");
+            MenuHelper.OptionsSetSelection("ul_menu_layers", idx);
+            _ui_layer_idx = idx;
+            LayersHelper.UiLayers_OnChange();
+        };
+
+        MenuHelperStub.BindOptions("ul_menu_layers", "menu_layers_", ids, cb);
+        MenuHelperStub.BindOptionLabelsToDivs("menu_layers_", ids);
+
+        // Expand section by default
+        var t0 = ElGet("lblMenuLayersTitle");
+        t0.classList.toggle("active");
+        t0.parentElement.nextElementSibling.classList.toggle("show");
+
+        var t1 = ElGet("lblMenuLogsTitle");
+        t1.classList.toggle("active");
+        t1.parentElement.nextElementSibling.classList.toggle("show");
+
+        var t2 = ElGet("lblMenuRealtimeTitle");
+        t2.classList.toggle("active");
+        t2.parentElement.nextElementSibling.classList.toggle("show");
+    };
+
+
+    MenuHelperStub.InitBasemap_BindBasemap = function()
+    {
+        var ids = MenuHelperStub.GetBasemapIdxs_All();
+
+        var cb = function(idx)
+        {
+            map.setMapTypeId(BasemapHelper.GetMapTypeIdForBasemapIdx(idx));
+            MenuHelper.SyncBasemap();
+        };
+
+        MenuHelperStub.BindOptions("ul_menu_basemap", "menu_basemap_", ids, cb);
+    };
+
+
+    MenuHelperStub.BindOptionLabelsToDivs = function(div_id_prefix, div_ids)
+    {
+        for (var i=0; i<div_ids.length; i++)
+        {
+            var el_name = div_id_prefix + div_ids[i];
+            var div = ElGet(el_name);
+            var s_label = ElCr("span");
+            var s_date = ElCr("span");
+
+            div.className = (div.className != null ? div.className + " " : "") + "menu-section-list-tag-container";
+
+            s_date.className = "menu-section-list-tag";
+            s_date.id = el_name + "_date_label";
+            s_label.id = el_name + "_label";
+
+            div.appendChild(s_label);
+            div.appendChild(s_date);
+        }//for
+    };
+
+
+    MenuHelperStub.BindOptions = function(ul_id, div_id_prefix, div_ids, fx_callback)
+    {
+        var ul = ElGet(ul_id);
+
+        for (var i=0; i<div_ids.length; i++)
+        {
+            var l = ElCr("li");
+            var d = ElCr("div");
+
+            ul.appendChild(l);
+            l.appendChild(d);
+            d.id = div_id_prefix + div_ids[i];
+            d.setAttribute("value", "" + div_ids[i]);
+            d.addEventListener("click", function() { fx_callback(parseInt(this.getAttribute("value"))); }.bind(d), false);
+        }//for
+    };
+
+    // ***** DEFS *****
+    // These are used by MenuHelper, even when setting labels.
+    // They are consolidated to be defined here in one location.
+
+    MenuHelperStub.GetLogIdxsWithUiVisibility = function()
+    {
+        var d = new Array();
+        for (var i=0; i<=3; i++)
+        {
+            d.push({ i:i, v:MenuHelperStub.UiVisibility.Normal });
+        }//for
+        return d;
+    };
+
+    MenuHelperStub.GetBasemapIdxsWithUiVisibility = function()
+    {
+        var d = new Array();
+        for (var i=0; i<=11; i++)
+        {
+            d.push({ i:i, v:MenuHelperStub.UiVisibility.Normal });
+        }//for
+        return d;
+    };
+
+    MenuHelperStub.GetLayerIdxsWithUiVisibility = function()
+    {
+        var d = 
+        [ 
+            { i:   11, v:MenuHelperStub.UiVisibility.Normal },
+            { i:    0, v:MenuHelperStub.UiVisibility.Always },
+            { i:    1, v:MenuHelperStub.UiVisibility.Normal },
+            { i:    2, v:MenuHelperStub.UiVisibility.Normal },
+            { i:   12, v:MenuHelperStub.UiVisibility.Always },
+            { i:    8, v:MenuHelperStub.UiVisibility.Normal },
+            { i:    9, v:MenuHelperStub.UiVisibility.Normal },
+            { i:    3, v:MenuHelperStub.UiVisibility.Normal },
+            { i:    4, v:MenuHelperStub.UiVisibility.Normal },
+            { i:    5, v:MenuHelperStub.UiVisibility.Normal },
+            { i:    6, v:MenuHelperStub.UiVisibility.Normal },
+            { i:   10, v:MenuHelperStub.UiVisibility.Hidden },
+            { i:10001, v:MenuHelperStub.UiVisibility.Hidden }
+        ];
+
+        return d;
+    };
+
+    MenuHelperStub.GetGenericIdxs_WhereVisibilityIn = function(s, v)
+    {
+        var d = new Array();
+        var j, m;
+
+        for (var i=0; i<s.length; i++)
+        {
+            m = false;
+
+            for (j=0; j<v.length; j++)
+            {
+                if (s[i].v == v[j])
+                {
+                    m = true;
+                    break;
+                }//if
+            }//for
+
+            if (m) { d.push(s[i].i); }
+        }//for
+
+        return d;
+    };
+
+    MenuHelperStub.GetBasemapIdxs_WhereVisibilityIn = function(v)
+    {
+        var s = MenuHelperStub.GetBasemapIdxsWithUiVisibility();
+        return MenuHelperStub.GetGenericIdxs_WhereVisibilityIn(s, v);
+    };
+
+    MenuHelperStub.GetLogIdxs_WhereVisibilityIn = function(v)
+    {
+        var s = MenuHelperStub.GetLogIdxsWithUiVisibility();
+        return MenuHelperStub.GetGenericIdxs_WhereVisibilityIn(s, v);
+    };
+
+    MenuHelperStub.GetLayerIdxs_WhereVisibilityIn = function(v)
+    {
+        var s = MenuHelperStub.GetLayerIdxsWithUiVisibility();
+        return MenuHelperStub.GetGenericIdxs_WhereVisibilityIn(s, v);
+    };
+
+    MenuHelperStub.GetLayerIdxs_All = function()
+    {
+        var v = [MenuHelperStub.UiVisibility.Hidden, MenuHelperStub.UiVisibility.Normal, MenuHelperStub.UiVisibility.Always];
+        return MenuHelperStub.GetLayerIdxs_WhereVisibilityIn(v);
+    };
+
+    MenuHelperStub.GetLayerIdxs_NotHidden = function()
+    {
+        var v = [MenuHelperStub.UiVisibility.Normal, MenuHelperStub.UiVisibility.Always];
+        return MenuHelperStub.GetLayerIdxs_WhereVisibilityIn(v);
+    };
+
+    MenuHelperStub.GetLayerIdxs_NotAlways = function()
+    {
+        var v = [MenuHelperStub.UiVisibility.Hidden, MenuHelperStub.UiVisibility.Normal];
+        return MenuHelperStub.GetLayerIdxs_WhereVisibilityIn(v);
+    };
+
+    MenuHelperStub.GetLayerIdxs_Normal = function()
+    {
+        var v = [MenuHelperStub.UiVisibility.Normal];
+        return MenuHelperStub.GetLayerIdxs_WhereVisibilityIn(v);
+    };
+
+    MenuHelperStub.GetBasemapIdxs_All = function()
+    {
+        var v = [MenuHelperStub.UiVisibility.Hidden, MenuHelperStub.UiVisibility.Normal, MenuHelperStub.UiVisibility.Always];
+        return MenuHelperStub.GetBasemapIdxs_WhereVisibilityIn(v);
+    };
+
+    MenuHelperStub.GetLogIdxs_All = function()
+    {
+        var v = [MenuHelperStub.UiVisibility.Hidden, MenuHelperStub.UiVisibility.Normal, MenuHelperStub.UiVisibility.Always];
+        return MenuHelperStub.GetLogIdxs_WhereVisibilityIn(v);
+    };
+
+    MenuHelperStub.UiVisibility =
+    {
+          Null: 0,
+        Hidden: 1,
+        Normal: 2,
+        Always: 3
+    };
+
+    return MenuHelperStub;
+})();
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

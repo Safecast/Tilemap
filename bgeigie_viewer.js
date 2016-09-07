@@ -347,7 +347,7 @@ var BVM = (function()
         }.bind(this);
     
         var page_url = base_url + (pageIdx > 1 ? "&page=" + pageIdx : "") + (extra_params != null ? extra_params : "");
-
+        
         this.xfm.AddTask(page_url, null, cb, [base_url, xfType, pageIdx, pageLimit, extra_params], title, xfType, 0);
     };
 
@@ -400,6 +400,13 @@ var BVM = (function()
         if (txt == null || txt.length == 0)
         {
             var url = "https://api.safecast.org/bgeigie_imports.json?order=created_at+desc";
+            this.GetJSONAsyncByQuery_AllPages(url, XF.TypeLogQueryByUser, 1, page_limit, extra_params);
+        }//if
+        
+        if (txt != null && txt.length > 0 && txt.substring(0,1) == "c" && txt.indexOf("cosmic") == 0)
+        {
+            page_limit = 250;
+            var url = "https://api.safecast.org/bgeigie_imports.json?subtype=Cosmic";
             this.GetJSONAsyncByQuery_AllPages(url, XF.TypeLogQueryByUser, 1, page_limit, extra_params);
         }//if
     

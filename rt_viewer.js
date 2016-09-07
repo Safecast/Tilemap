@@ -24,46 +24,7 @@
 // -------------------------------
 // var rtvm = new RTVM(map, null);
 //
-// 3. Add a log by URL directly
-// -------------------------------
-// bvm.GetSensorsFromUrlAsync("http://realtime.safecast.org/wp-content/uploads/devices.json");
-
-
-// =================================
-// Optional - Data Transfer UI
-// =================================
-//
-// To display a UI showing download progress to the user, a div with a specific ID is required.
-// This div is used to inject HTML, as Google Maps does with "map_canvas" above.
-// External CSS styles and an image are also required.
-//
-// 1. HTML Div
-// -------------------------------
-// <div id="bv_transferBar" class="bv_transferBarHidden"></div>
-//
-// 2. World Map PNG (256x256)
-// -------------------------------
-// By default, "world_155a_z0.png" should be in the same path.
-//
-// 3. CSS Styles (many)
-// -------------------------------
-// Required styles are as follows.
-//
-// #bv_transferBar { position:absolute;top:0;bottom:0;left:0;right:0;margin:auto;padding:10px 0px 20px 20px;border:0px;background-color:rgba(255, 255, 255, 0.75);font-size:80%; }
-// .bv_transferBarVisible { visibility:visible;z-index:8;width:276px;height:286px;overflow:visible; }
-// .bv_transferBarHidden { visibility:hidden;z-index:-9000;width:0px;height:0px;overflow:hidden; }
-// .bv_FuturaFont { font-size:100%;font-family:Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif; }
-// .bv_hline { overflow:hidden;text-align:center; }
-// .bv_hline:before, .bv_hline:after { background-color:#000;content:"";display:inline-block;height:1px;position:relative;vertical-align:middle;width:50%; }
-// .bv_hline:before { right:0.5em;margin-left:-50%; }
-// .bv_hline:after { left:0.5em;margin-right:-50%; }
-//
-// Note the font can be anything, but should be about that size.
-// That font class is also used for marker info windows.
-
-
-
-
+// Instantiate will auto-initialize and start polling.
 
 
 
@@ -80,12 +41,13 @@ var RTVM = (function()
 {
     function RTVM(map, dataBinds)
     {
-        this.mapRef   = map;
-        this.isMobile = RTVM.IsPlatformMobile();
-        this.mks      = null; // marker manager
-        this.failures = 0;
-        this.fail_max = (86400 * 365) / 600;
-        this.last_tx  = 0;
+        this.mapRef    = map;
+        this.isMobile  = RTVM.IsPlatformMobile();
+        this.mks       = null; // marker manager
+        this.failures  = 0;
+        this.fail_max  = (86400 * 365) / 600;
+        this.last_tx   = 0;
+        this.enabled   = true;
         
         this.dataBinds = dataBinds;
         
@@ -116,16 +78,9 @@ var RTVM = (function()
     {
         var binds =
         {
-            elementIds:
-            {
-            },
             cssClasses:
             {
-                bv_FuturaFont:"bv_FuturaFont"
-            },
-            urls:
-            {
-                world_155a_z0:"world_155a_z0.png"
+                FuturaFont:"FuturaFont"
             }
         };
         
@@ -134,7 +89,7 @@ var RTVM = (function()
 
     RTVM.prototype.Init_MKS = function()
     {
-        this.mks = new RTMKS(this.mapRef, RTICO.IconStyleLg, window.devicePixelRatio, this.isMobile, this.dataBinds.cssClasses.bv_FuturaFont);
+        this.mks = new RTMKS(this.mapRef, RTICO.IconStyleLg, window.devicePixelRatio, this.isMobile, this.dataBinds.cssClasses.FuturaFont);
     };
     
     RTVM.prototype.InitMarkersAsync = function()
@@ -173,6 +128,18 @@ var RTVM = (function()
 
     RTVM.prototype.GetJSONAsync = function(url)
     {
+        // 2016-08-14 ND: Fix for not being able to disable via UI due to timer polling.
+        //                This keeps timers running, but simply does a no-op.
+        if (!this.enabled)
+        {
+            setTimeout(function() {
+                this.last_tx = (new Date()).getTime();
+                this.GetJSONAsync(url);
+            }.bind(this), 60 * 1000);
+                
+            return;
+        }//if
+    
         var d           = new Date();
         var ss_now      = "" + (parseInt(d.getTime() * 0.001));
         var url_nocache = url + "?t=" + ss_now;
@@ -196,8 +163,13 @@ var RTVM = (function()
                 
                 if (obj != null)
                 {
-                    this.mks.AddSensorDataFromJson(obj);
-                    this.mks.AddMarkersToMap();
+                    // 2016-08-14 ND: Recheck enabled status due to HTTP GET latency, to make sure
+                    //                markers are not being added against user's preference.
+                    if (this.enabled)
+                    {
+                        this.mks.AddSensorDataFromJson(obj);
+                        this.mks.AddMarkersToMap();
+                    }//if
                 }//if
                 else
                 {
@@ -214,9 +186,9 @@ var RTVM = (function()
             {
                 console.log("RTVM: Error getting sensors from URL: %s", url);
             }//if
-            
+
             var after_ms = (success ? 60 : 600) * 1000; // 1 min normally, 10 mins on failure
-            
+
             if (this.failures < this.fail_max)
             {
                 setTimeout(function() {
@@ -225,7 +197,7 @@ var RTVM = (function()
                 }.bind(this), after_ms);
             }//if
         }.bind(this);
-        
+
         RTVM.GetAsync_HTTP(url_nocache, null, null, cb, null);
     };
     
@@ -267,7 +239,16 @@ var RTVM = (function()
     {
         return this.mks == null || this.mks.cpms == null ? 0 : this.mks.cpms.length;
     };
-    
+
+    RTVM.prototype.GetEnabled = function()
+    {
+        return this.enabled;
+    };
+
+    RTVM.prototype.SetEnabled = function(v)
+    {
+        this.enabled = v;
+    };
 
 
     // =======================================================================================================
@@ -1132,13 +1113,9 @@ var RTMKS = (function()
                 return a[prop] > b[prop] ?  1 
                      : a[prop] < b[prop] ? -1 : 0;
             }//if
-            else if (a_thr)
-            {
-                return 1;
-            }//else if
             else
             {
-                return -1;
+                return a_thr ? 1 : -1;
             }//else
         });
         
@@ -1332,10 +1309,10 @@ var RTMKS = (function()
         //     don't do this in mini mode since no graph is displayed.
     
         html += "<table style='"
-             +  "width:" + tblw + "px;border:0px;padding:0px;"
+             +  "width:" + tblw + "px; border:0px; padding:0px;"
              +  (!mini ? "margin-right:15px;" : "")
              +  "margin-left:23px;"
-             +  "border-spacing:0px;border-collapse:collapse;"
+             +  "border-spacing:0px; border-collapse:collapse;"
              +  "'"
              +  (fontCssClass != null ? " class='" + fontCssClass + "'" : "")
              +  ">";
@@ -1343,7 +1320,7 @@ var RTMKS = (function()
         // Title: Location
 
         html += "<tr>";
-        html += "<td colspan=2 style='text-align:center;font-size:16px;'>";
+        html += "<td colspan=2 style='text-align:center; font-size:16px;'>";
         html += (!mini ? "<span style='padding-left:15px;'>" : "")
              +  loc 
              +  (!mini ? "</span>" : "");
@@ -1362,7 +1339,7 @@ var RTMKS = (function()
                 html += "<td colspan=2 style='padding:10px 1px 1px 1px;'>";
                 html += "<table style="
                      +  "'"
-                     +  "width:" + tblw + "px;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;"
+                     +  "width:" + tblw + "px; border:0px; padding:0px; border-spacing:0px; border-collapse:collapse;"
                      +  "'"
                      +  (fontCssClass != null ? " class='" + fontCssClass + "'" : "")
                      +  ">"
@@ -1456,7 +1433,7 @@ var RTMKS = (function()
                  +  ">";
 
             html += "<td colspan=2 style='line-height:20px;'>";
-            html += "<a style='color:rgb(66,114,219);font-size:12px;text-decoration:none;vertical-align:bottom;'"
+            html += "<a style='color:rgb(66,114,219); font-size:12px; text-decoration:none; vertical-align:bottom;'"
                  +  " href='" + linkurls[i] + "' target=_blank>"
                  +  "詳細 · more info"
                  +  "</a>";

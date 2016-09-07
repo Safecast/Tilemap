@@ -23,59 +23,77 @@ body
     padding:0px;
 }
 
-#mainMenu, #contextMenu 
-{
-	position: absolute;
-	min-width: 100px;
-	z-index: 1000;
-	background: #fff;
-	border-top: solid 1px #CCC;
-	border-left: solid 1px #CCC;
-	border-bottom: solid 1px #676767;
-	border-right: solid 1px #676767;
-	padding: 0px;
-	margin: 0px;
-}
- 
-#mainMenu a, #contextMenu a 
-{
-	color: #000;
-	text-decoration: none;
-	display: block;
-	line-height: 22px;
-	height: 22px;
-	padding: 1px 10px;
-}
- 
-#mainMenu li, #contextMenu li 
-{
-    font-size: 80%;
-	list-style: none;
-	padding: 1px;
-	margin: 0px;
-}
- 
-#mainMenu li.hover a, #contextMenu li.hover a { background-color: #A7C4FA; }
-#mainMenu li.separator, #contextMenu li.separator { border-top: solid 1px #ccc; }
+@media screen and (max-height:447px) { #imgScale    { display:none; } }
+@media screen and (min-width:801px)  { #whatsnewdiv { left:131px;top:10px; } }
+@media screen and (max-width:800px)  { #whatsnewdiv { left:91px; top:10px; } }
 
-@media screen and (max-height:447px) { #imgScale  { display:none; } }
-@media screen and ( max-width:500px) { #searchbar { display:none; } }
-@media screen and (min-width:801px) { #whatsnewdiv { left:131px;top:10px; } }
-@media screen and (max-width:800px) { #whatsnewdiv { left:91px; top:10px; } }
+#map_canvas
+{
+    width:100%;
+    height:100%;
+}
+
+#map_canvas div
+{
+          transition:none !important; 
+  -webkit-transition:none !important;
+}
+
+.FuturaFont, .gm-style, .poi-info-window div, .poi-info-window a, .menu
+{
+    font-family:Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif !important;
+}
+
+#logo2, .hud_btnW, #imgScale, #imgMenuReticle, .slideout-menu, #imgMenuSafecastIcon { -webkit-user-select:none; -webkit-user-drag:none; }
+
+#contextMenu 
+{
+	position:absolute;
+	min-width:100px;
+	z-index:1000;
+	background:#FFF;
+	border-top:solid 1px #CCC;
+	border-left:solid 1px #CCC;
+	border-bottom:solid 1px #676767;
+	border-right:solid 1px #676767;
+	padding:0;
+	margin:0;
+}
+ 
+#contextMenu a 
+{
+	color:#000;
+	text-decoration:none;
+	display:block;
+	line-height:22px;
+	height:22px;
+	padding:1px 10px;
+}
+ 
+#contextMenu li 
+{
+    font-size:80%;
+	list-style:none;
+	padding:1px;
+	margin:0;
+}
+ 
+#contextMenu li.hover a { background-color:#A7C4FA; }
+#contextMenu li.separator { border-top:solid 1px #CCC; }
 
 #whatsnew, #warning_message
 {
     position: absolute;
-    top:0px;
-    left:0px;
-    right:0px;
-    bottom:0px;
-    z-index: 10;
-    background-color: rgba(255, 255, 255, 1.0);
-    padding: 20px 20px 20px 20px;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:10;
+    background-color:#FFF;
+    padding:20px;
     width:424px;
     height:424px;
-    font-size:80%;
+    font-size:13px;
     vertical-align:top;
     margin:auto;
     overflow-x:hidden;
@@ -86,74 +104,44 @@ body
 #scale 
 {
     position:absolute;
-    bottom:11px;
-    right:0px;
+    bottom:30px;
+    left:0px;
     z-index:1;
     background-color:rgba(0,0,0,0);
-    padding:0px 0px 0px 0px;
+    padding:0;
     text-align:right;
+    transition:transform 0.3s;
+    -webkit-transition:transform 0.3s;
 }
+
+.slideout-open #scale { transform:translateX(256px); }
 
 #logo2
 {
+    position:absolute;
+    z-index:6;
+    padding:0;
+    margin:0; 
     left:10px;
     top:10px;
-    position: absolute;
-    z-index: 6;
-    background-color: rgba(255, 255, 255, 0.75);
-    padding: 0px 5px 0px 5px;
-    font-size: 80%;
-    vertical-align: top;
-    -webkit-border-radius:3;
-    -moz-border-radius:3;
-    border-radius:3px;
+    background-color:rgba(0,0,0,0);
+    cursor:pointer;
 }
 
-#logo2, #bottombar0, .hud_btnW, #logo271, #imgScale, #hud_btnToggle { -webkit-user-select: none; -webkit-user-drag: none; }
-
-.sc_hline { overflow: hidden; text-align: center; }
-
-.sc_hline:before, .sc_hline:after
+.sc_hline { overflow:hidden; text-align:center; }
+.sc_hline:before, 
+.sc_hline:after
 {
-    background-color: #000;
-    content: "";
-    display: inline-block;
-    height: 1px;
-    position: relative;
-    vertical-align: middle;
-    width: 50%;
+    background-color:#000;
+    content:"";
+    display:inline-block;
+    height:1px;
+    position:relative;
+    vertical-align:middle;
+    width:50%;
 }
-
 .sc_hline:before { right:0.5em; margin-left:-50%; }
-.sc_hline:after { left:0.5em; margin-right:-50%; }
-
-#bottombar0
-{
-    position:absolute;
-    top:60px;
-    left:20px;
-    z-index:6;
-    background-color: rgba(0,0,0,0.0);
-    padding: 0px 0px 0px 0px;
-}
-
-#searchbar
-{
-    position:absolute;
-    bottom:3px;
-    left:80px;
-    background-color:rgba(0,0,0,0.0);
-    padding:1px 5px 0px 0px;
-    opacity:0.5;
-}
-   
-#map_canvas { width:100%; height:100%; }
-
-.FuturaFont, .gm-style, .poi-info-window div, .poi-info-window a
-{
-    font-size:100%;
-    font-family:Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif !important;
-}
+.sc_hline:after  { left:0.5em; margin-right:-50%; }
 
 #popup
 {
@@ -162,7 +150,7 @@ body
     left:30px;
     width:420px;
     height:570px;
-    font-size: 60%;
+    font-size:60%;
     margin:10px auto; 
     border:1px solid #333;
     background-color:rgba(255,255,255,0.8);
@@ -185,66 +173,48 @@ body
     -ms-interpolation-mode:nearest-neighbor;
 }
 
+/*
+.noblur img[src^="http://te"],
+.noblur img[src^="http://nnsa"]
+{
+  -webkit-filter: drop-shadow(2px 2px 2px #000);
+  filter: drop-shadow(2px 2px 2px #000);
+}
+*/
+
 .hud_btnW
 {
-    color:#000000;
+    color:#000;
     background:rgba(0,0,0,0.0);
-    padding:2px 2px 2px 2px;
+    padding:2px;
     border:solid #000000 1px;
     -webkit-border-radius:3;
-    -moz-border-radius:3;
-    border-radius: 3px;
+       -moz-border-radius:3;
+            border-radius: 3px;
     white-space:nowrap;
-    margin:0px 1px 0px 0px;
+    margin:0 1px 0 0;
 }
 
 .hud_btnW:hover { background:#EFEFEF; text-decoration:none; }
-.sclinks { color:#000; text-decoration:underline; }
-.sctd { width:33%; text-align:center; padding:0px; }
+</style>
 
-#sctbl
+<style type="text/css">
+@media screen and (min-width:555px) 
 {
-    width:181px;
-    border:0px;
-    padding:0px;
-    border-spacing:0px;
-    border-collapse:collapse;
+    #tsPanel { transition:0.3s; }
+    .slideout-open #tsPanel { transform:translateX(256px); }
 }
-
-#logo271
-{
-    padding:5px 0px 0px 0px;
-    border:0px;
-    margin:0px 0px -2px 0px;
-    visibility:hidden;
-}
-
-#imgScale { margin-top:-2px; }
-
-#layers
-{
-   border:1px solid #808080;
-   height:18px;
-   font-size:11px;
-   vertical-align:middle;
-   width:171px;
-}
-
-
-
-
-
 
 #tsPanel
 {
     display:none;
     position:absolute;
-    top:86px;
-    left:10px;
+    top:10px;
+    left:70px;
     z-index:5;
     vertical-align:top;
-    padding:0px;
-    background-color:rgba(255, 255, 255, 0.0);
+    padding:0;
+    background-color:rgba(0,0,0,0);
 }
 
 #tsPanelTitle
@@ -253,19 +223,19 @@ body
     font-size:19px;
     text-align:center;
     vertical-align:middle;
-    padding:1px 0px 1px 0px;
+    padding:1px 0 1px 0;
     -webkit-border-radius:3 3 0 0;
-    -moz-border-radius:3 3 0 0;
-    border-radius:3px 3px 0px 0px;
+       -moz-border-radius:3 3 0 0;
+        border-radius:3px 3px 0 0;
     background-color:#FFF;
 }
 
 #tsPanelContent
 {
     -webkit-border-radius:0 3 3 3;
-    -moz-border-radius:0 3 3 3;
-    border-radius:0px 3px 3px 3px;
-    background-color:rgba(255, 255, 255, 0.85);
+       -moz-border-radius:0 3 3 3;
+            border-radius:0 3px 3px 3px;
+    background-color:rgba(255,255,255,0.85);
 }
 
 #tsPanelContentTitle
@@ -273,51 +243,40 @@ body
     font-size:10px;
     text-align:left;
     vertical-align:middle;
-    padding:1px 0px 1px 30px;
+    padding:1px 0 1px 30px;
 }
 
 #tsPanelContentTable
 {
     width:227px;
     height:92px;
-    border:0px;
-    padding:0px 5px 0px 5px;
-    border-spacing:0px;
+    border:0;
+    padding:0 5px 0 5px;
+    border-spacing:0;
     border-collapse:collapse;
 }
 
+.tsInfoTd, .tsDateTd { white-space:nowrap; }
 
-.tsInfoTd, .tsDateTd { white-space: nowrap; }
-
-.tsInfoTd   { text-align:left;   padding:3px 0px 3px 0px; font-size:9px; margin-bottom:5px; }
-.tsDateTd   { text-align:center; padding:0px;             font-size:16px; }
+.tsInfoTd   { text-align:left;   padding:3px 0 3px 0; font-size:9px; margin-bottom:5px; }
+.tsDateTd   { text-align:center; padding:0px;         font-size:16px; }
 .tsSliderTd { text-align:center; padding-top:15px; }
 
-
-
-.tsInfoLabel, .tsInfoSubLabel { padding:0px 0px 0px 10px; }
+.tsInfoLabel, .tsInfoSubLabel { padding:0 0 0 10px; }
 
 .tsInfoLabel    { font-size:19px; }
 .tsInfoSubLabel { font-size:10px; }
 
-
-
-
-
 #tsStartDate, #tsEndDate
-{ 
-    text-align:center; 
-    vertical-align:middle; 
-    padding:4px 10px 4px 10px; 
+{
+    text-align:center;
+    vertical-align:middle;
+    padding:4px 10px;
     -webkit-border-radius:3;
     -moz-border-radius:3;
     border-radius:3px;
     background-color:#FFF; 
 }
-
-
-
-
 
 #tsSliderContainer
 {
@@ -331,15 +290,15 @@ body
     display:block;
     position:absolute;
     width:200px;
-    left:0px;
-    right:0px;
-    margin:0px auto 0px auto;
-    padding:0px;
+    left:0;
+    right:0;
+    margin:0 auto 0 auto;
+    padding:0;
 }
 
 #tsTickImage
 {
-    top:0px;
+    top:0;
     height:4px;
 }
 
@@ -353,36 +312,563 @@ body
 { 
     width:200px;
     height:15px;
-    margin:0px;
-    padding:0px;
+    margin:0;
+    padding:0;
 }
 </style>
 
-<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
-<script type="text/javascript">
-
-function IdxBaseUrl()
-{
-    //var tzmi  = (new Date()).getTimezoneOffset();
-    //var is_jp = (-540 - 180) <= tzmi && tzmi <= (-540 + 180);
-    //return "http://tilemap" + (is_jp ? "jp" : "") + ".safecast.org.s3.amazonaws.com/";
-    return "";
+<style type="text/css">
+.slideout-menu {
+    position:fixed;
+    left:0;
+    top:0;
+    bottom:0;
+    right:0;
+    z-index:99999;
+    width:256px;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    display:block;
+    transform:translateX(-256px);
 }
 
-function InitCodeBehind()
+.slideout-panel {
+    position:relative;
+    z-index:1;
+    will-change:transform;
+}
+
+.slideout-open,
+/*.slideout-open body,*/
+.slideout-open .slideout-panel {
+    overflow: hidden;
+}
+
+.slideout-open .slideout-menu {
+    display:block;
+    transform:translateX(0px);
+    transition:0.3s;
+    -webkit-transition:0.3s;
+}
+
+/*
+.slideout-menu--move {
+  transform: translate(-100%,0);
+  z-index: 2;
+}
+*/
+
+.panel {
+    background-color:#FFF;
+}
+
+.js-slideout-toggle {
+    border:0;
+    outline:none;
+    margin:0 3px;
+}
+
+.js-slideout-toggle > div {
+    font-size:36px;
+    text-align:center;
+    margin:0 0 5px 0;
+    font-family:"Arial Unicode MS";
+}
+
+.menu {
+    color:#737373;
+    background-color:#FFF;
+    background-image:linear-gradient(145deg, #EEE, #FFF);
+}
+
+.menu a {
+    color:#737373;
+    text-decoration: none;
+}
+
+.menu-header {
+    padding:20px 0 20px 60px;
+    background-repeat:no-repeat;
+    background-size:181px 22px;
+    background-position:bottom center;
+}
+
+.menu-header-title {
+    font-weight:400;
+    letter-spacing:0.5px;
+    margin:0;
+}
+
+.menu-section {
+    margin:25px 0;
+}
+
+.menu-section-title {
+    text-transform: uppercase;
+    font-weight:200;
+    font-size:20px;
+    letter-spacing: 4px;
+    padding:0 20px;
+    margin:0;
+}
+
+.menu-section-list {
+    padding:0;
+    margin:10px 0;
+    list-style:none;
+}
+
+.menu-section-list > li > a {
+    display:block;
+}
+
+.menu-section-list > li > a,
+.menu-section-list > li > div {
+    padding:10px 20px;
+}
+
+.menu-section-list div,
+.menu-section-list span
 {
+    cursor:pointer;
+}
+
+.menu-section-list a:hover,
+.menu-section-list div:hover,
+.menu-section-list span:hover, 
+.menu-section-title a:hover,
+.menu-section-title div:hover,
+.menu-section-title span:hover,
+#ddlLanguage:focus,
+#ddlLanguage:hover
+{
+    color:#6ca6bd;
+    text-decoration:none;
+}
+
+.menu_option_selected
+{
+    background-color:rgba(108,166,189,0.4);
+}
+
+.btn_accordion {
+    cursor:pointer;
+    background-color:rgba(0,0,0,0.0);
+    border:none;
+    outline:none;
+    vertical-align:middle;
+    transition: 0.3s;
+}
+
+.btn_accordion:after {
+    content: " " url(data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22iso-8859-1%22%3F%3E%0A%3Csvg%20version%3D%221.1%22%20id%3D%22Capa_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20xmlns%3Axlink%3D%22http%3A//www.w3.org/1999/xlink%22%20x%3D%220px%22%20y%3D%220px%22%0A%09%20viewBox%3D%220%200%20405.456%20405.456%22%20style%3D%22enable-background%3Anew%200%200%20405.456%20405.456%3B%22%20xml%3Aspace%3D%22preserve%22%20width%3D%2223.406px%22%20height%3D%2216px%22%3E%0A%3Cg%3E%0A%09%3Cpath%20style%3D%22fill%3A%23737373%3B%22%20d%3D%22M74.134%2C64.147c-4.985%2C0.078-9.911%2C2.163-13.438%2C5.688l-55%2C55C2.096%2C128.432%2C0%2C133.492%2C0%2C138.583%0A%09%09s2.096%2C10.151%2C5.697%2C13.75l183.281%2C183.281c3.599%2C3.601%2C8.659%2C5.697%2C13.75%2C5.697s10.151-2.096%2C13.75-5.697l183.281-183.281%0A%09%09c3.601-3.599%2C5.697-8.659%2C5.697-13.75s-2.096-10.151-5.697-13.75l-55-55c-3.598-3.591-8.651-5.681-13.734-5.681%0A%09%09c-5.083%2C0-10.136%2C2.09-13.734%2C5.681L202.728%2C184.397L88.166%2C69.833C84.499%2C66.169%2C79.318%2C64.07%2C74.134%2C64.147L74.134%2C64.147z%22/%3E%0A%3C/g%3E%0A%3C/svg%3E%0A);
+    /*content: '\02795';*/
+    float:right;
+    margin-top:3px;
+}
+
+.btn_accordion.active:after {
+    content: " " url(data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22iso-8859-1%22%3F%3E%0A%3Csvg%20version%3D%221.1%22%20id%3D%22Capa_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20xmlns%3Axlink%3D%22http%3A//www.w3.org/1999/xlink%22%20x%3D%220px%22%20y%3D%220px%22%0A%09%20viewBox%3D%220%200%20405.457%20405.457%22%20style%3D%22enable-background%3Anew%200%200%20405.457%20405.457%3B%22%20xml%3Aspace%3D%22preserve%22%20width%3D%2223.406px%22%20height%3D%2216px%22%3E%0A%3Cg%3E%0A%09%3Cpath%20style%3D%22fill%3A%23737373%3B%22%20d%3D%22M331.322%2C341.31c4.985-0.078%2C9.911-2.163%2C13.438-5.688l55-55c3.601-3.599%2C5.697-8.659%2C5.697-13.75%0A%09%09s-2.096-10.151-5.697-13.75L216.478%2C69.841c-3.599-3.601-8.659-5.697-13.75-5.697s-10.151%2C2.096-13.75%2C5.697L5.697%2C253.123%0A%09%09C2.096%2C256.722%2C0%2C261.782%2C0%2C266.873s2.096%2C10.151%2C5.697%2C13.75l55%2C55c3.598%2C3.591%2C8.651%2C5.681%2C13.734%2C5.681%0A%09%09s10.136-2.09%2C13.734-5.681l114.562-114.562L317.29%2C335.623C320.958%2C339.287%2C326.139%2C341.387%2C331.322%2C341.31z%22/%3E%0A%3C/g%3E%0A%3C/svg%3E);
+    /*content: "\2796";*/
+}
+
+.div_accordion {
+    width:100%;
+    max-height:0;
+    overflow:hidden;
+    transition:0.3s ease-in-out;
+    opacity:0;
+    margin:0;
+    padding:0;
+}
+
+.div_accordion.show {
+    opacity:1;
+    overflow:visible;
+    max-height:1000px;
+}
+
+/* https://codepen.io/BandarRaffah/pen/ibwje */
+
+input[type="checkbox"].ios-switch {
+	position:absolute;
+	opacity:0;
+}
+
+input[type="checkbox"].ios-switch + div {
+	vertical-align:middle;
+	width:40px;	height:20px;
+	border:1px solid rgba(0,0,0,0.4);
+	border-radius:999px;
+	background-color:rgba(0,0,0,0.1);
+	-webkit-transition-duration:0.4s;
+	-webkit-transition-property:background-color,box-shadow;
+    transition-duration:0.4s;
+    transition-property:background-color,box-shadow;
+	box-shadow:inset 0 0 0 0px rgba(0,0,0,0.4);
+	margin:15px 1.2em 15px 2.5em;
+}
+
+input[type="checkbox"].ios-switch:checked + div {
+	width:40px;
+	background-position:0 0;
+	background-color:#3b89ec;
+	border:1px solid #0e62cd;
+	box-shadow:inset 0 0 0 10px rgba(59,137,259,1);
+}
+
+input[type="checkbox"].tinyswitch.ios-switch + div {
+	width:34px;	height:18px;
+}
+
+input[type="checkbox"].bigswitch.ios-switch + div {
+	width:50px;	height:25px;
+}
+
+input[type="checkbox"].green.ios-switch:checked + div {
+	background-color:#00e359;
+	border:1px solid rgba(0,162,63,1);
+	box-shadow:inset 0 0 0 10px rgba(0,227,89,1);
+}
+
+input[type="checkbox"].scgreen.ios-switch:checked + div {
+	background-color:#6ca6bd;
+	border:1px solid rgba(76,116,132,1);
+	box-shadow:inset 0 0 0 10px rgba(108,166,189,1);
+}
+
+input[type="checkbox"].ios-switch + div > div {
+	float:left;
+	width:18px; height:18px;
+	border-radius:inherit;
+	background:#FFF;
+	-webkit-transition-timing-function:cubic-bezier(0.54,1.85,0.5,1);
+	-webkit-transition-duration:0.4s;
+	-webkit-transition-property:transform,background-color,box-shadow;
+	-moz-transition-timing-function:cubic-bezier(0.54,1.85,0.5,1);
+	-moz-transition-duration:0.4s;
+	-moz-transition-property:transform,background-color;
+    transition-timing-function:cubic-bezier(0.54,1.85,0.5,1);
+    transition-duration:0.4s;
+    transition-property:transform,background-color,box-shadow;
+	box-shadow:0 2px 5px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.4);
+	pointer-events:none;
+	margin-top:1px;
+	margin-left:1px;
+}
+
+input[type="checkbox"].ios-switch:checked + div > div {
+	-webkit-transform:translate3d(20px,0,0);
+	-moz-transform:translate3d(20px,0,0);
+    transform:translate3d(20px,0,0);
+	background-color:#FFF;
+	box-shadow:0 2px 5px rgba(0,0,0,0.3), 0 0 0 1px rgba(8,80,172,1);
+}
+
+input[type="checkbox"].tinyswitch.ios-switch + div > div {
+	width:16px; height:16px;
+	margin-top:1px;
+}
+
+input[type="checkbox"].tinyswitch.ios-switch:checked + div > div {
+	-webkit-transform:translate3d(16px,0,0);
+	-moz-transform:translate3d(16px,0,0);
+    transform:translate3d(16px,0,0);
+	box-shadow:0 2px 5px rgba(0,0,0,0.3), 0 0 0 1px rgba(8,80,172,1);
+}
+
+input[type="checkbox"].bigswitch.ios-switch + div > div {
+	width:23px; height:23px;
+	margin-top:1px;
+}
+
+input[type="checkbox"].bigswitch.ios-switch:checked + div > div {
+	-webkit-transform:translate3d(25px,0,0);
+	-moz-transform:translate3d(25px,0,0);
+    transform:translate3d(25px,0,0);
+	box-shadow:0 4px 8px rgba(0,0,0,0.3), 0 0 0 1px rgba(8,80,172,1);
+}
+
+input[type="checkbox"].green.ios-switch:checked + div > div {
+	box-shadow:0 2px 5px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,162,63,1);
+}
+
+input[type="checkbox"].scgreen.ios-switch:checked + div > div {
+	box-shadow:0 2px 5px rgba(0,0,0,0.3), 0 0 0 1px rgba(76,116,132,1);
+}
+
+.menu-section-list a[href^="http"]:after {
+     content: " " url(data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%20standalone%3D%22no%22%3F%3E%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%3E%3Cpath%20fill%3D%22%23fff%22%20stroke%3D%22%23000%22%20d%3D%22M1.5%204.518h5.982V10.5H1.5z%22%2F%3E%3Cpath%20d%3D%22M5.765%201H11v5.39L9.427%207.937l-1.31-1.31L5.393%209.35l-2.69-2.688%202.81-2.808L4.2%202.544z%22%20fill%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M9.995%202.004l.022%204.885L8.2%205.07%205.32%207.95%204.09%206.723l2.882-2.88-1.85-1.852z%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E);
+}
+
+#imgMenuReticle {
+    opacity:0.55;
+    padding-right:5px;
+}
+
+.menu-section-list-tag {
+    font-size:12px;
+    font-weight:lighter;
+    border:1px solid #737373;
+    border-radius:5px;
+    padding:1px 3px;
+    white-space:nowrap;
+    margin-left:5px;
+    text-align:left;
+}
+
+
+
+
+.menu-prefs-chk-item {
+    display:flex;
+    align-items:center;
+}
+.menu-prefs-chk-item > div             { margin:0 0 0 auto; }
+.menu-prefs-chk-item > div > div       { margin:0 !important; }
+.menu-prefs-chk-item > div > div > div { margin:1px 0 0 1px !important; }
+
+
+
+#ul_menu_layers > li:not(:first-child) {
+    transition:0.6s ease-in-out;
+    overflow:hidden;
+}
+
+
+
+#ddlLanguage
+{
+    width:191px;
+    margin-top:5px;
+    margin-left:10px;
+    border:1px solid #737373;
+    font-size:16px;
+    color:#737373;
+    border-radius:3px;
+}
+
+#ddlLanguage:focus,
+#ddlLanguage:hover
+{
+    border-color:#000;
+}
+
+#address
+{
+    width:201px;
+    height:21px;
+    background-color:rgba(255,255,255,0.0);
+    border:1px solid #737373;
+    background:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACIAAAAjCAYAAADxG9hnAAACWElEQVRYw+2XW08TURSFv96tBAWqgoBUDWq8RKsxMf54X/XFRK0xGpHAgxo0YKGFthSZ8eVrMql0oJ2Wp+7kpNOZOWevs9a+nIGJTSzeUiNYI+06Fx0Z4MhxCLTOA8gFYAZYBpaAS0BeEAdADdgEfgIdIBgHkCngNnAHKANFIKezIMLMNlAFvgnsRDCZBEAeAM8FUgAaQFPHTYHmgGngps/3lOs/yw4BoKjzx0DJxb8AG0BdRxlgDlgUxArwzPlVYH8UjMwCL4FVN/IGeAXs6KAlIzvAD+A7sOAoA+vAblIgGeA+8Eit3zo6fd7vxksHuCabeWCrN5vSQwToDbOlYUY0gTBmTkvHDf2VjJtUEiBHxkdWdjaAv2eYtwX88npBIOGwQFLAvDs8duGpM87NOe/QOMr3+h4ka0KzYjYStLsDMHksoIL/gyTSZI2LY+eunHGNGeCKm9kG2kljZF+9A/vK/CmB2pWlZF0JZXGvd96g6RsKft5dFl20dgqICnBLJqrWkiAJkEB5lnWQBy4rVctnXbDTZkgFeOg7a8AnmQ2Tlvgw0i+KVthV4J2p/FundyN1B+Aj8EFpE3XfAnAdeALc896e96cjG2t7nZfBpkx8tuS3kwDpBRGo9abSlD2PZI2LlCDrxsN6XOcdBMgi8MKOi43utVqnBLBqbMz5+9Xd10ZxQuvHxHvgT095T0cSIGXRCgcpUHFWAp72YeKkjCLuODgMkJxyVGxyBxEm2uM4xadjgCx5uoqTY2TWj5Gm9KcF0U+Oc/muyQNXrZj1cTExsYlNbFj7B7fOqPSOPkhHAAAAAElFTkSuQmCC");
+    background-repeat:no-repeat;
+    background-size:19px 20px; 
+    background-position:right center;
+    color:#737373;
+    padding:0 5px;
+    border-radius:3px;
+}
+
+#address:focus,
+#address:hover
+{
+    background-color:#FFF;
+    color:#000;
+    border-color:#000;
+}
+
+
+.tooltip {
+    position: relative;
+}
+
+.tooltip .tooltiptext-top,
+.tooltip .tooltiptext-bottom {
+    visibility: hidden;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    position: absolute;
+    z-index: 1;
+    left: 50%;
+    margin-left: -98px;
+    width:196px;
+    max-height:0;
+    height:132px;
+    pointer-events:none;
+    opacity: 0;
+    transition: 0.5s;
+    box-shadow: 5px 5px 5px #888888;
+}
+
+.tooltip .tooltiptext-bottom {
+    top: 100%; /* 150 */
+}
+
+.tooltip .tooltiptext-bottom::after {
+    bottom: 100%;
+    border-color: transparent transparent black transparent;
+}
+
+.tooltip .tooltiptext-top {
+    bottom: 100%; /* 150 */
+}
+
+.tooltip .tooltiptext-top::after,
+.tooltip .tooltiptext-bottom::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    margin-left: -10px;
+    border-width: 10px;
+    border-style: solid;
+}
+
+.tooltip .tooltiptext-top::after {
+    top: 100%;
+    border-color: black transparent transparent transparent;
+}
+
+.tooltip:hover .tooltiptext-top,
+.tooltip:hover .tooltiptext-bottom {
+    visibility: visible;
+    max-height:132px;
+    opacity: 1;
+    transition: 0.5s;
+}
+
+.tooltip .tooltiptext-on
+{
+    opacity:0;
+    z-index:3;
+}
+
+.tooltip:hover .tooltiptext-on,
+.tooltip:hover .tooltiptext-off {
+    max-height:128px;
+}
+
+.tooltip .tooltiptext-on,
+.tooltip .tooltiptext-off
+{
+    position:absolute;
+    z-index:2;
+    top:0px;
+    left:0px;
+    width:192px;
+    height:128px;
+    border-radius: 6px;
+    max-height:0;
+    transition: 0.5s;
+    border:2px solid #000;
+}
+
+
+.tooltip:hover .tooltiptext-on {
+ -webkit-animation: tooltipani 2s linear infinite;
+    -moz-animation: tooltipani 2s linear infinite;
+     -ms-animation: tooltipani 2s linear infinite;
+      -o-animation: tooltipani 2s linear infinite;
+         animation: tooltipani 2s linear infinite;
+}
+
+@keyframes tooltipani {
+   0% { opacity:0; }
+  11% { opacity:1; }
+  55% { opacity:1; } 
+  66% { opacity:0; } 
+ 100% { opacity:0; } }
+@-moz-keyframes tooltipani {
+   0% { opacity:0; }
+  11% { opacity:1; }
+  55% { opacity:1; } 
+  66% { opacity:0; } 
+ 100% { opacity:0; } }
+@-webkit-keyframes "tooltipani" {
+   0% { opacity:0; }
+  11% { opacity:1; }
+  55% { opacity:1; } 
+  66% { opacity:0; } 
+ 100% { opacity:0; } }
+@-ms-keyframes tooltipani {
+   0% { opacity:0; }
+  11% { opacity:1; }
+  55% { opacity:1; } 
+  66% { opacity:0; } 
+ 100% { opacity:0; } }
+@-o-keyframes "tooltipani" {
+   0% { opacity:0; }
+  11% { opacity:1; }
+  55% { opacity:1; } 
+  66% { opacity:0; } 
+ 100% { opacity:0; } }
+</style>
+
+
+
+
+<script type="text/javascript">
+if (true) {
+var _lang_pref = localStorage.getItem("PREF_LANGUAGE");
+var _lang_ja   = (_lang_pref != null && _lang_pref == "ja") || (_lang_pref == null && (new Date()).getTimezoneOffset() == -540);
+var _gmaps_script = document.createElement("script");
+_gmaps_script.async = true;
+_gmaps_script.src = "https://maps.googleapis.com/maps/api/js?v=3.exp&callback=InitGmaps" + (_lang_ja ? "&language=ja&region=JP" : "");
+document.head.appendChild(_gmaps_script);
+}
+</script>
+
+<script type="text/javascript">
+if (true) {
     var el   = document.createElement("script");
     el.async = true;
     el.type  = "text/javascript";
-    var cb   = function(e) { initialize(); el.removeEventListener("load", cb); };
+    var cb   = function(e) 
+    {
+        InitSafemaps();
+        el.removeEventListener("load", cb); 
+    };
     el.addEventListener("load", cb, false);
-    el.src = IdxBaseUrl() + "safemap_min.js?" + (new Date()).getTime();
+    el.src = "safemap_min.js?" + (new Date()).getTime();
     var head = document.getElementsByTagName("head")[0];
     head.appendChild(el);
 }
+</script>
 
-function _gelid(n){return document.getElementById(n);}
-function _nua(s){return navigator.userAgent.indexOf(s)>-1;}
+<script type="text/javascript">
+
+var slideout = null;
+var _index_load_state = { gmaps:false, safemaps:false, ui:false, init:false };
+
+function _nua(s)           { return navigator.userAgent.indexOf(s) > -1; }
+function ElCr(n)           { return document.createElement(n); }
+function ElGet(id)         { return document.getElementById(id); }
+function AList(el,ev,fx)   { return el.addEventListener(ev, fx, false); }
+function AListId(id,ev,fx) { return AList(ElGet(id), ev, fx); }
+
+function InitSafemaps()
+{
+    _index_load_state.safemaps = true;
+    FinishLoadIfPossible();
+}
+
+function FinishLoadIfPossible()
+{
+    if (_index_load_state.gmaps && _index_load_state.safemaps && _index_load_state.ui && !_index_load_state.init)
+    {
+        _index_load_state.init = true;
+        MenuHelperStub.Init();
+        initialize();
+        MenuHelper.InitLoadAsync();
+    }
+}
+
+function InitGmaps()
+{
+    _index_load_state.gmaps = true;
+    FinishLoadIfPossible();
+}
 
 function ShowBrowserWarningWindowIfNeeded()
 {
@@ -398,7 +884,7 @@ function InitGMapsStyleHack()
 {
     var ff = "Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic',Roboto,'Segoe UI',Helvetica,Arial,sans-serif";
     var fr = function(el_name) {
-        var ds = _gelid("map_canvas").getElementsByTagName(el_name);
+        var ds = ElGet("map_canvas").getElementsByTagName(el_name);
         if (ds == null) return;
         for (var i=0; i<ds.length; i++) {
             var s = ds[i].style;
@@ -409,33 +895,53 @@ function InitGMapsStyleHack()
     };
     
     window.setTimeout(fr("div"), 500);
-    window.setTimeout(fr("div"), 4000); // long delay for the basemap DDL if it doesn't load fast.
-    window.setTimeout(fr("a"), 8000); // long delay for the basemap DDL if it doesn't load fast.
 }
 
 function Init()
 {
     if (ShowBrowserWarningWindowIfNeeded()) return;
-    InitCodeBehind();
+
+    _index_load_state.ui = true;
+    FinishLoadIfPossible();
+
+    InjectSafariPerfFix();
     setTimeout(InitGMapsStyleHack, 500);
+    setTimeout(InitMapScale, 2000);
     
-    setTimeout(function() {
-        if (_nua("mobile") || _nua("iPhone") || _nua("iPad") || _nua("Android")) document.getElementById("scale").style.bottom = "10px"; //11 //16
-    }, 500);
-    
-    setTimeout(function() { 
-        _gelid("logo271").src = IdxBaseUrl() + "schoriz_362x44.png";
-        _gelid("logo271").style.visibility = "visible";
-    }, 200);
-    
-    setTimeout(function() { 
-        _gelid("hud_btnToggle").src = IdxBaseUrl() + "reticle_62x62.png";
-        _gelid("hud_btnToggle").title = "Show or hide the query tool reticle.  See a layer's value at a target location.  NOTE: The indicated precision is the color lookup classification range, not the uncertainty of the measurements."
-        _gelid("imgScale").src = IdxBaseUrl() + "scale64_60x854.png";
-        _gelid("imgScale").title = "Yes, it's actually 4x LOG10s.  Very loggy.";
-        _gelid("scale").style.visibility = "visible";
-        _gelid("tsTickImage").src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAABCAMAAADHLAisAAAABlBMVEVfMDCamppiRWYmAAAAAXRSTlMAQObYZgAAABdJREFUeNpjYEABjIwMRAFi1Y2aSKpKABFLABVQjyGWAAAAAElFTkSuQmCC";
-    }, 450);
+    MenuMobileNoHoverHack();
+}
+
+function InitMapScale()
+{
+    ElGet("imgScale").src = "scale64_60x854.png";
+    ElGet("imgScale").title = "Yes, it's actually 4x LOG10s.  Very loggy.";
+    ElGet("scale").style.visibility = "visible";
+}
+
+function MenuMobileNoHoverHack()
+{
+    if (!_nua("mobile") && !_nua("iPhone") && !_nua("iPad") && !_nua("Android")) return;
+    var s = ElCr("style");
+    s.type = "text/css";
+    s.innerHTML = ".menu-section-list a:hover,.menu-section-list div:hover,.menu-section-list span:hover,.menu-section-title a:hover,.menu-section-title div:hover,.menu-section-title span:hover,#ddlLanguage:focus,#ddlLanguage:hover { color:#737373; }";
+    document.head.appendChild(s);
+}
+
+function InjectSafariPerfFix()
+{
+    if (   navigator.platform != null 
+        && navigator.platform == "MacIntel" 
+        && navigator.vendor   != null
+        && navigator.vendor   == "Apple Computer, Inc."
+        && (   _nua("Version/8.")
+            || _nua("Version/9."))
+        && !_nua("Mobile"))
+    {
+        var hax = ElCr("style");
+        hax.type = "text/css";
+        hax.innerHTML = "#map_canvas div { -webkit-transform:translateZ(0px); -webkit-backface-visibility:hidden; }";
+        document.head.appendChild(hax);
+    }//if
 }
 
 if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)) 
@@ -445,49 +951,231 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
         document.documentElement.style.height = window.innerHeight + "px";
         if (document.body.scrollTop !== 0) window.scrollTo(0, 0);
     }.bind(this);
-    window.addEventListener("scroll", fh, false);
-    window.addEventListener("orientationchange", fh, false);
+    AList(window, "scroll", fh);
+    AList(window, "orientationchange", fh);
     fh();
-    document.body.style.webkitTransform = "translate3d(0,0,0)";
-    //document.body.style.position = "fixed";
 }
 </script>
- 
+
 </head>
 <body onload="Init();">
 <div id="map_canvas" class="noblur"></div>
-<form onSubmit="codeAddress(); return false;" style="margin:0px; padding:0px;">
-    <div id="map-layers" style="font-size:small;"> 
+<form onSubmit="codeAddress(); return false;">
+<nav id="menu" class="menu" style="display:none;">
+    <header class="menu-header" id="menu-header">
+        <span class="menu-header-title"></span>
+    </header>
+
+    <section class="menu-section">
+        <ul class="menu-section-list">
+            <li><div id="pnlAddress"><input id="address" type="textbox" placeholder="Find Address..."></div></li>
+            <li>
+                <div id="hud_btnToggle" class="menu-prefs-chk-item" onclick="MenuHelper.Hud_btnToggle_Click();">
+                    <img id="imgMenuReticle" width="34" height="25" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFQAAAA+CAAAAACQb2MhAAAAAnRSTlMA/1uRIrUAAALxSURBVFjDvZhZoewgDECPCxwgAQk4qIU6wEId1EE1oKASsBAb5H10pbd06F0efzOUQ8hGCFobkuI09GGY5iT6bnD/9xwMp2FD+in0QnzP/Qqd/c5xHXRu36FL34SmFelHUVUFVdU0+FfYEiodAH3M2/Q2L9M6JW+hswHoTuvgegib3kEnADcX08Wm0QImvoGGmxUlVPNkgLEd2gH2qjG+GNIAoRUaAJ/1E1TFAVMbdAL6rJ+hmj0wt0DnWzlvoZodGPkMFQMuaxtUxYDNH6Fdbe9bqCbzbKwlDKtauofqBMgHqAevb6DZQv8MnYH0CqqxvmSF+vq2NejTGlVU5wcPqULTk1ZRDQ+mrEK1e8gBqJqHAKlDJ3B16AxG30Pl4fxoeFR5Faq+fn7UVJOOBAd+qATkUD8/Atwvi+s1auea/WtqI4Gt+vc6UkU1FWmUWDmFGLBjSkMtgampWooJuruJsKU3MRWLuKorMlRc3+32GyrbdlUL01MdslvEVr4YfwI1lS+G/3n8PzHUk0uZ1aW6agL4vvM/3pzfDVPRBFxziwzeuP6ovWJncX1qTyj+Cs37lmGRSPzJIZpS36qJM3PclbMUNt3+OzYmaRGRMzTrDLgpxbDKFoF+lujAvLhOyuP7rewMS5BsviwGUvvFV0CPkiZbGFT7zTAeYvsVXUBPt94IXnU8SSrtxUQBHY6wF7CL6H3K0YF9UfYU0P7khgbyolsATHpRoBVQD7vX20Uif8qGzaVkAe1OUAdJD78184uit4CG6/EFsDGlAYy0l+dXQ4XDUEY1bmkngmt/SFxdyhYudbiDg9T85CmgwqbUbCGo9mdobH6cbVDZ8kcRpuPp+EjzM7KM/QS4KHNgCZwE2CgympNOV+0/PHhXqDgzbh+f74UjFZpUPs3Nw9N8hQ5g8v4x0OVDJFaxmpsIKzRZs16tqbcYf9yzqbPggrxod5wS9G81Zn7c7LprIf1CB+1rs+tP2nK/A1VVSfM0hG81EP8BIV8XJEcCH9kAAAAASUVORK5CYII=" />
+                    <span id="lblMenuToggleReticle">Crosshair</span>
+                    <div><input type=checkbox id="chkMenuToggleReticle" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-bottom">
+                        <div style="position:relative;">
+                            <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -85px;"></span>
+                            <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -85px;"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+        </ul>
+    </section>
+
+    <hr/>
+
+    <section class="menu-section">
+        <h3 class="menu-section-title"><span id="lblMenuLayersTitle" class="btn_accordion">Layers </span></h3>
+        <div class="div_accordion">
+        <ul class="menu-section-list" id="ul_menu_layers"></ul>
+        </div>
+    </section>
+
+    <section class="menu-section" id="sectionMenuLogs">
+        <h3 class="menu-section-title"><span id="lblMenuLogsTitle" class="btn_accordion" style="letter-spacing:2px;">bGeigie Logs </span></h3>
+        <div class="div_accordion">
+        <ul class="menu-section-list" id="ul_menu_logs">
+            <li>
+                <div id="menu_logs_0" onclick="LayersHelper.ShowAddLogPanel();">Search Logs...</div>
+                <span class="tooltiptext-bottom">
+                    <div style="position:relative;">
+                        <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) 0 -2076px;"></span>
+                        <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -2112px;"></span>
+                    </div>
+                </span>
+            </li>
+            <li>
+                <div id="menu_logs_1" onclick="MenuHelper.OptionsClearSelection('ul_menu_layers'); MenuHelper.OptionsSetSelection('ul_menu_layers', 11); LayersHelper.UiLayers_OnChange(); LayersHelper.AddLogsCosmic();">Add Cosmic Logs</div>
+                <span class="tooltiptext-bottom">
+                    <div style="position:relative;">
+                        <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -2880px;"></span>
+                        <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -2880px;"></span>
+                    </div>
+                </span>
+            </li>
+            <li>
+                <div id="menu_logs_2" onclick="if (_bvProxy.GetLogCount() > 0) _bvProxy.btnRemoveLogsOnClick();">Remove All</div>
+                <span class="tooltiptext-bottom">
+                    <div style="position:relative;">
+                        <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -2368px;"></span>
+                        <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -2368px;"></span>
+                    </div>
+                </span>
+            </li>
+            <li>
+                <div id="menu_logs_3" onclick="if (_bvProxy.GetLogCount() > 0) { LayersHelper.ShowAddLogPanel(); setTimeout(function() { _bvProxy.UI_ShowAdvPanel(); }, 100); }">Options</div>
+                <span class="tooltiptext-bottom">
+                    <div style="position:relative;">
+                        <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -2624px;"></span>
+                        <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -2624px;"></span>
+                    </div>
+                </span>
+            </li>
+        </ul>
+        </div>
+    </section>
+
+    <section class="menu-section" id="sectionMenuRealtime">
+        <h3 class="menu-section-title"><span id="lblMenuRealtimeTitle" class="btn_accordion">Realtime </span></h3>
+        <div class="div_accordion">
+        <ul class="menu-section-list" id="ul_menu_realtime">
+            <li>
+                <div id="menu_realtime_0" class="menu-prefs-chk-item">
+                    <span id="menu_realtime_0_label">Radiation Sensors</span>
+                    <div><input type=checkbox id="chkMenuRealtime0" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-bottom">
+                        <div style="position:relative;">
+                            <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -1856px;"></span>
+                            <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -1856px;"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+        </ul>
+        </div>
+    </section>
+
+    <hr/>
+
+    <section class="menu-section">
+        <ul class="menu-section-list">
+            <li><div>言語 · Language<br/>
+                <select id="ddlLanguage" onchange="MenuHelper.ddlLanguage_OnChange();">
+                    <option value="ja">日本語</option>
+                    <option value="en" selected>English</option>
+                </select>
+            </div></li>
+            <li><div id="show" onclick="MenuHelper.CloseAnimationHack(); slideout.close();">About this project...</div></li>
+            <li><a id="aMenuDonate" href="http://blog.safecast.org/donate/" target="_blank">Support this project</a></li>
+            <li><a id="aMenuBlog" href="http://blog.safecast.org" target="_blank">Safecast blog</a></li>
+        </ul>
+    </section>
+
+    <hr/>
+
+    <section class="menu-section">
+        <h3 class="menu-section-title"><span id="lblMenuBasemapTitle" class="btn_accordion">Basemap </span></h3>
+        <div class="div_accordion">
+        <ul class="menu-section-list" id="ul_menu_basemap"></ul>
+        </div>
+    </section>
+
+    <hr/>
+
+    <section class="menu-section">
+        <h3 class="menu-section-title"><span id="lblMenuAdvancedTitle" class="btn_accordion">Advanced </span></h3>
+        <div class="div_accordion">
+        <ul class="menu-section-list">
+            <li>
+                <div id="menu_scale" class="menu-prefs-chk-item">
+                    <span id="lblMenuScale">Map Scale</span>
+                    <div><input type=checkbox id="chkMenuScale" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-bottom">
+                        <div style="position:relative;">
+                            <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) 0 -256px;"></span>
+                            <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -256px -256px;"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li>
+                <div id="menu_zoom_buttons" class="menu-prefs-chk-item">
+                    <span id="lblMenuZoomButtons">Zoom Buttons</span>
+                    <div><input type=checkbox id="chkMenuZoomButtons" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-bottom">
+                        <div style="position:relative;">
+                            <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -64px -640px;"></span>
+                            <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -320px -640px;"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li>
+                <div id="menu_hdpi" class="menu-prefs-chk-item">
+                    <span id="lblMenuHdpi">HDPI Tiles</span>
+                    <div><input type=checkbox id="chkMenuHdpi" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-bottom">
+                        <div style="position:relative;">
+                            <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -832px;"></span>
+                            <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -832px;"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li>
+                <div id="menu_nnscaler" class="menu-prefs-chk-item">
+                    <span id="lblMenuNnScaler">NN Tile Scaler</span>
+                    <div><input type=checkbox id="chkMenuNnScaler" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-top">
+                        <div style="position:relative;">
+                            <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -64px -1152px;"></span>
+                            <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -320px -1152px;"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li>
+                <div id="menu_tile_shadow" class="menu-prefs-chk-item">
+                    <span id="lblMenuTileShadow">Tile Shadow</span>
+                    <div><input type=checkbox id="chkMenuTileShadow" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-top">
+                        <div style="position:relative;">
+                            <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -1344px;"></span>
+                            <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -1344px;"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li class="tooltip">
+                <div id="menu_apiquery">Query API @ Center</div>
+                <span class="tooltiptext-top">
+                    <div style="position:relative;">
+                        <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -1600px;"></span>
+                        <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -256px -1636px;"></span>
+                    </div>
+                </span>
+            </li>
+        </ul>
+        </div>
+    </section>
+</nav>
+
+    <div id="map-layers"> 
         <div id="scale" style="visibility:hidden;">
-            <img id="hud_btnToggle" width="22" height="22" border=0 class="hud_btnW" /><br/>
-            <img id="imgScale" width="30" height="427" border=0 />
+            <img id="imgScale" width="30" height="427" style="display:none;" border=0 />
         </div>
-        <div id="searchbar"><input id="address" type="textbox" placeholder="Find Address..."></div>
-        <div id="logo2">
-            <img id="logo271" border=0 width="181" height="22"/><br/>
-            <table id="sctbl" class="FuturaFont">
-                <tr>
-                    <td class="sctd"><a href="http://safecast.org" target="_blank"><span class="sclinks">Blog</span></a></td>
-                    <td class="sctd"><a id="show" href="#"><span class="sclinks">About</span></a></td>
-                    <td class="sctd"><a href="http://blog.safecast.org/donate/" target="_blank"><span class="sclinks">Donate</span></a></td>
-                </tr>
-            </table>
-        </div>
-        <div id="bottombar0">
-            <select id="layers" onChange="return LayersHelper.UiLayers_OnChange();" class="FuturaFont">
-                <option class="layer" value="11" id="layers_11">&nbsp;None</option>
-                <option class="layer" value="0" id="layers_0">&nbsp;Safecast</option>
-                <option class="layer" value="1" id="layers_1">&nbsp;&#9492; Points</option>
-                <option class="layer" value="2" id="layers_2">&nbsp;&#9492; Interpolation</option>
-                <option class="layer" value="12" id="layers_12">&nbsp;Safecast Snapshots...</option>
-                <option class="layer" value="8" id="layers_8">&nbsp;Safecast 2013-04-15</option>
-                <option class="layer" value="9" id="layers_9">&nbsp;Safecast 2014-03-11</option>
-                <option class="layer" value="3" id="layers_3">&nbsp;NNSA Japan 2011-06-30</option>
-                <option class="layer" value="4" id="layers_4">&nbsp;USGS/GSC NURE ~1980</option>
-                <option class="layer" value="5" id="layers_5">&nbsp;Geoscience Australia 2010</option>
-                <option class="layer" value="6" id="layers_6">&nbsp;AIST/JGS Natural Bkg</option>
-                <option class="layer" value="10" id="layers_10">&nbsp;Add bGeigie Log...</option>
-            </select>
+        <div id="logo2" style="visibility:hidden;">
+            <main id="panel" class="panel">
+                <header>
+                    <div class="js-slideout-toggle">
+                        <div>☰</div>
+                        <img id="imgMenuSafecastIcon" width="44" height="43" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFgAAABWCAMAAAB8QaF2AAAA5FBMVEUAAAAAAAgACAgICAgIEBAQCAgQEBAQEBgQGBgQGCAQICAYGBgYICkYKSkgICAgMTkgOTkpICApKSkpOUEpQUoxMSkxMTExQUoxSlIxUlo5MTE5OTk5Ulo5UmJBQUFBWmpBYnNKSkpKantKc4NSUlJSc4NSe4tSg5RaUlJaWlpag5Rag5xai5xiWlpiYmJinKxqampqnLRqpLRqpL1zampzc3N7e3uDg4OLi4uUlJScnJykpKSsrKy0tLS9vb3Fvb3FxcXNxcXNzc3V1dXe1dXe3t7m3t7m5ubu7u727u729vb///8Y7eKUAAAB6ElEQVRYw+3X21LCMBAG4EiwiiDiCVQUEfCAIIhVKhSRg7Wx+/7v4w3YNGEGCLsXznQv2+Gbzt+fDTAWTzyrjEUFd900DexA0LVoYACvTgQDjC6IYAA3SwSD6HIaGMCrEcEAwyIRDEE/TQMDBFhRd0EdpFZbTqDRwzwKnXU1GZCiLo01GavVT75Gf9WQov4hi3qgyVitLk70qN9wom59a/S0RtfqUyMqzZdGDT2TqJ1RcYVWv3KTJTRQD4+W3urpjcl2CxxredQfeZO16beUy4f6Agneuck+npTUqPVWf1oG8IJzWo/aNTtBAmd7WdQ1I3hB1Gqrp9x094yXRL3OMa58VG01bwnprrPe7vGjtVJefl6S+xvtHjXqB7NeLIpaafXQHNajPpLu1TeBGVejDquV3ghmjEej9sKH3hBWf7x4FhrMWHEkHx2IMGN1L8zZwoSZFe6POios1esZGWYuFZyngrlPBDMvhmP4/8E8tZckgPerbdvuNArY8LU9m/tdVLhs/00ziQjnbGkqiHBDhu0UGpyKuPY5GpyLwhU0+DgKV9HgA6on3nmJwAW8VtzJbieJB2fkR77C/Oadhe7tFuquOGnP3HICebslLx/b7WY5I12aCCGEEPM/I2I+vbU3e4LFE088NPML2fymtP/NPcQAAAAASUVORK5CYII=" />
+                    </div>
+                </header>
+            </main>
         </div>
     </div> 
 </form>
@@ -515,7 +1203,7 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
             <tr>
                 <td colspan="2" class="tsSliderTd">
                     <div id="tsSliderContainer">
-                        <img id="tsTickImage" width="200" height="4">
+                        <img id="tsTickImage" width="200" height="4" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAABCAMAAADHLAisAAAABlBMVEVfMDCamppiRWYmAAAAAXRSTlMAQObYZgAAABdJREFUeNpjYEABjIwMRAFi1Y2aSKpKABFLABVQjyGWAAAAAElFTkSuQmCC" />
                         <div id="tsSliderSubcontainer">
                             <input type="range" id="tsSlider" value="13" min="13" max="22" step="1" onChange="TimeSliceUI.tsSlider_OnChange();">
                         </div>
@@ -532,6 +1220,19 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
 <div id="bv_transferBar" class="bv_transferBarHidden"></div>
 <div id="whatsnew"></div>
 <div id="warning_message"></div>
+
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+    <defs>
+        <filter id="sc_colorize" color-interpolation-filters="sRGB" x="0" y="0" height="100%" width="100%">
+        <feColorMatrix type="matrix"
+                     values="0.0 0 0 0  0.42 
+                             0.0 0 0 0  0.65  
+                             0.0 0 0 0  0.74 
+                               0 0 0 1  0"></feColorMatrix>
+        </filter>
+    </defs>
+</svg>
+
 </body>
 </html>
 
