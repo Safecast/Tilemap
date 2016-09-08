@@ -638,6 +638,8 @@ function ToggleScaler()
     SetStyleFromCSS(".noblur img", 1, css);
 }//ToggleScaler
 
+
+
 function ToggleTileShadow()
 {
     var n = "#map_canvas > div:first-child > div:first-child > div:first-child > div:first-child > div:nth-last-of-type(1)";
@@ -4043,6 +4045,7 @@ var MenuHelper = (function()
             MenuHelper.InitLanguage();
             MenuHelper.InitEventOverrides();
             MenuHelper.InitEvents();
+            MenuHelper.InitTooltips();
 
             setTimeout(function() {
                 MenuHelper.SyncBasemap();
@@ -4085,6 +4088,130 @@ var MenuHelper = (function()
     };
 
 
+    MenuHelper.InitTooltips = function()
+    {
+        if (_nua("mobile") || _nua("iPhone") || _nua("iPad") || _nua("Android"))
+        {
+            return; // no tooltips on mobile.
+        }//if
+        
+        // Static defs in index.html don't work with dynamically created menu items,
+        // and load unncessary things on mobile.  So this is done here.
+
+        var s = [ { n:"reticle",      x0:32,  y0:85,
+                                      x1:288, y1:85 },
+                  { n:"scale",        x0:0,   y0:256,
+                                      x1:256, y1:256 },
+                  { n:"zoom_buttons", x0:64,  y0:640,
+                                      x1:320, y1:640 },
+                  { n:"hdpi",         x0:32,  y0:832,
+                                      x1:288, y1:832 },
+                  { n:"nnscaler",     x0:64,  y0:1152,
+                                      x1:320, y1:1152 },
+                  { n:"tile_shadow",  x0:32,  y0:1344,
+                                      x1:288, y1:1344 },
+                  { n:"apiquery",     x0:32,  y0:1600,
+                                      x1:256, y1:1636 },
+                  { n:"realtime_0",   x0:32,  y0:1856,
+                                      x1:288, y1:1856 },
+                  { n:"logs_0",       x0:0,   y0:2076,
+                                      x1:288, y1:2112 },
+                  { n:"logs_2",       x0:32,  y0:2368,
+                                      x1:288, y1:2368 },
+                  { n:"logs_3",       x0:32,  y0:2624,
+                                      x1:288, y1:2624 },
+                  { n:"logs_1",       x0:32,  y0:2880,
+                                      x1:288, y1:2880 } ];
+
+        for (var i=0; i<s.length; i++)
+        {
+            s[i].need_create = false; // flag the static defs in index.html as already created
+        }//for
+
+        var sl = [0,1,2,12,8,9,3,4,5,6];
+        var sb = [0,1,2,3,4,5,6,7,8,9,10,11];
+        var y  = 2880 + 256;
+    
+        // fill in rest of element name refs / positions for layers and basemaps
+        // dynamically instead of hardcoding everything.
+    
+        for (var i=0; i<sl.length; i++)
+        {
+            s.push({n:("layers_" + sl[i]), need_create:true, x0:32, y0:y, x1:288, y1:y});
+            y += 256;
+        }//for
+    
+        for (var i=0; i<sb.length; i++)
+        {
+            s.push({n:("basemap_" + sb[i]), need_create:true, x0:32, y0:y, x1:288, y1:y});
+            y += 256;
+        }//for
+    
+        // now, set the style for the element that should trigger the "event"
+    
+        var sp = ["hud_btnToggle", "menu_realtime_0", "menu_scale", "menu_zoom_buttons", "menu_hdpi", "menu_nnscaler", "menu_tile_shadow", "menu_logs_0", "menu_logs_1", "menu_logs_2", "menu_logs_3", "menu_apiquery"];
+            
+        for (var i=0; i<sp.length; i++)
+        {
+            ElGet(sp[i]).parentElement.className += " tooltip";
+        }//for
+    
+        // note: layers and basemap elements are not present in index.html, meaning
+        // some additional work is required before the tooltip images can be set.
+    
+        for (var i=0; i<s.length; i++)
+        {
+            if (s[i].need_create)
+            {
+                var el = ElGet("menu_" + s[i].n);
+                el.parentElement.className += " tooltip";
+        
+                var s0 = ElCr("span");
+                s0.className += " tooltiptext-bottom";
+        
+                var d0 = ElCr("div");
+                d0.style.position = "relative";
+        
+                var e0 = ElCr("span");
+                e0.id = "menu_tooltip_" + s[i].n + "_off";
+                e0.className += " tooltiptext-off";
+        
+                var e1 = ElCr("span");
+                e1.id = "menu_tooltip_" + s[i].n + "_on";
+                e1.className += " tooltiptext-on";
+        
+                d0.appendChild(e0);
+                d0.appendChild(e1);
+                s0.appendChild(d0);
+                el.parentElement.appendChild(s0);
+            }//if
+        }//for
+        
+        // apply positioning hacks
+        
+        for (var i=0; i<s.length; i++)
+        {
+            if (s[i].n == "layers_3" || s[i].n == "layers_6")
+            {
+                s[i].y0 += 10;
+                s[i].y1 += 10;
+            }//if
+        }//for
+    
+        // now, set the styles/spritesheet URL for all the elements with a tooltip
+    
+        var ss = "menu_tooltips_512x8704.png";
+    
+        for (var i=0; i<s.length; i++)
+        {
+            var o = s[i];
+            var e0 = ElGet("menu_tooltip_" + o.n + "_off");
+            var e1 = ElGet("menu_tooltip_" + o.n + "_on");
+            e0.style.background = "url(" + ss + ") -" + o.x0 + "px -" + o.y0 + "px";
+            e1.style.background = "url(" + ss + ") -" + o.x1 + "px -" + o.y1 + "px";
+        }//for
+    };
+
     // binds misc UI events, can be init immediately
     MenuHelper.InitEvents = function()
     {
@@ -4114,20 +4241,6 @@ var MenuHelper = (function()
                 s.removeProperty("filter");
                 s.removeProperty("-webkit-filter");
             });
-            
-            var s0 = ["hud_btnToggle", "menu_realtime_0", "menu_scale", "menu_zoom_buttons", "menu_hdpi", "menu_nnscaler", "menu_tile_shadow"];
-            
-            for (var i=0; i<s0.length; i++)
-            {
-                ElGet(s0[i]).className += " tooltip";
-            }//for
-            
-            var s1 = ["menu_logs_0", "menu_logs_1", "menu_logs_2", "menu_logs_3", "menu_apiquery"];
-            
-            for (var i=0; i<s1.length; i++)
-            {
-                ElGet(s1[i]).parentElement.className += " tooltip";
-            }//for
         }//if
 
         var acc = document.getElementsByClassName("btn_accordion");
@@ -4311,12 +4424,12 @@ var MenuHelper = (function()
 
             var ps = el.parentElement.style;
             ps.transition = "0.6s ease-in-out";
-            ps.overflow   = "hidden";
 
             if (el.className != null && el.className.indexOf("menu_option_selected") == -1)
             {
                 ps.maxHeight  = "0";
                 ps.opacity    = "0";
+                ps.overflow   = "hidden";
             }//if
         }//for
         
@@ -4384,8 +4497,9 @@ var MenuHelper = (function()
         {
             var el = ElGet("menu_layers_" + a[i]);
             var vis = _ui_menu_layers_more_visible || (el.className != null && el.className.indexOf("menu_option_selected") > -1);
-            el.parentElement.style.maxHeight = vis ? "500px" : "0";
-            el.parentElement.style.opacity   = vis ? "1"     : "0";
+            el.parentElement.style.maxHeight = vis ? "500px"   : "0";
+            el.parentElement.style.opacity   = vis ? "1"       : "0";
+            el.parentElement.style.overflow  = vis ? "visible" : "hidden";
         }//for
 
         ElGet("chkMenuLayersMore").checked = _ui_menu_layers_more_visible;

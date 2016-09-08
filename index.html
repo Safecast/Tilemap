@@ -629,12 +629,12 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 .menu-prefs-chk-item > div > div > div { margin:1px 0 0 1px !important; }
 
 
-
+/* wat?
 #ul_menu_layers > li:not(:first-child) {
     transition:0.6s ease-in-out;
     overflow:hidden;
 }
-
+*/
 
 
 #ddlLanguage
@@ -976,8 +976,8 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                     <div><input type=checkbox id="chkMenuToggleReticle" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
                     <span class="tooltiptext-bottom">
                         <div style="position:relative;">
-                            <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -85px;"></span>
-                            <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -85px;"></span>
+                            <span id="menu_tooltip_reticle_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_reticle_on"  class="tooltiptext-on"></span>
                         </div>
                     </span>
                 </div>
@@ -1002,8 +1002,8 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                 <div id="menu_logs_0" onclick="LayersHelper.ShowAddLogPanel();">Search Logs...</div>
                 <span class="tooltiptext-bottom">
                     <div style="position:relative;">
-                        <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) 0 -2076px;"></span>
-                        <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -2112px;"></span>
+                        <span id="menu_tooltip_logs_0_off" class="tooltiptext-off"></span>
+                        <span id="menu_tooltip_logs_0_on"  class="tooltiptext-on"></span>
                     </div>
                 </span>
             </li>
@@ -1011,8 +1011,8 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                 <div id="menu_logs_1" onclick="MenuHelper.OptionsClearSelection('ul_menu_layers'); MenuHelper.OptionsSetSelection('ul_menu_layers', 11); LayersHelper.UiLayers_OnChange(); LayersHelper.AddLogsCosmic();">Add Cosmic Logs</div>
                 <span class="tooltiptext-bottom">
                     <div style="position:relative;">
-                        <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -2880px;"></span>
-                        <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -2880px;"></span>
+                        <span id="menu_tooltip_logs_1_off" class="tooltiptext-off"></span>
+                        <span id="menu_tooltip_logs_1_on"  class="tooltiptext-on"></span>
                     </div>
                 </span>
             </li>
@@ -1020,8 +1020,8 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                 <div id="menu_logs_2" onclick="if (_bvProxy.GetLogCount() > 0) _bvProxy.btnRemoveLogsOnClick();">Remove All</div>
                 <span class="tooltiptext-bottom">
                     <div style="position:relative;">
-                        <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -2368px;"></span>
-                        <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -2368px;"></span>
+                        <span id="menu_tooltip_logs_2_off" class="tooltiptext-off"></span>
+                        <span id="menu_tooltip_logs_2_on"  class="tooltiptext-on"></span>
                     </div>
                 </span>
             </li>
@@ -1029,8 +1029,8 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                 <div id="menu_logs_3" onclick="if (_bvProxy.GetLogCount() > 0) { LayersHelper.ShowAddLogPanel(); setTimeout(function() { _bvProxy.UI_ShowAdvPanel(); }, 100); }">Options</div>
                 <span class="tooltiptext-bottom">
                     <div style="position:relative;">
-                        <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -2624px;"></span>
-                        <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -2624px;"></span>
+                        <span id="menu_tooltip_logs_3_off" class="tooltiptext-off"></span>
+                        <span id="menu_tooltip_logs_3_on"  class="tooltiptext-on"></span>
                     </div>
                 </span>
             </li>
@@ -1048,8 +1048,8 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                     <div><input type=checkbox id="chkMenuRealtime0" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
                     <span class="tooltiptext-bottom">
                         <div style="position:relative;">
-                            <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -1856px;"></span>
-                            <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -1856px;"></span>
+                            <span id="menu_tooltip_realtime_0_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_realtime_0_on"  class="tooltiptext-on"></span>
                         </div>
                     </span>
                 </div>
@@ -1095,8 +1095,8 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                     <div><input type=checkbox id="chkMenuScale" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
                     <span class="tooltiptext-bottom">
                         <div style="position:relative;">
-                            <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) 0 -256px;"></span>
-                            <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -256px -256px;"></span>
+                            <span id="menu_tooltip_scale_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_scale_on"  class="tooltiptext-on"></span>
                         </div>
                     </span>
                 </div>
@@ -1107,8 +1107,8 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                     <div><input type=checkbox id="chkMenuZoomButtons" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
                     <span class="tooltiptext-bottom">
                         <div style="position:relative;">
-                            <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -64px -640px;"></span>
-                            <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -320px -640px;"></span>
+                            <span id="menu_tooltip_zoom_buttons_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_zoom_buttons_on"  class="tooltiptext-on"></span>
                         </div>
                     </span>
                 </div>
@@ -1119,8 +1119,8 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                     <div><input type=checkbox id="chkMenuHdpi" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
                     <span class="tooltiptext-bottom">
                         <div style="position:relative;">
-                            <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -832px;"></span>
-                            <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -832px;"></span>
+                            <span id="menu_tooltip_hdpi_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_hdpi_on"  class="tooltiptext-on"></span>
                         </div>
                     </span>
                 </div>
@@ -1131,8 +1131,8 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                     <div><input type=checkbox id="chkMenuNnScaler" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
                     <span class="tooltiptext-top">
                         <div style="position:relative;">
-                            <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -64px -1152px;"></span>
-                            <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -320px -1152px;"></span>
+                            <span id="menu_tooltip_nnscaler_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_nnscaler_on"  class="tooltiptext-on"></span>
                         </div>
                     </span>
                 </div>
@@ -1143,8 +1143,8 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                     <div><input type=checkbox id="chkMenuTileShadow" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
                     <span class="tooltiptext-top">
                         <div style="position:relative;">
-                            <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -1344px;"></span>
-                            <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -288px -1344px;"></span>
+                            <span id="menu_tooltip_tile_shadow_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_tile_shadow_on"  class="tooltiptext-on"></span>
                         </div>
                     </span>
                 </div>
@@ -1153,8 +1153,8 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                 <div id="menu_apiquery">Query API @ Center</div>
                 <span class="tooltiptext-top">
                     <div style="position:relative;">
-                        <span class="tooltiptext-off" style="background:url(menu_tooltips_512x3072.png) -32px -1600px;"></span>
-                        <span class="tooltiptext-on" style="background:url(menu_tooltips_512x3072.png) -256px -1636px;"></span>
+                        <span id="menu_tooltip_apiquery_off" class="tooltiptext-off"></span>
+                        <span id="menu_tooltip_apiquery_on"  class="tooltiptext-on"></span>
                     </div>
                 </span>
             </li>
