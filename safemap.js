@@ -4191,11 +4191,19 @@ var MenuHelper = (function()
         
         for (var i=0; i<s.length; i++)
         {
-            if (s[i].n == "layers_3" || s[i].n == "layers_6")
+            if (s[i].n == "layers_0" || s[i].n == "layers_1" || s[i].n == "layers_8" || s[i].n == "layers_9"
+                || s[i].n.indexOf("basemap_") > -1)
             {
-                s[i].y0 += 10;
-                s[i].y1 += 10;
+                s[i].y1 -= 15;
             }//if
+            else if (s[i].n == "layers_12")
+            {
+                s[i].y0 -= 15;
+            }//else if
+            else if (s[i].n == "layers_3")
+            {
+                s[i].y1 -= 8;
+            }//else if
         }//for
     
         // now, set the styles/spritesheet URL for all the elements with a tooltip
