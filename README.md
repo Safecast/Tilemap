@@ -46,7 +46,7 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
 ## Overview - Data Flow
 <img width="728" height="546" src="https://github.com/Safecast/Tilemap/raw/master/docs/webmap_dataflow_full_2048x1536.png" />
 
-(todo: change `gamma.tar.bz` to `107.161.164.166`)
+(todo: change `gamma.tar.bz` to `107.161.164.166`)  
 (todo: add the large number of snapshot / time slice tile buckets on S3 or make a note of them)
 
  
