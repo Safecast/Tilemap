@@ -19,7 +19,11 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
 ## Components
 <img width="669" height="378" src="https://github.com/Safecast/Tilemap/raw/master/docs/webmap_code_1338x755.png" />
 
+(todo: add `slideout.min.js`)
+
 <img width="669" height="376" src="https://github.com/Safecast/Tilemap/raw/master/docs/webmap_content_1338x752.png" />
+
+(todo: add `menu_tooltips_512x8704.png`)
 
  
 
@@ -41,6 +45,9 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
 
 ## Overview - Data Flow
 <img width="728" height="546" src="https://github.com/Safecast/Tilemap/raw/master/docs/webmap_dataflow_full_2048x1536.png" />
+
+(todo: change `gamma.tar.bz` to `107.161.164.166`)
+(todo: add the large number of snapshot / time slice tile buckets on S3 or make a note of them)
 
  
 
@@ -124,7 +131,7 @@ Please coordinate any production or test deployments with Nick Dolezal.  Thanks!
 
 ## To Do
 
-1. Japanese language support
+1. Japanese language support - partially done with new menu UI
 2. Per-log metadata display for the bGeigie log viewer
 3. Hack-ish spatial query to find logs at a location (which the API does not support a spatial query for)
 4. Addition of content from Azby
@@ -153,60 +160,79 @@ In general, heavy use is made of asynchronous and deferred loads to improve init
 
 #### safemap.js
 
-safemap.js is the main "codebehind" for index.html, containing the majority of the scripts used by the tilemap.  It manages all tile content for the map, facilitates UI events, and controls asynchronous loads of other code modules.
+`safemap.js` is the main "codebehind" for index.html, containing the majority of the scripts used by the tilemap.  It manages all tile content for the map, facilitates UI events, and controls asynchronous loads of other code modules.
 
-As with index.html, the codebase relies heavily on asynchronous loading of scripts and content.  This creates a certain degree of code complexity.
+As with `index.html`, the codebase relies heavily on asynchronous loading of scripts and content.  This creates a certain degree of code complexity.
 
 To safely handle asynchronous loads of other code modules, proxy classes are used.  Other code should only refer to these proxy classes, and never the objects they retain which may or may not be loaded.
 
-To purely display a tile overlay, no script other than safemap.js is necessarily required.
+To purely display a tile overlay, no script other than `safemap.js` is necessarily required. (note: as of 2016-09-09, this will prevent user interaction unless `slideout.min.js` is also loaded)
 
-safemap.js is always loaded.
+##### A note about maintainability and `safemap.js`
+
+Since its original inception, `safemap.js` has grown considerably in size.  Unfortunately, the nature of HTTP loads and latency make organizing code by file problematic, and for performance, a lot of code has been inlined into `safemap.js` that would not be with native code development, including things such as localized strings for the UI.  The following principles are used to mitigate these issues to some degree:
+
+1. Only essential code that is always loaded goes in `safemap.js`.  Code for optional use components should be loaded asynchronously.
+2. Any code that is loaded asynchronously should have a proxy pseudo-class that manages the asynchronous load that all other code interacts with.  This is to guarantee safety and prevent race conditions.
+3. All code in `safemap.js` should be organized into pseudo-classes.  (this is currently in-progress for older code)
+4. Pseudo-classes should be semi-independent, functional modules, which should be theoretically easily transportable to another file.  Circular references should be avoided.
+5. References to other pseudo-classes or globals should be contained in functions at the top of each pseudo-class, which serve as a declaration to help control dependencies.
+6. The goal is to avoid a mess of top-level functions in the `window` namespace with unclear dependencies.
+
+`safemap.js` is always loaded.
 
 
 #### bitstore.js
 
-bitstore.js was the first external script created for the tilemap.  It provides automated indexing of raster tiles, implemented in the form of myBitstore.ShouldLoadTile().  This provides a significant performance improvement, especially at higher zoom levels, as the webserver hosting the tiles has much greater latency when a tile request is 404 than when it is present.
+`bitstore.js` was the first external script created for the tilemap.  It provides automated indexing of raster tiles, implemented in the form of myBitstore.ShouldLoadTile().  This provides a significant performance improvement, especially at higher zoom levels, as the webserver hosting the tiles has much greater latency when a tile request is 404 than when it is present.
 
-bitstore.js also updates the layer's date in the UI via a callback function.
+`bitstore.js` also updates the layer's date in the UI via a callback function.
 
-bitstore.js was implemented as a general-purpose library, suitable for re-use elsewhere.  Unlike the other modules, it contains no dependencies on the Google Maps API, or Safecast dataset.
+`bitstore.js` was implemented as a general-purpose library, suitable for re-use elsewhere.  Unlike the other modules, it contains no dependencies on the Google Maps API, or Safecast dataset.
 
-bitstore.js is always loaded.
+`bitstore.js` is always loaded.
 
 
 #### bgeigie_viewer.js
 
-bgeigie_viewer.js is perhaps the single most complex component.  It is responsible for the query and display of one or more bGeigie log files, and is capable of displaying a relatively large number of point features / markers on the client.  The complexity arises from the manual marker management and data processing involved to accomplish the degree of scalability it provides.
+`bgeigie_viewer.js` is perhaps the single most complex component.  It is responsible for the query and display of one or more bGeigie log files, and is capable of displaying a relatively large number of point features / markers on the client.  The complexity arises from the manual marker management and data processing involved to accomplish the degree of scalability it provides.
 
-Despite its complexity, bgeigie_viewer.js may be useful elsewhere if modified.  To the best of my knowledge, no other JavaScript library provides anything remotely near its scalability and performance, enabling large point feature datasets to be viewed without a dedicated GIS server.
+Despite its complexity, `bgeigie_viewer.js` may be useful elsewhere if modified.  To the best of my knowledge, no other JavaScript library provides anything remotely near its scalability and performance, enabling large point feature datasets to be viewed without a dedicated GIS server.
 
-bgeigie_viewer.js is loaded only on-demand.
+`bgeigie_viewer.js` is loaded only on-demand.
 
 
 #### rt_viewer.js
 
-rt_viewer.js is currently likely the simplest component to re-use in another map, able to be instantiated and work from a single line of code.  It displays all Safecast real-time sensors reported to it from rt.safecast.org, both online and offline, as markers on the map.  rt_viewer.js is a simplified version of beigie_viewer.js's code, rewritten to support the requirements for real-time sensors.
+`rt_viewer.js` is currently likely the simplest component to re-use in another map, able to be instantiated and work from a single line of code.  It displays all Safecast real-time sensors reported to it from rt.safecast.org, both online and offline, as markers on the map.  `rt_viewer.js` is a simplified version of `beigie_viewer.js`'s code, rewritten to support the requirements for real-time sensors.
 
-rt_viewer.js replaced Google Fusion Tables, which had limited symbology that showed no contextual information about a particular sensor.  rt_viewer.js displays the dose rate as a color matching the other map symbology, and indicates online or offline status with a ring around it.  It also rescales the markers at lower zoom levels such that they obscure the map (and each other) less.
+`rt_viewer.js` replaced Google Fusion Tables, which had limited symbology that showed no contextual information about a particular sensor.  `rt_viewer.js` displays the dose rate as a color matching the other map symbology, and indicates online or offline status with a ring around it.  It also rescales the markers at lower zoom levels such that they obscure the map (and each other) less.
 
-Note that due to current Safecast API limitations, there is no concept of a "metasensor" consisting of multiple individual radiation sensors.  Because of this, rt_viewer.js has some particular handling that implicitly recognizes dual-sensor hardware.  For sensors sharing the exact same lat/lon (no epsilon), the maxima is used as the value for all of them.  When displaying an infowindow, a chart is shown for again, all sensors at that exact lat/lon.
+Note that due to current Safecast API limitations, there is no concept of a "metasensor" consisting of multiple individual radiation sensors.  Because of this, `rt_viewer.js` has some particular handling that implicitly recognizes dual-sensor hardware.  For sensors sharing the exact same lat/lon (no epsilon), the maxima is used as the value for all of them.  When displaying an infowindow, a chart is shown for again, all sensors at that exact lat/lon.
 
-rt_viewer.js is always loaded.
+`rt_viewer.js` is always loaded.
 
 
 #### hud.js
 
-hud.js contains the query reticle, which displays the classification range and median value for a color used by a pixel in a raster map tile.
+`hud.js` contains the query reticle, which displays the classification range and median value for a color used by a pixel in a raster map tile.
 
-Note that any new layers added must match existing symbology, or it will need to be updated with additional lookup tables in hud_worker.js to perform this action.
+Note that any new layers added must match existing symbology, or it will need to be updated with additional lookup tables in `hud_worker.js` to perform this action.
 
-hud.js works by iterating through a batch of one or more URLs representing active layer(s), retrieving the tile specified by the URL from the server, and attempting to find the nearest pixel within a search radius.  If no match is found, the next tile in the batch is attempted, and so on.  If a match is found, the RGB colors are matched to a premade lookup table to determine the value and range, with some tolerance given as RGB color matches are often not 100%.
+`hud.js` works by iterating through a batch of one or more URLs representing active layer(s), retrieving the tile specified by the URL from the server, and attempting to find the nearest pixel within a search radius.  If no match is found, the next tile in the batch is attempted, and so on.  If a match is found, the RGB colors are matched to a premade lookup table to determine the value and range, with some tolerance given as RGB color matches are often not 100%.
 
-hud.js is unique among the tilemap modules in that it optionally may call bitstore.js's ShouldLoadTile to improve performance.  None of the other modules currently reference each other, or really have any external dependencies other than the Google Maps API v3 in most cases.  In the current implementation, this is performed by retaining a function reference to bitstore.js's proxy in safemap.js.  It also learns bad URLs, but testing showed this did not improve performance to the same degree as both learning bad URLs and using bitstore.js could.
+`hud.js` is unique among the tilemap modules in that it optionally may call `bitstore.js`'s ShouldLoadTile to improve performance.  None of the other modules currently reference each other, or really have any external dependencies other than the Google Maps API v3 in most cases.  In the current implementation, this is performed by retaining a function reference to `bitstore.js`'s proxy in safemap.js.  It also learns bad URLs, but testing showed this did not improve performance to the same degree as both learning bad URLs and using `bitstore.js` could.
 
-hud.js is loaded only on-demand.
+`hud.js` is loaded only on-demand.
 
+
+#### slideout.min.js  
+  
+`slideout.min.js` is version 0.1.12 available [here](https://github.com/Mango/slideout).  This provides basic styles and behavior for a slideout menu, which is now integral to the core UI.  
+  
+However, as this did not work directly with the Google Maps API as intended, code and styles in `index.html` and `safemap.js` disable almost all of the events, and override many of the styles.  It may be worth exploring removing this dependency entirely in the future.  
+  
+`slideout.min.js` is always loaded.  
  
 
  
@@ -217,102 +243,104 @@ hud.js is loaded only on-demand.
 
 ## Secondary Content Files and Scripts
 
+#### menu_tooltips_512x8704.png  
+  
+`menu_tooltips_512x8704.png` is a spritesheet containing images used by the menu's tooltip animations.  This is structured such that each image is 256x256 pixels.  Each 512x256 pixel row in the image contains the start and end animation keyframes for a tooltip.  The order of existing images should generally not be changed, as there references to them.  
+  
 #### scale64_60x854.png
 
-scale64_60x854.png is the symbology scale displayed at the bottom-right hand corner of the screen.
+`scale64_60x854.png` is the symbology scale displayed at the bottom-right hand corner of the screen.
 
 #### schoriz_362x44.png
 
-schoriz_362x44.png is the primary Safecast logo referenced by index.html, about_inline.html, and methodology.html.
+`schoriz_362x44.png` is the primary Safecast logo referenced by index.html, about_inline.html, and methodology.html.
 
-#### reticle_62x62.png
-
-reticle_62x62.png is the query reticle graphic from the iOS / OS X app, referenced by index.html.  It is used here only as an icon for activating the analagous hud.js, which internally renders its own icon for use dynamically.
-
-#### xa_13x13.png
-
-xa_13x13.png is not in active use, having been inlined as a base64-encoded PNG text string in several content files.  The source file is present for maintainability.
+#### xa_13x13.png  
+  
+`xa_13x13.png` is not in active use, having been inlined as a base64-encoded PNG text string in several content files.  The source file is present for maintainability.
 
 
 #### bgeigie_viewer_inline.html
 
-bgeigie_viewer_inline.html contains HTML elements representing the UI for bGeigie log queries.  It depends on styles in bgeigie_viewer_inline.css being loaded first.
+`bgeigie_viewer_inline.html` contains HTML elements representing the UI for bGeigie log queries.  It depends on styles in `bgeigie_viewer_inline.css` being loaded first.
 
-bgeigie_viewer_inline.html is not a standalone HTML document, and is intended only to be injected or inlined into a content div after being loaded asynchronously.
+`bgeigie_viewer_inline.html` is not a standalone HTML document, and is intended only to be injected or inlined into a content div after being loaded asynchronously.
 
-After the HTML content in bgeigie_viewer_inline.html has been fully loaded into the DOM, event listeners are databound to these form elements in safemap.js.
+After the HTML content in `bgeigie_viewer_inline.html` has been fully loaded into the DOM, event listeners are databound to these form elements in `safemap.js`.
 
 
 #### bgeigie_viewer_inline.css
 
-bgeigie_viewer_inline.css contains CSS styles representing the UI for bGeigie log queries, and styles used by bgeigie_viewer.js for Google Maps InfoWindows and the Data Transfer view.
+`bgeigie_viewer_inline.css` contains CSS styles representing the UI for bGeigie log queries, and styles used by `bgeigie_viewer.js` for Google Maps InfoWindows and the Data Transfer view.
 
-bgeigie_viewer_inline.css is not a standalone CSS document, and is intended only to be injected or inlined into a style element after being loaded asynchronously.
+`bgeigie_viewer_inline.css` is not a standalone CSS document, and is intended only to be injected or inlined into a style element after being loaded asynchronously.
 
-bgeigie_viewer_inline.css should be loaded before bgeigie_viewer_inline.html or bgeigie_viewer.js.
+`bgeigie_viewer_inline.css` should be loaded before `bgeigie_viewer_inline.html` or `bgeigie_viewer.js`.
 
 
 #### bgpreview_118x211.png
 
-bgpreview_118x211.png is referenced by bgeigie_viewer_inline.html and is simply a preview image screenshot displayed for illustrative purposes to the user.
+`bgpreview_118x211.png` is referenced by `bgeigie_viewer_inline.html` and is simply a preview image screenshot displayed for illustrative purposes to the user.
 
 
 #### world_155a_z0.png
 
-world_155a_z0.png is referenced by bgeigie_viewer.js.  It is a 256x256 pixel Web Mercator map tile at zoom level 0 representing the entire world.
+`world_155a_z0.png` is referenced by `bgeigie_viewer.js`.  It is a 256x256 pixel Web Mercator map tile at zoom level 0 representing the entire world.
 
-world_155a_z0.png is the background image used by bgeigie_viewer.js's Data Transfer view when showing a preview map as logs are being downloaded and processed.
+`world_155a_z0.png` is the background image used by `bgeigie_viewer.js`'s Data Transfer view when showing a preview map as logs are being downloaded and processed.
 
 
 #### about_inline.html
 
-about_inline.html contains HTML content displayed when the user clicks "About."
+`about_inline.html` contains HTML content displayed when the user clicks "About."
 
-about_inline.html is not a standalone HTML document, and is intended only to be injected or inlined into a content div after being loaded asynchronously.
+`about_inline.html` is not a standalone HTML document, and is intended only to be injected or inlined into a content div after being loaded asynchronously.
 
-about_inline.html contains links to data sources and methodology.html.  It also directly invokes a global JavaScript function to show "What's New".
+`about_inline.html` contains links to data sources and methodology.html.  It also directly invokes a global JavaScript function to show "What's New".
+
+(todo: resize or redesign to work better with smaller mobile displays)
 
 
 #### methodology.html
 
-methodology.html is a full HTML document describing the data processing methdology of the Tilemap for users.  It is accessed from "About", and opens in a new window.
+`methodology.html` is a full HTML document describing the data processing methdology of the Tilemap for users.  It is accessed from "About", and opens in a new window.
 
 
 #### webmap_dataflow_2048x1536.png
 
-webmap_dataflow_2048x1536.png is a diagram image referenced by methodology.html.  It contains a simplified overview of the Tilemap's data flow and sources.
+`webmap_dataflow_2048x1536.png` is a diagram image referenced by methodology.html.  It contains a simplified overview of the Tilemap's data flow and sources.
 
 #### webmap_files_2048x1536.png
 
-webmap_files_2048x1536.png is a diagram image referenced by methodology.html.  It contains a simplified overview of the Tilemap's file structure.
+`webmap_files_2048x1536.png` is a diagram image referenced by methodology.html.  It contains a simplified overview of the Tilemap's file structure.
 
 #### whatsnew_en_inline.html
 
-whatsnew_en_inline.html contains English-language HTML content displayed once during April 2015, or when the user clicks "What's New" in "About."
+`whatsnew_en_inline.html` contains English-language HTML content displayed once during April 2015, or when the user clicks "What's New" in "About."
 
-whatsnew_en_inline.html is not a standalone HTML documents, and is intended only to be injected or inlined into a content div after being loaded asynchronously.
+`whatsnew_en_inline.html` is not a standalone HTML documents, and is intended only to be injected or inlined into a content div after being loaded asynchronously.
 
 #### whatsnew_ja_inline.html
 
-whatsnew_ja_inline.html contains Japanese-language HTML content displayed once during April 2015, or when the user clicks "What's New" in "About."
+`whatsnew_ja_inline.html` contains Japanese-language HTML content displayed once during April 2015, or when the user clicks "What's New" in "About."
 
-whatsnew_ja_inline.html is not a standalone HTML documents, and is intended only to be injected or inlined into a content div after being loaded asynchronously.
+`whatsnew_ja_inline.html` is not a standalone HTML documents, and is intended only to be injected or inlined into a content div after being loaded asynchronously.
 
 #### whatsnew_en_847x793.jpg
 
-whatsnew_en_847x793.jpg is an English-language content image referenced by whatsnew_en_inline.html.  It is a diagrammed screenshot illustrating major changes made in an April 2015 release of the Tilemap.
+`whatsnew_en_847x793.jpg` is an English-language content image referenced by `whatsnew_en_inline.html`.  It is a diagrammed screenshot illustrating major changes made in an April 2015 release of the Tilemap.
 
 #### whatsnew_ja_847x793.jpg
 
-whatsnew_ja_847x793.jpg is a Japanese-language content image referenced by whatsnew_ja_inline.html.  It is a diagrammed screenshot illustrating major changes made in an April 2015 release of the Tilemap.
+`whatsnew_ja_847x793.jpg` is a Japanese-language content image referenced by `whatsnew_ja_inline.html`.  It is a diagrammed screenshot illustrating major changes made in an April 2015 release of the Tilemap.
 
 #### flag-jp_50x27.png
 
-flag-jp_50x27.png is a borderless Japanese flag icon.  It is referenced by whatsnew_en_inline.html and whatsnew_ja_inline.html and used to provide the user with language selection.
+`flag-jp_50x27.png` is a borderless Japanese flag icon.  It is referenced by `whatsnew_en_inline.html` and ``whatsnew_ja_inline.html` and used to provide the user with language selection.
 
 #### flag-usuk_50x27.png
 
-flag-usuk_50x27.png is a borderless split US/UK flag icon.  It is referenced by whatsnew_en_inline.html and whatsnew_ja_inline.html and used to provide the user with language selection.
+`flag-usuk_50x27.png` is a borderless split US/UK flag icon.  It is referenced by `whatsnew_en_inline.html` and `whatsnew_ja_inline.html` and used to provide the user with language selection.
 
  
 
@@ -384,13 +412,25 @@ Contingency planning: none, other than the redundancies provided by S3.
 
 Contingency planning: unknown.  There are dependencies to specific URLs for this server with no fallback.
 
-#### gamma.tar.bz
+#### 107.161.164.166
 
-gamma.tar.bz generates chart images used by rt_viewer.js.  It uses data from api.safecast.org and rt.safecast.org.
+`107.161.164.166` generates chart images used by `rt_viewer.js`.  It uses data from `api.safecast.org` and `rt.safecast.org`.
 
-Contingency planning: unknown.  It is likely the code could be redeployed from Kalin's GitHub repo.  There are dependencies to specific URLs for this server with no fallback.
+Contingency planning: unknown.  It is likely the code could be redeployed from a GitHub repo but may not be in sync.  There are dependencies to specific URLs for this server with no fallback.
 
-Note: eventually, the chart generation should be moved to rt.safecast.org.  This will require updates to rt_viewer.js.
+Note: eventually, the chart generation should be moved to `rt.safecast.org`.  This will require updates to `rt_viewer.js`.
 
+
+
+## Localization Notes
+
+As of 2016-09-09, this project is partially localized.
+
+- Primary (slideout) menu: Full English and Japanese localizations, user selectable, with the preference stored in HTML5 local storage.  Defaults to Japan localization if the user's timezone is JST.
+- bGeigie Viewer (multiple files): English-only.
+- RT Sensor Viewer: Bilingual English/Japanese labels.
+- Snapshot "time" slider labels: Bilingual English/Japanese labels.
+- About: English-only.
+- Documentation: English-only.
 
 (further documentation is forthcoming)
