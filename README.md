@@ -23,8 +23,6 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
 
 <img width="669" height="376" src="https://github.com/Safecast/Tilemap/raw/master/docs/webmap_content_1338x752.png" />
 
-(todo: add `menu_tooltips_512x8704.png`)
-
  
 
  
@@ -35,6 +33,8 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
 
 ## Overview - Files
 <img width="728" height="546" src="https://github.com/Safecast/Tilemap/raw/master/docs/webmap_files_full_2048x1536.png" />
+
+(todo: add `slideout.min.js`, `menu_tooltips_512x8704.png`)
  
 
  
@@ -59,7 +59,7 @@ The Safecast Tilemap is a single-page web application using the Google Maps API 
 
 ## External Dependencies
 
-NOTE: A required component, bitstore.js, is not included here.  That's because it already has its own Github repo: https://github.com/Safecast/bitstore.js
+NOTE: A required component, `bitstore.js`, is not included here.  That's because it already has its own Github repo: https://github.com/Safecast/bitstore.js
 
  
 
@@ -82,7 +82,7 @@ Individual licenses are displayed at the top of each .js file.  In general, most
 
 Although this is mostly an internally-focused repository, you are welcome to re-use whatever parts are useful to you.  Attribution is always appreciated, but may not be required depending on the specific licensing for the code/content in question.
 
-Note that thus far, only one component of the tilemap, bitstore.js, has been expressly created as a general-purpose library.  Other components are designed specifically to work with Safecast data, and will likely require modification to be used for other things.
+Note that thus far, only one component of the tilemap, `bitstore.js`, has been expressly created as a general-purpose library.  Other components are designed specifically to work with Safecast data, and will likely require modification to be used for other things.
 
 The servers used to provide data to the tilemap have finite capacity.  If you use them in your own application, please be curteous of this.
 
@@ -117,8 +117,8 @@ IE10+, any semi-recent version of Chrome, Safari, Firefox, etc.  Please make sur
 
 #### Domain-Specific References
 
-1. index.html -- has a hardcoded meta origin tag.  This is so things don't break when the QueryString gets long.
-2. safemap.js -- contains hardcoded absolute URL references to bitstore_min.js and png_zlib_worker_min.js.  Necessary because bitstore.js uses inlined web workers, which require absolute URLs.  You don't have to change these for testing, unless you're using a different version of bitstore.js than the server.
+1. `index.html` -- has a hardcoded meta origin tag.  This is so things don't break when the QueryString gets long.
+2. `safemap.js` -- contains hardcoded absolute URL references to bitstore_min.js and png_zlib_worker_min.js.  Necessary because bitstore.js uses inlined web workers, which require absolute URLs.  You don't have to change these for testing, unless you're using a different version of bitstore.js than the server.
 
 
 #### Deployments
