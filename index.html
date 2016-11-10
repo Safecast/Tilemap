@@ -4,6 +4,7 @@
 <meta charset="UTF-8"> 
 <meta name=viewport content="width=device-width, initial-scale=1, user-scalable=no">
 <meta name="referrer" content="origin">
+<meta http-equiv="refresh" content="86400">
 <link rel="shortcut icon" href="//safecast.org/favicon.png" />
 <link href="webicons/apple-touch-icon-152x152.png" rel="apple-touch-icon" sizes="152x152">
 <link href="webicons/apple-touch-icon-144x144.png" rel="apple-touch-icon" sizes="144x144">
@@ -14,6 +15,8 @@
 <title>Safecast Tile Map</title>
 
 <style type="text/css">
+/* Misc/primary styles */
+
 body
 {
     position:fixed;
@@ -23,7 +26,6 @@ body
     padding:0px;
 }
 
-@media screen and (max-height:447px) { #imgScale    { display:none; } }
 @media screen and (min-width:801px)  { #whatsnewdiv { left:131px;top:10px; } }
 @media screen and (max-width:800px)  { #whatsnewdiv { left:91px; top:10px; } }
 
@@ -39,12 +41,34 @@ body
   -webkit-transition:none !important;
 }
 
+/*
+#map_canvas img[src^="http://te"], #map_canvas img[src^="http://nnsa"] {
+  -webkit-filter: drop-shadow(2px 2px 2px #000);
+  filter: drop-shadow(2px 2px 2px #000);
+}
+*/
+
+/*
+#map_canvas > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child > div:nth-last-of-type(1) {
+  -webkit-filter: drop-shadow(2px 2px 2px #000);
+  filter: drop-shadow(2px 2px 2px #000);
+}
+*/
+
 .FuturaFont, .gm-style, .poi-info-window div, .poi-info-window a, .menu
 {
     font-family:Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif !important;
 }
 
-#logo2, .hud_btnW, #imgScale, #imgMenuReticle, .slideout-menu, #imgMenuSafecastIcon { -webkit-user-select:none; -webkit-user-drag:none; }
+#logo2, #imgMenuReticle, .slideout-menu, #imgMenuSafecastIcon /*.hud_btnW, #imgScale, */
+{ 
+    user-drag:none; 
+    user-select:none;
+    -moz-user-select:none;
+    -webkit-user-drag:none;
+    -webkit-user-select:none;
+    -ms-user-select:none;
+}
 
 #contextMenu 
 {
@@ -59,7 +83,7 @@ body
 	padding:0;
 	margin:0;
 }
- 
+
 #contextMenu a 
 {
 	color:#000;
@@ -101,20 +125,28 @@ body
     display:none;
 }
 
+@media screen and (max-height:299px)                        { #scale { display:none; } }
+@media screen and (min-height:300px) and (max-height:408px) { #scale { background-position:-90px 0; height:142px; } }
+@media screen and (min-height:409px) and (max-height:543px) { #scale { background-position:-60px 0; height:250px; } }
+@media screen and (min-height:544px) and (max-height:585px) { #scale { background-position:-30px 0; height:385px; } }
+@media screen and (min-height:586px)                        { #scale { background-position:  0px 0; height:427px; } }
+
 #scale 
 {
     position:absolute;
     bottom:30px;
-    left:0px;
+    left:0;
     z-index:1;
-    background-color:rgba(0,0,0,0);
+    width:30px;
+    background-image:url("scales64_240x854.png");
+    background-size:120px 427px;
     padding:0;
-    text-align:right;
-    transition:transform 0.3s;
-    -webkit-transition:transform 0.3s;
+    transition:0.3s;
+    -webkit-transition:0.3s;
+    pointer-events:none;
 }
 
-.slideout-open #scale { transform:translateX(256px); }
+.slideout-open #scale { transform:translateX(256px) translateY(30px); }
 
 #logo2
 {
@@ -172,33 +204,14 @@ body
     image-rendering:pixelated;
     -ms-interpolation-mode:nearest-neighbor;
 }
-
-/*
-.noblur img[src^="http://te"],
-.noblur img[src^="http://nnsa"]
-{
-  -webkit-filter: drop-shadow(2px 2px 2px #000);
-  filter: drop-shadow(2px 2px 2px #000);
-}
-*/
-
-.hud_btnW
-{
-    color:#000;
-    background:rgba(0,0,0,0.0);
-    padding:2px;
-    border:solid #000000 1px;
-    -webkit-border-radius:3;
-       -moz-border-radius:3;
-            border-radius: 3px;
-    white-space:nowrap;
-    margin:0 1px 0 0;
-}
-
-.hud_btnW:hover { background:#EFEFEF; text-decoration:none; }
 </style>
 
+
+
+
 <style type="text/css">
+/* Snapshots / Time Slider control styles */
+
 @media screen and (min-width:555px) 
 {
     #tsPanel { transition:0.3s; }
@@ -317,179 +330,12 @@ body
 }
 </style>
 
+
+
+
 <style type="text/css">
-.slideout-menu {
-    position:fixed;
-    left:0;
-    top:0;
-    bottom:0;
-    right:0;
-    z-index:99999;
-    width:256px;
-    overflow-x:hidden;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    display:block;
-    transform:translateX(-256px);
-}
-
-.slideout-panel {
-    position:relative;
-    z-index:1;
-    will-change:transform;
-}
-
-.slideout-open,
-/*.slideout-open body,*/
-.slideout-open .slideout-panel {
-    overflow: hidden;
-}
-
-.slideout-open .slideout-menu {
-    display:block;
-    transform:translateX(0px);
-    transition:0.3s;
-    -webkit-transition:0.3s;
-}
-
-/*
-.slideout-menu--move {
-  transform: translate(-100%,0);
-  z-index: 2;
-}
-*/
-
-.panel {
-    background-color:#FFF;
-}
-
-.js-slideout-toggle {
-    border:0;
-    outline:none;
-    margin:0 3px;
-}
-
-.js-slideout-toggle > div {
-    font-size:36px;
-    text-align:center;
-    margin:0 0 5px 0;
-    font-family:"Arial Unicode MS";
-}
-
-.menu {
-    color:#737373;
-    background-color:#FFF;
-    background-image:linear-gradient(145deg, #EEE, #FFF);
-}
-
-.menu a {
-    color:#737373;
-    text-decoration: none;
-}
-
-.menu-header {
-    padding:20px 0 20px 60px;
-    background-repeat:no-repeat;
-    background-size:181px 22px;
-    background-position:bottom center;
-}
-
-.menu-header-title {
-    font-weight:400;
-    letter-spacing:0.5px;
-    margin:0;
-}
-
-.menu-section {
-    margin:25px 0;
-}
-
-.menu-section-title {
-    text-transform: uppercase;
-    font-weight:200;
-    font-size:20px;
-    letter-spacing: 4px;
-    padding:0 20px;
-    margin:0;
-}
-
-.menu-section-list {
-    padding:0;
-    margin:10px 0;
-    list-style:none;
-}
-
-.menu-section-list > li > a {
-    display:block;
-}
-
-.menu-section-list > li > a,
-.menu-section-list > li > div {
-    padding:10px 20px;
-}
-
-.menu-section-list div,
-.menu-section-list span
-{
-    cursor:pointer;
-}
-
-.menu-section-list a:hover,
-.menu-section-list div:hover,
-.menu-section-list span:hover, 
-.menu-section-title a:hover,
-.menu-section-title div:hover,
-.menu-section-title span:hover,
-#ddlLanguage:focus,
-#ddlLanguage:hover
-{
-    color:#6ca6bd;
-    text-decoration:none;
-}
-
-.menu_option_selected
-{
-    background-color:rgba(108,166,189,0.4);
-}
-
-.btn_accordion {
-    cursor:pointer;
-    background-color:rgba(0,0,0,0.0);
-    border:none;
-    outline:none;
-    vertical-align:middle;
-    transition: 0.3s;
-}
-
-.btn_accordion:after {
-    content: " " url(data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22iso-8859-1%22%3F%3E%0A%3Csvg%20version%3D%221.1%22%20id%3D%22Capa_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20xmlns%3Axlink%3D%22http%3A//www.w3.org/1999/xlink%22%20x%3D%220px%22%20y%3D%220px%22%0A%09%20viewBox%3D%220%200%20405.456%20405.456%22%20style%3D%22enable-background%3Anew%200%200%20405.456%20405.456%3B%22%20xml%3Aspace%3D%22preserve%22%20width%3D%2223.406px%22%20height%3D%2216px%22%3E%0A%3Cg%3E%0A%09%3Cpath%20style%3D%22fill%3A%23737373%3B%22%20d%3D%22M74.134%2C64.147c-4.985%2C0.078-9.911%2C2.163-13.438%2C5.688l-55%2C55C2.096%2C128.432%2C0%2C133.492%2C0%2C138.583%0A%09%09s2.096%2C10.151%2C5.697%2C13.75l183.281%2C183.281c3.599%2C3.601%2C8.659%2C5.697%2C13.75%2C5.697s10.151-2.096%2C13.75-5.697l183.281-183.281%0A%09%09c3.601-3.599%2C5.697-8.659%2C5.697-13.75s-2.096-10.151-5.697-13.75l-55-55c-3.598-3.591-8.651-5.681-13.734-5.681%0A%09%09c-5.083%2C0-10.136%2C2.09-13.734%2C5.681L202.728%2C184.397L88.166%2C69.833C84.499%2C66.169%2C79.318%2C64.07%2C74.134%2C64.147L74.134%2C64.147z%22/%3E%0A%3C/g%3E%0A%3C/svg%3E%0A);
-    /*content: '\02795';*/
-    float:right;
-    margin-top:3px;
-}
-
-.btn_accordion.active:after {
-    content: " " url(data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22iso-8859-1%22%3F%3E%0A%3Csvg%20version%3D%221.1%22%20id%3D%22Capa_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20xmlns%3Axlink%3D%22http%3A//www.w3.org/1999/xlink%22%20x%3D%220px%22%20y%3D%220px%22%0A%09%20viewBox%3D%220%200%20405.457%20405.457%22%20style%3D%22enable-background%3Anew%200%200%20405.457%20405.457%3B%22%20xml%3Aspace%3D%22preserve%22%20width%3D%2223.406px%22%20height%3D%2216px%22%3E%0A%3Cg%3E%0A%09%3Cpath%20style%3D%22fill%3A%23737373%3B%22%20d%3D%22M331.322%2C341.31c4.985-0.078%2C9.911-2.163%2C13.438-5.688l55-55c3.601-3.599%2C5.697-8.659%2C5.697-13.75%0A%09%09s-2.096-10.151-5.697-13.75L216.478%2C69.841c-3.599-3.601-8.659-5.697-13.75-5.697s-10.151%2C2.096-13.75%2C5.697L5.697%2C253.123%0A%09%09C2.096%2C256.722%2C0%2C261.782%2C0%2C266.873s2.096%2C10.151%2C5.697%2C13.75l55%2C55c3.598%2C3.591%2C8.651%2C5.681%2C13.734%2C5.681%0A%09%09s10.136-2.09%2C13.734-5.681l114.562-114.562L317.29%2C335.623C320.958%2C339.287%2C326.139%2C341.387%2C331.322%2C341.31z%22/%3E%0A%3C/g%3E%0A%3C/svg%3E);
-    /*content: "\2796";*/
-}
-
-.div_accordion {
-    width:100%;
-    max-height:0;
-    overflow:hidden;
-    transition:0.3s ease-in-out;
-    opacity:0;
-    margin:0;
-    padding:0;
-}
-
-.div_accordion.show {
-    opacity:1;
-    overflow:visible;
-    max-height:1000px;
-}
-
-/* https://codepen.io/BandarRaffah/pen/ibwje */
+/* CSS3 animated iOS6-style switches */
+/* https://codepen.io/BandarRaffah/pen/ibwje (+bugfixes) */
 
 input[type="checkbox"].ios-switch {
 	position:absolute;
@@ -597,6 +443,192 @@ input[type="checkbox"].green.ios-switch:checked + div > div {
 input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 	box-shadow:0 2px 5px rgba(0,0,0,0.3), 0 0 0 1px rgba(76,116,132,1);
 }
+</style>
+
+
+
+<style type="text/css">
+/* CSS3 Accordion-style expand/collapse sections */
+
+.btn_accordion {
+    cursor:pointer;
+    background-color:rgba(0,0,0,0.0);
+    border:none;
+    outline:none;
+    vertical-align:middle;
+    transition: 0.3s;
+}
+
+.btn_accordion:after {
+    content: " " url(data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22iso-8859-1%22%3F%3E%0A%3Csvg%20version%3D%221.1%22%20id%3D%22Capa_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20xmlns%3Axlink%3D%22http%3A//www.w3.org/1999/xlink%22%20x%3D%220px%22%20y%3D%220px%22%0A%09%20viewBox%3D%220%200%20405.456%20405.456%22%20style%3D%22enable-background%3Anew%200%200%20405.456%20405.456%3B%22%20xml%3Aspace%3D%22preserve%22%20width%3D%2223.406px%22%20height%3D%2216px%22%3E%0A%3Cg%3E%0A%09%3Cpath%20style%3D%22fill%3A%23737373%3B%22%20d%3D%22M74.134%2C64.147c-4.985%2C0.078-9.911%2C2.163-13.438%2C5.688l-55%2C55C2.096%2C128.432%2C0%2C133.492%2C0%2C138.583%0A%09%09s2.096%2C10.151%2C5.697%2C13.75l183.281%2C183.281c3.599%2C3.601%2C8.659%2C5.697%2C13.75%2C5.697s10.151-2.096%2C13.75-5.697l183.281-183.281%0A%09%09c3.601-3.599%2C5.697-8.659%2C5.697-13.75s-2.096-10.151-5.697-13.75l-55-55c-3.598-3.591-8.651-5.681-13.734-5.681%0A%09%09c-5.083%2C0-10.136%2C2.09-13.734%2C5.681L202.728%2C184.397L88.166%2C69.833C84.499%2C66.169%2C79.318%2C64.07%2C74.134%2C64.147L74.134%2C64.147z%22/%3E%0A%3C/g%3E%0A%3C/svg%3E%0A);
+    /*content: '\02795';*/
+    float:right;
+    margin-top:3px;
+}
+
+.btn_accordion.active:after {
+    content: " " url(data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22iso-8859-1%22%3F%3E%0A%3Csvg%20version%3D%221.1%22%20id%3D%22Capa_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20xmlns%3Axlink%3D%22http%3A//www.w3.org/1999/xlink%22%20x%3D%220px%22%20y%3D%220px%22%0A%09%20viewBox%3D%220%200%20405.457%20405.457%22%20style%3D%22enable-background%3Anew%200%200%20405.457%20405.457%3B%22%20xml%3Aspace%3D%22preserve%22%20width%3D%2223.406px%22%20height%3D%2216px%22%3E%0A%3Cg%3E%0A%09%3Cpath%20style%3D%22fill%3A%23737373%3B%22%20d%3D%22M331.322%2C341.31c4.985-0.078%2C9.911-2.163%2C13.438-5.688l55-55c3.601-3.599%2C5.697-8.659%2C5.697-13.75%0A%09%09s-2.096-10.151-5.697-13.75L216.478%2C69.841c-3.599-3.601-8.659-5.697-13.75-5.697s-10.151%2C2.096-13.75%2C5.697L5.697%2C253.123%0A%09%09C2.096%2C256.722%2C0%2C261.782%2C0%2C266.873s2.096%2C10.151%2C5.697%2C13.75l55%2C55c3.598%2C3.591%2C8.651%2C5.681%2C13.734%2C5.681%0A%09%09s10.136-2.09%2C13.734-5.681l114.562-114.562L317.29%2C335.623C320.958%2C339.287%2C326.139%2C341.387%2C331.322%2C341.31z%22/%3E%0A%3C/g%3E%0A%3C/svg%3E);
+    /*content: "\2796";*/
+}
+
+.div_accordion {
+    width:100%;
+    max-height:0;
+    overflow:hidden;
+    transition:0.3s ease-in-out;
+    opacity:0;
+    margin:0;
+    padding:0;
+}
+
+.div_accordion.show {
+    opacity:1;
+    overflow:visible;
+    max-height:1000px;
+}
+</style>
+
+
+
+<style type="text/css">
+/* slideout.js menu styles */
+
+.slideout-menu {
+    position:fixed;
+    left:0;
+    top:0;
+    bottom:0;
+    right:0;
+    z-index:99999;
+    width:256px;
+    overflow-x:hidden;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    display:block;
+    transform:translateX(-256px);
+}
+
+.slideout-panel {
+    position:relative;
+    z-index:1;
+    will-change:transform;
+}
+
+.slideout-open,
+.slideout-open .slideout-panel {
+    overflow: hidden;
+}
+
+.slideout-open .slideout-menu {
+    display:block;
+    transform:translateX(0px);
+    transition:0.3s;
+    -webkit-transition:0.3s;
+}
+
+.panel {
+    background-color:#FFF;
+}
+
+.js-slideout-toggle {
+    border:0;
+    outline:none;
+    margin:0 3px;
+}
+
+.js-slideout-toggle > div {
+    font-size:36px;
+    text-align:center;
+    margin:0 0 5px 0;
+    font-family:"Arial Unicode MS";
+}
+
+.menu {
+    color:#737373;
+    background-color:#FFF;
+    background-image:linear-gradient(145deg, #EEE, #FFF);
+}
+
+.menu a {
+    color:#737373;
+    text-decoration: none;
+}
+
+.menu-header {
+    padding:20px 0 20px 60px;
+    background-repeat:no-repeat;
+    background-size:181px 22px;
+    background-position:bottom center;
+}
+
+.menu-header-title {
+    font-weight:400;
+    letter-spacing:0.5px;
+    margin:0;
+}
+
+.menu-section {
+    margin:25px 0;
+}
+
+/* hack because menu kept dropping Chrome 54 out of GPU rasterization */
+/* note: if this is applied to all sections, the tooltip images clip with text in Chrome */
+#sectionMenuAreas {
+    -webkit-transform:translateZ(0px);
+    transform:translateZ(0px);
+}
+
+.menu-section-title {
+    text-transform: uppercase;
+    font-weight:200;
+    font-size:20px;
+    letter-spacing: 4px;
+    padding:0 20px;
+    margin:0;
+}
+
+.menu-section-list {
+    padding:0;
+    margin:10px 0;
+    list-style:none;
+}
+
+.menu-section-list > li > a {
+    display:block;
+}
+
+.menu-section-list > li > a,
+.menu-section-list > li > div {
+    padding:10px 20px;
+}
+
+.menu-section-list div,
+.menu-section-list span
+{
+    cursor:pointer;
+}
+
+.menu-section-list a:hover,
+.menu-section-list div:hover,
+.menu-section-list span:hover, 
+.menu-section-title a:hover,
+.menu-section-title div:hover,
+.menu-section-title span:hover,
+#ddlLanguage:focus,
+#ddlLanguage:hover
+{
+    color:#6ca6bd;
+    text-decoration:none;
+}
+
+.menu_option_selected
+{
+    background-color:rgba(108,166,189,0.4);
+}
+
+
+
+
 
 .menu-section-list a[href^="http"]:after {
      content: " " url(data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%20standalone%3D%22no%22%3F%3E%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%3E%3Cpath%20fill%3D%22%23fff%22%20stroke%3D%22%23000%22%20d%3D%22M1.5%204.518h5.982V10.5H1.5z%22%2F%3E%3Cpath%20d%3D%22M5.765%201H11v5.39L9.427%207.937l-1.31-1.31L5.393%209.35l-2.69-2.688%202.81-2.808L4.2%202.544z%22%20fill%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M9.995%202.004l.022%204.885L8.2%205.07%205.32%207.95%204.09%206.723l2.882-2.88-1.85-1.852z%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E);
@@ -677,7 +709,12 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
     color:#000;
     border-color:#000;
 }
+</style>
 
+
+
+<style type="text/css">
+/* Menu: Tooltips */
 
 .tooltip {
     position: relative;
@@ -764,7 +801,12 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
     transition: 0.5s;
     border:2px solid #000;
 }
+</style>
 
+
+
+<style type="text/css">
+/* Animation for menu tooltip image swaps */
 
 .tooltip:hover .tooltiptext-on {
  -webkit-animation: tooltipani 2s linear infinite;
@@ -808,6 +850,46 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 
 
 
+<style type="text/css">
+/* Animation for location text pop-ups */
+
+.dkstextfade {
+ -webkit-animation: dkstextani 2.5s linear 1;
+    -moz-animation: dkstextani 2.5s linear 1;
+     -ms-animation: dkstextani 2.5s linear 1;
+      -o-animation: dkstextani 2.5s linear 1;
+         animation: dkstextani 2.5s linear 1;
+}
+
+@keyframes dkstextani {
+   0% { opacity:0; }
+  10% { opacity:1; }
+  90% { opacity:1; } 
+ 100% { opacity:0; } }
+@-moz-keyframes dkstextani {
+   0% { opacity:0; }
+  10% { opacity:1; }
+  90% { opacity:1; } 
+ 100% { opacity:0; } }
+@-webkit-keyframes "dkstextani" {
+   0% { opacity:0; }
+  10% { opacity:1; }
+  90% { opacity:1; } 
+ 100% { opacity:0; } }
+@-ms-keyframes dkstextani {
+   0% { opacity:0; }
+  10% { opacity:1; }
+  90% { opacity:1; } 
+ 100% { opacity:0; } }
+@-o-keyframes "dkstextani" {
+   0% { opacity:0; }
+  10% { opacity:1; }
+  90% { opacity:1; } 
+ 100% { opacity:0; } }
+</style>
+
+
+
 
 <script type="text/javascript">
 if (true) {
@@ -815,7 +897,7 @@ var _lang_pref = localStorage.getItem("PREF_LANGUAGE");
 var _lang_ja   = (_lang_pref != null && _lang_pref == "ja") || (_lang_pref == null && (new Date()).getTimezoneOffset() == -540);
 var _gmaps_script = document.createElement("script");
 _gmaps_script.async = true;
-_gmaps_script.src = "https://maps.googleapis.com/maps/api/js?v=3.exp&callback=InitGmaps" + (_lang_ja ? "&language=ja&region=JP" : "");
+_gmaps_script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyAC5-_YqoGgLWli64OHZ1HUL2XHgMJel_g&v=3.exp&callback=InitGmaps" + (_lang_ja ? "&language=ja&region=JP" : "");
 document.head.appendChild(_gmaps_script);
 }
 </script>
@@ -865,6 +947,30 @@ function FinishLoadIfPossible()
     }
 }
 
+var keikai0 = null, keikai1 = null;
+function AddAreaPolygon(n) {
+    var xs = "70FD73446CF76AF465A7659664C8672166986A486A3766CB65A861A25D4655D454384BE746CE412D3C59346F32F532D32AA42638258C252622432175169815860E8C10E513A511910D7A10280F7C0B88072C057F05A20416000008B70B210F05168819F31A4819581C5D1F3E2323274A292B27282AFB2A1B371E3ACE3B023B693C6A3D163B243E7E3F193EA13E9040F9417243DB4544478C49F64C934E0D52025212539E546B523553F3550658C859845CBC5B53634F69796CF7703F70DA776C787F79B47BB77DCB7F78868287B789AA8A9A89A988A88920894289DD8A558A338A33832883D483F7838F80BF7FBD7EEF7DCB7C5178B2790878067468729970FC";
+    var ys = "33652F322D0330CA30E533ED3579354237713A0C3B023C043DEE3ED63E17434D49E553C9563B63F0684C67F966EA63B95F286163614862FB67496B016C476ABD6A27667D62E061EB61B55F1B5C64571458175773526751ED4B554B3A4A454A444781477348924ABF4B8C498649E648C8474A44A2439F41713EBA3D143881348430342E572B5D29DF28EA26BB23B2226B1CD41B631C301B551C301F541F0320801A8A1B3B1824166214C8129A147711CD12A70FE2115213FC133D0F680BE30A65051F04F601480000013A014803BC03BC057105B5156D1F3923892581263327BE2912292E29D12BF22EC430A2304F310130BC31893144327E33D3332F34403372";
+    var ps = new Array(ys.length>>>2);
+    var fu = function(i,s,o,p) { return parseFloat(parseInt("0x"+s.substring(i<<2,(i<<2)+4)))/Math.pow(10,p)+o; };
+    for (var i=0;i<ys.length>>>2;i++) { ps[i] = new google.maps.LatLng(fu(i,ys,37.35023,5),fu(i,xs,140.68406,5)); }
+    keikai0 = new google.maps.Polygon({paths:ps,strokeColor:"#0F0",strokeWeight:2,strokeOpacity:1,fillColor:"#0F0",fillOpacity:0.0,zIndex:1});
+    keikai1 = new google.maps.Polygon({paths:ps,strokeColor:"#000",strokeWeight:6,strokeOpacity:1,fillColor:"#000",fillOpacity:0.2,zIndex:0});
+    keikai0.setMap(map);
+	keikai1.setMap(map);
+}
+
+function RemoveAreaPolygon(n) {
+    keikai0.setMap(null);
+    keikai1.setMap(null);
+    keikai0 = null;
+    keikai1 = null;
+}
+
+function IsAreaPolygon(n) {
+    return keikai0 != null;
+}
+
 function InitGmaps()
 {
     _index_load_state.gmaps = true;
@@ -906,17 +1012,51 @@ function Init()
     FinishLoadIfPossible();
 
     InjectSafariPerfFix();
+    ApplyFirefoxNoDragHack();
     setTimeout(InitGMapsStyleHack, 500);
-    setTimeout(InitMapScale, 2000);
-    
+
     MenuMobileNoHoverHack();
+    
+    InitMenuBindLogEvents();
 }
 
-function InitMapScale()
+
+function InitMenuBindLogEvents()
 {
-    ElGet("imgScale").src = "scale64_60x854.png";
-    ElGet("imgScale").title = "Yes, it's actually 4x LOG10s.  Very loggy.";
-    ElGet("scale").style.visibility = "visible";
+    ElGet("menu_logs_0").addEventListener("click", function()
+    {
+        LayersHelper.ShowAddLogPanel();
+    }, false);
+    
+    ElGet("menu_logs_1").addEventListener("click", function()
+    {
+        MenuHelper.OptionsClearSelection("ul_menu_layers");
+        MenuHelper.OptionsSetSelection("ul_menu_layers", 11);
+        _ui_layer_idx = 11;
+        MenuHelper.SetLayerUiIndexPref(11);
+        LayersHelper.UiLayers_OnChange();
+        LayersHelper.AddLogsCosmic();
+    }, false);
+    
+    ElGet("menu_logs_2").addEventListener("click", function()
+    {
+        if (_bvProxy.GetLogCount() > 0) 
+        {
+            _bvProxy.btnRemoveLogsOnClick();
+        }
+    }, false);
+
+    ElGet("menu_logs_3").addEventListener("click", function()
+    {
+        if (_bvProxy.GetLogCount() > 0) 
+        { 
+            LayersHelper.ShowAddLogPanel(); 
+        
+            setTimeout(function() { 
+                _bvProxy.UI_ShowAdvPanel(); 
+            }, 100); 
+        }
+    }, false);
 }
 
 function MenuMobileNoHoverHack()
@@ -935,7 +1075,10 @@ function InjectSafariPerfFix()
         && navigator.vendor   != null
         && navigator.vendor   == "Apple Computer, Inc."
         && (   _nua("Version/8.")
-            || _nua("Version/9."))
+            || _nua("Version/9.")
+            || _nua("Version/10.")
+            || _nua("Version/11.")
+            || _nua("Version/12."))
         && !_nua("Mobile"))
     {
         var hax = ElCr("style");
@@ -943,6 +1086,14 @@ function InjectSafariPerfFix()
         hax.innerHTML = "#map_canvas div { -webkit-transform:translateZ(0px); -webkit-backface-visibility:hidden; }";
         document.head.appendChild(hax);
     }//if
+}
+
+function ApplyFirefoxNoDragHack() // Firefox bug since 2012
+{
+    if (!("MozUserSelect" in document.body.style)) return;
+    var a = ["imgMenuSafecastIcon", "imgMenuReticle"];
+    var f = function(e) { e.preventDefault(); return false; };
+    for (var i=0; i<a.length; i++) { AListId(a[i],"dragstart",f); }
 }
 
 if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)) 
@@ -962,7 +1113,7 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
 <body onload="Init();">
 <div id="map_canvas" class="noblur"></div>
 <form onSubmit="codeAddress(); return false;">
-<nav id="menu" class="menu" style="display:none;">
+<nav id="menu" class="menu" draggable="false" style="display:none;">
     <header class="menu-header" id="menu-header">
         <span class="menu-header-title"></span>
     </header>
@@ -972,7 +1123,7 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
             <li><div id="pnlAddress"><input id="address" type="textbox" placeholder="Find Address..."></div></li>
             <li>
                 <div id="hud_btnToggle" class="menu-prefs-chk-item" onclick="MenuHelper.Hud_btnToggle_Click();">
-                    <img id="imgMenuReticle" width="34" height="25" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFQAAAA+CAAAAACQb2MhAAAAAnRSTlMA/1uRIrUAAALxSURBVFjDvZhZoewgDECPCxwgAQk4qIU6wEId1EE1oKASsBAb5H10pbd06F0efzOUQ8hGCFobkuI09GGY5iT6bnD/9xwMp2FD+in0QnzP/Qqd/c5xHXRu36FL34SmFelHUVUFVdU0+FfYEiodAH3M2/Q2L9M6JW+hswHoTuvgegib3kEnADcX08Wm0QImvoGGmxUlVPNkgLEd2gH2qjG+GNIAoRUaAJ/1E1TFAVMbdAL6rJ+hmj0wt0DnWzlvoZodGPkMFQMuaxtUxYDNH6Fdbe9bqCbzbKwlDKtauofqBMgHqAevb6DZQv8MnYH0CqqxvmSF+vq2NejTGlVU5wcPqULTk1ZRDQ+mrEK1e8gBqJqHAKlDJ3B16AxG30Pl4fxoeFR5Faq+fn7UVJOOBAd+qATkUD8/Atwvi+s1auea/WtqI4Gt+vc6UkU1FWmUWDmFGLBjSkMtgampWooJuruJsKU3MRWLuKorMlRc3+32GyrbdlUL01MdslvEVr4YfwI1lS+G/3n8PzHUk0uZ1aW6agL4vvM/3pzfDVPRBFxziwzeuP6ovWJncX1qTyj+Cs37lmGRSPzJIZpS36qJM3PclbMUNt3+OzYmaRGRMzTrDLgpxbDKFoF+lujAvLhOyuP7rewMS5BsviwGUvvFV0CPkiZbGFT7zTAeYvsVXUBPt94IXnU8SSrtxUQBHY6wF7CL6H3K0YF9UfYU0P7khgbyolsATHpRoBVQD7vX20Uif8qGzaVkAe1OUAdJD78184uit4CG6/EFsDGlAYy0l+dXQ4XDUEY1bmkngmt/SFxdyhYudbiDg9T85CmgwqbUbCGo9mdobH6cbVDZ8kcRpuPp+EjzM7KM/QS4KHNgCZwE2CgympNOV+0/PHhXqDgzbh+f74UjFZpUPs3Nw9N8hQ5g8v4x0OVDJFaxmpsIKzRZs16tqbcYf9yzqbPggrxod5wS9G81Zn7c7LprIf1CB+1rs+tP2nK/A1VVSfM0hG81EP8BIV8XJEcCH9kAAAAASUVORK5CYII=" />
+                    <img id="imgMenuReticle" draggable="false" width="34" height="25" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFQAAAA+CAAAAACQb2MhAAAAAnRSTlMA/1uRIrUAAALxSURBVFjDvZhZoewgDECPCxwgAQk4qIU6wEId1EE1oKASsBAb5H10pbd06F0efzOUQ8hGCFobkuI09GGY5iT6bnD/9xwMp2FD+in0QnzP/Qqd/c5xHXRu36FL34SmFelHUVUFVdU0+FfYEiodAH3M2/Q2L9M6JW+hswHoTuvgegib3kEnADcX08Wm0QImvoGGmxUlVPNkgLEd2gH2qjG+GNIAoRUaAJ/1E1TFAVMbdAL6rJ+hmj0wt0DnWzlvoZodGPkMFQMuaxtUxYDNH6Fdbe9bqCbzbKwlDKtauofqBMgHqAevb6DZQv8MnYH0CqqxvmSF+vq2NejTGlVU5wcPqULTk1ZRDQ+mrEK1e8gBqJqHAKlDJ3B16AxG30Pl4fxoeFR5Faq+fn7UVJOOBAd+qATkUD8/Atwvi+s1auea/WtqI4Gt+vc6UkU1FWmUWDmFGLBjSkMtgampWooJuruJsKU3MRWLuKorMlRc3+32GyrbdlUL01MdslvEVr4YfwI1lS+G/3n8PzHUk0uZ1aW6agL4vvM/3pzfDVPRBFxziwzeuP6ovWJncX1qTyj+Cs37lmGRSPzJIZpS36qJM3PclbMUNt3+OzYmaRGRMzTrDLgpxbDKFoF+lujAvLhOyuP7rewMS5BsviwGUvvFV0CPkiZbGFT7zTAeYvsVXUBPt94IXnU8SSrtxUQBHY6wF7CL6H3K0YF9UfYU0P7khgbyolsATHpRoBVQD7vX20Uif8qGzaVkAe1OUAdJD78184uit4CG6/EFsDGlAYy0l+dXQ4XDUEY1bmkngmt/SFxdyhYudbiDg9T85CmgwqbUbCGo9mdobH6cbVDZ8kcRpuPp+EjzM7KM/QS4KHNgCZwE2CgympNOV+0/PHhXqDgzbh+f74UjFZpUPs3Nw9N8hQ5g8v4x0OVDJFaxmpsIKzRZs16tqbcYf9yzqbPggrxod5wS9G81Zn7c7LprIf1CB+1rs+tP2nK/A1VVSfM0hG81EP8BIV8XJEcCH9kAAAAASUVORK5CYII=" />
                     <span id="lblMenuToggleReticle">Crosshair</span>
                     <div><input type=checkbox id="chkMenuToggleReticle" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
                     <span class="tooltiptext-bottom">
@@ -989,18 +1140,18 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
     <hr/>
 
     <section class="menu-section">
-        <h3 class="menu-section-title"><span id="lblMenuLayersTitle" class="btn_accordion">Layers </span></h3>
+        <h3 class="menu-section-title"><span id="lblMenuLayersTitle" class="btn_accordion">Layers</span></h3>
         <div class="div_accordion">
         <ul class="menu-section-list" id="ul_menu_layers"></ul>
         </div>
     </section>
 
     <section class="menu-section" id="sectionMenuLogs">
-        <h3 class="menu-section-title"><span id="lblMenuLogsTitle" class="btn_accordion" style="letter-spacing:2px;">bGeigie Logs </span></h3>
+        <h3 class="menu-section-title"><span id="lblMenuLogsTitle" class="btn_accordion" style="letter-spacing:2px;">bGeigie Logs</span></h3>
         <div class="div_accordion">
         <ul class="menu-section-list" id="ul_menu_logs">
             <li>
-                <div id="menu_logs_0" onclick="LayersHelper.ShowAddLogPanel();">Search Logs...</div>
+                <div id="menu_logs_0">Search Logs...</div>
                 <span class="tooltiptext-bottom">
                     <div style="position:relative;">
                         <span id="menu_tooltip_logs_0_off" class="tooltiptext-off"></span>
@@ -1009,7 +1160,7 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                 </span>
             </li>
             <li>
-                <div id="menu_logs_1" onclick="MenuHelper.OptionsClearSelection('ul_menu_layers'); MenuHelper.OptionsSetSelection('ul_menu_layers', 11); LayersHelper.UiLayers_OnChange(); LayersHelper.AddLogsCosmic();">Add Cosmic Logs</div>
+                <div id="menu_logs_1">Add Cosmic Logs</div>
                 <span class="tooltiptext-bottom">
                     <div style="position:relative;">
                         <span id="menu_tooltip_logs_1_off" class="tooltiptext-off"></span>
@@ -1018,7 +1169,7 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                 </span>
             </li>
             <li>
-                <div id="menu_logs_2" onclick="if (_bvProxy.GetLogCount() > 0) _bvProxy.btnRemoveLogsOnClick();">Remove All</div>
+                <div id="menu_logs_2">Remove All</div>
                 <span class="tooltiptext-bottom">
                     <div style="position:relative;">
                         <span id="menu_tooltip_logs_2_off" class="tooltiptext-off"></span>
@@ -1027,7 +1178,7 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                 </span>
             </li>
             <li>
-                <div id="menu_logs_3" onclick="if (_bvProxy.GetLogCount() > 0) { LayersHelper.ShowAddLogPanel(); setTimeout(function() { _bvProxy.UI_ShowAdvPanel(); }, 100); }">Options</div>
+                <div id="menu_logs_3">Options</div>
                 <span class="tooltiptext-bottom">
                     <div style="position:relative;">
                         <span id="menu_tooltip_logs_3_off" class="tooltiptext-off"></span>
@@ -1040,7 +1191,7 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
     </section>
 
     <section class="menu-section" id="sectionMenuRealtime">
-        <h3 class="menu-section-title"><span id="lblMenuRealtimeTitle" class="btn_accordion">Realtime </span></h3>
+        <h3 class="menu-section-title"><span id="lblMenuRealtimeTitle" class="btn_accordion">Realtime</span></h3>
         <div class="div_accordion">
         <ul class="menu-section-list" id="ul_menu_realtime">
             <li>
@@ -1051,6 +1202,26 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                         <div style="position:relative;">
                             <span id="menu_tooltip_realtime_0_off" class="tooltiptext-off"></span>
                             <span id="menu_tooltip_realtime_0_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+        </ul>
+        </div>
+    </section>
+
+    <section class="menu-section" id="sectionMenuAreas">
+        <h3 class="menu-section-title"><span id="lblMenuAreasTitle" class="btn_accordion">Areas</span></h3>
+        <div class="div_accordion">
+        <ul class="menu-section-list" id="ul_menu_areas">
+            <li>
+                <div id="menu_areas_0" class="menu-prefs-chk-item">
+                    <span id="menu_areas_0_label">Areas</span>
+                    <div><input type=checkbox id="chkMenuAreas0" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-bottom">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_areas_0_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_areas_0_on"  class="tooltiptext-on"></span>
                         </div>
                     </span>
                 </div>
@@ -1078,7 +1249,7 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
     <hr/>
 
     <section class="menu-section">
-        <h3 class="menu-section-title"><span id="lblMenuBasemapTitle" class="btn_accordion">Basemap </span></h3>
+        <h3 class="menu-section-title"><span id="lblMenuBasemapTitle" class="btn_accordion">Basemap</span></h3>
         <div class="div_accordion">
         <ul class="menu-section-list" id="ul_menu_basemap"></ul>
         </div>
@@ -1087,7 +1258,7 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
     <hr/>
 
     <section class="menu-section">
-        <h3 class="menu-section-title"><span id="lblMenuAdvancedTitle" class="btn_accordion">Advanced </span></h3>
+        <h3 class="menu-section-title"><span id="lblMenuAdvancedTitle" class="btn_accordion">Advanced</span></h3>
         <div class="div_accordion">
         <ul class="menu-section-list">
             <li>
@@ -1165,15 +1336,15 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
 </nav>
 
     <div id="map-layers"> 
-        <div id="scale" style="visibility:hidden;">
-            <img id="imgScale" width="30" height="427" style="display:none;" border=0 />
+        <div id="scale" style="display:none;">
+            <!--<img id="imgScale" width="30" height="427" style="display:none;" border=0 />/-->
         </div>
         <div id="logo2" style="visibility:hidden;">
             <main id="panel" class="panel">
                 <header>
                     <div class="js-slideout-toggle">
                         <div>☰</div>
-                        <img id="imgMenuSafecastIcon" width="44" height="43" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFgAAABWCAMAAAB8QaF2AAAA5FBMVEUAAAAAAAgACAgICAgIEBAQCAgQEBAQEBgQGBgQGCAQICAYGBgYICkYKSkgICAgMTkgOTkpICApKSkpOUEpQUoxMSkxMTExQUoxSlIxUlo5MTE5OTk5Ulo5UmJBQUFBWmpBYnNKSkpKantKc4NSUlJSc4NSe4tSg5RaUlJaWlpag5Rag5xai5xiWlpiYmJinKxqampqnLRqpLRqpL1zampzc3N7e3uDg4OLi4uUlJScnJykpKSsrKy0tLS9vb3Fvb3FxcXNxcXNzc3V1dXe1dXe3t7m3t7m5ubu7u727u729vb///8Y7eKUAAAB6ElEQVRYw+3X21LCMBAG4EiwiiDiCVQUEfCAIIhVKhSRg7Wx+/7v4w3YNGEGCLsXznQv2+Gbzt+fDTAWTzyrjEUFd900DexA0LVoYACvTgQDjC6IYAA3SwSD6HIaGMCrEcEAwyIRDEE/TQMDBFhRd0EdpFZbTqDRwzwKnXU1GZCiLo01GavVT75Gf9WQov4hi3qgyVitLk70qN9wom59a/S0RtfqUyMqzZdGDT2TqJ1RcYVWv3KTJTRQD4+W3urpjcl2CxxredQfeZO16beUy4f6Agneuck+npTUqPVWf1oG8IJzWo/aNTtBAmd7WdQ1I3hB1Gqrp9x094yXRL3OMa58VG01bwnprrPe7vGjtVJefl6S+xvtHjXqB7NeLIpaafXQHNajPpLu1TeBGVejDquV3ghmjEej9sKH3hBWf7x4FhrMWHEkHx2IMGN1L8zZwoSZFe6POios1esZGWYuFZyngrlPBDMvhmP4/8E8tZckgPerbdvuNArY8LU9m/tdVLhs/00ziQjnbGkqiHBDhu0UGpyKuPY5GpyLwhU0+DgKV9HgA6on3nmJwAW8VtzJbieJB2fkR77C/Oadhe7tFuquOGnP3HICebslLx/b7WY5I12aCCGEEPM/I2I+vbU3e4LFE088NPML2fymtP/NPcQAAAAASUVORK5CYII=" />
+                        <img id="imgMenuSafecastIcon" draggable="false" width="44" height="43" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFgAAABWCAMAAAB8QaF2AAAA5FBMVEUAAAAAAAgACAgICAgIEBAQCAgQEBAQEBgQGBgQGCAQICAYGBgYICkYKSkgICAgMTkgOTkpICApKSkpOUEpQUoxMSkxMTExQUoxSlIxUlo5MTE5OTk5Ulo5UmJBQUFBWmpBYnNKSkpKantKc4NSUlJSc4NSe4tSg5RaUlJaWlpag5Rag5xai5xiWlpiYmJinKxqampqnLRqpLRqpL1zampzc3N7e3uDg4OLi4uUlJScnJykpKSsrKy0tLS9vb3Fvb3FxcXNxcXNzc3V1dXe1dXe3t7m3t7m5ubu7u727u729vb///8Y7eKUAAAB6ElEQVRYw+3X21LCMBAG4EiwiiDiCVQUEfCAIIhVKhSRg7Wx+/7v4w3YNGEGCLsXznQv2+Gbzt+fDTAWTzyrjEUFd900DexA0LVoYACvTgQDjC6IYAA3SwSD6HIaGMCrEcEAwyIRDEE/TQMDBFhRd0EdpFZbTqDRwzwKnXU1GZCiLo01GavVT75Gf9WQov4hi3qgyVitLk70qN9wom59a/S0RtfqUyMqzZdGDT2TqJ1RcYVWv3KTJTRQD4+W3urpjcl2CxxredQfeZO16beUy4f6Agneuck+npTUqPVWf1oG8IJzWo/aNTtBAmd7WdQ1I3hB1Gqrp9x094yXRL3OMa58VG01bwnprrPe7vGjtVJefl6S+xvtHjXqB7NeLIpaafXQHNajPpLu1TeBGVejDquV3ghmjEej9sKH3hBWf7x4FhrMWHEkHx2IMGN1L8zZwoSZFe6POios1esZGWYuFZyngrlPBDMvhmP4/8E8tZckgPerbdvuNArY8LU9m/tdVLhs/00ziQjnbGkqiHBDhu0UGpyKuPY5GpyLwhU0+DgKV9HgA6on3nmJwAW8VtzJbieJB2fkR77C/Oadhe7tFuquOGnP3HICebslLx/b7WY5I12aCCGEEPM/I2I+vbU3e4LFE088NPML2fymtP/NPcQAAAAASUVORK5CYII=" />
                     </div>
                 </header>
             </main>
