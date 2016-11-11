@@ -1,6 +1,16 @@
 #!/bin/bash
 
-# =============================== 1. Set Paths ================================
+# =============================== 0. Secure clean exit ========================
+function clean_up
+{
+	echo -ne "\n!\n"
+	echo -ne "! Ctrl+C or other exit....\n"
+	echo -ne "!\n"
+	exit 4
+}
+trap clean_up SIGHUP SIGINT SIGTERM
+
+# =============================== 1. Set Environment ==========================
 
 export PYTHONPATH=/usr/local/lib/python2.7/site-packages
 
@@ -11,6 +21,10 @@ PATH=$PATH:/usr/local/bin
 PATH=$PATH:/Users/safecast/Safecast/Retile/app/
 export PATH
 
+export SQLITE_DB='/Users/safecast/Library/Containers/com.ndolezal.GeigerBotOSX/Data/Documents/safecast-2014-03-11.sqlite'
+export TODAY="$(date +%F)"
+export COVERAGE_LOG='/Users/safecast/coverage.csv'
+export COVERAGE_HEADER='#ISO-8601,z=0,z=1,z=2,z=3,z=4,z=5,z=6,z=7,z=8,z=9,z=10,z=11,z=12,z=13'
 
 # ================== 2. Update and Create Base 256x256 Tiles ==================
 
@@ -19,12 +33,15 @@ export PATH
 # ==================== 3. Update WMTS Date on 256x256 Tiles ====================
 
 cd /Library/WebServer/Documents/tilemap/TileExport
-echo '{' > metadata.json
-echo '    "version": "1", ' >> metadata.json
-echo '    "name": "Safecast Point Map", ' >> metadata.json
-echo '    "description": "'$(date +%Y-%m-%d)'", ' >> metadata.json
-echo '    "bounds":"-180.0,-85.05,180.0,85.05"' >> metadata.json
-echo '}' >> metadata.json
+
+cat <<EOJ >metadata.json
+{
+    "version": "1",
+    "name": "Safecast Point Map",
+    "description": "${TODAY}",
+    "bounds":"-180.0,-85.05,180.0,85.05"
+}
+EOJ
 
 # ================= 4. Create 512x512 Tiles from 256x256 Tiles =================
 
@@ -45,6 +62,20 @@ Retile /Library/WebServer/Documents/tilemap/TileExport/4 /Library/WebServer/Docu
 Retile /Library/WebServer/Documents/tilemap/TileExport/3 /Library/WebServer/Documents/tilemap/TileExport512 -Assemble
 Retile /Library/WebServer/Documents/tilemap/TileExport/2 /Library/WebServer/Documents/tilemap/TileExport512 -Assemble
 Retile /Library/WebServer/Documents/tilemap/TileExport/1 /Library/WebServer/Documents/tilemap/TileExport512 -Assemble
+
+# ======================= and log data coverage ================================
+SQL='SELECT GROUP_CONCAT(C) FROM (SELECT SUM(DataCount) AS C FROM Tiles GROUP BY TileLevel ORDER BY TileLevel);'
+
+# start with a header, if ${COVERAGE_LOG} does NOT exist
+[ -e "${COVERAGE_LOG}" ] || echo ${COVERAGE_HEADER} >${COVERAGE_LOG}
+# insert a record for today's data
+( echo -ne "${TODAY},";	echo  ${SQL} |sqlite3 "file://${SQLITE_DB}?mode=ro" ) >>${COVERAGE_LOG}
+
+# prettyprint today's data
+echo
+echo "Current coverage data by zoom level:"
+( head -n1 ${COVERAGE_LOG}; tail -n1 ${COVERAGE_LOG} ) |column -s, -t
+echo
 
 # ======================= 5. Amazon S3 - Sync .us Region =======================
 
@@ -68,7 +99,7 @@ time aws s3 sync 15 s3://te512.safecast.org/15 --acl public-read --delete --cach
 time aws s3 sync 16 s3://te512.safecast.org/16 --acl public-read --delete --cache-control "max-age=7200"
 
 # ============= 6. Amazon S3 - Force Update z=0 For Date on Client =============
-if test `find "/Users/safecast/Library/Containers/com.ndolezal.GeigerBotOSX/Data/Documents/safecast-2014-03-11.sqlite" -mmin -1440`
+if test $(find ${SQLITE_DB} -mmin -1440)
 then
     touch ./0/0/0.png
 fi
@@ -95,15 +126,4 @@ time aws s3 sync 15 s3://te512jp.safecast.org/15 --acl public-read --delete --ca
 time aws s3 sync 16 s3://te512jp.safecast.org/16 --acl public-read --delete --cache-control "max-age=7200" --region ap-northeast-1
 
 aws s3 sync 0 s3://te512jp.safecast.org/0 --acl public-read --delete --cache-control "max-age=60" --region ap-northeast-1
-
-
-
-
-
-
-
-
-
-
-
 
