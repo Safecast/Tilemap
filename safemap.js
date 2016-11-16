@@ -4477,7 +4477,7 @@ var Slideout = (function()
             //self.panel.style[prefix + "transform"] = "";
             self.panel.style["-webkit-transform"] = "";
             self.panel.style.transform = "";
-            self.emit("close");
+            //self.emit("close");
         }, this._duration + 50);
         
         return this;
