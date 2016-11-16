@@ -138,7 +138,9 @@ body
     left:0;
     z-index:1;
     width:30px;
+    /*
     background-image:url("scales64_240x854.png");
+    */
     background-size:120px 427px;
     padding:0;
     transition:0.3s;
@@ -941,34 +943,8 @@ function FinishLoadIfPossible()
     if (_index_load_state.gmaps && _index_load_state.safemaps && _index_load_state.ui && !_index_load_state.init)
     {
         _index_load_state.init = true;
-        MenuHelperStub.Init();
         initialize();
-        MenuHelper.InitLoadAsync();
     }
-}
-
-var keikai0 = null, keikai1 = null;
-function AddAreaPolygon(n) {
-    var xs = "70FD73446CF76AF465A7659664C8672166986A486A3766CB65A861A25D4655D454384BE746CE412D3C59346F32F532D32AA42638258C252622432175169815860E8C10E513A511910D7A10280F7C0B88072C057F05A20416000008B70B210F05168819F31A4819581C5D1F3E2323274A292B27282AFB2A1B371E3ACE3B023B693C6A3D163B243E7E3F193EA13E9040F9417243DB4544478C49F64C934E0D52025212539E546B523553F3550658C859845CBC5B53634F69796CF7703F70DA776C787F79B47BB77DCB7F78868287B789AA8A9A89A988A88920894289DD8A558A338A33832883D483F7838F80BF7FBD7EEF7DCB7C5178B2790878067468729970FC";
-    var ys = "33652F322D0330CA30E533ED3579354237713A0C3B023C043DEE3ED63E17434D49E553C9563B63F0684C67F966EA63B95F286163614862FB67496B016C476ABD6A27667D62E061EB61B55F1B5C64571458175773526751ED4B554B3A4A454A444781477348924ABF4B8C498649E648C8474A44A2439F41713EBA3D143881348430342E572B5D29DF28EA26BB23B2226B1CD41B631C301B551C301F541F0320801A8A1B3B1824166214C8129A147711CD12A70FE2115213FC133D0F680BE30A65051F04F601480000013A014803BC03BC057105B5156D1F3923892581263327BE2912292E29D12BF22EC430A2304F310130BC31893144327E33D3332F34403372";
-    var ps = new Array(ys.length>>>2);
-    var fu = function(i,s,o,p) { return parseFloat(parseInt("0x"+s.substring(i<<2,(i<<2)+4)))/Math.pow(10,p)+o; };
-    for (var i=0;i<ys.length>>>2;i++) { ps[i] = new google.maps.LatLng(fu(i,ys,37.35023,5),fu(i,xs,140.68406,5)); }
-    keikai0 = new google.maps.Polygon({paths:ps,strokeColor:"#0F0",strokeWeight:2,strokeOpacity:1,fillColor:"#0F0",fillOpacity:0.0,zIndex:1});
-    keikai1 = new google.maps.Polygon({paths:ps,strokeColor:"#000",strokeWeight:6,strokeOpacity:1,fillColor:"#000",fillOpacity:0.2,zIndex:0});
-    keikai0.setMap(map);
-	keikai1.setMap(map);
-}
-
-function RemoveAreaPolygon(n) {
-    keikai0.setMap(null);
-    keikai1.setMap(null);
-    keikai0 = null;
-    keikai1 = null;
-}
-
-function IsAreaPolygon(n) {
-    return keikai0 != null;
 }
 
 function InitGmaps()
@@ -1014,59 +990,8 @@ function Init()
     InjectSafariPerfFix();
     ApplyFirefoxNoDragHack();
     setTimeout(InitGMapsStyleHack, 500);
-
-    MenuMobileNoHoverHack();
-    
-    InitMenuBindLogEvents();
 }
 
-
-function InitMenuBindLogEvents()
-{
-    ElGet("menu_logs_0").addEventListener("click", function()
-    {
-        LayersHelper.ShowAddLogPanel();
-    }, false);
-    
-    ElGet("menu_logs_1").addEventListener("click", function()
-    {
-        MenuHelper.OptionsClearSelection("ul_menu_layers");
-        MenuHelper.OptionsSetSelection("ul_menu_layers", 11);
-        _ui_layer_idx = 11;
-        MenuHelper.SetLayerUiIndexPref(11);
-        LayersHelper.UiLayers_OnChange();
-        LayersHelper.AddLogsCosmic();
-    }, false);
-    
-    ElGet("menu_logs_2").addEventListener("click", function()
-    {
-        if (_bvProxy.GetLogCount() > 0) 
-        {
-            _bvProxy.btnRemoveLogsOnClick();
-        }
-    }, false);
-
-    ElGet("menu_logs_3").addEventListener("click", function()
-    {
-        if (_bvProxy.GetLogCount() > 0) 
-        { 
-            LayersHelper.ShowAddLogPanel(); 
-        
-            setTimeout(function() { 
-                _bvProxy.UI_ShowAdvPanel(); 
-            }, 100); 
-        }
-    }, false);
-}
-
-function MenuMobileNoHoverHack()
-{
-    if (!_nua("mobile") && !_nua("iPhone") && !_nua("iPad") && !_nua("Android")) return;
-    var s = ElCr("style");
-    s.type = "text/css";
-    s.innerHTML = ".menu-section-list a:hover,.menu-section-list div:hover,.menu-section-list span:hover,.menu-section-title a:hover,.menu-section-title div:hover,.menu-section-title span:hover,#ddlLanguage:focus,#ddlLanguage:hover { color:#737373; }";
-    document.head.appendChild(s);
-}
 
 function InjectSafariPerfFix()
 {

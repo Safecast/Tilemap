@@ -26,7 +26,7 @@ var _bitsProxy        = null;    // retained proxy instance for bitmap indices
 var _bvProxy          = null;    // retained proxy instance for bGeigie Log Viewer
 var _hudProxy         = null;    // retained proxy instance for HUD / reticle value lookup
 var _rtvm             = null;    // retained RT sensor viewer instance
-
+var _mapPolys         = null;    // retained map polygon model instance
 
 // ========== INTERNAL STATES =============
 var _cached_ext       = { baseurl:GetBaseWindowURL(), urlyxz:null, lidx:-1, cd:false, cd_y:0.0, cd_x:0.0, cd_z:0, midx:-1, mt:null };
@@ -58,14 +58,7 @@ var _cached_baseURL = null; // 2015-08-22 ND: fix for legacy "show bitstores"
 
 // ========== GOOGLE MAPS LAYERS =============
 var overlayMaps          = null;
-var tonerMapType         = null;
-var tliteMapType         = null;
-var wcolorMapType        = null;
-var mapnikMapType        = null;
-var pureBlackMapType     = null;
-var pureWhiteMapType     = null;
-var darkMapType          = null;
-var grayMapType          = null;
+var basemapMapTypes      = null;
 
 // ============= TEST ================
 var _test_client_render = false; // should be off here by default
@@ -174,6 +167,8 @@ function initialize()
 {
     if (document == null || document.body == null) return;  // real old browsers that are going to break on everything
 
+    MenuHelperStub.Init(); // must happen before basemaps or layers are init
+
     _bitsProxy = new BitsProxy("layers"); // mandatory, never disable
     _bvProxy   = new BvProxy();           // mandatory, never disable
     _hudProxy  = new HudProxy();          // mandatory, never disable
@@ -217,18 +212,22 @@ function initialize()
            mapTypeControlOptions: {
                                      position: google.maps.ControlPosition.TOP_RIGHT,
                                         style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+                                   mapTypeIds: BasemapHelper.basemaps,
+                                   /*
                                    mapTypeIds: [google.maps.MapTypeId.ROADMAP, 
                                                 google.maps.MapTypeId.SATELLITE, 
                                                 google.maps.MapTypeId.HYBRID, 
                                                 google.maps.MapTypeId.TERRAIN, 
-                                                "gray", "dark", "toner", "tlite", "wcolor", "mapnik", "black", "white"]
+                                                "gray", "dark", "toner", "tlite", "wcolor", "mapnik", "black", "white", "stamen_terrain"]
+                                                */
                                   },
                        mapTypeId: GetDefaultBasemapOrOverrideFromQuerystring()
     };
 
     map = new google.maps.Map(document.getElementById("map_canvas"), map_options);
 
-    BasemapHelper.InitBasemaps(); // must occur after "map" ivar is set
+    _mapPolys  = new MapPolys(map); // must occur after "map" ivar is set
+    BasemapHelper.InitBasemaps();   // must occur after "map" ivar is set
     ClientZoomHelper.InitGmapsLayers();
 
     TimeSliceUI.Init();
@@ -263,6 +262,8 @@ function initialize()
     setTimeout(function() {
         WhatsNewShowIfNeeded();
     }, 3000);
+    
+    MenuHelper.Init(); // contains its own delayed loads; should be at end of initialize()
 }//initialize
 
 
@@ -281,118 +282,76 @@ function GetIsRetina()
 
 
 
-
-
-
+// ===============================================================================================
+// ======================================= BASEMAP HELPER ========================================
+// ===============================================================================================
+//
+// BasemapHelper: 1. Initializes an array of Google Maps ImageMapTypes
+//                2. Adds them to the Gmaps registry
+//                3. Defines how the tile URLs are returned
+//
+// nb: When adding new basemaps, they must be added to:
+//  1. BasemapHelper.basemaps
+//  2. BasemapHelper.InitBasemaps
+//  3. MenuHelperStub.GetBasemapIdxsWithUiVisibility
+//  4. GetMenuStringsEn(), GetMenuStringsJa()
+//  5. The end of the current menu tooltip spritesheet (thus changing the filename)
+//  6. MenuHelper.InitTooltips
+//
 var BasemapHelper = (function()
 {
     function BasemapHelper()
     {
     }
     
+    BasemapHelper.basemaps =
+    [
+        google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.SATELLITE,
+        google.maps.MapTypeId.HYBRID, google.maps.MapTypeId.TERRAIN,
+        "gray", "dark", "toner", "tlite", "wcolor",
+        "mapnik", "black", "white", "stamen_terrain", 
+        "gsi_jp", "retro"
+    ];
+    
     BasemapHelper.GetCurrentInstanceBasemapIdx = function()
     {
         var mapType = map.getMapTypeId();
-        var idx     = 0;
-
-        switch (mapType)
+        var idx = 0;
+        
+        for (var i=0; i<BasemapHelper.basemaps.length; i++)
         {
-            case google.maps.MapTypeId.ROADMAP:
-                idx = 0;
+            if (mapType == BasemapHelper.basemaps[i])
+            {
+                idx = i;
                 break;
-            case google.maps.MapTypeId.SATELLITE:
-                idx = 1;
-                break;
-            case google.maps.MapTypeId.HYBRID:
-                idx = 2;
-                break;
-            case google.maps.MapTypeId.TERRAIN:
-                idx = 3;
-                break;
-            case "gray":
-                idx = 4;
-                break;
-            case "dark":
-                idx = 5;
-                break;
-            case "toner":
-                idx = 6;
-                break;
-            case "tlite":
-                idx = 7;
-                break;
-            case "wcolor":
-                idx = 8;
-                break;
-            case "mapnik":
-                idx = 9;
-                break;
-            case "black":
-                idx = 10;
-                break;
-            case "white":
-                idx = 11;
-                break;
-            default:
-                idx = 0;
-                break;
-        }//switch
-
+            }
+        }
+        
         return idx;
     };
 
+
     BasemapHelper.GetMapTypeIdForBasemapIdx = function(idx)
     {
-        var mapType = null;
-
-        switch (idx)
-        {
-            case 0:
-                mapType = google.maps.MapTypeId.ROADMAP;
-                break;
-            case 1:
-                mapType = google.maps.MapTypeId.SATELLITE;
-                break;
-            case 2:
-                mapType = google.maps.MapTypeId.HYBRID;
-                break;
-            case 3:
-                mapType = google.maps.MapTypeId.TERRAIN;
-                break;
-            case 4:
-                mapType = "gray";
-                break;
-            case 5:
-                mapType = "dark";
-                break;
-            case 6:
-                mapType = "toner";
-                break;
-            case 7:
-                mapType = "tlite";
-                break;
-            case 8:
-                mapType = "wcolor";
-                break;
-            case 9:
-                mapType = "mapnik";
-                break;
-            case 10:
-                mapType = "black";
-                break;
-            case 11:
-                mapType = "white";
-                break;
-            default:
-                mapType = google.maps.MapTypeId.ROADMAP;
-                break;
-        }//switch
-
-        return mapType;
+        if (idx < 0 || idx >= BasemapHelper.basemaps.length) idx = 0;
+        return BasemapHelper.basemaps[idx];
     };
     
-    BasemapHelper.fxGetNormalizedCoord = function(xy, z) { return GetNormalizedCoord(xy, z); };
     
+    BasemapHelper.GetUrlFromTemplate = function(template, x, y, z, r, s)
+    {
+        var url = "" + template;
+        if (x != null) url = url.replace(/{x}/g, ""+x);
+        if (y != null) url = url.replace(/{y}/g, ""+y);
+        if (z != null) url = url.replace(/{z}/g, ""+z);
+        if (r != null) url = url.replace(/{r}/g, ""+r);
+        if (s != null) url = url.replace(/{s}/g, ""+s[(z + x + y) % s.length]);
+
+        return url;
+    };
+
+    BasemapHelper.fxGetNormalizedCoord = function(xy, z) { return GetNormalizedCoord(xy, z); };
+
     BasemapHelper.GetGmapsMapStyled_Dark = function()
     {
         return [ {"stylers": [ { "invert_lightness": true }, { "saturation": -100 } ] },
@@ -407,21 +366,31 @@ var BasemapHelper = (function()
                  { "stylers": [ { "saturation": -100 }, { "lightness": 50 } ] },
                  { "elementType": "labels.icon", "stylers": [ { "invert_lightness": true }, { "gamma": 9.99 }, { "lightness": 79 } ] } ];
     };
+    
+    BasemapHelper.GetGmapsMapStyled_Retro = function()
+    {
+        return [{"featureType":"administrative","stylers":[{"visibility":"off"}]},{"featureType":"poi","stylers":[{"visibility":"simplified"}]},{"featureType":"road","elementType":"labels","stylers":[{"visibility":"simplified"}]},{"featureType":"water","stylers":[{"visibility":"simplified"}]},{"featureType":"transit","stylers":[{"visibility":"simplified"}]},{"featureType":"landscape","stylers":[{"visibility":"simplified"}]},{"featureType":"road.highway","stylers":[{"visibility":"off"}]},{"featureType":"road.local","stylers":[{"visibility":"on"}]},{"featureType":"road.highway","elementType":"geometry","stylers":[{"visibility":"on"}]},{"featureType":"water","stylers":[{"color":"#84afa3"},{"lightness":52}]},{"stylers":[{"saturation":-17},{"gamma":0.36}]},{"featureType":"transit.line","elementType":"geometry","stylers":[{"color":"#3f518c"}]}];
+    };
 
-    BasemapHelper.NewGmapsBasemap = function(min_z, max_z, tile_size, is_png, alt, name, base_url)
+    BasemapHelper.NewGmapsBasemap = function(min_z, max_z, tile_size, url_template, name, r, subs)
     {
         var o =
         {
-            getTileUrl: function(xy, z) { var nXY = BasemapHelper.fxGetNormalizedCoord(xy, z); return nXY == null ? null : base_url + "/" + z + "/" + nXY.x + "/" + nXY.y + (is_png ? ".png" : ".jpg") ; },
+            getTileUrl: function(xy, z) 
+                        { 
+                            var nXY = BasemapHelper.fxGetNormalizedCoord(xy, z);
+                            return BasemapHelper.GetUrlFromTemplate(url_template, nXY.x, nXY.y, z, r, subs);
+                        },
               tileSize: new google.maps.Size(tile_size, tile_size),
                minZoom: min_z,
                maxZoom: max_z,
                   name: name,
-                   alt: alt != null ? alt : name
+                   alt: name
         };
     
         return new google.maps.ImageMapType(o);
     };
+
 
     BasemapHelper.NewGmapsBasemapConst = function(tile_size, alt, name, tile_url) // single tile for all requests
     {
@@ -440,23 +409,41 @@ var BasemapHelper = (function()
 
     BasemapHelper.InitBasemaps = function()
     {
-        tonerMapType  = BasemapHelper.NewGmapsBasemap(0, 19, 256, true, null, "Stamen Toner", "http://tile.stamen.com/toner");
-        tliteMapType  = BasemapHelper.NewGmapsBasemap(0, 19, 256, true, null, "Stamen Toner Lite", "http://tile.stamen.com/toner-lite");
-        wcolorMapType = BasemapHelper.NewGmapsBasemap(0, 19, 256, false, null, "Stamen Watercolor", "http://tile.stamen.com/watercolor");
-        mapnikMapType = BasemapHelper.NewGmapsBasemap(0, 19, 256, true,  null, "OpenStreetMap", "http://tile.openstreetmap.org");
-        pureBlackMapType = BasemapHelper.NewGmapsBasemapConst(256, "Pure Black World Tendency", "None (Black)", "http://safecast.media.mit.edu/tilemap/black.png");
-        pureWhiteMapType = BasemapHelper.NewGmapsBasemapConst(256, "Pure White World Tendency", "None (White)", "http://safecast.media.mit.edu/tilemap/white.png");
-        grayMapType = new google.maps.StyledMapType(BasemapHelper.GetGmapsMapStyled_Gray(), {name: "Map (Gray)"});
-        darkMapType = new google.maps.StyledMapType(BasemapHelper.GetGmapsMapStyled_Dark(), {name: "Map (Dark)"});
-    
-        map.mapTypes.set( "toner", tonerMapType);
-        map.mapTypes.set( "tlite", tliteMapType);
-        map.mapTypes.set("wcolor", wcolorMapType);
-        map.mapTypes.set("mapnik", mapnikMapType);
-        map.mapTypes.set(  "gray", grayMapType);
-        map.mapTypes.set(  "dark", darkMapType);
-        map.mapTypes.set( "black", pureBlackMapType);
-        map.mapTypes.set( "white", pureWhiteMapType);
+        var stam_r = window.devicePixelRatio > 1.5 ? "@2x" : "";
+        var stam_z = window.devicePixelRatio > 1.5 ?    18 : 19;
+        var stam_subs = ["a", "b", "c", "d"];
+        var osm_subs  = ["a", "b", "c"];
+        
+        var o = { };
+        
+        o.b0 = BasemapHelper.NewGmapsBasemap(0, stam_z, 256, "http://{s}.tile.stamen.com/terrain/{z}/{x}/{y}{r}.png", "Stamen Terrain", stam_r, stam_subs);
+        o.b1 = BasemapHelper.NewGmapsBasemap(0, stam_z, 256, "http://{s}.tile.stamen.com/toner/{z}/{x}/{y}{r}.png", "Stamen Toner", stam_r, stam_subs);
+        o.b2 = BasemapHelper.NewGmapsBasemap(0, stam_z, 256, "http://{s}.tile.stamen.com/toner-lite/{z}/{x}/{y}{r}.png", "Stamen Toner Lite", stam_r, stam_subs);
+        
+        o.b3 = BasemapHelper.NewGmapsBasemap(0, 19, 256, "http://{s}.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg", "Stamen Watercolor", null, stam_subs);
+        o.b4 = BasemapHelper.NewGmapsBasemap(0, 19, 256, "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap", null, osm_subs);
+        
+        o.b9 = BasemapHelper.NewGmapsBasemap(0, 18, 256, "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", "GSI Japan", null, null);
+        
+        o.b5 = BasemapHelper.NewGmapsBasemapConst(256, "Pure Black World Tendency", "None (Black)", "http://safecast.media.mit.edu/tilemap/black.png");
+        o.b6 = BasemapHelper.NewGmapsBasemapConst(256, "Pure White World Tendency", "None (White)", "http://safecast.media.mit.edu/tilemap/white.png");
+        o.b7 = new google.maps.StyledMapType(BasemapHelper.GetGmapsMapStyled_Gray(), {name: "Map (Gray)"});
+        o.b8 = new google.maps.StyledMapType(BasemapHelper.GetGmapsMapStyled_Dark(), {name: "Map (Dark)"});
+        o.b10 = new google.maps.StyledMapType(BasemapHelper.GetGmapsMapStyled_Retro(), {name: "Map (Retro)"});
+        
+        map.mapTypes.set( "stamen_terrain", o.b0);
+        map.mapTypes.set( "toner", o.b1);
+        map.mapTypes.set( "tlite", o.b2);
+        map.mapTypes.set("wcolor", o.b3);
+        map.mapTypes.set("mapnik", o.b4);
+        map.mapTypes.set( "black", o.b5);
+        map.mapTypes.set( "white", o.b6);
+        map.mapTypes.set(  "gray", o.b7);
+        map.mapTypes.set(  "dark", o.b8);
+        map.mapTypes.set("gsi_jp", o.b9);
+        map.mapTypes.set( "retro", o.b10);
+        
+        basemapMapTypes = o;
     };
     
     return BasemapHelper;
@@ -977,6 +964,13 @@ function GetMapQueryStringUrl(isFull)
 
 
 
+// ===============================================================================================
+// ===================================== SAFECAST DATE HELPER ====================================
+// ===============================================================================================
+//
+// SafecastDateHelper: Misc date conversion/helper functions, especially pertaining to the
+//                     time series Safecast layers, which are defined here.
+//
 // nb: eventually, SafecastDateHelper, ClientZoomHelper, and LayersHelper
 //     should be combined into a single instanced class.
 var SafecastDateHelper = (function()
@@ -1126,6 +1120,18 @@ var SafecastDateHelper = (function()
 
 
 
+
+
+
+
+// ===============================================================================================
+// ===================================== CLIENT ZOOM HELPER ======================================
+// ===============================================================================================
+//
+// ClientZoomHelper: The actual interface to return raster layer tile URLs to Google Maps, this
+//                   also does some tricks to scale layers on the client past their maximum zoom
+//                   level.
+//
 var ClientZoomHelper = (function()
 {
     function ClientZoomHelper() 
@@ -1629,7 +1635,13 @@ function GetMapInstanceYXZ()
 
 
 
-
+// ===============================================================================================
+// ======================================== LAYERS HELPER ========================================
+// ===============================================================================================
+//
+// LayersHelper: Misc functions for managing raster layers, including a few "virtual" raster layers
+//               that invoke other functionality.
+//
 var LayersHelper = (function()
 {
     function LayersHelper() 
@@ -1902,6 +1914,220 @@ var LayersHelper = (function()
     
     return LayersHelper;
 })();
+
+
+
+
+
+
+
+
+// ===============================================================================================
+// ========================================== MAP POLYS ==========================================
+// ===============================================================================================
+//
+// MapPolys: Retained object containing encoded map polygon(s) and management for adding/remove from
+//           a Google Maps instance.
+//
+// Encoded Poly Format:
+// =====================
+// { 
+//     poly_id:0,
+//     desc:"帰還困難区域 (Fukushima Zone) by Azby, v2",
+//     xs:"70...",
+//     ys:"33...",
+//     ext: { x0:140.68406, y0:37.35023, x1:141.03888, y1:37.62742 },
+//     pr: { x:5, y:5 },
+//     ss: [ { sc:"#0F0", sw:2, so:1, fc:"#0F0", fo:0.0, zi:1 },
+//           { sc:"#000", sw:6, so:1, fc:"#000", fo:0.2, zi:0 } ]
+// } 
+//
+// poly_id: A unique identifier for the polygon that can be used programmatically.
+//    desc: An internal description only (not user-facing) to improve maintainability.
+//      xs: An encoded string of the x-coordinates of the vertices.
+//      ys: An encoded string of the y-coordinates of the vertices.
+//     ext: The extent of the polygon.
+//      pr: The precision of each encoded axis string, in decimal degree fractional digits.
+//      ss: One or more styles for Google Maps.  An output polygon is created for each style.
+//          sc: Stroke color
+//          sw: Stroke width
+//          so: Stroke opacity
+//          fc: Fill color
+//          fo: Fill opacity
+//          zi: z-Index
+//
+// For more information, including a utility to encode a polygon, see "hexagon_encode.js" in the
+// Tilemap Github repo.
+//
+var MapPolys = (function()
+{
+    function MapPolys(mapref) 
+    {
+        this.polygons = new Array();
+        this.mapref   = mapref;
+    }
+
+    MapPolys.prototype.Add = function(poly_id)
+    {
+        this.polygons = MapPolys._PolysNewPolysByAddingPoly(poly_id, this.polygons, MapPolys._encoded_polygons, this.mapref);
+    };
+
+    MapPolys.prototype.Remove = function(poly_id)
+    {
+        this.polygons = MapPolys._PolysNewPolysByRemovingPoly(poly_id, this.polygons);
+    };
+
+    MapPolys.prototype.Exists = function(poly_id)
+    {
+        return MapPolys._PolysDoesExistPoly(poly_id, this.polygons);
+    };
+
+
+
+    MapPolys._DecodeXYVal = function(i,s,o,p)
+    {
+        return parseFloat(parseInt("0x"+s.substring(i<<2,(i<<2)+4)))/Math.pow(10,p)+o;
+    };
+
+    MapPolys._GmapsCreatePathsFromEncodedXYs = function(xs, ys, x0, y0, xp, yp)
+    {
+        var ps = new Array(xs.length>>>2);
+
+        for (var i=0; i<xs.length>>>2; i++) 
+        { 
+            ps[i] = new google.maps.LatLng(MapPolys._DecodeXYVal(i,ys,y0,yp), MapPolys._DecodeXYVal(i,xs,x0,xp)); 
+        }//for
+
+        return ps;
+    };
+
+
+    MapPolys._GmapsCreatePolyFromPaths = function(gmaps_paths, ep, s, sidx)
+    {
+        return new google.maps.Polygon({         paths:gmaps_paths,
+                                           strokeColor:s.sc,
+                                          strokeWeight:s.sw,
+                                         strokeOpacity:s.so,
+                                             fillColor:s.fc,
+                                           fillOpacity:s.fo,
+                                                zIndex:s.zi,
+                                           ext_poly_id:ep.poly_id,
+                                    ext_poly_style_idx:sidx,
+                                         ext_poly_desc:ep.desc,
+                                       ext_poly_extent:{ x0:ep.ext.x0, y0:ep.ext.y0, x1:ep.ext.x1, y1:ep.ext.y1 }
+                                      });
+    };
+
+    MapPolys._PolysNewPolysByRemovingPoly = function(poly_id, ps)
+    {
+        var d = new Array();
+
+        for (var i = 0; i < ps.length; i++)
+        {
+            if (ps[i].ext_poly_id != poly_id)
+            {
+                d.push(ps[i]);
+            }//if
+            else if (ps[i].getMap() != null)
+            {
+                ps[i].setMap(null);
+            }//else if
+        }//for
+
+        return d;
+    };
+
+    MapPolys._PolysNewPolysByAddingPoly = function(poly_id, ps, eps, mapref)
+    {
+        var d = new Array(ps.length);
+        
+        for (var i = 0; i < ps.length; i++)
+        {
+            d[i] = ps[i];
+        }//for
+        
+        if (!MapPolys._PolysDoesExistPoly(poly_id, ps))
+        {
+            var nps = MapPolys._GmapsCreatePolysFromEncodedPoly(poly_id, eps);
+            
+            for (var i = 0; i < nps.length; i++)
+            {
+                nps[i].setMap(mapref);
+                d.push(nps[i]);
+            }//for
+        }//if
+
+        return d;
+    };
+
+    MapPolys._PolysDoesExistPoly = function(poly_id, ps)
+    {
+        var e = false;
+        
+        for (var i = 0; i < ps.length; i++)
+        {
+            if (ps[i].ext_poly_id == poly_id)
+            {
+                e = true;
+                break;
+            }//if
+        }//for
+        
+        return e;
+    };
+
+    MapPolys._GmapsCreatePolysFromEncodedPoly = function(poly_id, eps)
+    {
+        var d = new Array();
+
+        for (var i = 0; i < eps.length; i++)
+        {            
+            if (eps[i].poly_id == poly_id)
+            {
+                for (var j = 0; j < eps[i].ss.length; j++)
+                {
+                    var paths = MapPolys._GmapsCreatePathsFromEncodedXYs(eps[i].xs, eps[i].ys, eps[i].ext.x0, eps[i].ext.y0, eps[i].pr.x, eps[i].pr.y);
+                    var poly  = MapPolys._GmapsCreatePolyFromPaths(paths, eps[i], eps[i].ss[j], j);
+                    d.push(poly);
+                }//for
+            }//if
+        }//for
+
+        return d;
+    };
+
+    MapPolys._encoded_polygons =
+    [   
+        { 
+            poly_id:0,
+               desc:"帰還困難区域 (Fukushima Zone) by Azby, v2",
+                 xs:"70FD73446CF76AF465A7659664C8672166986A486A3766CB65A861A25D4655D454384BE746CE412D3C59346F32F532D32AA42638258C252622432175169815860E8C10E513A511910D7A10280F7C0B88072C057F05A20416000008B70B210F05168819F31A4819581C5D1F3E2323274A292B27282AFB2A1B371E3ACE3B023B693C6A3D163B243E7E3F193EA13E9040F9417243DB4544478C49F64C934E0D52025212539E546B523553F3550658C859845CBC5B53634F69796CF7703F70DA776C787F79B47BB77DCB7F78868287B789AA8A9A89A988A88920894289DD8A558A338A33832883D483F7838F80BF7FBD7EEF7DCB7C5178B2790878067468729970FC",
+                 ys:"33652F322D0330CA30E533ED3579354237713A0C3B023C043DEE3ED63E17434D49E553C9563B63F0684C67F966EA63B95F286163614862FB67496B016C476ABD6A27667D62E061EB61B55F1B5C64571458175773526751ED4B554B3A4A454A444781477348924ABF4B8C498649E648C8474A44A2439F41713EBA3D143881348430342E572B5D29DF28EA26BB23B2226B1CD41B631C301B551C301F541F0320801A8A1B3B1824166214C8129A147711CD12A70FE2115213FC133D0F680BE30A65051F04F601480000013A014803BC03BC057105B5156D1F3923892581263327BE2912292E29D12BF22EC430A2304F310130BC31893144327E33D3332F34403372",
+                ext: { x0:140.68406, y0:37.35023, x1:141.03888, y1:37.62742 },
+                 pr: { x:5, y:5 },
+                 ss: [ { sc:"#0F0", sw:2, so:1, fc:"#0F0", fo:0.0, zi:1 },
+                       { sc:"#000", sw:6, so:1, fc:"#000", fo:0.2, zi:0 } ]
+        } 
+    ];
+
+    return MapPolys;
+})();
+
+// HexagonEncode is an encoder function for the polygons used by MapPolys.
+// While the Google Maps polygon encoding is somewhat more efficient, it requires
+// additional resource loads.
+//
+// This should not be uncommented, as it will never be used by the Tilemap, but
+// rather is a tool 
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3724,6 +3950,20 @@ function AnimateElementFadeOut(el, opacity, stride)
 }
 
 
+
+
+
+
+
+// ===============================================================================================
+// ==================================== LOADING SPINNER HELPER ===================================
+// ===============================================================================================
+//
+// LoadingSpinnerHelper: Uses CSS3 animation to show a fullscreen loading spinner to the user.
+// nb: Does not work with Firefox because Mozilla unironically believes CSS styles are a security risk.
+//     Firefox users get a spinning square instead.
+//
+//
 var LoadingSpinnerHelper = (function()
 {
     function LoadingSpinnerHelper() 
@@ -3834,7 +4074,13 @@ var LoadingSpinnerHelper = (function()
 
 
 
-
+// ===============================================================================================
+// ======================================== TIMESLICE UI =========================================
+// ===============================================================================================
+//
+// TimeSliceUI: Minor UI helper functions to support the time slice (aka "time slider", aka "snapshots") 
+//              UI window which allows the user to select 6-month slices of the Safecast dataset.
+//
 var TimeSliceUI = (function()
 {
     function TimeSliceUI() 
@@ -3932,6 +4178,20 @@ var TimeSliceUI = (function()
 
 
 
+
+
+// ===============================================================================================
+// ==================================== LOCALIZED MENU STRINGS ===================================
+// ===============================================================================================
+//
+// GetMenuStringsEn(), GetMenuStringsJa() contain the translations for the menu items, and in a sane
+// world, they would be in their own file.  But HTTP/1.1.
+//
+// nb: For the MENU_LAYERS_*_DATE_LABEL, null and the empty string ("") indicate two different things.
+//     * null indicates there is no date label at all for the layer
+//     * ""   indicates a dynamic label, set elsewhere.  This is used for the dynamic date display in
+//            the Safecast layers.
+//
 function GetMenuStringsEn()
 {
     var s = 
@@ -3989,6 +4249,9 @@ function GetMenuStringsEn()
         MENU_BASEMAP_9_LABEL:"OpenStreetMap",
         MENU_BASEMAP_10_LABEL:"None (Black)",
         MENU_BASEMAP_11_LABEL:"None (White)",
+        MENU_BASEMAP_12_LABEL:"Stamen Terrain",
+        MENU_BASEMAP_13_LABEL:"GSI Japan",
+        MENU_BASEMAP_14_LABEL:"Map (Retro)",
         MENU_LOGS_TITLE:"bGeigie Logs",
         MENU_LOGS_0_LABEL:"Search...",
         MENU_LOGS_1_LABEL:"Add Cosmic Logs",
@@ -4053,14 +4316,17 @@ function GetMenuStringsJa()
         MENU_BASEMAP_1_LABEL:"航空写真",
         MENU_BASEMAP_2_LABEL:"ラベル付きの航空写真",
         MENU_BASEMAP_3_LABEL:"地形",
-        MENU_BASEMAP_4_LABEL:"地図 (グレー)",
-        MENU_BASEMAP_5_LABEL:"地図 (黒)",
+        MENU_BASEMAP_4_LABEL:"地図（グレー）",
+        MENU_BASEMAP_5_LABEL:"地図（黒）",
         MENU_BASEMAP_6_LABEL:"Stamen Toner",
         MENU_BASEMAP_7_LABEL:"Stamen Toner Light",
         MENU_BASEMAP_8_LABEL:"Stamen Watercolor",
         MENU_BASEMAP_9_LABEL:"OpenStreetMap",
         MENU_BASEMAP_10_LABEL:"なし（黒）",
         MENU_BASEMAP_11_LABEL:"なし（白）",
+        MENU_BASEMAP_12_LABEL:"Stamen Terrain",
+        MENU_BASEMAP_13_LABEL:"国土地理院（日本）",
+        MENU_BASEMAP_14_LABEL:"地図（レトロ）",
         MENU_LOGS_TITLE:"bGeigieログ",
         MENU_LOGS_0_LABEL:"検索",
         MENU_LOGS_1_LABEL:"宇宙放射線のログ追加",
@@ -4085,7 +4351,171 @@ console.log(d);
 */
 
 
+// ===============================================================================================
+// ======================================== SLIDEOUT MENU ========================================
+// ===============================================================================================
+//
+// Rewrite of https://github.com/Mango/slideout/blob/master/dist/slideout.js
+//
+// As most of the functionality went unused, it was possible to condense the portions that were into much less code.
+// It has it also been inlined into this file, saving an additional HTTP request.
+//
+var Slideout = (function()
+{
+    var html   = window.document.documentElement;
 
+    //var prefix = (function prefix() 
+    //{
+    //    var regex = /^(Webkit|Khtml|Moz|ms|O)(?=[A-Z])/;
+    //    var styleDeclaration = doc.getElementsByTagName("script")[0].style;
+    //    for (var prop in styleDeclaration) 
+    //    {
+    //        if (regex.test(prop)) 
+    //        {
+    //            return "-" + prop.match(regex)[0].toLowerCase() + "-";
+    //        }
+    //    }
+        
+        // Nothing found so far? Webkit does not enumerate over the CSS properties of the style object.
+        // However (prop in style) returns the correct value, so we'll have to test for
+        // the precence of a specific property
+        
+    //    if ("WebkitOpacity" in styleDeclaration) { return "-webkit-"; }
+    //    if ("KhtmlOpacity"  in styleDeclaration) { return "-khtml-";  }
+    //    
+    //    return "";
+    //}());
+    
+    function Slideout(options) 
+    {
+        options = options || {};
+  
+        this._currentOffsetX = 0;
+        this._opened         = false;
+  
+        this.panel = options.panel;
+        this.menu  = options.menu;
+
+        if (this.panel.className.search("slideout-panel") === -1) { this.panel.className += " slideout-panel"; }
+        if (this.menu.className.search("slideout-menu")   === -1) { this.menu.className  += " slideout-menu";  }
+
+        this._fx           = options.fx || "ease";
+        this._duration     = parseInt(options.duration, 10) || 300;
+        this._translateTo  = parseInt(options.padding, 10) || 256;
+        this._orientation  = options.side === "right" ? -1 : 1;
+        this._translateTo *= this._orientation;
+    }
+
+
+    Slideout.prototype.open = function() 
+    {
+        var self = this;
+
+        if (html.className.search("slideout-open") === -1) 
+        { 
+            html.className += " slideout-open"; 
+        }//if
+
+        this._setTransition();
+        this._translateXTo(this._translateTo);
+        this._opened = true;
+
+        setTimeout(function() 
+        {
+            self.panel.style.transition = "";
+            self.panel.style["-webkit-transition"] = "";
+        }, this._duration + 50);
+
+        return this;
+    };
+
+
+    Slideout.prototype._setTransition = function() 
+    {
+        //var t = prefix + "transform " + this._duration + "ms " + this._fx;
+        var t = "transform " + this._duration + "ms " + this._fx;
+
+        //this.panel.style[prefix + "transition"] = t;
+        this.panel.style["-webkit-transition"] = "-webkit-" + t;
+        this.panel.style.transition = t;
+
+        return this;
+    };
+
+
+    Slideout.prototype._translateXTo = function(translateX) 
+    {
+        var t = "translateX(" + translateX + "px)";
+
+        this._currentOffsetX = translateX;
+
+        //this.panel.style[prefix + "transform"] = t;
+        this.panel.style["-webkit-transform"] = t;
+        this.panel.style.transform = t;
+
+        return this;
+    };
+
+
+    Slideout.prototype.close = function() 
+    {
+        var self = this;
+        
+        if (!this.isOpen()) 
+        {
+            return this;
+        }//if
+
+        this._setTransition();
+        this._translateXTo(0);
+        this._opened = false;
+        
+        setTimeout(function() {
+            html.className = html.className.replace(/ slideout-open/, "");
+            self.panel.style.transition = "";
+            self.panel.style["-webkit-transition"] = "";
+            //self.panel.style[prefix + "transform"] = "";
+            self.panel.style["-webkit-transform"] = "";
+            self.panel.style.transform = "";
+            self.emit("close");
+        }, this._duration + 50);
+        
+        return this;
+    };
+
+
+    Slideout.prototype.toggle = function() 
+    {
+        return this.isOpen() ? this.close() : this.open();
+    };
+
+
+    Slideout.prototype.isOpen = function() 
+    {
+        return this._opened;
+    };
+
+
+    return Slideout;
+})();
+
+
+
+
+
+
+
+
+// ===============================================================================================
+// ========================================= MENU HELPER =========================================
+// ===============================================================================================
+//
+// Inits, formatting, event binds/handlers, prefs, etc for the slideout menu.
+//
+// MenuHelper differs from MenuHelperStub in that what is defined here will not break anything else
+// if it takes some time to load or initialize.  The menu will not be visible to the user until this
+// completes.
+//
 var MenuHelper = (function()
 {
     function MenuHelper()
@@ -4093,73 +4523,43 @@ var MenuHelper = (function()
     }
     
     // should only be called after safemap.js is loaded
-    MenuHelper.InitLoadAsync = function()
+    //MenuHelper.InitLoadAsync = function()
+    MenuHelper.Init = function()
     {
-        var el   = ElCr("script");
-        el.async = true;
-        el.type  = "text/javascript";
-        var cb   = function(e) 
-        { 
-            slideout = new Slideout({
-                'panel': document.getElementById('panel'),
-                'menu': document.getElementById('menu'),
-                //'itemToMove':"both",
-                'padding': 256,
-                'tolerance': 70
-            });
+        slideout = new Slideout({
+            "panel": document.getElementById("panel"),
+            "menu": document.getElementById("menu"),
+            "padding": 256,
+            "tolerance": 70
+        });
 
-            MenuHelper.InitLanguage();
-            MenuHelper.InitEventOverrides();
-            MenuHelper.InitEvents();
-            MenuHelper.InitTooltips();
+        MenuHelper.InitLanguage();
+        MenuHelper.InitEvents();
+        MenuHelper.InitTooltips();
 
-            setTimeout(function() {
-                MenuHelper.SyncBasemap();
-                MenuHelper.InitLayers_ApplyVisibilityStyles();
-                MenuHelper.InitBasemap_ApplyVisibilityStyles();
-                ElGet("menu").style.removeProperty("display");
-            }, 50);
+        setTimeout(function() {
+            MenuHelper.SyncBasemap();
+            MenuHelper.InitLayers_ApplyVisibilityStyles();
+            MenuHelper.InitBasemap_ApplyVisibilityStyles();
+            ElGet("menu").style.removeProperty("display");
+        }, 50);
 
-            setTimeout(function() {
-                ElGet("menu-header").style.backgroundImage = "url('schoriz_362x44.png')";
-            }, 200);
+        setTimeout(function() {
+            ElGet("menu-header").style.backgroundImage = "url('schoriz_362x44.png')";
+        }, 200);
 
-            setTimeout(MenuHelper.InitReticleFromPref, 250);
-            setTimeout(MenuHelper.InitAdvancedSection, 500);
+        setTimeout(MenuHelper.InitReticleFromPref, 250);
+        setTimeout(MenuHelper.InitAdvancedSection, 500);
 
-            ElGet("logo2").style.visibility = "visible";
+        ElGet("logo2").style.visibility = "visible";
             
-            if (MenuHelper.GetMenuOpenPref() && !slideout.isOpen())
-            {
-                setTimeout(function() {
-                    MenuHelper.OpenAnimationHack();
-                    slideout.toggle();
-                }, 501);
-            }//if
-
-            el.removeEventListener("load", cb); 
-        };
-        
-        AList(el, "load", cb);
-        el.src = "slideout.min.js";
-        var head = document.getElementsByTagName("head")[0];
-        head.appendChild(el);
-    };
-
-
-    // removes default events from slideout.js, should be called after "slideout = new Slideout(..."
-    MenuHelper.InitEventOverrides = function()
-    {
-        var s=slideout,d=window.document,m=window.navigator.msPointerEnabled;
-        var p=s.panel;
-        var t={'s':m?'MSPointerDown':'touchstart','m':m?'MSPointerMove':'touchmove','e':m?'MSPointerUp':'touchend'};
-        var r=function(e,a,b){e.removeEventListener(a,b);};
-        r(d,t.m,s._preventMove);
-        r(p,t.s,s._resetTouchFn);
-        r(p,'touchcancel',s._onTouchCancelFn);
-        r(p,t.e,s._onTouchEndFn);
-        r(p,t.m,s._onTouchMoveFn);
-        r(d,'scroll',s._onScrollFn);
+        if (MenuHelper.GetMenuOpenPref() && !slideout.isOpen())
+        {
+            setTimeout(function() {
+                MenuHelper.OpenAnimationHack();
+                slideout.toggle();
+            }, 501);
+        }//if
     };
 
 
@@ -4215,7 +4615,7 @@ var MenuHelper = (function()
         }//for
 
         var sl = [0,1,2,12,8,9,3,4,5,6];
-        var sb = [0,1,2,3,4,5,6,7,8,9,10,11];
+        var sb = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14];
         var y  = 3136 + 256; // <-- reuses last y-value from the static section
     
         // fill in rest of element name refs / positions for layers and basemaps
@@ -4294,7 +4694,7 @@ var MenuHelper = (function()
     
         // now, set the styles/spritesheet URL for all the elements with a tooltip
     
-        var ss = "menu_tooltips_512x8960.png";
+        var ss = "menu_tooltips_512x9728.png";
     
         for (var i=0; i<s.length; i++)
         {
@@ -4391,19 +4791,30 @@ var MenuHelper = (function()
         }, false);
 
 
+        var fxScaleVis = function(v)
+        {
+            if (v)
+            { 
+                ElGet("scale").style.removeProperty("display");
+                ElGet("scale").style.backgroundImage = "url('scales64_240x854.png')";
+            }//if
+            else
+            {
+                ElGet("scale").style.display = "none"; 
+                ElGet("scale").style.removeProperty("background-image");
+            }//else
+        };
         if (MenuHelper.GetScaleEnabledPref())
         {
-            ElGet("scale").style.removeProperty("display");
+            setTimeout(function() {
+                fxScaleVis(true);
+            }, 250);
         }//if
         ElGet("chkMenuScale").checked = ElGet("scale").style.display != "none";
         ElGet("menu_scale").addEventListener("click", function()
         {
-            var s = ElGet("scale");
-            var v = s.style.display != "none";
-
-            if (v) { s.style.display = "none"; }
-            else   { s.style.removeProperty("display"); }
-
+            var v = ElGet("scale").style.display != "none";
+            fxScaleVis(!v);
             ElGet("chkMenuScale").checked = !v;
             MenuHelper.SetScaleEnabledPref(!v);
         }, false);
@@ -4446,19 +4857,19 @@ var MenuHelper = (function()
 
         if (MenuHelper.GetArea0EnabledPref())
         {
-            AddAreaPolygon(0);
+            _mapPolys.Add(0);
         }//if
-        ElGet("chkMenuAreas0").checked = IsAreaPolygon(0);
+        ElGet("chkMenuAreas0").checked = _mapPolys.Exists(0);
         ElGet("menu_areas_0").addEventListener("click", function()
         {
-            var s = IsAreaPolygon(0);
+            var s = _mapPolys.Exists(0);
             if (s)
             {
-                RemoveAreaPolygon(0);
+                _mapPolys.Remove(0);
             }//if
             else
             {
-                AddAreaPolygon(0);
+                _mapPolys.Add(0);
             }//else
             ElGet("chkMenuAreas0").checked = !s;
             MenuHelper.SetArea0EnabledPref(!s);
@@ -4993,6 +5404,19 @@ var MenuHelper = (function()
 
 
 
+
+
+
+
+
+// ===============================================================================================
+// ======================================= MENU HELPER STUB ======================================
+// ===============================================================================================
+//
+// MenuHelperStub contains essential inits for the slideout menu, without which other code will break.
+// (nb: this is not true in all cases, and some can be moved to MenuHelper.  todo.)
+// 
+//
 var MenuHelperStub = (function()
 {
     function MenuHelperStub()
@@ -5003,9 +5427,61 @@ var MenuHelperStub = (function()
     {
         MenuHelperStub.InitLayers_BindLayers();
         MenuHelperStub.InitBasemap_BindBasemap();
+        MenuHelperStub.InitLogs_BindEvents();
+        MenuHelperStub.InitMenu_MobileNoHoverHack();
     };
-    
-    
+
+    // todo: move to MenuHelper
+    MenuHelperStub.InitMenu_MobileNoHoverHack = function()
+    {
+        if (!_nua("mobile") && !_nua("iPhone") && !_nua("iPad") && !_nua("Android")) return;
+        var s = ElCr("style");
+        s.type = "text/css";
+        s.innerHTML = ".menu-section-list a:hover,.menu-section-list div:hover,.menu-section-list span:hover,.menu-section-title a:hover,.menu-section-title div:hover,.menu-section-title span:hover,#ddlLanguage:focus,#ddlLanguage:hover { color:#737373; }";
+        document.head.appendChild(s);
+    };
+
+
+    // todo: move to MenuHelper
+    MenuHelperStub.InitLogs_BindEvents = function()
+    {
+        ElGet("menu_logs_0").addEventListener("click", function()
+        {
+            LayersHelper.ShowAddLogPanel();
+        }, false);
+
+        ElGet("menu_logs_1").addEventListener("click", function()
+        {
+            MenuHelper.OptionsClearSelection("ul_menu_layers");
+            MenuHelper.OptionsSetSelection("ul_menu_layers", 11);
+            _ui_layer_idx = 11;
+            MenuHelper.SetLayerUiIndexPref(11);
+            LayersHelper.UiLayers_OnChange();
+            LayersHelper.AddLogsCosmic();
+        }, false);
+
+        ElGet("menu_logs_2").addEventListener("click", function()
+        {
+            if (_bvProxy.GetLogCount() > 0) 
+            {
+                _bvProxy.btnRemoveLogsOnClick();
+            }
+        }, false);
+
+        ElGet("menu_logs_3").addEventListener("click", function()
+        {
+            if (_bvProxy.GetLogCount() > 0) 
+            { 
+                LayersHelper.ShowAddLogPanel(); 
+
+                setTimeout(function() { 
+                    _bvProxy.UI_ShowAdvPanel(); 
+                }, 100); 
+            }
+        }, false);
+    };
+
+
     MenuHelperStub.BindMore = function(ul_name, li_id, div_id, s0_id, chk_id, chk_checked, cb)
     {
         var ul = ElGet(ul_name);
@@ -5047,7 +5523,6 @@ var MenuHelperStub = (function()
     MenuHelperStub.InitBasemap_BindMore = function()
     {
         var cb = function() { MenuHelper.MoreBasemap_OnClick(); };
-        // 
         MenuHelperStub.BindMore("ul_menu_basemap", "li_menu_morebasemap", "lnkMenuBasemapMore", "lblMenuBasemapMore", "chkMenuBasemapMore", _ui_menu_basemap_more_visible, cb);
     };
 
@@ -5059,6 +5534,7 @@ var MenuHelperStub = (function()
     };
 
 
+    // todo: move to MenuHelper
     MenuHelperStub.InitExpand = function(el_id, fxGet, fxSet)
     {
         var el = ElGet(el_id);
@@ -5183,10 +5659,13 @@ var MenuHelperStub = (function()
             { i: 3, v:MenuHelperStub.UiVisibility.Always },
             { i: 4, v:MenuHelperStub.UiVisibility.Always },
             { i: 5, v:MenuHelperStub.UiVisibility.Normal },
+            { i:14, v:MenuHelperStub.UiVisibility.Normal },
             { i: 6, v:MenuHelperStub.UiVisibility.Normal },
             { i: 7, v:MenuHelperStub.UiVisibility.Normal },
             { i: 8, v:MenuHelperStub.UiVisibility.Normal },
+            { i:12, v:MenuHelperStub.UiVisibility.Normal },
             { i: 9, v:MenuHelperStub.UiVisibility.Normal },
+            { i:13, v:MenuHelperStub.UiVisibility.Normal },
             { i:10, v:MenuHelperStub.UiVisibility.Normal },
             { i:11, v:MenuHelperStub.UiVisibility.Normal }
         ];
