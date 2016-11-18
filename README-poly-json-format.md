@@ -16,6 +16,33 @@ Edit polys.json and submit a pull request.  Please test it locally first, via JS
 
 You should be able to just copy and paste one of the existing items as a template and not have to read anything here.  But this document is provided for reference nonetheless.
 
+## Basic JSON Errors
+
+A common mistake in editing JSON is to use trailing commas.  This is bad and breaks parsing the entire JSON object.
+
+```
+     { "a":1, "b":2, }   // <-- wrong
+     { "a":1, "b":2  }   // <-- right
+```
+
+```
+     [ { "k":"en", "v":"1" },
+       { "k":"ja", "v":"1" }, ]   // <-- wrong
+       
+     [ { "k":"en", "v":"1" },
+       { "k":"ja", "v":"1" }  ]   // <-- right
+```
+
+At the same time, don't forget to use commas.
+
+```
+     [ { "k":"en", "v":"1" }
+       { "k":"ja", "v":"1" }  ]   // <-- wrong
+       
+     [ { "k":"en", "v":"1" },
+       { "k":"ja", "v":"1" }  ]   // <-- right
+```
+
 ## Supported Feature Types
 
 1. Polygons
