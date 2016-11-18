@@ -177,6 +177,6 @@ Example 6 - Thou shalt not mix kv-object and string types.
 ```
            "imgs": [ { "k":"en", "v":["This must be the work of an enemy「stand」", "futaba_640x300.png"] },
                      { "k":"ja", "v":["これは敵の仕事でなければならない「スタンド」",      "futaba_640x300.png"] },
-                     "kgeigie.jpg"                                                                      ] } ],
+                     "kgeigie.jpg"                                                                          ],
            // WRONG
 ```
