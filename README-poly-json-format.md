@@ -151,59 +151,39 @@ The format for many fields in polys.json is quite flexible, and it will autodete
 Special notes for `v` types, by field:
  
 * `author`, `desc`, and `info` - Only a STRING type is supported for `v`.
-* `more`, and `atts` - Only an ARRAY of two strings is supported for `v`.  The first string is the link text, and the second string is the URL.
-* `imgs` - Supports either a STRING or an ARRAY.  If a STRING, it is the image URL.  If an array with two strings, the first string is the image caption, and the second string is the URL.
+* `more`, and `atts` - Only an ARRAY of two strings is supported for `v`.
+ * The first string is the link text, and the second string is the URL.
+* `imgs` - Supports either a STRING or an ARRAY.
+ * If a STRING, it is the image URL.
+ * If an ARRAY with two strings, the first string is the image caption, and the second string is the URL.
+ * If an ARRAY with three strings, the first string is the image caption, the second string is the URL, and the third is additional CSS style attributes.
 
 
-## Further Examples - Possible `imgs` content
+## `imgs` Value Types
 
-Example 1 - Here, both English and Japanese versions are present, with captions.
-```
-           "imgs": [ { "k":"en", "v":["This must be the work of an enemy「stand」", "futaba_640x300.png"] },
-                     { "k":"ja", "v":["これは敵の仕事でなければならない「スタンド」",      "futaba_640x300.png"] } ],
-           // RIGHT
-```
+The `imgs` field is the most flexible and complex, supporting several different value formats, and allowing for multiple images.
 
-Example 2 - As above, but without captions.
+####1. Basic
 ```
-           "imgs": [ { "k":"en", "v":"futaba_640x300.png" },
-                     { "k":"ja", "v":"futaba_640x300.png" } ],
-           // RIGHT
+"imgs": "world.png"
 ```
 
-Example 3 - As above, but only one language.  If the user has Japanese set, it will fallback upon English when no Japanese version is present.
+####2. Localized
 ```
-           "imgs": [ { "k":"en", "v":"futaba_640x300.png" } ],
-           // WRONG
-```
-
-Example 4 - As above, but simplified with no language.
-```
-           "imgs": "futaba_640x300.png",
-           // RIGHT
+"imgs": [ { "k":"en", "v":"world_en.png" },
+          { "k":"ja", "v":"world_ja.png" } ]
 ```
 
-Example 5A - Let's take the original, and add another image.  Note that this will **not** work 100% -- a Japanese user will only see one image, but an English user will see two.  Because the script found a match for the Japanese language tag, it will not use any fallbacks.
+####3. Localized, With Caption
 ```
-           "imgs": [ { "k":"en", "v":["This must be the work of an enemy「stand」",             "futaba_640x300.png"] },
-                     { "k":"ja", "v":["これは敵の仕事でなければならない「スタンド」",                  "futaba_640x300.png"] },
-                     { "k":"en", "v":["&quot;It's kGeigie time!&quot; &quot;No JAM, no!&quot;", "kgeigie.jpg"       ] } ],
-           // WRONG
+"imgs": [ { "k":"en", "v":["The World",  "world_en.png"] },
+          { "k":"ja", "v":["ザ・ワールド", "world_ja.png"] } ]
 ```
 
-Example 5B - Ok, let's fix the above.
+####4. Localized, With Caption and Custom CSS Attributes
 ```
-           "imgs": [ { "k":"en", "v":["This must be the work of an enemy「stand」",             "futaba_640x300.png"] },
-                     { "k":"ja", "v":["これは敵の仕事でなければならない「スタンド」",                  "futaba_640x300.png"] },
-                     { "k":"en", "v":["&quot;It's kGeigie time!&quot; &quot;No JAM, no!&quot;", "kgeigie.jpg"       ] },
-                     { "k":"ja", "v":["「それはkGeigieの時間です」 「いいえJAM、いいえ！」",           "kgeigie.jpg"       ] } ],
-           // RIGHT
+"imgs": [ { "k":"en", "v":["The World",  "world_en.png", "filter:brightness(1.5);"] },
+          { "k":"ja", "v":["ザ・ワールド", "world_ja.png", "filter:brightness(1.5);"] } ]
 ```
 
-Example 6 - Thou shalt not mix kv-object and string types.
-```
-           "imgs": [ { "k":"en", "v":["This must be the work of an enemy「stand」", "futaba_640x300.png"] },
-                     { "k":"ja", "v":["これは敵の仕事でなければならない「スタンド」",      "futaba_640x300.png"] },
-                     "kgeigie.jpg"                                                                          ],
-           // WRONG
-```
+*Note:* While a caption must be specified to use custom CSS attributes, leaving the caption as an empty string (`""`) allows for the use of custom CSS attributes and in effect, no caption.
