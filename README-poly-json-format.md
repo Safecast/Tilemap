@@ -6,9 +6,13 @@
 
 Polygon and point features displayed as annotations on the Tilemap.
 
+
+
 ## Why polys.json?
 
 polys.json was created to allow greater customization of the map by more individuals.  Editing a JSON file is relatively easy, and the contents will be automatically formatted.
+
+
 
 ## Usage
 
@@ -16,32 +20,17 @@ Edit polys.json and submit a pull request.  Please test it locally first, via JS
 
 You should be able to just copy and paste one of the existing items as a template and not have to read anything here.  But this document is provided for reference nonetheless.
 
-## Basic JSON Errors
 
-A common mistake in editing JSON is to use trailing commas.  This is bad and breaks parsing the entire JSON object.
 
-```
-     { "a":1, "b":2, }   // <-- wrong
-     { "a":1, "b":2  }   // <-- right
-```
+## Overview
 
-```
-     [ { "k":"en", "v":"1" },
-       { "k":"ja", "v":"1" }, ]   // <-- wrong
-       
-     [ { "k":"en", "v":"1" },
-       { "k":"ja", "v":"1" }  ]   // <-- right
-```
+Fundamentally, three things are being defined with polys.js for each item:
 
-At the same time, don't forget to use commas.
+1. Location - Where the feature is on the map.
+2. Styles - How it should be displayed on the map.
+3. Metadata - What content should be in the infowindow when the user clicks on it.
 
-```
-     [ { "k":"en", "v":"1" }
-       { "k":"ja", "v":"1" }  ]   // <-- wrong
-       
-     [ { "k":"en", "v":"1" },
-       { "k":"ja", "v":"1" }  ]   // <-- right
-```
+
 
 ## Supported Feature Types
 
@@ -52,12 +41,8 @@ At the same time, don't forget to use commas.
  * Unique field: `point`
  * Unique field: `icon`
  
-## Note - Polygon `path`
-
-This refers to a linestring encoded by the Google Maps API.  A polygon editor from Google which creates and edits these strings can be found [here.](https://developers.google.com/maps/documentation/utilities/polylineutility)
-
-**ATTENTION!** Polyline encoding produces strings with backslash and double-quote characters.  These must be escaped by a preceding backslash character when you paste them into a JSON string.
-
+ 
+ 
 ## Simple Example - Point
 
 **ATTENTION!**  This is a simplified example only.  I would reject this pull request because it does not contain a Japanese localization.
@@ -109,7 +94,9 @@ This refers to a linestring encoded by the Google Maps API.  A polygon editor fr
 ]
 ```
 
-**Note:** The above polygon example uses two styles in `ss`.  This is done in order to draw a green stroke for the polygon, with a thick black outline around it for visibility.
+*Note:* The above polygon example uses two styles in `ss`.  This is done in order to draw a green stroke for the polygon, with a thick black outline around it for visibility.
+
+
 
 ## Field Descriptions
 
@@ -117,27 +104,31 @@ This refers to a linestring encoded by the Google Maps API.  A polygon editor fr
 * `author` - STRING, KV-ARRAY.  The author of the feature.
 * `ver` - STRING.  The revision of the feature and/or metadata.
 * `date` - STRING.  The ISO date (UTC) for the last revision.
-* `desc` - STRING, KV-ARRAY. The title of the feature, used for both the info window and the menu.  This should be very terse, as a long title will wrap and make the menu look bad.  Use `&quot;` instead of double-quotes, and `&gt;` and `&lt;` to prevent HTML.
-* `info` - STRING, KV-ARRAY. Info window content for the feature, if the user clicks on it.  This should ideally be a few sentences at most.  Do *not* escape double-quotes, use `&quot;` instead.  Use of arbitrary HTML is possible, but not recommended.  Use single quotes, rather than double, if you must use embedded HTML.
+* `desc` - STRING, KV-ARRAY. The title of the feature, used for both the info window **and the menu**.  This should be very terse, as a long title will wrap and make the menu look bad.  Use `&quot;` instead of double-quotes (`"`), and `&gt;` instead of `>` and `&lt;` instead of `<` to prevent HTML.
+* `info` - STRING, KV-ARRAY. Info window content for the feature, if the user clicks on it.  This should ideally be a few sentences at most.  Do *not* escape double-quotes (`"`), use `&quot;` instead.  Use of arbitrary HTML is possible, but not recommended.  Use single quotes, rather than double, if you must use embedded HTML.
 * `imgs` - STRING, KV-ARRAY, MULTIPLE, OPTIONAL. Image(s) used in the infowindow, displayed before `info`.
 * `more` - KV-ARRAY, MULTIPLE, OPTIONAL. Link(s) used in the infowindow, displayed after `info`.
 * `atts` - KV-ARRAY, MULTIPLE, OPTIONAL. Link(s) used in the infowindow, displayed after `more`.  Displayed under a "References" header.
-* `point` - OBJECT, POINT-ONLY.  Do **not** use this with a polygon.
+* `point` - OBJECT, **POINT-ONLY**.  Do **not** use this with a polygon.
  * `point.y` - FLOAT. The latitude of the point feature, in decimal degrees.
  * `point.x` - FLOAT. The longitude of the point feature, in decimal degrees.
-* `icon` - OBJECT, POINT-ONLY.  Do **not** use this with a polygon.
+* `icon` - OBJECT, **POINT-ONLY**.  Do **not** use this with a polygon.
  * `icon.url` - STRING. The URL of the point feature's marker image.
  * `icon.w` - INT. The width, in pixels, of the point feature's marker image.  Remember, for retina/HDPI display images, this should be half of the image's actual width.
  * `icon.h` - INT. The height, in pixels, of the point feature's marker image.  Remember, for retina/HDPI display images, this should be half of the image's actual height.
  * `icon.zi` - INT. The z-index of the point feature's marker.
-* `path` - STRING, POLYGON-ONLY.  This is the Google Maps encoded polygon string.  Do **not** use this with a point.
-* `ss` - OBJECT-ARRAY, MULTIPLE, POLYGON-ONLY.  Polygon styles collection.  One polygon will be created for each style in the array. Do **not** use this with a point.
+* `path` - STRING, **POLYGON-ONLY**.  This is the Google Maps encoded polygon string.  Do **not** use this with a point.
+ * A polygon editor from Google which creates and edits these strings can be found [here.](https://developers.google.com/maps/documentation/utilities/polylineutility)
+ * **ATTENTION!** Polyline encoding produces strings with backslash and double-quote characters.  These must be escaped by a preceding backslash character when you paste them into a JSON string.
+* `ss` - OBJECT-ARRAY, MULTIPLE, **POLYGON-ONLY**.  Polygon styles collection.  One polygon will be created for each style in the array. Do **not** use this with a point.
  * `ss.sc` - STRING.  Stroke color, eg, `"#FFF"`.
  * `ss.sw` - INT.  Stroke width in pixels, eg, `2`.
  * `ss.so` - FLOAT.  Stroke opacity, [0.0 - 1.0], eg, `1.0`.
  * `ss.fc` - STRING.  Fill color, eg, `"#FFF"`.
  * `ss.fo` - FLOAT.  Fill opacity, [0.0 - 1.0], eg, `1.0`.
- * `ss.zi` - INT.  The z-index of the polygon.
+ * `ss.zi` - INT.  The z-index of the polygon, eg, `0`.
+
+
 
 ## Object Definitions
 
@@ -157,6 +148,74 @@ Special notes for `v` types, by field:
  * If a STRING, it is the image URL.
  * If an ARRAY with two strings, the first string is the image caption, and the second string is the URL.
  * If an ARRAY with three strings, the first string is the image caption, the second string is the URL, and the third is additional CSS style attributes.
+
+These are shown in specific detail below.
+
+
+
+## `author` Value Types
+
+####1. Basic
+```
+"author": "Azby Brown"
+```
+
+####2. Localized
+```
+"author": [ { "k":"en", "v":"Azby Brown"      },
+            { "k":"ja", "v":"アズビー・ブラウン" } ]
+```
+
+
+
+## `desc` Value Types
+
+####1. Basic
+```
+"desc": "Fukushima Zone"
+```
+
+####2. Localized
+```
+"desc": [ { "k":"en", "v":"Fukushima Zone"  },
+          { "k":"ja", "v":"福島の帰還困難区域" } ]
+```
+
+
+
+## `info` Value Types
+
+####1. Basic
+```
+"info": "As of 2013-05-28..."
+```
+
+####2. Localized
+```
+"info": [ { "k":"en", "v":"As of 2013-05-28..."  },
+          { "k":"ja", "v":"2013年5月28日..."      } ]
+```
+
+
+
+## `more` Value Types
+
+####1. Localized
+```
+"more": [ { "k":"en", "v":["More Info", "http://more.info" ] },
+          { "k":"ja", "v":["詳細",       "http://more.info" ] },
+```
+
+
+
+## `atts` Value Types
+
+####1. Localized
+```
+"atts": [ { "k":"en", "v":["Wikipedia",   "http://ja.wikipedia.org/wiki/帰還困難区域"] },
+          { "k":"ja", "v":["ウィキペディア", "http://ja.wikipedia.org/wiki/帰還困難区域"] } ]
+```
+
 
 
 ## `imgs` Value Types
@@ -187,3 +246,30 @@ The `imgs` field is the most flexible and complex, supporting several different 
 ```
 
 *Note:* While a caption must be specified to use custom CSS attributes, leaving the caption as an empty string (`""`) allows for the use of custom CSS attributes and in effect, no caption.
+
+
+
+## Appendix: Basic JSON Errors
+
+A common mistake in editing JSON is to use trailing commas.  This is bad and breaks parsing the entire JSON object.
+```
+     { "a":1, "b":2, }   // <-- wrong
+     { "a":1, "b":2  }   // <-- right
+```
+
+```
+     [ { "k":"en", "v":"1" },
+       { "k":"ja", "v":"1" }, ]   // <-- wrong
+       
+     [ { "k":"en", "v":"1" },
+       { "k":"ja", "v":"1" }  ]   // <-- right
+```
+
+At the same time, don't forget to use commas.
+```
+     [ { "k":"en", "v":"1" }
+       { "k":"ja", "v":"1" }  ]   // <-- wrong
+       
+     [ { "k":"en", "v":"1" },
+       { "k":"ja", "v":"1" }  ]   // <-- right
+```
