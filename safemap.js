@@ -4070,7 +4070,7 @@ var MenuHelper = (function()
         
             if (slideout.isOpen()) 
             {
-                _CloseAnimationHack();
+                MenuHelper.CloseAnimationHack();
                 slideout.toggle();
             }
             else
@@ -4083,7 +4083,7 @@ var MenuHelper = (function()
             
         }, false);
 
-        // document.querySelector(".menu").addEventListener("click", function(e) { if (e.target.nodeName === "A") { _CloseAnimationHack(); slideout.close(); } }, false);
+        // document.querySelector(".menu").addEventListener("click", function(e) { if (e.target.nodeName === "A") { MenuHelper.CloseAnimationHack(); slideout.close(); } }, false);
 
         if (!_nua("mobile") && !_nua("iPhone") && !_nua("iPad") && !_nua("Android"))
         {
@@ -4450,7 +4450,7 @@ var MenuHelper = (function()
     // However -255 -> -256 doesn't work because it restarts the entire animation, so this
     // hack moves it to -255, then hides it, waits, moves it to -256 without animation, then
     // restores the original styles.
-    var _CloseAnimationHack = function()
+    MenuHelper.CloseAnimationHack = function()
     {
         ElGet("menu").style.transition = "0.3s";
         ElGet("menu").style["-webkit-transition"] = "0.3s";
