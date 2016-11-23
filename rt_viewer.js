@@ -42,7 +42,7 @@ var RTVM = (function()
     function RTVM(map, dataBinds)
     {
         this.mapRef    = map;
-        this.isMobile  = RTVM.IsPlatformMobile();
+        this.isMobile  = _IsPlatformMobile();
         this.mks       = null; // marker manager
         this.failures  = 0;
         this.fail_max  = (86400 * 365) / 600;
@@ -198,7 +198,7 @@ var RTVM = (function()
             }//if
         }.bind(this);
 
-        RTVM.GetAsync_HTTP(url_nocache, null, null, cb, null);
+        _GetAsync_HTTP(url_nocache, null, null, cb, null);
     };
     
     // =======================================================================================================
@@ -255,7 +255,7 @@ var RTVM = (function()
     //                                      Static/Class Methods
     // =======================================================================================================
     
-    RTVM.GetAsync_HTTP = function(url, responseType, responseHeader, fxCallback, userData)
+    var _GetAsync_HTTP = function(url, responseType, responseHeader, fxCallback, userData)
     {
         var req = new XMLHttpRequest();
         req.open("GET", url, true);
@@ -289,7 +289,7 @@ var RTVM = (function()
             {
                 // This attemps to trap Chrome's ERR_NETWORK_CHANGED
                 // and other network failures which cause the updates to stop.
-                console.log("RTVM.GetAsync_HTTP: req.readyState == 4, req.status == %d.  Retrying.", req.status);
+                console.log("RTVM _GetAsync_HTTP: req.readyState == 4, req.status == %d.  Retrying.", req.status);
                 fxCallback(null, userData);
             }//else if
         };
@@ -298,7 +298,7 @@ var RTVM = (function()
     };
     
     // returns value of querystring parameter "name"
-    RTVM.GetParam = function(name) 
+    var _GetParam = function(name) 
     {
         name        = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
         var regexS  = "[\\?&]" + name + "=([^&#]*)";
@@ -311,10 +311,10 @@ var RTVM = (function()
 
     // http://stackoverflow.com/questions/11381673/detecting-a-mobile-browser
     // returns true if useragent is detected as being a mobile platform, or "mobile=1" is set in querystring.
-    RTVM.IsPlatformMobile = function()
+    var _IsPlatformMobile = function()
     {
         var check   = false;
-        var ovr_str = RTVM.GetParam("mobile");
+        var ovr_str = _GetParam("mobile");
     
         if (ovr_str != null && ovr_str.length > 0)
         {
@@ -331,13 +331,6 @@ var RTVM = (function()
         }//else
     
         return check;
-    };
-    
-    RTVM.ChangeVisibilityForElementByIdByReplacingClass = function(elementid, classHidden, classVisible, isHidden)
-    {
-        var el = document.getElementById(elementid);
-        if       (el != null &&  isHidden && el.className == classVisible) el.className = classHidden;
-        else if  (el != null && !isHidden && el.className == classHidden)  el.className = classVisible;
     };
 
     return RTVM;
@@ -728,6 +721,7 @@ var RTMKS = (function()
             && this.mk_ex[2] >= -180.0 && this.mk_ex[2] <= 180.0 && this.mk_ex[3] >= -90.0 && this.mk_ex[3] <= 90.0;
     };
     
+    /*
     RTMKS.prototype.ApplyMapVisibleExtentForMarkers = function()    
     {
         if (!this.IsMarkerExtentValid())
@@ -735,10 +729,11 @@ var RTMKS = (function()
             return;
         }//if
         
-        var r = MKS.GetRegionForExtentAndClientView_EPSG4326(this.mk_ex[0], this.mk_ex[1], this.mk_ex[2], this.mk_ex[3]);
+        var r = _GetRegionForExtentAndClientView_EPSG4326(this.mk_ex[0], this.mk_ex[1], this.mk_ex[2], this.mk_ex[3]);
         this.mapref.panTo(r[0]);
         this.mapref.setZoom(r[1]);
     };
+    */
 
     RTMKS.prototype.PurgeData = function()
     {
@@ -771,7 +766,7 @@ var RTMKS = (function()
         
         if (this.onmaps != null)
         {
-            RTMKS.vfill(0, this.onmaps, 0, this.onmaps.length);
+            _vfill(0, this.onmaps, 0, this.onmaps.length);
         }//if
         
         this.markers = new Array();
@@ -796,7 +791,7 @@ var RTMKS = (function()
     {
         if (this.mapref == null || this.zoomlistener != null) return;
         
-        var fxRefresh = function() { this.RescaleIcons(); }.bind(this);
+        var fxRefresh = function(e) { this.RescaleIcons(); }.bind(this);
         
         this.zoomlistener = google.maps.event.addListener(this.mapref, "zoom_changed", fxRefresh);
     };
@@ -813,7 +808,7 @@ var RTMKS = (function()
     RTMKS.prototype.UpdateIconsForMarkers = function()
     {
         var z     = this.mapref.getZoom();
-        var scale = RTMKS.GetIconScaleFactorForZ(z);
+        var scale = _GetIconScaleFactorForZ(z);
 
         for (var i=0; i<this.markers.length; i++)
         {
@@ -821,7 +816,7 @@ var RTMKS = (function()
             var dre     = this.dres[this.markers[i].ext_id];
             var offline = this.IsSensorOffline(this.markers[i].ext_id);
             var lutidx  = this.lut.GetIdxForValue(dre, this.lut_rsn);
-            var zindex  = RTMKS.GetMarkerZIndexForAttributes(lutidx, offline);
+            var zindex  = _GetMarkerZIndexForAttributes(lutidx, offline);
             var lat     = this.lats[this.markers[i].ext_id];
             var lon     = this.lons[this.markers[i].ext_id];
             
@@ -917,7 +912,7 @@ var RTMKS = (function()
         
         var yx     = new google.maps.LatLng(lat, lon);
         var marker = new google.maps.Marker();
-        var zindex = RTMKS.GetMarkerZIndexForAttributes(lutidx, offline);
+        var zindex = _GetMarkerZIndexForAttributes(lutidx, offline);
         
         marker.setPosition(yx);
         marker.setIcon(icon);
@@ -981,9 +976,9 @@ var RTMKS = (function()
         var need_reload = false;
         var need_icons  = false;
         var nowSS       = (new Date().getTime() / 1000.0) >>> 0;
-        var o           = RTMKS.ParseJSON(obj);
+        var o           = _ParseJSON(obj);
 
-        if (!RTMKS.ArrayCompare(o.ids, this.ids))
+        if (!_ArrayCompare(o.ids, this.ids))
         {
             need_reload = true;
         }//if
@@ -996,8 +991,8 @@ var RTMKS = (function()
         }//if
         else
         {
-            if (   !RTMKS.ArrayCompareAbsThr(o.lons, this.lons, 0.00001)
-                || !RTMKS.ArrayCompareAbsThr(o.lats, this.lats, 0.00001))
+            if (   !_ArrayCompareAbsThr(o.lons, this.lons, 0.00001)
+                || !_ArrayCompareAbsThr(o.lats, this.lats, 0.00001))
             {
                 // nb: epsilon used in case of future devices with active GPS, so minor positional
                 //     error doesn't constantly cause flickering of icons.
@@ -1006,14 +1001,14 @@ var RTMKS = (function()
                 this.lons  = o.lons;
             }//if
         
-            if (!RTMKS.ArrayCompare(o.dres, this.dres))
+            if (!_ArrayCompare(o.dres, this.dres))
             {
                 need_icons = true;
                 this.dres  = o.dres;
                 this.cpms  = o.cpms; // assume CPMs will change only if DREs change
             }//if
 
-            if (!RTMKS.ArrayCompare(o.times, this.times))
+            if (!_ArrayCompare(o.times, this.times))
             {
                 need_icons     = true;
                 this.times     = o.times; // update the times even if the offline status didn't change.
@@ -1070,7 +1065,7 @@ var RTMKS = (function()
             }//if
         }//for
                  
-        return RTMKS.GetInfoWindowHtmlForParams(this.locstxt[idx], imgs, ids, times, urls, dres, cpms, fontcss);
+        return _GetInfoWindowHtmlForParams(this.locstxt[idx], imgs, ids, times, urls, dres, cpms, fontcss);
     };
     
     RTMKS.prototype.AttachInfoWindow = function(marker)
@@ -1101,7 +1096,7 @@ var RTMKS = (function()
     // This is used by the code to sort the sensors such that offline sensors are at
     // the end of the array, while online sensors are sorted by id.
     //
-    RTMKS.SortJSONLtThr = function(src, prop, prop_thr, thr)
+    var _SortJSONLtThr = function(src, prop, prop_thr, thr)
     {
         src = src.sort(function(a, b) 
         {
@@ -1122,7 +1117,7 @@ var RTMKS = (function()
         return src;
     };
 
-    RTMKS.ArrayCompareAbsThr = function(src0, src1, thr)
+    var _ArrayCompareAbsThr = function(src0, src1, thr)
     {
         var is_eq = (src0 != null && src1 != null && src0.length == src1.length) || (src0 == null && src1 == null);
         
@@ -1141,7 +1136,7 @@ var RTMKS = (function()
         return is_eq;
     };
 
-    RTMKS.ArrayCompare = function(src0, src1)
+    var _ArrayCompare = function(src0, src1)
     {
         var is_eq = (src0 != null && src1 != null && src0.length == src1.length) || (src0 == null && src1 == null);
         
@@ -1171,16 +1166,16 @@ var RTMKS = (function()
     {
         if (newcpms == null || newcpms.length < 2) return;
 
-        this.cpms    = RTMKS.vcombine_f32(this.cpms,    newcpms);
-        this.dres    = RTMKS.vcombine_f32(this.dres,    newdres);
-        this.ids     = RTMKS.vcombine_s32(this.ids,     newids);
-        this.times   = RTMKS.vcombine_u32(this.times,   newtimes);
-        this.lons    = RTMKS.vcombine_f64(this.lons,    newlons);
-        this.lats    = RTMKS.vcombine_f64(this.lats,    newlats);
-        this.onmaps  = RTMKS.vcombine_u08(this.onmaps,  new Uint8Array(newcpms.length));
-        this.locstxt = RTMKS.acombine_any(this.locstxt, newlocstxt);
-        this.imgtxt  = RTMKS.acombine_any(this.imgtxt,  newimgtxt);
-        this.linktxt = RTMKS.acombine_any(this.linktxt, newlinktxt);
+        this.cpms    = _vcombine_f32(this.cpms,    newcpms);
+        this.dres    = _vcombine_f32(this.dres,    newdres);
+        this.ids     = _vcombine_s32(this.ids,     newids);
+        this.times   = _vcombine_u32(this.times,   newtimes);
+        this.lons    = _vcombine_f64(this.lons,    newlons);
+        this.lats    = _vcombine_f64(this.lats,    newlats);
+        this.onmaps  = _vcombine_u08(this.onmaps,  new Uint8Array(newcpms.length));
+        this.locstxt = _acombine_any(this.locstxt, newlocstxt);
+        this.imgtxt  = _acombine_any(this.imgtxt,  newimgtxt);
+        this.linktxt = _acombine_any(this.linktxt, newlinktxt);
         
         console.log("MKS.AddData: Added %d items, new total = %d.", newcpms.length, this.cpms.length);
     };
@@ -1188,7 +1183,7 @@ var RTMKS = (function()
     
     // Contarary to the function name, the JSON String must already be parsed
     // via JSON.parse, and converted to an Array of JSON Objects.
-    RTMKS.ParseJSON = function(obj)
+    var _ParseJSON = function(obj)
     {
         for (var i=0; i<obj.length; i++) // numeric cast for sort
         {
@@ -1197,7 +1192,7 @@ var RTMKS = (function()
         }//if
         
         var thr     = (new Date().getTime()) - 3600.0 * 1000.0;
-        var rts     = RTMKS.SortJSONLtThr(obj, "id", "unix_ms", thr);
+        var rts     = _SortJSONLtThr(obj, "id", "unix_ms", thr);
         var n       = rts.length;
         
         var lats    = new Float64Array(n);
@@ -1229,12 +1224,12 @@ var RTMKS = (function()
         return { dres:dres, cpms:cpms, ids:ids, times:times, lons:lons, lats:lats, locstxt:locstxt, imgtxt:imgtxt, linktxt:linktxt };
     };
     
-    RTMKS.GetMarkerZIndexForAttributes = function(lutidx, offline)
+    var _GetMarkerZIndexForAttributes = function(lutidx, offline)
     {
         return lutidx + (offline ? -1000 : 0);
     };
     
-    RTMKS.GetIconScaleFactorForZ = function(z)
+    var _GetIconScaleFactorForZ = function(z)
     {
         // For zoom levels > 7, the scale is always 100%.
         // Otherwise, it's:
@@ -1244,7 +1239,7 @@ var RTMKS = (function()
         return z > 7 ? 1.0 : 0.1 + (1.0 - (8 - z) * 0.125) * 0.9;
     };
     
-    RTMKS.GetElapsedTimeText = function(unixSS)
+    var _GetElapsedTimeText = function(unixSS)
     {
         unixSS = parseFloat(unixSS);
         var nowSS  = new Date().getTime() / 1000.0;
@@ -1293,10 +1288,10 @@ var RTMKS = (function()
         return dest;
     };
 
-    RTMKS.GetInfoWindowHtmlForParams = function(loc, imgurls, ids, unixSSs, linkurls, dres, cpms, fontCssClass)        
+    var _GetInfoWindowHtmlForParams = function(loc, imgurls, ids, unixSSs, linkurls, dres, cpms, fontCssClass)        
     {
         var nowSS = (new Date().getTime() / 1000.0) >>> 0;
-        var cwhs  = RTMKS.GetClientViewSize();
+        var cwhs  = _GetClientViewSize();
         var mini  = cwhs[0] <= 450;
         var tblw  = mini ? 320-30-10-50 : 320; // Google's styles seem to add 30 x-axis pixels of padding
         var w_pt  = 320;
@@ -1329,7 +1324,7 @@ var RTMKS = (function()
         
         for (var i=0; i<ids.length; i++)
         {
-            var elapsedtxt = RTMKS.GetElapsedTimeText(unixSSs[i]);
+            var elapsedtxt = _GetElapsedTimeText(unixSSs[i]);
             
             if (mini)
             {
@@ -1449,21 +1444,24 @@ var RTMKS = (function()
     
     // based on the client's screen size and extent, find the center and zoom level
     // to pass to Google Maps to pan the view.
-    RTMKS.GetRegionForExtentAndClientView_EPSG4326 = function(x0, y0, x1, y1)
+    /*
+    var _GetRegionForExtentAndClientView_EPSG4326 = function(x0, y0, x1, y1)
     {
-        var vwh = RTMKS.GetClientViewSize();
-        return RTMKS.GetRegionForExtentAndScreenSize_EPSG4326(x0, y0, x1, y1, vwh[0], vwh[1]);
+        var vwh = _GetClientViewSize();
+        return _GetRegionForExtentAndScreenSize_EPSG4326(x0, y0, x1, y1, vwh[0], vwh[1]);
     };
+    */
     
-    RTMKS.GetRegionForExtentAndScreenSize_EPSG4326 = function(x0, y0, x1, y1, vw, vh)
+    /*
+    var _GetRegionForExtentAndScreenSize_EPSG4326 = function(x0, y0, x1, y1, vw, vh)
     {
         var yx0 = new google.maps.LatLng(y0+(y1-y0)*0.5, x0+(x1-x0)*0.5);
         var dz  = 3;
                 
         for (var z = 20; z >= 0; z--)
         {
-            var mxy0 = RTMKS.LatLonToXYZ_EPSG3857(y1, x0, z);
-            var mxy1 = RTMKS.LatLonToXYZ_EPSG3857(y0, x1, z);
+            var mxy0 = _LatLonToXYZ_EPSG3857(y1, x0, z);
+            var mxy1 = _LatLonToXYZ_EPSG3857(y0, x1, z);
                     
             if (Math.abs(mxy1[0] - mxy0[0]) < vw && Math.abs(mxy1[1] - mxy0[1]) < vh)
             {
@@ -1476,8 +1474,9 @@ var RTMKS = (function()
     
         return [yx0, dz];
     };
+    */
     
-    RTMKS.GetClientViewSize = function()
+    var _GetClientViewSize = function()
     {
         var _w = window,
             _d = document,
@@ -1489,7 +1488,8 @@ var RTMKS = (function()
         return [vw, vh];
     };
     
-    RTMKS.LatLonToXYZ_EPSG3857 = function(lat, lon, z)
+    /*
+    var _LatLonToXYZ_EPSG3857 = function(lat, lon, z)
     {
         var x  = (lon + 180.0) * 0.002777778;
         var s  = Math.sin(lat * 0.0174532925199);
@@ -1499,35 +1499,48 @@ var RTMKS = (function()
         var py = parseInt(y * w + 0.5);
         return [px, py];
     };
+    */
     
-    RTMKS.vcombine_f64 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new Float64Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    RTMKS.vcombine_f32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new Float32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    RTMKS.vcombine_u32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new  Uint32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    RTMKS.vcombine_s32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Int32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    RTMKS.vcombine_u16 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new  Uint16Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    RTMKS.vcombine_s16 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Int16Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    RTMKS.vcombine_u08 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Uint8Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    RTMKS.vcombine_s08 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new    Int8Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    RTMKS.acombine_any = function(d,s) { if(d==null)return s;if(s==null)return d;for(var i=0;i<s.length;i++)d.push(s[i]);return d; }
+    var _vcombine_f64 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new Float64Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    var _vcombine_f32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new Float32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    var _vcombine_u32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new  Uint32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    var _vcombine_s32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Int32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    var _vcombine_u16 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new  Uint16Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    var _vcombine_s16 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Int16Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    var _vcombine_u08 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Uint8Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    var _vcombine_s08 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new    Int8Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    var _acombine_any = function(d,s) { if(d==null)return s;if(s==null)return d;for(var i=0;i<s.length;i++)d.push(s[i]);return d; }
     
-    RTMKS.vcopy_f64 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
-    RTMKS.vcopy_f32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
-    RTMKS.vcopy_u32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
-    RTMKS.vcopy_s32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
-    RTMKS.vcopy_u16 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
-    RTMKS.vcopy_s16 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
-    RTMKS.vcopy_u08 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
-    RTMKS.vcopy_s08 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    /*
+    var _vcopy_f64 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    var _vcopy_f32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    var _vcopy_u32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    var _vcopy_s32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    var _vcopy_u16 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    var _vcopy_s16 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    var _vcopy_u08 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    var _vcopy_s08 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    */
     
-    RTMKS.vcopy_convert = function(d,od,s,os,n) { for(var i=od;i<od+n;i++)d[i]=s[os++]; };
-
+    /*
+    var _vcopy_convert = function(d,od,s,os,n) { for(var i=od;i<od+n;i++)d[i]=s[os++]; };
+    */
+    
+    /*
     // id[x]s are used as indices into [s]rc and written to [d]est.
     RTMKS.vindex_f32 = function(s,x,d,n) { var i,m=n-(n%4);for(i=0;i<m;i+=4){d[i]=s[parseInt(x[i])];d[i+1]=s[parseInt(x[i+1])];d[i+2]=s[parseInt(x[i+2])];d[i+3]=s[parseInt(x[i+3])];}for(i=m;i<m+n%4;i++)d[i]=s[parseInt(x[i])]; };
     RTMKS.vindex_u32 = function(s,x,d,n) { var i,m=n-(n%4);for(i=0;i<m;i+=4){d[i]=s[x[i]];d[i+1]=s[x[i+1]];d[i+2]=s[x[i+2]];d[i+3]=s[x[i+3]];}for(i=m;i<m+n%4;i++)d[i]=s[x[i]]; };
     
     RTMKS.vsmul    = function(s,x,d,n) { var i,m=n-(n%4);for(i=0;i<m;i+=4){d[i]=s[i]*x;d[i+1]=s[i+1]*x;d[i+2]=s[i+2]*x;d[i+3]=s[i+3]*x;}for(i=m;i<m+n%4;i++)d[i]=s[i]*x; };
-    RTMKS.vfill    = function(x,d,o,n) { var i,m=(o+n)-((o+n)%4);for(i=o;i<m;i+=4){d[i]=x;d[i+1]=x;d[i+2]=x;d[i+3]=x;}for(i=m;i<m+n%4;i++)d[i]=x; };
-    RTMKS.RoundToD = function(x,d)     { return Math.round(x*Math.pow(10.0,d))/Math.pow(10.0,d); };
+    */
+    var _vfill    = function(x,d,o,n) { var i,m=(o+n)-((o+n)%4);for(i=o;i<m;i+=4){d[i]=x;d[i+1]=x;d[i+2]=x;d[i+3]=x;}for(i=m;i<m+n%4;i++)d[i]=x; };
 
     return RTMKS;
 })();
+
+
+
+
+
+
+

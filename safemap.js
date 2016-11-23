@@ -26,7 +26,9 @@ var _bitsProxy        = null;    // retained proxy instance for bitmap indices
 var _bvProxy          = null;    // retained proxy instance for bGeigie Log Viewer
 var _hudProxy         = null;    // retained proxy instance for HUD / reticle value lookup
 var _rtvm             = null;    // retained RT sensor viewer instance
-var _mapPolys         = null;    // retained map polygon model instance
+var _mapPolysProxy    = null;    // retained proxy instance for map polygons
+var _flyToExtentProxy = null;    // retained proxy instance for map pans/zooms/stylized text display
+var _locStringsProxy  = null;    // retained proxy instance for localized UI strings
 
 // ========== INTERNAL STATES =============
 var _cached_ext       = { baseurl:GetBaseWindowURL(), urlyxz:null, lidx:-1, cd:false, cd_y:0.0, cd_x:0.0, cd_z:0, midx:-1, mt:null };
@@ -34,7 +36,7 @@ var _lastLayerIdx     = 0;
 var _disable_alpha    = false;           // hack for media request regarding layer opacity
 var _cm_hidden        = true;            // state of menu visibility - cached to reduce CPU hit on map pans
 var _mainMenu_hidden  = true;            // state of menu visibility - cached to reduce CPU hit on map pans
-var _did_init_font_crimson_text = false; // cached init state
+//var _did_init_font_crimson_text = false; // cached init state
 var _ui_layer_idx     = 0;
 var _ui_menu_layers_more_visible = false;
 var _ui_menu_basemap_more_visible = false;
@@ -81,12 +83,24 @@ function GetContentBaseUrl()
 // 2015-04-03 ND: "What's New" popup that fires once.  May also be called
 //                from the about window.
 
+function GetClientViewSize()
+{
+    var _w = window,
+        _d = document,
+        _e = _d.documentElement,
+        _g = _d.getElementsByTagName("body")[0],
+        vw = _w.innerWidth || _e.clientWidth || _g.clientWidth,
+        vh = _w.innerHeight|| _e.clientHeight|| _g.clientHeight;
+
+    return [vw, vh];
+}
+
 function WhatsNewGetShouldShow() // 2015-08-22 ND: fix for non-Chrome date parsing
 {
     if (Date.now() > Date.parse("2015-04-30T00:00:00Z")) return false;
     
     var sval = localStorage.getItem("WHATSNEW_2_0");
-    var vwh  = FlyToExtent.GetClientViewSize();
+    var vwh  = GetClientViewSize();
     if ((sval != null && sval == "1") || vwh[0] < 424 || vwh[1] < 424) return false;
     
     localStorage.setItem("WHATSNEW_2_0", "1");
@@ -167,11 +181,15 @@ function initialize()
 {
     if (document == null || document.body == null) return;  // real old browsers that are going to break on everything
 
+    PrefHelper.MakeFx();   // must happen before MenuHelperStub.Init();
     MenuHelperStub.Init(); // must happen before basemaps or layers are init
 
-    _bitsProxy = new BitsProxy("layers"); // mandatory, never disable
-    _bvProxy   = new BvProxy();           // mandatory, never disable
-    _hudProxy  = new HudProxy();          // mandatory, never disable
+    _bitsProxy        = new BitsProxy("layers"); // mandatory, never disable
+    _bvProxy          = new BvProxy();           // mandatory, never disable
+    _hudProxy         = new HudProxy();          // mandatory, never disable
+    _mapPolysProxy    = new MapPolysProxy();     // mandatory, never disable
+    _flyToExtentProxy = new FlyToExtentProxy();  // mandatory, never disable
+    _locStringsProxy  = new LocalizedStringsProxy(); // mandatory, never disable
     
     SetUseJpRegion();
     
@@ -189,8 +207,8 @@ function initialize()
     // ************************** GMAPS **************************
     
     var yxz = GetUserLocationFromQuerystring();
-    var yx  = yxz.yx != null ? yxz.yx : new google.maps.LatLng(MenuHelper.GetVisibleExtentYPref(), MenuHelper.GetVisibleExtentXPref());
-    var z   = yxz.z  != -1   ? yxz.z  : MenuHelper.GetVisibleExtentZPref();
+    var yx  = yxz.yx != null ? yxz.yx : new google.maps.LatLng(PrefHelper.GetVisibleExtentYPref(), PrefHelper.GetVisibleExtentXPref());
+    var z   = yxz.z  != -1   ? yxz.z  : PrefHelper.GetVisibleExtentZPref();
     
     var map_options = 
     {
@@ -198,7 +216,7 @@ function initialize()
                          maxZoom: 21,
                           center: yx,
                      scrollwheel: true,
-                     zoomControl: MenuHelper.GetZoomButtonsEnabledPref(),
+                     zoomControl: PrefHelper.GetZoomButtonsEnabledPref(),
                       panControl: false,
                     scaleControl: true,
                   mapTypeControl: false,
@@ -212,21 +230,13 @@ function initialize()
            mapTypeControlOptions: {
                                      position: google.maps.ControlPosition.TOP_RIGHT,
                                         style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
-                                   mapTypeIds: BasemapHelper.basemaps,
-                                   /*
-                                   mapTypeIds: [google.maps.MapTypeId.ROADMAP, 
-                                                google.maps.MapTypeId.SATELLITE, 
-                                                google.maps.MapTypeId.HYBRID, 
-                                                google.maps.MapTypeId.TERRAIN, 
-                                                "gray", "dark", "toner", "tlite", "wcolor", "mapnik", "black", "white", "stamen_terrain"]
-                                                */
+                                   mapTypeIds: BasemapHelper.basemaps
                                   },
                        mapTypeId: GetDefaultBasemapOrOverrideFromQuerystring()
     };
 
     map = new google.maps.Map(document.getElementById("map_canvas"), map_options);
 
-    _mapPolys  = new MapPolys(map); // must occur after "map" ivar is set
     BasemapHelper.InitBasemaps();   // must occur after "map" ivar is set
     ClientZoomHelper.InitGmapsLayers();
 
@@ -248,6 +258,11 @@ function initialize()
     setTimeout(function() {
         RtViewer_Init();
     }, 1000);
+    
+    setTimeout(function() {
+        var cb = function() { MapExtent_OnChange(0); MapExtent_OnChange(1); };
+        _flyToExtentProxy.Init(map, cb);
+    }, 500);
 
     setTimeout(function() {
         InitShowLocationIfDefault();
@@ -263,7 +278,17 @@ function initialize()
         WhatsNewShowIfNeeded();
     }, 3000);
     
+    setTimeout(function() {
+        _locStringsProxy.Init();
+    }, 250);
+    
     MenuHelper.Init(); // contains its own delayed loads; should be at end of initialize()
+    
+    setTimeout(function() {
+        var rp = function(eps) { MenuHelper.RegisterPolys(eps); };
+        var gl = function()    { return PrefHelper.GetEffectiveLanguagePref(); };
+        _mapPolysProxy.Init(map, rp, gl); // must occur after "map" ivar is set
+    }, 1000);
 }//initialize
 
 
@@ -306,8 +331,14 @@ var BasemapHelper = (function()
     
     BasemapHelper.basemaps =
     [
-        google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.SATELLITE,
-        google.maps.MapTypeId.HYBRID, google.maps.MapTypeId.TERRAIN,
+        // 2016-11-19 ND: The Google refs create a race condition in Safari due to differences
+        //                in when this object is eval'd.  Replacing with strings for now,
+        //                eventually this should be moved to an instanced object and set
+        //                at runtime.
+        //google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.SATELLITE,
+        //google.maps.MapTypeId.HYBRID, google.maps.MapTypeId.TERRAIN,
+        "roadmap", "satellite",
+        "hybrid", "terrain",
         "gray", "dark", "toner", "tlite", "wcolor",
         "mapnik", "black", "white", "stamen_terrain", 
         "gsi_jp", "retro"
@@ -338,7 +369,7 @@ var BasemapHelper = (function()
     };
     
     
-    BasemapHelper.GetUrlFromTemplate = function(template, x, y, z, r, s)
+    var _GetUrlFromTemplate = function(template, x, y, z, r, s)
     {
         var url = "" + template;
         if (x != null) url = url.replace(/{x}/g, ""+x);
@@ -350,9 +381,9 @@ var BasemapHelper = (function()
         return url;
     };
 
-    BasemapHelper.fxGetNormalizedCoord = function(xy, z) { return GetNormalizedCoord(xy, z); };
+    var _fxGetNormalizedCoord = function(xy, z) { return GetNormalizedCoord(xy, z); };
 
-    BasemapHelper.GetGmapsMapStyled_Dark = function()
+    var _GetGmapsMapStyled_Dark = function()
     {
         return [ {"stylers": [ { "invert_lightness": true }, { "saturation": -100 } ] },
                  { "featureType": "water", "stylers": [ { "lightness": -100 } ] },
@@ -360,26 +391,26 @@ var BasemapHelper = (function()
                  { "featureType": "administrative", "elementType": "geometry", "stylers": [ { "lightness": -57 } ] } ];
     };
 
-    BasemapHelper.GetGmapsMapStyled_Gray = function()
+    var _GetGmapsMapStyled_Gray = function()
     {
         return [ { "featureType": "water", "stylers": [ { "saturation": -100 }, { "lightness": -30  } ] },
                  { "stylers": [ { "saturation": -100 }, { "lightness": 50 } ] },
                  { "elementType": "labels.icon", "stylers": [ { "invert_lightness": true }, { "gamma": 9.99 }, { "lightness": 79 } ] } ];
     };
     
-    BasemapHelper.GetGmapsMapStyled_Retro = function()
+    var _GetGmapsMapStyled_Retro = function()
     {
         return [{"featureType":"administrative","stylers":[{"visibility":"off"}]},{"featureType":"poi","stylers":[{"visibility":"simplified"}]},{"featureType":"road","elementType":"labels","stylers":[{"visibility":"simplified"}]},{"featureType":"water","stylers":[{"visibility":"simplified"}]},{"featureType":"transit","stylers":[{"visibility":"simplified"}]},{"featureType":"landscape","stylers":[{"visibility":"simplified"}]},{"featureType":"road.highway","stylers":[{"visibility":"off"}]},{"featureType":"road.local","stylers":[{"visibility":"on"}]},{"featureType":"road.highway","elementType":"geometry","stylers":[{"visibility":"on"}]},{"featureType":"water","stylers":[{"color":"#84afa3"},{"lightness":52}]},{"stylers":[{"saturation":-17},{"gamma":0.36}]},{"featureType":"transit.line","elementType":"geometry","stylers":[{"color":"#3f518c"}]}];
     };
 
-    BasemapHelper.NewGmapsBasemap = function(min_z, max_z, tile_size, url_template, name, r, subs)
+    var _NewGmapsBasemap = function(min_z, max_z, tile_size, url_template, name, r, subs)
     {
         var o =
         {
             getTileUrl: function(xy, z) 
                         { 
-                            var nXY = BasemapHelper.fxGetNormalizedCoord(xy, z);
-                            return BasemapHelper.GetUrlFromTemplate(url_template, nXY.x, nXY.y, z, r, subs);
+                            var nXY = _fxGetNormalizedCoord(xy, z);
+                            return _GetUrlFromTemplate(url_template, nXY.x, nXY.y, z, r, subs);
                         },
               tileSize: new google.maps.Size(tile_size, tile_size),
                minZoom: min_z,
@@ -392,7 +423,7 @@ var BasemapHelper = (function()
     };
 
 
-    BasemapHelper.NewGmapsBasemapConst = function(tile_size, alt, name, tile_url) // single tile for all requests
+    var _NewGmapsBasemapConst = function(tile_size, alt, name, tile_url) // single tile for all requests
     {
         var o =
         {
@@ -416,20 +447,20 @@ var BasemapHelper = (function()
         
         var o = { };
         
-        o.b0 = BasemapHelper.NewGmapsBasemap(0, stam_z, 256, "http://{s}.tile.stamen.com/terrain/{z}/{x}/{y}{r}.png", "Stamen Terrain", stam_r, stam_subs);
-        o.b1 = BasemapHelper.NewGmapsBasemap(0, stam_z, 256, "http://{s}.tile.stamen.com/toner/{z}/{x}/{y}{r}.png", "Stamen Toner", stam_r, stam_subs);
-        o.b2 = BasemapHelper.NewGmapsBasemap(0, stam_z, 256, "http://{s}.tile.stamen.com/toner-lite/{z}/{x}/{y}{r}.png", "Stamen Toner Lite", stam_r, stam_subs);
+        o.b0 = _NewGmapsBasemap(0, stam_z, 256, "http://{s}.tile.stamen.com/terrain/{z}/{x}/{y}{r}.png", "Stamen Terrain", stam_r, stam_subs);
+        o.b1 = _NewGmapsBasemap(0, stam_z, 256, "http://{s}.tile.stamen.com/toner/{z}/{x}/{y}{r}.png", "Stamen Toner", stam_r, stam_subs);
+        o.b2 = _NewGmapsBasemap(0, stam_z, 256, "http://{s}.tile.stamen.com/toner-lite/{z}/{x}/{y}{r}.png", "Stamen Toner Lite", stam_r, stam_subs);
         
-        o.b3 = BasemapHelper.NewGmapsBasemap(0, 19, 256, "http://{s}.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg", "Stamen Watercolor", null, stam_subs);
-        o.b4 = BasemapHelper.NewGmapsBasemap(0, 19, 256, "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap", null, osm_subs);
+        o.b3 = _NewGmapsBasemap(0, 19, 256, "http://{s}.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg", "Stamen Watercolor", null, stam_subs);
+        o.b4 = _NewGmapsBasemap(0, 19, 256, "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap", null, osm_subs);
         
-        o.b9 = BasemapHelper.NewGmapsBasemap(0, 18, 256, "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", "GSI Japan", null, null);
+        o.b9 = _NewGmapsBasemap(0, 18, 256, "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", "GSI Japan", null, null);
         
-        o.b5 = BasemapHelper.NewGmapsBasemapConst(256, "Pure Black World Tendency", "None (Black)", "http://safecast.media.mit.edu/tilemap/black.png");
-        o.b6 = BasemapHelper.NewGmapsBasemapConst(256, "Pure White World Tendency", "None (White)", "http://safecast.media.mit.edu/tilemap/white.png");
-        o.b7 = new google.maps.StyledMapType(BasemapHelper.GetGmapsMapStyled_Gray(), {name: "Map (Gray)"});
-        o.b8 = new google.maps.StyledMapType(BasemapHelper.GetGmapsMapStyled_Dark(), {name: "Map (Dark)"});
-        o.b10 = new google.maps.StyledMapType(BasemapHelper.GetGmapsMapStyled_Retro(), {name: "Map (Retro)"});
+        o.b5 = _NewGmapsBasemapConst(256, "Pure Black World Tendency", "None (Black)", "http://safecast.media.mit.edu/tilemap/black.png");
+        o.b6 = _NewGmapsBasemapConst(256, "Pure White World Tendency", "None (White)", "http://safecast.media.mit.edu/tilemap/white.png");
+        o.b7 = new google.maps.StyledMapType(_GetGmapsMapStyled_Gray(), {name: "Map (Gray)"});
+        o.b8 = new google.maps.StyledMapType(_GetGmapsMapStyled_Dark(), {name: "Map (Dark)"});
+        o.b10 = new google.maps.StyledMapType(_GetGmapsMapStyled_Retro(), {name: "Map (Retro)"});
         
         map.mapTypes.set( "stamen_terrain", o.b0);
         map.mapTypes.set( "toner", o.b1);
@@ -483,7 +514,7 @@ function GetDefaultBasemapOrOverrideFromQuerystring()
 {
     var midx = QueryString_GetParamAsInt("m");
     if (midx == -1) midx = QueryString_GetParamAsInt("midx");
-    if (midx == -1) midx = MenuHelper.GetBasemapUiIndexPref();
+    if (midx == -1) midx = PrefHelper.GetBasemapUiIndexPref();
 
     return BasemapHelper.GetMapTypeIdForBasemapIdx(midx);
 }//GetDefaultBasemapOrOverrideFromQuerystring
@@ -497,7 +528,10 @@ function InitDefaultRasterLayerOrOverrideFromQuerystring()
     
     if (lidx == -1)
     {
-        lidx = MenuHelper.GetLayerUiIndexPref();
+        lidx = PrefHelper.GetLayerUiIndexPref();
+        
+        // 2016-11-21 ND: Fix for proxy value being stored as pref
+        if (lidx == 12) lidx = 13;
     }//if    
     
     LayersHelper.SetSelectedIdxAndSync(lidx);
@@ -527,13 +561,13 @@ function InitMapExtent_OnChange()
     if (!IsBrowserOldIE())
     {
         var events = [ "dragend", "zoom_changed", "maptypeid_changed" ];
-        var cb0 = function() { MapExtent_OnChange(0); };        
-        var cb1 = function() { MapExtent_OnChange(1); };
-        var cb2 = function() 
+        var cb0 = function(e) { MapExtent_OnChange(0); };        
+        var cb1 = function(e) { MapExtent_OnChange(1); };
+        var cb2 = function(e) 
         { 
             MapExtent_OnChange(2);
             var idx = BasemapHelper.GetCurrentInstanceBasemapIdx();
-            MenuHelper.SetBasemapUiIndexPref(idx); 
+            PrefHelper.SetBasemapUiIndexPref(idx); 
         };
         var cbs = [ cb0, cb1, cb2 ];
         
@@ -544,6 +578,7 @@ function InitMapExtent_OnChange()
     }//if
 }//InitMapExtent_OnChange
 
+/*
 function InitFont_CrimsonText() // free Optimus Princeps clone
 {
     if (_did_init_font_crimson_text) return;
@@ -557,6 +592,7 @@ function InitFont_CrimsonText() // free Optimus Princeps clone
     
     _did_init_font_crimson_text = true;
 }//InitFont_CrimsonText
+*/
 
 // nb: This only checks if the location is set in the querystring.
 //     The implication is that at launch time, if this is present, it
@@ -600,7 +636,7 @@ function InitShowLocationIfDefault()
 {
     if (IsDefaultLocationOrPrefLocation() && getParam("logids").length == 0 && "requestAnimationFrame" in window)
     {
-        requestAnimationFrame(function() { ShowLocationText("Honshu, Japan"); });
+        _flyToExtentProxy.ShowLocationText("Honshu, Japan");
     }//if
 }//InitShowLocationIfDefault
 
@@ -748,7 +784,7 @@ function InitContextMenu()
 
     google.maps.event.addListener(map, "rightclick", fxClickRight);
 
-    var fxClickLeft = function()
+    var fxClickLeft = function(e)
     {
         var action = this.getAttribute("href").substr(1);
         
@@ -799,7 +835,7 @@ function InitContextMenu()
 
     var events = [ "click" ]; //"dragstart", "zoom_changed", "maptypeid_changed"
 
-    var hide_cb = function()
+    var hide_cb = function(e)
     {
         if (!_cm_hidden)
         { 
@@ -955,8 +991,14 @@ function GetMapQueryStringUrl(isFull)
     
     var url = q.urlyxz;
     
-    if (q.lidx > 0)        url += "&l=" + q.lidx;
-    if (q.midx > 0)        url += "&m=" + q.midx;
+    // 2016-11-21 ND: Fix for issue with user prefs where the default layer
+    //                could not be specified to users who had changed their
+    //                default.
+    url += "&l=" + q.lidx;
+    url += "&m=" + q.midx;
+    
+    //if (q.lidx > 0)        url += "&l=" + q.lidx;
+    //if (q.midx > 0)        url += "&m=" + q.midx;
     if (logs != null && logs.length > 0) url += "&logids=" + logs;
     
     return url;
@@ -979,15 +1021,15 @@ var SafecastDateHelper = (function()
     {
     }
     
-    SafecastDateHelper.JST_OFFSET_MS = 32400000.0; // 9 * 60 * 60 * 1000
+    var _JST_OFFSET_MS = 32400000.0; // 9 * 60 * 60 * 1000
     
     // For a date 2011-03-10T15:00:00Z, returns 20110310, or YY+MM+DD
-    SafecastDateHelper.TrimIsoDateToFilenamePart = function(d)
+    var _TrimIsoDateToFilenamePart = function(d)
     {
         return d.substring(0, 4) + d.substring(5, 7) + d.substring(8, 10);
     };
     
-    SafecastDateHelper.GetShortIsoDate = function(d)
+    var _GetShortIsoDate = function(d)
     {
         return d.substring(0, 10);
     };
@@ -1039,7 +1081,7 @@ var SafecastDateHelper = (function()
         return is_ts;
     };
     
-    SafecastDateHelper.GetIsoDateForIsoDateAndTimeIntervalMs = function(d, ti)
+    var _GetIsoDateForIsoDateAndTimeIntervalMs = function(d, ti)
     {
         var d0 = new Date(d);
         var t0 = d0.getTime() + ti;
@@ -1047,7 +1089,7 @@ var SafecastDateHelper = (function()
         return d0.toISOString();
     };
     
-    SafecastDateHelper.GetTimeSliceLayerDateRangeForIdxUTC = function(idx)
+    var _GetTimeSliceLayerDateRangeForIdxUTC = function(idx)
     {
         var ds = SafecastDateHelper.GetTimeSliceLayerDateRangesUTC();
         var d  = null;
@@ -1074,9 +1116,9 @@ var SafecastDateHelper = (function()
     // a BETWEEN query.
     SafecastDateHelper.GetTimeSliceLayerDateRangeInclusiveForIdxUTC = function(idx)
     {
-        var d  = SafecastDateHelper.GetTimeSliceLayerDateRangeForIdxUTC(idx);
+        var d  = _GetTimeSliceLayerDateRangeForIdxUTC(idx);
 
-        d.e = SafecastDateHelper.GetIsoDateForIsoDateAndTimeIntervalMs(d.e, -1000.0);
+        d.e = _GetIsoDateForIsoDateAndTimeIntervalMs(d.e, -1000.0);
 
         return d;
     };
@@ -1090,8 +1132,8 @@ var SafecastDateHelper = (function()
 
         for (var i=0; i<src.length; i++)
         {
-            var d0 = SafecastDateHelper.TrimIsoDateToFilenamePart(src[i].s);
-            var d1 = SafecastDateHelper.TrimIsoDateToFilenamePart(src[i].e);
+            var d0 = _TrimIsoDateToFilenamePart(src[i].s);
+            var d1 = _TrimIsoDateToFilenamePart(src[i].e);
             
             dest.push( { i:src[i].i, d:(d0 + d1) } );
         }//for
@@ -1106,10 +1148,10 @@ var SafecastDateHelper = (function()
     {
         var d = SafecastDateHelper.GetTimeSliceLayerDateRangeInclusiveForIdxUTC(idx);
 
-        d.s = SafecastDateHelper.GetIsoDateForIsoDateAndTimeIntervalMs(d.s, SafecastDateHelper.JST_OFFSET_MS);
-        d.e = SafecastDateHelper.GetIsoDateForIsoDateAndTimeIntervalMs(d.e, SafecastDateHelper.JST_OFFSET_MS);
-        d.s = SafecastDateHelper.GetShortIsoDate(d.s);
-        d.e = SafecastDateHelper.GetShortIsoDate(d.e);
+        d.s = _GetIsoDateForIsoDateAndTimeIntervalMs(d.s, _JST_OFFSET_MS);
+        d.e = _GetIsoDateForIsoDateAndTimeIntervalMs(d.e, _JST_OFFSET_MS);
+        d.s = _GetShortIsoDate(d.s);
+        d.e = _GetShortIsoDate(d.e);
 
         return d;
     };
@@ -1138,58 +1180,58 @@ var ClientZoomHelper = (function()
     {
     }
 
-    ClientZoomHelper.fxGetNormalizedCoord  = function(xy, z)   { return GetNormalizedCoord(xy, z); }; // static
-    ClientZoomHelper.fxShouldLoadTile      = function(l,x,y,z) { return _bitsProxy.ShouldLoadTile(l, x, y, z); };
-    ClientZoomHelper.fxGetIsRetina         = function()        { return GetIsRetina(); };
-    ClientZoomHelper.fxGetSelectedLayerIdx = function()        { return LayersHelper.GetSelectedIdx(); };
-    ClientZoomHelper.fxClearMapLayers      = function()        { map.overlayMapTypes.clear(); };
-    ClientZoomHelper.fxSyncMapLayers       = function()        { LayersHelper.SyncSelectedWithMap(); };
-    ClientZoomHelper.fxGetLayers           = function()        { return overlayMaps; };
-    ClientZoomHelper.fxSetLayers           = function(o)       { overlayMaps = o; };
-    ClientZoomHelper.fxGetTimeSliceDates   = function()        { return SafecastDateHelper.GetTimeSliceDateRangesFilenames(); }
-    ClientZoomHelper.fxGetUseJpRegion      = function()        { return _use_jp_region; };
+    var _fxGetNormalizedCoord  = function(xy, z)   { return GetNormalizedCoord(xy, z); }; // static
+    var _fxShouldLoadTile      = function(l,x,y,z) { return _bitsProxy.ShouldLoadTile(l, x, y, z); };
+    var _fxGetIsRetina         = function()        { return GetIsRetina(); };
+    var _fxGetSelectedLayerIdx = function()        { return LayersHelper.GetSelectedIdx(); };
+    var _fxClearMapLayers      = function()        { map.overlayMapTypes.clear(); };
+    var _fxSyncMapLayers       = function()        { LayersHelper.SyncSelectedWithMap(); };
+    var _fxGetLayers           = function()        { return overlayMaps; };
+    var _fxSetLayers           = function(o)       { overlayMaps = o; };
+    var _fxGetTimeSliceDates   = function()        { return SafecastDateHelper.GetTimeSliceDateRangesFilenames(); }
+    var _fxGetUseJpRegion      = function()        { return _use_jp_region; };
     
-    ClientZoomHelper.GetUrlForTile512 = function(xy, z, layerId, normal_max_z, base_url, idx)
+    var _GetUrlForTile512 = function(xy, z, layerId, normal_max_z, base_url, idx)
     {
-        z = ClientZoomHelper.GetClampedZoomLevelForIdx(idx, z);
+        z = _GetClampedZoomLevelForIdx(idx, z);
 
-        if (!ClientZoomHelper.fxGetIsRetina() && z > 0 && z <= normal_max_z) z -= 1;
+        if (!_fxGetIsRetina() && z > 0 && z <= normal_max_z) z -= 1;
 
-        var nXY = ClientZoomHelper.fxGetNormalizedCoord(xy, z);
+        var nXY = _fxGetNormalizedCoord(xy, z);
 
-        if (!nXY || !ClientZoomHelper.fxShouldLoadTile(layerId, nXY.x, nXY.y, z))
+        if (!nXY || !_fxShouldLoadTile(layerId, nXY.x, nXY.y, z))
         {
             return null;
         }//if
 
-        return ClientZoomHelper.GetUrlFromTemplate(base_url, nXY.x, nXY.y, z);
+        return _GetUrlFromTemplate(base_url, nXY.x, nXY.y, z);
     };
     
     
     
-    ClientZoomHelper.GetUrlForTile256 = function(xy, z, layerId, normal_max_z, base_url, idx)
+    var _GetUrlForTile256 = function(xy, z, layerId, normal_max_z, base_url, idx)
     {
-        z       = ClientZoomHelper.GetClampedZoomLevelForIdx(idx, z);
-        var nXY = ClientZoomHelper.fxGetNormalizedCoord(xy, z);
+        z       = _GetClampedZoomLevelForIdx(idx, z);
+        var nXY = _fxGetNormalizedCoord(xy, z);
     
-        if (!nXY || !ClientZoomHelper.fxShouldLoadTile(layerId, nXY.x, nXY.y, z))
+        if (!nXY || !_fxShouldLoadTile(layerId, nXY.x, nXY.y, z))
         {
             return null;
         }//if
 
-        return ClientZoomHelper.GetUrlFromTemplate(base_url, nXY.x, nXY.y, z);
+        return _GetUrlFromTemplate(base_url, nXY.x, nXY.y, z);
     };
     
     
     
     ClientZoomHelper.SynchronizeLayersToZoomLevel = function(z)
     {
-        var o       = ClientZoomHelper.fxGetLayers();
+        var o       = _fxGetLayers();
         if (o == null) return;
         
-        var hdpi    = ClientZoomHelper.fxGetIsRetina();
+        var hdpi    = _fxGetIsRetina();
         var cleared = false;        
-        var idx     = ClientZoomHelper.fxGetSelectedLayerIdx();
+        var idx     = _fxGetSelectedLayerIdx();
         var i, lz, lr, sz;
     
         for (i=0; i<o.length; i++)
@@ -1216,7 +1258,7 @@ var ClientZoomHelper = (function()
                 
                     if (!cleared) 
                     { 
-                        ClientZoomHelper.fxClearMapLayers(); // must be cleared before the first size is set
+                        _fxClearMapLayers(); // must be cleared before the first size is set
                         cleared = true; 
                     }//if
                     
@@ -1225,16 +1267,16 @@ var ClientZoomHelper = (function()
             }//if        
         }//for
 
-        if (cleared) ClientZoomHelper.fxSyncMapLayers(); // must re-add to map to finally take effect
+        if (cleared) _fxSyncMapLayers(); // must re-add to map to finally take effect
     };
 
 
 
-    ClientZoomHelper.GetClampedZoomLevelForIdx = function(idx, z)
+    var _GetClampedZoomLevelForIdx = function(idx, z)
     {
-        var o  = ClientZoomHelper.fxGetLayers();
+        var o  = _fxGetLayers();
         
-        var mz = o[idx].ext_actual_max_z + (o[idx].ext_tile_size > 256 && !ClientZoomHelper.fxGetIsRetina() ? 1 : 0);
+        var mz = o[idx].ext_actual_max_z + (o[idx].ext_tile_size > 256 && !_fxGetIsRetina() ? 1 : 0);
         var dz = o == null || z <= mz ? z : mz;        
         
         return dz;
@@ -1243,7 +1285,7 @@ var ClientZoomHelper = (function()
     
     
     // layerId is for bitstores. a proxy layerId should be used for similar secondary layers to reduce memory use.
-    ClientZoomHelper.InitGmapsLayers_Create = function(idx, layerId, is_layer_id_proxy, maxz, alpha, tile_size, url)
+    var _InitGmapsLayers_Create = function(idx, layerId, is_layer_id_proxy, maxz, alpha, tile_size, url)
     {
         var o = { opacity:alpha, 
              ext_layer_id:layerId, 
@@ -1255,19 +1297,19 @@ var ClientZoomHelper = (function()
     
         if (tile_size == 512)
         {
-            o.getTileUrl = function (xy, z) { return ClientZoomHelper.GetUrlForTile512(xy, z, layerId, maxz, url, idx); };
+            o.getTileUrl = function (xy, z) { return _GetUrlForTile512(xy, z, layerId, maxz, url, idx); };
             o.tileSize   = new google.maps.Size(512, 512);
         }//if
         else
         {
-            o.getTileUrl = function (xy, z) { return ClientZoomHelper.GetUrlForTile256(xy, z, layerId, maxz, url, idx); };
+            o.getTileUrl = function (xy, z) { return _GetUrlForTile256(xy, z, layerId, maxz, url, idx); };
             o.tileSize   = new google.maps.Size(256, 256);
         }//else
     
         return o;
     };
     
-    ClientZoomHelper.GetUrlFromTemplate = function(template, x, y, z)
+    var _GetUrlFromTemplate = function(template, x, y, z)
     {
         var url = "" + template;
             url = url.replace(/{x}/g, ""+x);
@@ -1280,11 +1322,11 @@ var ClientZoomHelper = (function()
 
     
 
-    ClientZoomHelper.InitGmapsLayers_CreateAll = function()
+    var _InitGmapsLayers_CreateAll = function()
     {
         var x = new Array();
         
-        var isJ = ClientZoomHelper.fxGetUseJpRegion();
+        var isJ = _fxGetUseJpRegion();
         
         var te512url = isJ ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                            : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
@@ -1310,19 +1352,19 @@ var ClientZoomHelper = (function()
         var te14_url = isJ ? "http://te20140311jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                            : "http://te20140311.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
         
-        var ts = ClientZoomHelper.fxGetTimeSliceDates();
+        var ts = _fxGetTimeSliceDates();
 
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 0, 2,  false, 17, 1.0, 512, te512url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 1, 2,  false, 17, 1.0, 512, te512url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 2, 8,  false, 15, 0.5, 512, tg512url) );
+        x.push( _InitGmapsLayers_Create( 0, 2,  false, 17, 1.0, 512, te512url) );
+        x.push( _InitGmapsLayers_Create( 1, 2,  false, 17, 1.0, 512, te512url) );
+        x.push( _InitGmapsLayers_Create( 2, 8,  false, 15, 0.5, 512, tg512url) );
         
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 3, 3,  false, 16, 1.0, 512, nnsa_url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 4, 6,  false, 12, 0.7, 512, nure_url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 5, 16, false, 12, 0.7, 512, au_url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 6, 9,  false, 12, 0.7, 512, aist_url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 7, 9,  true,  15, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW/{z}/{x}/{y}.png") );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 8, 2,  true,  17, 1.0, 512, te13_url) );
-        x.push( ClientZoomHelper.InitGmapsLayers_Create( 9, 2,  true,  17, 1.0, 512, te14_url) );
+        x.push( _InitGmapsLayers_Create( 3, 3,  false, 16, 1.0, 512, nnsa_url) );
+        x.push( _InitGmapsLayers_Create( 4, 6,  false, 12, 0.7, 512, nure_url) );
+        x.push( _InitGmapsLayers_Create( 5, 16, false, 12, 0.7, 512, au_url) );
+        x.push( _InitGmapsLayers_Create( 6, 9,  false, 12, 0.7, 512, aist_url) );
+        x.push( _InitGmapsLayers_Create( 7, 9,  true,  15, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW/{z}/{x}/{y}.png") );
+        x.push( _InitGmapsLayers_Create( 8, 2,  true,  17, 1.0, 512, te13_url) );
+        x.push( _InitGmapsLayers_Create( 9, 2,  true,  17, 1.0, 512, te14_url) );
         
         //   idx | Description
         // ------|-------------------
@@ -1355,7 +1397,7 @@ var ClientZoomHelper = (function()
             var u = "http://te" + ts[i].d + (isJ ? "jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                                                  : ".safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png");
                                                             
-            x.push( ClientZoomHelper.InitGmapsLayers_Create(ts[i].i, 2, true, 17, 1.0, 512, u) );
+            x.push( _InitGmapsLayers_Create(ts[i].i, 2, true, 17, 1.0, 512, u) );
         }//for
 
         return x;
@@ -1382,12 +1424,12 @@ var ClientZoomHelper = (function()
     
     ClientZoomHelper.InitGmapsLayers = function()
     {
-        var o = ClientZoomHelper.fxGetLayers();
+        var o = _fxGetLayers();
         
         if (o == null)
         {
-            o = ClientZoomHelper.InitGmapsLayers_CreateAll();
-            ClientZoomHelper.fxSetLayers(o);
+            o = _InitGmapsLayers_CreateAll();
+            _fxSetLayers(o);
         }//if
     };
     
@@ -1493,9 +1535,9 @@ function MapExtent_DispatchHistoryPushState(url)
         {
             history.pushState(null, null, url);
             var c = GetNormalizedMapCentroid();
-            MenuHelper.SetVisibleExtentXPref(c.x);
-            MenuHelper.SetVisibleExtentYPref(c.y);
-            MenuHelper.SetVisibleExtentZPref(map.getZoom());
+            PrefHelper.SetVisibleExtentXPref(c.x);
+            PrefHelper.SetVisibleExtentYPref(c.y);
+            PrefHelper.SetVisibleExtentZPref(map.getZoom());
         }//if
     }, _system_os_ios ? 1000 : 250);
 }
@@ -1649,26 +1691,33 @@ var LayersHelper = (function()
     }
     
     //LayersHelper.GetLayerDdl      = function ()   { return document.getElementById("layers"); };
-    LayersHelper.SetLastLayerIdx  = function(idx) { _lastLayerIdx = idx; };
-    LayersHelper.GetLastLayerIdx  = function()    { return _lastLayerIdx; };
-    LayersHelper.GetRenderTest    = function()    { return _test_client_render; };
-    LayersHelper.GmapsSetAt       = function(i,o) { map.overlayMapTypes.setAt(i, o); };
-    LayersHelper.GmapsNewLayer    = function(o)   { return new google.maps.ImageMapType(o); };
-    LayersHelper.GmapsClearLayers = function()    { map.overlayMapTypes.clear(); };
-    LayersHelper.GetOverlayMaps   = function()    { return overlayMaps; };
-    LayersHelper.HudSetLayers     = function(ar)  { _hudProxy.SetLayers(ar); };
-    LayersHelper.HudUpdate        = function()    { _hudProxy.Update(); };
-    LayersHelper.SetTsPanelHidden = function(h)   { TimeSliceUI.SetPanelHidden(h); };
+    var _SetLastLayerIdx  = function(idx) { _lastLayerIdx = idx;  };
+    var _GetLastLayerIdx  = function()    { return _lastLayerIdx; };
+    var _GetRenderTest    = function()    { return _test_client_render; };
+    var _GmapsSetAt       = function(i,o) { map.overlayMapTypes.setAt(i, o); };
+    var _GmapsNewLayer    = function(o)   { return new google.maps.ImageMapType(o); };
+    var _GmapsClearLayers = function()    { map.overlayMapTypes.clear(); };
+    var _GetOverlayMaps   = function()    { return overlayMaps; };
+    var _HudSetLayers     = function(ar)  { _hudProxy.SetLayers(ar); };
+    var _HudUpdate        = function()    { _hudProxy.Update(); };
+    var _SetTsPanelHidden = function(h)   { TimeSliceUI.SetPanelHidden(h); };
     LayersHelper.ShowAddLogPanel  = function()    { _bvProxy.ShowAddLogsPanel(); };
     LayersHelper.AddLogsCosmic    = function()    { _bvProxy.AddLogsCSV("cosmic", true); };
-    LayersHelper.AddLogsSurface   = function()    { _bvProxy.AddLogsCSV("surface", true); };
-    LayersHelper.InitBitsLegacy   = function()    { _bitsProxy.LegacyInitForSelection(); };
-    LayersHelper.MapExtentChanged = function(i)   { MapExtent_OnChange(i); };
-    LayersHelper.FlyToExtentByIdx = function(idx) { FlyToExtent.GoToPresetLocationIdIfNeeded(idx); };
-    LayersHelper.GetTsSliderIdx   = function()    { return TimeSliceUI.GetSliderIdx();    };
-    LayersHelper.SetTsSliderIdx   = function(idx) { return TimeSliceUI.SetSliderIdx(idx); };
-    LayersHelper.GetShowLastSlice = function()    { return _show_last_slice; };
-    LayersHelper.GetIsLayerIdxTS  = function(idx) { return SafecastDateHelper.IsLayerIdxTimeSliceLayerDateRangeIdx(idx) };
+    var _AddLogsSurface   = function()    { _bvProxy.AddLogsCSV("surface", true); };
+    var _InitBitsLegacy   = function()    { _bitsProxy.LegacyInitForSelection(); };
+    var _MapExtentChanged = function(i)   { MapExtent_OnChange(i); };
+    var _FlyToExtentByIdx = function(idx) { _flyToExtentProxy.GoToPresetLocationIdIfNeeded(idx); };
+    var _GetTsSliderIdx   = function()    { return TimeSliceUI.GetSliderIdx();    };
+    var _SetTsSliderIdx   = function(idx) { return TimeSliceUI.SetSliderIdx(idx); };
+    var _GetShowLastSlice = function()    { return _show_last_slice; };
+    var _GetIsLayerIdxTS  = function(idx) { return SafecastDateHelper.IsLayerIdxTimeSliceLayerDateRangeIdx(idx) };
+    
+    var _GetUiLayerIdx    = function()    { return _ui_layer_idx; };
+    var _SetUiLayerIdx    = function(idx) { _ui_layer_idx = idx;  };
+    var _SetMenuIdxPref   = function(idx) { PrefHelper.SetLayerUiIndexPref(idx); };
+    var _MenuGetListId    = function()    { return "ul_menu_layers"; };
+    var _MenuClearSelect  = function(u)   { MenuHelper.OptionsClearSelection(u);  };
+    var _MenuSetSelect    = function(u,i) { MenuHelper.OptionsSetSelection(u, i); };
 
     LayersHelper.LAYER_IDX_ADD_LOG         = 10;
     LayersHelper.LAYER_IDX_NULL            = 11;
@@ -1710,7 +1759,7 @@ var LayersHelper = (function()
     
     LayersHelper.IsIdxTimeSlice = function (idx)
     {
-        return LayersHelper.GetIsLayerIdxTS(idx);
+        return _GetIsLayerIdxTS(idx);
     };
     
     /*
@@ -1729,7 +1778,8 @@ var LayersHelper = (function()
         */
         //var idx = MenuOptionsGetSelectedValue("ul_menu_layers");
         
-        var idx = _ui_layer_idx;
+        //var idx = _ui_layer_idx;
+        var idx = _GetUiLayerIdx();
         
         return idx;
     };
@@ -1740,7 +1790,7 @@ var LayersHelper = (function()
         
         if (LayersHelper.IsIdxTimeSliceUiProxy(idx))
         {
-            idx = LayersHelper.GetTsSliderIdx();
+            idx = _GetTsSliderIdx();
         }//if
         
         return idx;
@@ -1754,23 +1804,31 @@ var LayersHelper = (function()
             
             if (!LayersHelper.IsIdxTimeSliceUiProxy(ddl_idx))
             {
-                LayersHelper.SetTsSliderIdx(idx);
+                _SetTsSliderIdx(idx);
             
                 idx = LayersHelper.LAYER_IDX_TS_UI_PROXY;
             }//if
             else
             {
+                _SetMenuIdxPref(LayersHelper.GetSelectedIdx());
                 return;
             }//else
         }//if
     
         if (idx != null)
         {
-            _ui_layer_idx = idx;
+            //_ui_layer_idx = idx;
             
-            MenuHelper.SetLayerUiIndexPref(idx);
-            MenuHelper.OptionsClearSelection("ul_menu_layers");
-            MenuHelper.OptionsSetSelection("ul_menu_layers", idx);
+            //MenuHelper.SetLayerUiIndexPref(idx);
+            //MenuHelper.OptionsClearSelection("ul_menu_layers");
+            //MenuHelper.OptionsSetSelection("ul_menu_layers", idx);
+            _SetUiLayerIdx(idx);
+            
+            // 2016-11-21 ND: Don't store idx as a pref, it is wrong for the TS layers.
+            
+            _SetMenuIdxPref(LayersHelper.GetSelectedIdx());
+            _MenuClearSelect(_MenuGetListId());
+            _MenuSetSelect(_MenuGetListId(), idx);
         }//if
     };
     
@@ -1792,11 +1850,11 @@ var LayersHelper = (function()
 
         if (!LayersHelper.IsIdxNull(idx))
         {
-            if (idx == 0 && !LayersHelper.GetRenderTest()) 
+            if (idx == 0 && !_GetRenderTest()) 
             {
                 LayersHelper.AddToMapByIdxs([2, 0]); // standard hack for points + interpolation default layer
             }//if
-            else if (LayersHelper.IsIdxTimeSlice(idx) && LayersHelper.GetShowLastSlice())
+            else if (LayersHelper.IsIdxTimeSlice(idx) && _GetShowLastSlice())
             {
                 var last_idx = idx - 1; // potentially bad
                 
@@ -1815,7 +1873,7 @@ var LayersHelper = (function()
             }//else
         }//if
     
-        LayersHelper.SetLastLayerIdx(idx);
+        _SetLastLayerIdx(idx);
     };
     
     LayersHelper.AddToMapByIdx = function(idx)
@@ -1826,27 +1884,27 @@ var LayersHelper = (function()
     LayersHelper.AddToMapByIdxs = function(idxs)
     {
         var hud_layers = new Array();
-        var omaps      = LayersHelper.GetOverlayMaps();
+        var omaps      = _GetOverlayMaps();
 
         for (var i=0; i<idxs.length; i++)
         {
-            var gmaps_layer = LayersHelper.GmapsNewLayer(omaps[idxs[i]]);
+            var gmaps_layer = _GmapsNewLayer(omaps[idxs[i]]);
             
             //console.log("LayersHelper.AddToMapByIdxs: Added idx=%d to map", idxs[i]);
             
-            LayersHelper.GmapsSetAt(i, gmaps_layer);
+            _GmapsSetAt(i, gmaps_layer);
         
             hud_layers.push({     urlTemplate: omaps[idxs[i]].ext_url_template, 
                               bitstoreLayerId: omaps[idxs[i]].ext_layer_id });
         }//for
     
-        LayersHelper.HudSetLayers(hud_layers);
+        _HudSetLayers(hud_layers);
     };
     
     LayersHelper.RemoveAllFromMap = function()
     {
-        LayersHelper.GmapsClearLayers();
-        LayersHelper.HudSetLayers(new Array());
+        _GmapsClearLayers();
+        _HudSetLayers(new Array());
     };
     
     LayersHelper.SetAlphaDisabled = function(isDisabled)
@@ -1861,7 +1919,7 @@ var LayersHelper = (function()
     LayersHelper.UiLayers_OnChange = function()
     {
         var  newIdx = LayersHelper.GetSelectedIdx();
-        var lastIdx = LayersHelper.GetLastLayerIdx();
+        var lastIdx = _GetLastLayerIdx();
         var  isDone = false;
         
         if (newIdx == lastIdx) return;
@@ -1882,7 +1940,7 @@ var LayersHelper = (function()
         {
             newIdx = LayersHelper.LAYER_IDX_NULL;
             LayersHelper.SetSelectedIdx(newIdx);
-            LayersHelper.AddLogsSurface();
+            _AddLogsSurface();
         }//else if
         
         if (!isDone)
@@ -1890,24 +1948,24 @@ var LayersHelper = (function()
             if (   !LayersHelper.IsIdxTimeSliceUiProxy(newIdx)
                 && !LayersHelper.IsIdxTimeSlice(newIdx))
             {
-                LayersHelper.SetTsPanelHidden(true);
+                _SetTsPanelHidden(true);
             }//if
             else
             {
-                LayersHelper.SetTsPanelHidden(false);
+                _SetTsPanelHidden(false);
             }//else
         
             // 2015-02-12 ND: don't init bitstores for other layers until needed.
-            LayersHelper.InitBitsLegacy();
+            _InitBitsLegacy();
         
             LayersHelper.SyncSelectedWithMap();
         
-            LayersHelper.MapExtentChanged(100); // force URL update
+            _MapExtentChanged(100); // force URL update
         
             if (!LayersHelper.IsIdxNull(newIdx))
             {    
-                LayersHelper.FlyToExtentByIdx(newIdx);
-                LayersHelper.HudUpdate();
+                _FlyToExtentByIdx(newIdx);
+                _HudUpdate();
             }//if
         }//if
     };
@@ -1920,224 +1978,141 @@ var LayersHelper = (function()
 
 
 
-
-
 // ===============================================================================================
-// ========================================== MAP POLYS ==========================================
+// ======================================= MAP POLYS PROXY =======================================
 // ===============================================================================================
 //
-// MapPolys: Retained object containing encoded map polygon(s) and management for adding/remove from
-//           a Google Maps instance.
+// MapPolysProxy: Retained interface for asynchronous loading and use of map_polys.js, which
+//                provides JSON-based polygon / marker annotation feature management.
 //
-// Encoded Poly Format:
-// =====================
-// { 
-//     poly_id:0,
-//     desc:"帰還困難区域 (Fukushima Zone) by Azby, v2",
-//     xs:"70...",
-//     ys:"33...",
-//     ext: { x0:140.68406, y0:37.35023, x1:141.03888, y1:37.62742 },
-//     pr: { x:5, y:5 },
-//     ss: [ { sc:"#0F0", sw:2, so:1, fc:"#0F0", fo:0.0, zi:1 },
-//           { sc:"#000", sw:6, so:1, fc:"#000", fo:0.2, zi:0 } ]
-// } 
-//
-// poly_id: A unique identifier for the polygon that can be used programmatically.
-//    desc: An internal description only (not user-facing) to improve maintainability.
-//      xs: An encoded string of the x-coordinates of the vertices.
-//      ys: An encoded string of the y-coordinates of the vertices.
-//     ext: The extent of the polygon.
-//      pr: The precision of each encoded axis string, in decimal degree fractional digits.
-//      ss: One or more styles for Google Maps.  An output polygon is created for each style.
-//          sc: Stroke color
-//          sw: Stroke width
-//          so: Stroke opacity
-//          fc: Fill color
-//          fo: Fill opacity
-//          zi: z-Index
-//
-// For more information, including a utility to encode a polygon, see "hexagon_encode.js" in the
-// Tilemap Github repo.
-//
-var MapPolys = (function()
+var MapPolysProxy = (function()
 {
-    function MapPolys(mapref) 
+    function MapPolysProxy()
     {
-        this.polygons = new Array();
-        this.mapref   = mapref;
+        this._mapPolys = null;
     }
-
-    MapPolys.prototype.Add = function(poly_id)
+    
+    MapPolysProxy.prototype._IsReady = function()
     {
-        this.polygons = MapPolys._PolysNewPolysByAddingPoly(poly_id, this.polygons, MapPolys._encoded_polygons, this.mapref);
+        return this._mapPolys != null;
     };
 
-    MapPolys.prototype.Remove = function(poly_id)
+    MapPolysProxy.prototype.Init = function(mapref, fxMenuInit, fxGetLangPref)
     {
-        this.polygons = MapPolys._PolysNewPolysByRemovingPoly(poly_id, this.polygons);
+        if (this._IsReady()) return;
+
+        this._LoadAsync(mapref, fxMenuInit, fxGetLangPref);
     };
 
-    MapPolys.prototype.Exists = function(poly_id)
+    MapPolysProxy.prototype.GetEncodedPolygons = function()
     {
-        return MapPolys._PolysDoesExistPoly(poly_id, this.polygons);
+        return this._IsReady() ? this._mapPolys.GetEncodedPolygons() : null;
     };
 
-
-
-    MapPolys._DecodeXYVal = function(i,s,o,p)
+    MapPolysProxy.prototype._LoadAsync = function(mapref, fxMenuInit, fxGetLangPref)
     {
-        return parseFloat(parseInt("0x"+s.substring(i<<2,(i<<2)+4)))/Math.pow(10,p)+o;
-    };
-
-    MapPolys._GmapsCreatePathsFromEncodedXYs = function(xs, ys, x0, y0, xp, yp)
-    {
-        var ps = new Array(xs.length>>>2);
-
-        for (var i=0; i<xs.length>>>2; i++) 
-        { 
-            ps[i] = new google.maps.LatLng(MapPolys._DecodeXYVal(i,ys,y0,yp), MapPolys._DecodeXYVal(i,xs,x0,xp)); 
-        }//for
-
-        return ps;
-    };
-
-
-    MapPolys._GmapsCreatePolyFromPaths = function(gmaps_paths, ep, s, sidx)
-    {
-        return new google.maps.Polygon({         paths:gmaps_paths,
-                                           strokeColor:s.sc,
-                                          strokeWeight:s.sw,
-                                         strokeOpacity:s.so,
-                                             fillColor:s.fc,
-                                           fillOpacity:s.fo,
-                                                zIndex:s.zi,
-                                           ext_poly_id:ep.poly_id,
-                                    ext_poly_style_idx:sidx,
-                                         ext_poly_desc:ep.desc,
-                                       ext_poly_extent:{ x0:ep.ext.x0, y0:ep.ext.y0, x1:ep.ext.x1, y1:ep.ext.y1 }
-                                      });
-    };
-
-    MapPolys._PolysNewPolysByRemovingPoly = function(poly_id, ps)
-    {
-        var d = new Array();
-
-        for (var i = 0; i < ps.length; i++)
+        var cb = function()
         {
-            if (ps[i].ext_poly_id != poly_id)
-            {
-                d.push(ps[i]);
-            }//if
-            else if (ps[i].getMap() != null)
-            {
-                ps[i].setMap(null);
-            }//else if
-        }//for
-
-        return d;
+            this._mapPolys = new MapPolys(mapref, fxMenuInit, fxGetLangPref);
+            this._mapPolys.Init();
+        }.bind(this);
+    
+        RequireJS(MapPolysProxy.src, true, cb, null);
     };
 
-    MapPolys._PolysNewPolysByAddingPoly = function(poly_id, ps, eps, mapref)
+    MapPolysProxy.prototype.Add = function(poly_id)
     {
-        var d = new Array(ps.length);
-        
-        for (var i = 0; i < ps.length; i++)
-        {
-            d[i] = ps[i];
-        }//for
-        
-        if (!MapPolys._PolysDoesExistPoly(poly_id, ps))
-        {
-            var nps = MapPolys._GmapsCreatePolysFromEncodedPoly(poly_id, eps);
-            
-            for (var i = 0; i < nps.length; i++)
-            {
-                nps[i].setMap(mapref);
-                d.push(nps[i]);
-            }//for
-        }//if
-
-        return d;
+        if (this._IsReady()) this._mapPolys.Add(poly_id);
     };
 
-    MapPolys._PolysDoesExistPoly = function(poly_id, ps)
+    MapPolysProxy.prototype.Remove = function(poly_id)
     {
-        var e = false;
-        
-        for (var i = 0; i < ps.length; i++)
-        {
-            if (ps[i].ext_poly_id == poly_id)
-            {
-                e = true;
-                break;
-            }//if
-        }//for
-        
-        return e;
+        if (this._IsReady()) this._mapPolys.Remove(poly_id);
     };
 
-    MapPolys._GmapsCreatePolysFromEncodedPoly = function(poly_id, eps)
+    MapPolysProxy.prototype.Exists = function(poly_id)
     {
-        var d = new Array();
-
-        for (var i = 0; i < eps.length; i++)
-        {            
-            if (eps[i].poly_id == poly_id)
-            {
-                for (var j = 0; j < eps[i].ss.length; j++)
-                {
-                    var paths = MapPolys._GmapsCreatePathsFromEncodedXYs(eps[i].xs, eps[i].ys, eps[i].ext.x0, eps[i].ext.y0, eps[i].pr.x, eps[i].pr.y);
-                    var poly  = MapPolys._GmapsCreatePolyFromPaths(paths, eps[i], eps[i].ss[j], j);
-                    d.push(poly);
-                }//for
-            }//if
-        }//for
-
-        return d;
+        return this._IsReady() ? this._mapPolys.Exists(poly_id) : false;
     };
 
-    MapPolys._encoded_polygons =
-    [   
-        { 
-            poly_id:0,
-               desc:"帰還困難区域 (Fukushima Zone) by Azby, v2",
-                 xs:"70FD73446CF76AF465A7659664C8672166986A486A3766CB65A861A25D4655D454384BE746CE412D3C59346F32F532D32AA42638258C252622432175169815860E8C10E513A511910D7A10280F7C0B88072C057F05A20416000008B70B210F05168819F31A4819581C5D1F3E2323274A292B27282AFB2A1B371E3ACE3B023B693C6A3D163B243E7E3F193EA13E9040F9417243DB4544478C49F64C934E0D52025212539E546B523553F3550658C859845CBC5B53634F69796CF7703F70DA776C787F79B47BB77DCB7F78868287B789AA8A9A89A988A88920894289DD8A558A338A33832883D483F7838F80BF7FBD7EEF7DCB7C5178B2790878067468729970FC",
-                 ys:"33652F322D0330CA30E533ED3579354237713A0C3B023C043DEE3ED63E17434D49E553C9563B63F0684C67F966EA63B95F286163614862FB67496B016C476ABD6A27667D62E061EB61B55F1B5C64571458175773526751ED4B554B3A4A454A444781477348924ABF4B8C498649E648C8474A44A2439F41713EBA3D143881348430342E572B5D29DF28EA26BB23B2226B1CD41B631C301B551C301F541F0320801A8A1B3B1824166214C8129A147711CD12A70FE2115213FC133D0F680BE30A65051F04F601480000013A014803BC03BC057105B5156D1F3923892581263327BE2912292E29D12BF22EC430A2304F310130BC31893144327E33D3332F34403372",
-                ext: { x0:140.68406, y0:37.35023, x1:141.03888, y1:37.62742 },
-                 pr: { x:5, y:5 },
-                 ss: [ { sc:"#0F0", sw:2, so:1, fc:"#0F0", fo:0.0, zi:1 },
-                       { sc:"#000", sw:6, so:1, fc:"#000", fo:0.2, zi:0 } ]
-        } 
-    ];
+    MapPolysProxy.prototype.GetLocalizedPolyValue = function(poly, prop)
+    {
+        return this._IsReady() ? this._mapPolys._GetLocalizedPolyValue(poly, prop) : new Array();
+    };
 
-    return MapPolys;
+    MapPolysProxy.src = "map_polys_min.js";
+
+    return MapPolysProxy;
 })();
 
-// HexagonEncode is an encoder function for the polygons used by MapPolys.
-// While the Google Maps polygon encoding is somewhat more efficient, it requires
-// additional resource loads.
+
+
+
+
+// ===============================================================================================
+// ===================================== FLY TO EXTENT PROXY =====================================
+// ===============================================================================================
 //
-// This should not be uncommented, as it will never be used by the Tilemap, but
-// rather is a tool 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function GetDogeTileForXY(x, y)
+// FlyToExtentProxy: Retained interface for asynchronous loading and use of fly_to_extent.js,
+//                   which provides panning/zoom to a map location and the display of stylized
+//                   location name text to the user after doing so.
+//
+var FlyToExtentProxy = (function()
 {
-    return GetContentBaseUrl() + (x % 2 == 0 || y % 2 == 0 ? "dogetile2.png" : "dogetile_cyanhalo.png");
-}
+    function FlyToExtentProxy()
+    {
+        this._flyToExtent = null;
+    }
+    
+    FlyToExtentProxy.prototype._IsReady = function()
+    {
+        return this._flyToExtent != null;
+    };
+
+    FlyToExtentProxy.prototype.Init = function(mapref, fxUpdateMapExtent)
+    {
+        if (this._IsReady()) return;
+    
+        this._LoadAsync(mapref, fxUpdateMapExtent);
+    };
+    
+    FlyToExtentProxy.prototype._LoadAsync = function(mapref, fxUpdateMapExtent)
+    {
+        var cb = function()
+        {
+            this._flyToExtent = new FlyToExtent(mapref, fxUpdateMapExtent);
+        }.bind(this);
+    
+        RequireJS(FlyToExtentProxy.src, true, cb, null);
+    };
+
+    FlyToExtentProxy.prototype.GoToPresetLocationIdIfNeeded = function(locId)
+    {
+        if (this._IsReady()) this._flyToExtent.GoToPresetLocationIdIfNeeded(locId);
+    };
+    
+    FlyToExtentProxy.prototype.ShowLocationText = function(txt)
+    {
+        if (this._IsReady()) this._flyToExtent.ShowLocationText(txt);
+    };
+
+    FlyToExtentProxy.src = "fly_to_extent_min.js";
+
+    return FlyToExtentProxy;
+})();
+
+
+
+
+
+
+
+
+
+//function GetDogeTileForXY(x, y)
+//{
+//    return GetContentBaseUrl() + (x % 2 == 0 || y % 2 == 0 ? "dogetile2.png" : "dogetile_cyanhalo.png");
+//}
 
 // supports showing the bitmap indices, which is contained in legacy code
 // with nasty deps that i haven't had time to rewrite.
@@ -2326,7 +2301,7 @@ var BitsProxy = (function()
         this._cached_maxz    = null;
         this._layerBitstores = null;
         this._bs_ready       = false;
-        this.use_bitstores   = BitsProxy.CheckRequirements();
+        this.use_bitstores   = _CheckRequirements();
         this.ddlLayersId     = ddlLayersId;
         this.ddlLayers       = document.getElementById(ddlLayersId);
         this.extent_u32      = "ArrayBuffer" in window ? new Uint32Array([0,0,0,0,21,0]) : null; // <- must be 21.
@@ -2342,8 +2317,8 @@ var BitsProxy = (function()
         if (   this._cached_tilewh        == null
             || this._cached_tilewh.length  < layerId + 1)
         {
-            this._cached_tilewh = BitsProxy.vcopy_vfill_sset_u16(this._cached_tilewh, 0xFFFF, layerId, px, 32);
-            this._cached_maxz   = BitsProxy.vcopy_vfill_sset_u16(this._cached_maxz,   0xFFFF, layerId, z,  32);
+            this._cached_tilewh = _vcopy_vfill_sset_u16(this._cached_tilewh, 0xFFFF, layerId, px, 32);
+            this._cached_maxz   = _vcopy_vfill_sset_u16(this._cached_maxz,   0xFFFF, layerId, z,  32);
         }//if
         else if (this._cached_tilewh[layerId] == 0xFFFF)
         {
@@ -2354,11 +2329,7 @@ var BitsProxy = (function()
     
     BitsProxy.prototype.LoadAsync = function()
     {
-        var cb = function()
-        {
-            this.Init();
-        }.bind(this);
-    
+        var cb = function() { this.Init(); }.bind(this);
         RequireJS(BitsProxy.relsrc, true, cb, null);
     };
     
@@ -2374,7 +2345,7 @@ var BitsProxy = (function()
     
     BitsProxy.prototype.LegacyInitForSelection = function()
     {
-        var idx = BitsProxy.GetSelectedLayerIdx();
+        var idx = _GetSelectedLayerIdx();
         if (idx <= 2 || idx >= 8) return;
         
         var layer = this.fxGetLayerForIdx(idx);
@@ -2439,7 +2410,7 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId02 = function()
     {
-        var isJ = BitsProxy.GetUseJpRegion();
+        var isJ = _GetUseJpRegion();
         var url = isJ ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                       : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
 
@@ -2455,7 +2426,7 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId08 = function()
     {
-        var isJ = BitsProxy.GetUseJpRegion();
+        var isJ = _GetUseJpRegion();
         var url = isJ ? "http://tg512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                       : "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
 
@@ -2470,19 +2441,17 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId03 = function()
     {
-        var isJ = BitsProxy.GetUseJpRegion();
+        var isJ = _GetUseJpRegion();
         var url = isJ ? "http://nnsajp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                       : "http://nnsa.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
         var opts3 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(3, 5, 15, url, 28, 12, opts3, null));
-        // this._layerBitstores.push(new LBITS(3, 2, 15, url, 3, 1, opts3, null));
-        // wat? nnsa.safecast.org.s3.amazonaws.com/6/56.65625/24.625.png?d=17026:1 GET http://nnsa.safecast.org.s3.amazonaws.com/6/56.65625/24.625.png?d=17026 403 (Forbidden)
     };
 
     BitsProxy.prototype.Init_LayerId06 = function()
     {
-        var isJ = BitsProxy.GetUseJpRegion();
+        var isJ = _GetUseJpRegion();
         var url = isJ ? "http://nurejp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                       : "http://nure.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
         
@@ -2492,7 +2461,7 @@ var BitsProxy = (function()
     
     BitsProxy.prototype.Init_LayerId09 = function()
     {
-        var isJ = BitsProxy.GetUseJpRegion();
+        var isJ = _GetUseJpRegion();
         var url = isJ ? "http://aistjp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                       : "http://aist.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
 
@@ -2502,7 +2471,7 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId16 = function()
     {
-        var isJ = BitsProxy.GetUseJpRegion();
+        var isJ = _GetUseJpRegion();
         var url = isJ ? "http://aujp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                       : "http://au.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
         
@@ -2536,149 +2505,40 @@ var BitsProxy = (function()
         }//if
     };
     
-    BitsProxy.prototype.StatusReport = function()
-    {
-        var txt = "\n";
-        txt += "============= BitsProxy Status Report ==============\n";
-        txt += "         Ready: " + (this._bs_ready ? "[Yes]" : " [NO]") + "\n";
-        txt += "     Bitstores: " + (this._layerBitstores == null ? "<NULL>" : "" + this._layerBitstores.length) + "\n";
-        txt += "Loads approved: " + this._debug_loads + "\n";
-        txt += "Loads rejected: " + this._debug_noloads + "\n";
-        
-        if (this._layerBitstores == null) 
-        {
-            txt += "=============      END OF REPORT      ==============\n";
-            console.log(txt);
-            return;
-        }//if
-        
-        
+    BitsProxy.prototype.StatusReport = function() {
+        var txt = "\n============= BitsProxy Status Report ==============\n" + "         Ready: " + (this._bs_ready ? "[Yes]" : " [NO]") + "\n" + "     Bitstores: " + (this._layerBitstores == null ? "<NULL>" : "" + this._layerBitstores.length) + "\n" + "Loads approved: " + this._debug_loads + "\n" + "Loads rejected: " + this._debug_noloads + "\n";
+        if (this._layerBitstores == null)  { txt += "=============      END OF REPORT      ==============\n"; console.log(txt); return; }
         txt += "=============      Bitstore List      ==============\n";
-        
-        for (var i=0; i<this._layerBitstores.length; i++)
-        {
+        for (var i=0; i<this._layerBitstores.length; i++) {
             var bs = this._layerBitstores[i];
-        
-            if (bs != null)
-            {
-                txt += "LBS[" + i + "]: layerId=" + bs.layerId + ", ";
-                txt += "bitstores=" + (bs.bitstores == null ? "<NULL>" : bs.bitstores.length) + ", ";
-                txt += "ready=" + (bs.isReady ? "Y" : "N") + ", ";
-                
+            if (bs != null) {
+                txt += "LBS[" + i + "]: layerId=" + bs.layerId + ", " + "bitstores=" + (bs.bitstores == null ? "<NULL>" : bs.bitstores.length) + ", " + "ready=" + (bs.isReady ? "Y" : "N") + ", ";
                 var dc = 0;
-                
-                for (var j=0; j<bs.bitstores.length; j++)
-                {
-                    var bits = bs.bitstores[j];
-                    
-                    dc += bits.GetDataCount();
-                }//for
-                
-                txt += "dataCount=" + dc;
-                txt += ", extent=(" + bs.extent[0].toLocaleString();
-                txt += " ~~ "       + bs.extent[1].toLocaleString();
-                txt += ") ("        + bs.extent[2].toLocaleString();
-                txt += " ~~ "       + bs.extent[3].toLocaleString();
-                txt += ")";
-                txt += "\n";
-                
-                if (bs.layerId != -9000)
-                {
-                    for (var j=0; j<bs.bitstores.length; j++)
-                    {
-                        var bits  = bs.bitstores[j];
-                        var src   = null;
-                        var src_n = 0;
-                        
-                        
-                        if (bits != null && bits.data != null)
-                        {
-                            src = bits.GetNewPlanar8FromBitmap(1, 0);
-                            
-                            for (var k=0; k<src.length; k++)
-                            {
-                                if (src[k] != 0) src_n++;
-                            }//for
-                        }//if
-                        
-                        
-                        txt += " +-- ";
-                        txt += "(" + bits.x + ", " + bits.y + ") @ " + bits.z;
-                        txt += ", dc=" + bits.GetDataCount();
-                        txt += ", ready=" + (bits.isReady ? "Y" : "N");
-                        txt += ", data.length=" + (bits.data != null ? bits.data.length : "<NULL>");
-                        txt += ", src_n=" + src_n;
-                        
-                        txt += ", extent=(" + bits.extent[0].toLocaleString();
-                        txt += " ~~ "       + bits.extent[1].toLocaleString();
-                        txt += ") ("        + bits.extent[2].toLocaleString();
-                        txt += " ~~ "       + bits.extent[3].toLocaleString();
-                        txt += ")\n";
-                        
-                        if (bits.data != null && src != null)
-                        {
-                            var x, y, src_idx, dest_idx;
-                            var imgpre = "   +- ";
-                            //var src    = bits.GetNewPlanar8FromBitmap(1, 0);
-                            var src_w  = bits.img_width;
-                            var src_h  = bits.img_height;
-                        
-                            var w_rsn  = 2;
-                            var h_rsn  = 4;
-                            var dest_w = src_w >>> w_rsn;
-                            var dest_h = src_h >>> h_rsn;
-                        
-                            var dest   = new Uint8Array(dest_w * dest_h);
-                        
-                            for (y = 0; y < src_h; y++)
-                            {
-                                for (x = 0; x < src_w; x++)
-                                {
-                                    src_idx = y * src_w + x;
-                                    
-                                    if (src[src_idx] != 0)
-                                    {
-                                        dest_idx = (y >>> h_rsn) * dest_w + (x >>> w_rsn)
-                                        dest[dest_idx] = 1;
-                                    }//if
-                                }//for x
-                            }//for y
-                            
+                for (var j=0; j<bs.bitstores.length; j++) { var bits = bs.bitstores[j]; dc += bits.GetDataCount(); }
+                txt += "dataCount=" + dc + ", extent=(" + bs.extent[0].toLocaleString() + " ~~ " + bs.extent[1].toLocaleString() + ") (" + bs.extent[2].toLocaleString() + " ~~ " + bs.extent[3].toLocaleString() + ")\n";
+                if (bs.layerId != -9000) {
+                    for (var j=0; j<bs.bitstores.length; j++) {
+                        var src = null, src_n = 0, bits = bs.bitstores[j];
+                        if (bits != null && bits.data != null) { src = bits.GetNewPlanar8FromBitmap(1, 0); for (var k=0; k<src.length; k++) { if (src[k] != 0) src_n++; } }
+                        txt += " +-- (" + bits.x + ", " + bits.y + ") @ " + bits.z; + ", dc=" + bits.GetDataCount() + ", ready=" + (bits.isReady ? "Y" : "N") + ", data.length=" + (bits.data != null ? bits.data.length : "<NULL>") +  ", src_n=" + src_n + ", extent=(" + bits.extent[0].toLocaleString() + " ~~ " + bits.extent[1].toLocaleString() + ") (" + bits.extent[2].toLocaleString() + " ~~ " + bits.extent[3].toLocaleString() + ")\n";
+                        if (bits.data != null && src != null) {
+                            var x, y, src_idx, dest_idx, w_rsn=2, h_rsn=4, imgpre="   +- ", src_w = bits.img_width, src_h = bits.img_height;
+                            var dest_w = src_w >>> w_rsn, dest_h = src_h >>> h_rsn;
+                            var dest = new Uint8Array(dest_w * dest_h);
+                            for (y = 0; y < src_h; y++) { for (x = 0; x < src_w; x++) { src_idx = y * src_w + x; if (src[src_idx] != 0) { dest_idx = (y >>> h_rsn) * dest_w + (x >>> w_rsn); dest[dest_idx] = 1; } } }
                             var imgdiv = imgpre + "[";
-                            for (x = 0; x < dest_w; x++) { imgdiv += "="; }//for
+                            for (x = 0; x < dest_w; x++) { imgdiv += "="; }
                             imgdiv += "]\n";
                             txt += imgdiv;
-                            
-                            for (y = 0; y < dest_h; y++)
-                            {
-                                txt += imgpre + "[";
-                                
-                                for (x = 0; x < dest_w; x++)
-                                {
-                                    dest_idx = y * dest_w + x;
-                                    
-                                    txt += dest[dest_idx] != 0 ? "█" : " ";
-                                }//for x
-                                
-                                txt += "]\n";
-                            }//for y
-                            
+                            for (y = 0; y < dest_h; y++) { txt += imgpre + "["; for (x = 0; x < dest_w; x++) { dest_idx = y * dest_w + x; txt += dest[dest_idx] != 0 ? "█" : " "; } txt += "]\n"; }
                             txt += imgdiv;
-                            
                         }//if (bits.data != null)
-
                     }//for (j/bits)
                 }//if (bitstores n < 10)
             }//if (LBITS IS NOT NULL)
-            else
-            {
-                txt += "LBS[" + i + "]: <NULL>\n"; 
-            }//else
+            else { txt += "LBS[" + i + "]: <NULL>\n"; }//else
         }//for
-        
-        txt += "=============      END OF REPORT      ==============\n";
-        
-        console.log(txt);
+        txt += "=============      END OF REPORT      ==============\n"; console.log(txt);
     };
 
     BitsProxy.prototype.ShouldLoadTile = function(layerId, x, y, z)
@@ -2707,12 +2567,9 @@ var BitsProxy = (function()
             wh    = this._cached_tilewh[layerId];
             max_z = this._cached_maxz[layerId];
         }//else
-        
-        //var wh    = this.GetTileWidthHeightForLayer(layerId);
-        //var max_z = this.GetBaseMaxZForLayer(layerId);
-        
+                
         // *** HACK ***
-        if (BitsProxy.GetIsRetina() && z == max_z)
+        if (_GetIsRetina() && z == max_z)
         {
             z--;
             x>>>=1;
@@ -2780,53 +2637,46 @@ var BitsProxy = (function()
         v[5]   = z;
         v[0]   = x * w;
         v[1]   = y * h;
-        
         v[5]   = v[4] - v[5];
-        
         v[2]   = w;
         v[3]   = h;
-        
         v[2] <<= v[5];
         v[3] <<= v[5];
-        
         v[2] -= 1;
         v[3] -= 1;
-                
         v[0] <<= v[5];
         v[1] <<= v[5];
-        
         v[5]   = z;
-        
         v[2]  += v[0];
         v[3]  += v[1];
     };
             
-    BitsProxy.vfill = function(x,d,n) { for(var i=0;i<n;i++)d[i]=x; };
-    BitsProxy.vcopy = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    var _vfill = function(x,d,n) { for(var i=0;i<n;i++)d[i]=x; };
+    var _vcopy = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
     
-    BitsProxy.vcopy_vfill_sset_u16 = function(src, fill, idx, val, n_pad)
+    var _vcopy_vfill_sset_u16 = function(src, fill, idx, val, n_pad)
     {
         var dest = new Uint16Array(idx + n_pad);
-        BitsProxy.vfill(fill, dest, dest.length);
-        if (src != null) BitsProxy.vcopy(dest, 0, src, 0, src.length);
+        _vfill(fill, dest, dest.length);
+        if (src != null) _vcopy(dest, 0, src, 0, src.length);
         dest[idx] = val;
         return dest;
     };
     
-    BitsProxy.GetIsRetina                 = function()     { return GetIsRetina(); };
-    BitsProxy.GetQueryString_IsParamEqual = function(p, v) { return QueryString_IsParamEqual(p, v); };
-    BitsProxy.GetIsBrowserOldIE           = function()     { return IsBrowserOldIE(); };
-    BitsProxy.GetSelectedLayerIdx         = function()     { return LayersHelper.GetSelectedIdx(); };
-    BitsProxy.GetUseJpRegion              = function()     { return _use_jp_region; };
-    BitsProxy.GetContentBaseUrl           = function()     { return GetContentBaseUrl(); };
+    var _GetIsRetina                 = function()     { return GetIsRetina(); };
+    var _GetQueryString_IsParamEqual = function(p, v) { return QueryString_IsParamEqual(p, v); };
+    var _GetIsBrowserOldIE           = function()     { return IsBrowserOldIE(); };
+    var _GetSelectedLayerIdx         = function()     { return LayersHelper.GetSelectedIdx(); };
+    var _GetUseJpRegion              = function()     { return _use_jp_region; };
+    var _GetContentBaseUrl           = function()     { return GetContentBaseUrl(); };
     
-    BitsProxy.relsrc = BitsProxy.GetContentBaseUrl() + "bitstore_min.js";
+    BitsProxy.relsrc = _GetContentBaseUrl() + "bitstore_min.js";
     BitsProxy.bitsrc = "http://safecast.org/tilemap/bitstore_min.js";
     BitsProxy.pngsrc = "http://safecast.org/tilemap/png_zlib_worker_min.js";
     
-    BitsProxy.CheckRequirements = function()
+    var _CheckRequirements = function()
     {
-        return !BitsProxy.GetQueryString_IsParamEqual("noIndices", "1") && !BitsProxy.GetIsBrowserOldIE() && "ArrayBuffer" in window && "bind" in Function.prototype;
+        return !_GetQueryString_IsParamEqual("noIndices", "1") && !_GetIsBrowserOldIE() && "ArrayBuffer" in window && "bind" in Function.prototype;
     };
     
     return BitsProxy;
@@ -2934,7 +2784,7 @@ var HudProxy = (function()
         this._btnToggleStateOn = !this._btnToggleStateOn;
     };
     
-    HudProxy.elGet    = function(id)         { return document.getElementById(id); };
+    HudProxy.elGet    = function(id)       { return document.getElementById(id); };
     HudProxy.aList    = function(el,ev,fx) { el.addEventListener(ev, fx, false); };
     HudProxy.aListId  = function(id,ev,fx) { HudProxy.aList(HudProxy.elGet(id), ev, fx); }
 
@@ -2960,7 +2810,7 @@ var BvProxy = (function()
     function BvProxy() 
     {
         this._bvm = null;
-        this._noreqs = !BvProxy.CheckRequirements();
+        this._noreqs = !_CheckRequirements();
         
         this.fxSwapClassToHideElId  = function(elementid, classHidden, classVisible, isHidden) { SwapClassToHideElId(elementid, classHidden, classVisible, isHidden); }.bind(this);
         this.fxRequireJS            = function(url, isAsync, fxCallback, userData) { RequireJS(url, isAsync, fxCallback, userData); }.bind(this);
@@ -2999,24 +2849,24 @@ var BvProxy = (function()
         var i = document.getElementById("bv_bvImgPreview");
         if (i.src == null || i.src.length == 0) i.src = GetContentBaseUrl() + "bgpreview_118x211.png";
     
-        BvProxy.aListId("bv_btnDoneX", "click", function() { this.btnDoneOnClick(); }.bind(this) );
-        BvProxy.aListId("bv_btnOptions", "click", function() { this.UI_ShowAdvPanel(); }.bind(this) );
-        BvProxy.aListId("bv_btnRemoveAll", "click", function() { this.btnRemoveLogsOnClick(); }.bind(this) );
-        BvProxy.aListId("bv_btnSearch", "click", function() { this.btnAddLogsOnClick(); }.bind(this) );
-        BvProxy.aListId("bv_ddlQueryType", "change", function() { this.UI_ddlQueryType_OnSelectedIndexChanged(); }.bind(this) );
+        _aListId("bv_btnDoneX", "click", function() { this.btnDoneOnClick(); }.bind(this) );
+        _aListId("bv_btnOptions", "click", function() { this.UI_ShowAdvPanel(); }.bind(this) );
+        _aListId("bv_btnRemoveAll", "click", function() { this.btnRemoveLogsOnClick(); }.bind(this) );
+        _aListId("bv_btnSearch", "click", function() { this.btnAddLogsOnClick(); }.bind(this) );
+        _aListId("bv_ddlQueryType", "change", function() { this.UI_ddlQueryType_OnSelectedIndexChanged(); }.bind(this) );
         
-        BvProxy.aListId("bv_btnAdvDoneX", "click", function() { this.UI_btnAdvDoneOnClick(); }.bind(this) );
-        BvProxy.aListId("bv_btnAdvDone", "click", function() { this.UI_btnAdvDoneOnClick(); }.bind(this) );
-        BvProxy.aListId("bv_ddlMarkerType", "change", function() { this.UI_ddlMarkerType_OnSelectedIndexChanged(); }.bind(this) );
+        _aListId("bv_btnAdvDoneX", "click", function() { this.UI_btnAdvDoneOnClick(); }.bind(this) );
+        _aListId("bv_btnAdvDone", "click", function() { this.UI_btnAdvDoneOnClick(); }.bind(this) );
+        _aListId("bv_ddlMarkerType", "change", function() { this.UI_ddlMarkerType_OnSelectedIndexChanged(); }.bind(this) );
         
         var mcb = function() { this.UI_MarkerCustomOnChange(); }.bind(this);
         
-        BvProxy.aListId("bv_tbMarkerShadowRadius", "change", mcb);
-        BvProxy.aListId("bv_tbMarkerStrokeAlpha", "change", mcb);
-        BvProxy.aListId("bv_tbMarkerFillAlpha", "change", mcb);
-        BvProxy.aListId("bv_chkMarkerBearing", "change", mcb);
-        BvProxy.aListId("bv_tbMarkerSize", "change", mcb);
-        BvProxy.aListId("bv_tbParallelism", "change", function() { this.UI_ParallelismOnChange(); }.bind(this) );
+        _aListId("bv_tbMarkerShadowRadius", "change", mcb);
+        _aListId("bv_tbMarkerStrokeAlpha", "change", mcb);
+        _aListId("bv_tbMarkerFillAlpha", "change", mcb);
+        _aListId("bv_chkMarkerBearing", "change", mcb);
+        _aListId("bv_tbMarkerSize", "change", mcb);
+        _aListId("bv_tbParallelism", "change", function() { this.UI_ParallelismOnChange(); }.bind(this) );
     };
     
     // === codebehind pasta ===
@@ -3095,7 +2945,7 @@ var BvProxy = (function()
 
     BvProxy.prototype.btnAddLogsOnClick = function()
     {
-        var csv         = BvProxy.elVal("bv_tbLogIDs");
+        var csv         = _elVal("bv_tbLogIDs");
         var queryTypeId = this.UI_GetQueryType();
         var params      = this.UI_GetExtraQueryStringParams();
         var pageLimit   = 320;//this.UI_GetMaxPages();
@@ -3122,32 +2972,32 @@ var BvProxy = (function()
     
     BvProxy.prototype.UI_GetSubtypeParamIfPresent = function()
     {
-        return BvProxy.ddlVal("bv_ddlSubtype");
+        return _ddlVal("bv_ddlSubtype");
     };
 
     BvProxy.prototype.UI_GetStatusTypeParamIfPresent = function()
     {
-        return BvProxy.ddlVal("bv_ddlStatusType");
+        return _ddlVal("bv_ddlStatusType");
     };
     
     BvProxy.prototype.UI_GetStartDateParamIfPresent = function()
     {
-        return BvProxy.GetApiDateTimeParam(BvProxy.elVal("bv_tbStartDate"), true);
+        return _GetApiDateTimeParam(_elVal("bv_tbStartDate"), true);
     };
     
     BvProxy.prototype.UI_GetEndDateParamIfPresent = function()
     {
-        return BvProxy.GetApiDateTimeParam(BvProxy.elVal("bv_tbEndDate"), false);
+        return _GetApiDateTimeParam(_elVal("bv_tbEndDate"), false);
     };
     
     BvProxy.prototype.UI_GetQueryType = function()
     {
-        return BvProxy.ddlIdx("bv_ddlQueryType");
+        return _ddlIdx("bv_ddlQueryType");
     };
     
     //BvProxy.prototype.UI_GetMaxPages = function()
     //{
-    //    return parseInt(BvProxy.ddlVal("bv_ddlMaxPages"));
+    //    return parseInt(_ddlVal("bv_ddlMaxPages"));
     //};
     
     BvProxy.prototype.UI_GetExtraQueryStringParams = function()
@@ -3160,15 +3010,15 @@ var BvProxy = (function()
         
     BvProxy.prototype.UI_SetDefaultParallelism = function()
     {
-        if (parseInt(BvProxy.elVal("bv_tbParallelism")) == 1)
+        if (parseInt(_elVal("bv_tbParallelism")) == 1)
         {
-            BvProxy.elSetVal("bv_tbParallelism", navigator.hardwareConcurrency != null ? navigator.hardwareConcurrency : 4); 
+            _elSetVal("bv_tbParallelism", navigator.hardwareConcurrency != null ? navigator.hardwareConcurrency : 4); 
         }//if
     };
 
     BvProxy.prototype.UI_UpdateTbPlaceholderText = function()
     {
-        var tb = BvProxy.elGet("bv_tbLogIDs");
+        var tb = _elGet("bv_tbLogIDs");
         var qt = this.UI_GetQueryType();
         tb.placeholder = qt == 0 ? "Enter bGeigie Log ID(s)" : qt == 1 ? "Enter User ID" : "Enter Search Text";
     };
@@ -3180,57 +3030,57 @@ var BvProxy = (function()
     BvProxy.prototype.UI_ShowAdvPanel = function()
     {
         this.UI_SetDefaultParallelism();
-        BvProxy.setCls("bv_bvPanelQuery", "bv_bvPanelVisible");
+        _setCls("bv_bvPanelQuery", "bv_bvPanelVisible");
     };
     
     BvProxy.prototype.UI_btnAdvDoneOnClick = function() 
     {
-        BvProxy.setCls("bv_bvPanelQuery", "bv_bvPanelHidden");
+        _setCls("bv_bvPanelQuery", "bv_bvPanelHidden");
     };
 
     BvProxy.prototype.UI_ddlQueryType_OnSelectedIndexChanged = function()
     {
         var d = this.UI_GetQueryType() == 0;
-        BvProxy.elDis("bv_tbStartDate", d);
-        BvProxy.elDis("bv_tbEndDate", d);
-        BvProxy.elDis("bv_ddlStatusType", d);
-        //BvProxy.elDis("bv_ddlMaxPages", d);
-        BvProxy.elDis("bv_ddlSubtype", d);
+        _elDis("bv_tbStartDate", d);
+        _elDis("bv_tbEndDate", d);
+        _elDis("bv_ddlStatusType", d);
+        //_elDis("bv_ddlMaxPages", d);
+        _elDis("bv_ddlSubtype", d);
         this.UI_UpdateTbPlaceholderText();
     };
 
     BvProxy.prototype.UI_ddlMarkerType_OnSelectedIndexChanged = function()
     {
-        var i = BvProxy.ddlIdx("bv_ddlMarkerType");
+        var i = _ddlIdx("bv_ddlMarkerType");
         if (i != 5) this.ChangeMarkerType(i);
         else this.UI_MarkerCustomOnChange();
         var d = i != 5;
-        BvProxy.elDis("bv_tbMarkerSize", d);
-        BvProxy.elDis("bv_chkMarkerBearing", d);
-        BvProxy.elDis("bv_tbMarkerFillAlpha", d);
-        BvProxy.elDis("bv_tbMarkerStrokeAlpha", d);
-        BvProxy.elDis("bv_tbMarkerShadowRadius", d);
-        BvProxy.trHide("bv_trMarkerSize", d);
-        BvProxy.trHide("bv_trMarkerBearing", d);
-        BvProxy.trHide("bv_trMarkerFillAlpha", d);
-        BvProxy.trHide("bv_trMarkerStrokeAlpha", d);
-        BvProxy.trHide("bv_trMarkerShadowRadius", d);
+        _elDis("bv_tbMarkerSize", d);
+        _elDis("bv_chkMarkerBearing", d);
+        _elDis("bv_tbMarkerFillAlpha", d);
+        _elDis("bv_tbMarkerStrokeAlpha", d);
+        _elDis("bv_tbMarkerShadowRadius", d);
+        _trHide("bv_trMarkerSize", d);
+        _trHide("bv_trMarkerBearing", d);
+        _trHide("bv_trMarkerFillAlpha", d);
+        _trHide("bv_trMarkerStrokeAlpha", d);
+        _trHide("bv_trMarkerShadowRadius", d);
     };
 
     BvProxy.prototype.UI_MarkerCustomOnChange = function()
     {
-        var sz = parseInt(BvProxy.elVal("bv_tbMarkerSize"));
-        var cb = BvProxy.elGet("bv_chkMarkerBearing").checked;
-        var fa = parseFloat(BvProxy.elVal("bv_tbMarkerFillAlpha"));
-        var sa = parseFloat(BvProxy.elVal("bv_tbMarkerStrokeAlpha"));
-        var sr = parseFloat(BvProxy.elVal("bv_tbMarkerShadowRadius"));
+        var sz = parseInt(_elVal("bv_tbMarkerSize"));
+        var cb = _elGet("bv_chkMarkerBearing").checked;
+        var fa = parseFloat(_elVal("bv_tbMarkerFillAlpha"));
+        var sa = parseFloat(_elVal("bv_tbMarkerStrokeAlpha"));
+        var sr = parseFloat(_elVal("bv_tbMarkerShadowRadius"));
         
         this.SetNewCustomMarkerOptions(sz, sz, fa*0.01, sa*0.01, sr, cb);    
     };
 
     BvProxy.prototype.UI_ParallelismOnChange = function()
     {
-        var p = parseInt(BvProxy.elVal("bv_tbParallelism")); 
+        var p = parseInt(_elVal("bv_tbParallelism")); 
         this.SetParallelism(p);
     };
     
@@ -3241,7 +3091,7 @@ var BvProxy = (function()
     
     BvProxy.prototype.GetUiContentAsync = function(fxCallback, userData) // do not call directly!
     {
-        var el = BvProxy.elGet("bv_bvPanel");
+        var el = _elGet("bv_bvPanel");
         if (el != null) 
         {
             if (fxCallback != null) fxCallback(userData); 
@@ -3259,7 +3109,7 @@ var BvProxy = (function()
                 el.innerHTML = req.response || req.responseText;
                 document.body.appendChild(el);
                 
-                var e2 = BvProxy.elGet("bv_loading");
+                var e2 = _elGet("bv_loading");
                 if (e2 != null) document.body.removeChild(e2);
                 
                 this.BindEventsUI();
@@ -3272,7 +3122,7 @@ var BvProxy = (function()
     
     BvProxy.prototype.GetUiContentStylesAsync = function(fxCallback, userData)
     {
-        var el = BvProxy.elGet("bv_bvPanel");
+        var el = _elGet("bv_bvPanel");
         if (el != null) 
         {
             if (fxCallback != null) fxCallback(userData); 
@@ -3305,14 +3155,14 @@ var BvProxy = (function()
     
     // === static/class ===
     
-    BvProxy.GetApiDateTimeParam = function(rfc_date, isStartDate) 
+    var _GetApiDateTimeParam = function(rfc_date, isStartDate) 
     {
         if (rfc_date == null || rfc_date.length == 0) return "";
 
-        return (isStartDate ? "&uploaded_after=" : "&uploaded_before=") + BvProxy.GetApiDateTimeForRFCDate(rfc_date, isStartDate);
+        return (isStartDate ? "&uploaded_after=" : "&uploaded_before=") + _GetApiDateTimeForRFCDate(rfc_date, isStartDate);
     };
     
-    BvProxy.GetApiDateTimeForRFCDate = function(rfc_date, isMidnight)
+    var _GetApiDateTimeForRFCDate = function(rfc_date, isMidnight)
     {
         rfc_date = new Date(rfc_date).toISOString();
     
@@ -3325,32 +3175,32 @@ var BvProxy = (function()
         return yy + "-" + mm + "-" + dd + "T" + (isMidnight ? "00%3A00%3A00" : "23%3A59%3A59") + "Z";
     };
     
-    BvProxy.CheckRequirements = function()
+    var _CheckRequirements = function()
     {
-        var meets_req = !BvProxy.IsBrowserOldIE() && ("bind" in Function.prototype) && ("ArrayBuffer" in window);
+        var meets_req = !_IsBrowserOldIE() && ("bind" in Function.prototype) && ("ArrayBuffer" in window);
         return meets_req;
     };
 
-    BvProxy.IsBrowserOldIE = function() 
+    var _IsBrowserOldIE = function() 
     {
         var ua   = window.navigator.userAgent;
         var msie = ua.indexOf("MSIE "); // IE11: "Trident/"
         return msie <= 0 ? false : parseInt(ua.substring(msie + 5, ua.indexOf(".", msie)), 10) < 10;
     };
 
-    BvProxy.elGet    = function(id)         { return document.getElementById(id); };
-    BvProxy.setCls   = function(id, c)      { BvProxy.elGet(id).className = c; };
-    BvProxy.trHide   = function(id, isHide) { BvProxy.elGet(id).style.display = isHide ? "none" : "table-row"; };
-    BvProxy.elDis    = function(id, isDis)  { BvProxy.elGet(id).disabled = isDis; };
-    BvProxy.elVal    = function(id)         { return BvProxy.elGet(id).value; };
-    BvProxy.elSetVal = function(id,v)       { BvProxy.elGet(id).value = v; };
-    BvProxy.ddlIdx   = function(id)         { return BvProxy.elGet(id).selectedIndex; };
-    BvProxy.ddlVal   = function(id)         { var a=BvProxy.elGet(id); return a.options[a.selectedIndex].value; };
-    BvProxy.classGet = function(c)          { return document.getElementsByClassName(c); };
-    BvProxy.tagGet   = function(t)          { return document.getElementsByTagName(t); };
+    var _elGet    = function(id)         { return document.getElementById(id); };
+    var _setCls   = function(id, c)      { _elGet(id).className = c; };
+    var _trHide   = function(id, isHide) { _elGet(id).style.display = isHide ? "none" : "table-row"; };
+    var _elDis    = function(id, isDis)  { _elGet(id).disabled = isDis; };
+    var _elVal    = function(id)         { return _elGet(id).value; };
+    var _elSetVal = function(id,v)       { _elGet(id).value = v; };
+    var _ddlIdx   = function(id)         { return _elGet(id).selectedIndex; };
+    var _ddlVal   = function(id)         { var a=_elGet(id); return a.options[a.selectedIndex].value; };
+    /* BvProxy.classGet = function(c)          { return document.getElementsByClassName(c); }; */ // unused
+    /* BvProxy.tagGet   = function(t)          { return document.getElementsByTagName(t); };   */ // unused
     
-    BvProxy.aList    = function(el,ev,fx) { el.addEventListener(ev, fx, false); };
-    BvProxy.aListId  = function(id,ev,fx) { BvProxy.aList(BvProxy.elGet(id), ev, fx); }
+    var _aList    = function(el,ev,fx) { el.addEventListener(ev, fx, false); };
+    var _aListId  = function(id,ev,fx) { _aList(_elGet(id), ev, fx); }
 
 
     return BvProxy;
@@ -3360,558 +3210,9 @@ var BvProxy = (function()
 
 
 
-
-
-
-
-
-// ===============================================================================================
-// ======================================== FLY-TO-EXTENT ========================================
-// ===============================================================================================
-
-// FlyToExtent: static class container to keep function clutter out of global space / make maintenance
-// easier.
-
-var FlyToExtent = (function()
-{
-    function FlyToExtent() 
-    {
-    }
-    
-    //FlyToExtent.MapRef             = window.map;
-    FlyToExtent.fxShowLocationText = function(txt) { ShowLocationText(txt); };
-    FlyToExtent.fxUpdateMapExtent  = function()    { MapExtent_OnChange(0); MapExtent_OnChange(1); };
-    
-    FlyToExtent.GoToPresetLocationIdIfNeeded = function(locId)
-    {
-        var p = null;
-        
-        switch(locId)
-        {
-            case 0: // ahhh
-            case 8: // i'm
-            case 9: // falling
-            case 1: // through
-                p = [-163.0, -78.1, 178.0, 85.05, 0, 17, "Earth"];
-                break;
-            case 2:
-                p = [124.047, 24.309, 146.433, 46.116, 5, 15, "Japan"];
-                break;
-            case 3:
-                p = [138.785, 35.143, 141.125, 38.234, 6, 16, "Honshu, Japan"];
-                break;
-            case 4:
-                p = [-168.08, 24.712, -53.337, 71.301, 1, 12, "North America"];
-                break;
-            case 5:
-                p = [112.81, -43.07, 154.29, -9.85, 2, 12, "Australia"];
-                break;
-            case 6:
-                p = [124.047, 24.309, 146.433, 46.116, 5, 12, "Japan"];
-                break;
-            case 7:
-                p = [129.76, 31.21, 144.47, 45.47, 5, 15, "Japan"];
-                break;
-        }//switch
-    
-        if (p != null) FlyToExtent.GoToLocationWithTextIfNeeded(p[0], p[1], p[2], p[3], p[4], p[5], p[6])
-    };
-    
-    FlyToExtent.GetCurrentVisibleExtent = function()
-    {
-        var b   = map.getBounds();
-        var y0  = b.getSouthWest().lat();
-        var x0  = b.getSouthWest().lng();
-        var y1  = b.getNorthEast().lat();
-        var x1  = b.getNorthEast().lng();
-        var z   = map.getZoom();
-        var ex0 = -9000.0;
-        var ex1 = -9000.0;
-        
-        if (x0 > x1) // 180th meridian handling -- need to split into second extent
-        {            // but, y-coordinates stay the same, so only need two more x-coordinates.
-            ex1 = x1;
-            x1  =  180.0;
-            ex0 = -180.0;
-        }//if
-        
-        return [x0, y0, x1, y1, ex0, ex1, z];
-    };
-    
-    FlyToExtent.IsIntersectingExtents = function(ex0, ex1)
-    {
-        return !(ex0[2] < ex1[0] || ex0[0] > ex1[2] || ex0[3] < ex1[1] || ex0[1] > ex1[3]);
-    };
-    
-    FlyToExtent.GoToLocationWithTextIfNeeded = function(x0, y0, x1, y1, min_z, z, txt)
-    {
-    // first, don't bother if the user is already looking at it.
-    
-    var vis        = FlyToExtent.GetCurrentVisibleExtent();
-    var already_in = true;//vis[6] <= z; // past max zoom level isn't in, at all.
-    
-    if (already_in)
-    {
-        already_in = vis[6] >= min_z; // past min zoom level of layer
-    }//if
-    
-    if (already_in)
-    {
-        already_in = FlyToExtent.IsIntersectingExtents(vis, [x0, y0, x1, y1]);
-        
-        if (!already_in && vis[4] != -9000.0) // handle 180th meridian spans
-        {
-            already_in = FlyToExtent.IsIntersectingExtents([vis[4], vis[1], vis[5], vis[3]], [x0, y0, x1, y1]);
-        }//if
-    }//if
-    
-    if (already_in || !("requestAnimationFrame" in window)) return;
-
-    // but if they aren't looking at it, then fly to it.
-
-    var yxz   = FlyToExtent.GetRegionForExtentAndClientView_EPSG4326(x0, y0, x1, y1);
-    var stops = new Array();
-    var zoom_out_dest = yxz[1] > 4 ? 4 : yxz[1];
-    
-    // 1. zoom way out.  maybe should be proportional to the distance?
-    if (vis[6] > zoom_out_dest)
-    {
-        for (var dz = vis[6] - 1; dz >= zoom_out_dest; dz--)
-        {
-            stops.push( { x:null, y:null, z:dz, t:50 } );
-        }//for
-    }//if
-    else if (vis[6] < zoom_out_dest) // or maybe zoom in (less likely)
-    {
-        stops.push( { x:null, y:null, z:zoom_out_dest, t:50 } );
-    }//else if
-        
-    // 2. pan to the new centroid, but first reproject
-    var src_c    = FlyToExtent.GetNormalizedMapCentroid(); // you'd think the fucking framework would do this
-    var dest_lat = yxz[0].lat();
-    var dest_lon = yxz[0].lng();    
-    var src_mxy  = FlyToExtent.LatLonToXYZ_EPSG3857(src_c.y, src_c.x, zoom_out_dest);
-    var dest_mxy = FlyToExtent.LatLonToXYZ_EPSG3857(dest_lat, dest_lon, zoom_out_dest);
-    var src_x    = src_mxy[0];
-    var src_y    = src_mxy[1];
-    var dest_x   = dest_mxy[0];
-    var dest_y   = dest_mxy[1];
-    var yd       = dest_y > src_y ? dest_y - src_y : src_y - dest_y;
-    var xd       = dest_x > src_x ? dest_x - src_x : src_x - dest_x;
-    
-    var is_180_span = false; // span 180th meridian if shorter.  this reverses everything.
-    var m180_w      = 256 << zoom_out_dest;
-    var m180_x0     = src_x < dest_x ?  src_x : dest_x;
-    var m180_x1     = src_x < dest_x ? dest_x :  src_x;
-    var m180_d      = m180_x0 + (m180_w - m180_x1);
-    
-    if (m180_d < xd)
-    {
-        xd = m180_d;
-        is_180_span = true;
-    }//if
-    
-    var maxd     = yd > xd ? yd : xd;
-    var x_stride = xd / maxd;
-    var y_stride = yd / maxd;
-
-    if (dest_x < src_x && !is_180_span) x_stride = 0.0 - x_stride;
-    if (dest_x > src_x &&  is_180_span) x_stride = 0.0 - x_stride;
-    if (dest_y < src_y) y_stride = 0.0 - y_stride;
-       
-    // this results in normal 1px moves for one axis, and fractional movement for another.
-    // note if/when the API ever allows for showing non-integral zoom levels, this will need to be normalized accordingly.
-    
-    var px_skip = maxd > 50 ? 50 : 1; // 1px at a time is slow.
-    
-    x_stride *= px_skip;
-    y_stride *= px_skip;
-    
-    var did_reach_dest = false;
-    var xlt, ylt, next_x, next_y;
-    var rel_x = 0.0;
-    var rel_y = 0.0;
-    var int_x = 0.0;
-    var int_y = 0.0;
-    var net_x = src_x;
-    var net_y = src_y;
-    
-    for (var i=0; i<maxd; i+=px_skip)
-    {
-        next_x = parseInt(rel_x - int_x + x_stride); // accumulate fracs
-        next_y = parseInt(rel_y - int_y + y_stride);
-        
-        if (!is_180_span) xlt = x_stride > 0.0 ? src_x + next_x < dest_x : src_x + next_x > dest_x;
-        else              xlt = x_stride > 0.0 ? src_x + next_x > dest_x : src_x + next_x < dest_x;
-        
-        ylt = y_stride > 0.0 ? src_y + next_y < dest_y : src_y + next_y > dest_y;
-        
-        if ((next_x != 0 || next_y != 0) && !did_reach_dest)
-        {
-            if (!xlt || !ylt)
-            {
-                did_reach_dest = true;
-                next_x = dest_x - net_x;
-                next_y = dest_y - net_y;
-            }
-        
-            stops.push( { x:next_x, y:next_y, z:null, t:1 } );
-            
-            
-            net_x += next_x;
-            net_y += next_y;
-        }//if
-        
-        rel_x += x_stride;
-        rel_y += y_stride;
-        int_x = Math.floor(rel_x);
-        int_y = Math.floor(rel_y);
-    }//for
-    
-    if (!did_reach_dest && px_skip != 1.0 && (net_x != dest_x || net_y != dest_y)) // correct final point
-    {
-        stops.push( { x:(dest_x-net_x), y:(dest_y-net_y), z:null, t:1 } );
-    }//if
-    
-    // 3. now finally zoom in
-    if (zoom_out_dest < yxz[1])
-    {
-        for (var dz = zoom_out_dest + 1; dz <= yxz[1]; dz++)
-        {
-            stops.push( { x:null, y:null, z:dz, t:50 } );
-        }//for
-    }//if
-    
-    FlyToExtent.ProcessFlyToStops(stops, txt, 0);
-    };
-    
-    
-    FlyToExtent.ProcessFlyToStops = function(stops, txt, start_idx)
-    {
-        if (start_idx == stops.length)  // end of flight
-        {
-            setTimeout(function() 
-            {
-                FlyToExtent.fxShowLocationText(txt);
-                FlyToExtent.fxUpdateMapExtent();
-            }, 500);
-        
-            return;
-        }//if
-    
-        var stop = stops[start_idx];
-    
-        if (stop.z != null && start_idx > 0 && stops[start_idx-1].x != null) // short delay at end of panning for animation lag
-        {
-            setTimeout(function() 
-            {
-                requestAnimationFrame(function() 
-                {
-                    map.setZoom(stop.z);
-                    if (stop.x != null) map.panBy(stop.x, stop.y);
-                    setTimeout(function() { FlyToExtent.ProcessFlyToStops(stops, txt, start_idx+1); }, stop.t);
-                });
-            }, 100);
-        }//if
-        else if (stop.z != null)
-        {
-            requestAnimationFrame(function() 
-            {
-                map.setZoom(stop.z);
-                if (stop.x != null) map.panBy(stop.x, stop.y); // shouldn't happen at the moment
-                setTimeout(function() { FlyToExtent.ProcessFlyToStops(stops, txt, start_idx+1); }, stop.t);
-            });
-        }//if
-        else
-        {   
-            requestAnimationFrame(function() { map.panBy(stop.x, stop.y); FlyToExtent.ProcessFlyToStops(stops, txt, start_idx+1); });
-        }//else
-    };
-    
-    
-    FlyToExtent.GetRegionForExtentAndClientView_EPSG4326 = function(x0, y0, x1, y1)
-    {
-        var vwh = FlyToExtent.GetClientViewSize();
-        return FlyToExtent.GetRegionForExtentAndScreenSize_EPSG4326(x0, y0, x1, y1, vwh[0], vwh[1]);
-    };
-
-    FlyToExtent.GetCentroidForLatLonRegion = function(x0, y0, x1, y1)
-    {
-        var mxy0 = FlyToExtent.LatLonToXYZ_EPSG3857(y1, x0, 21);
-        var mxy1 = FlyToExtent.LatLonToXYZ_EPSG3857(y0, x1, 21);
-        var mx0 = mxy0[0];
-        var my0 = mxy0[1];
-        var mx1 = mxy1[0];
-        var my1 = mxy1[1];
-        var mcx = parseInt(mx0 + (mx1 - mx0) * 0.5);
-        var mcy = parseInt(my0 + (my1 - my0) * 0.5);
-        var ll = FlyToExtent.XYZtoLatLon_EPSG3857(mcx, mcy, 21);
-        return ll;
-    };
-    
-    FlyToExtent.GetRegionForExtentAndScreenSize_EPSG4326 = function(x0, y0, x1, y1, vw, vh)
-    {
-        var ll  = FlyToExtent.GetCentroidForLatLonRegion(x0, y0, x1, y1);
-        var yx0 = new google.maps.LatLng(ll[0], ll[1]);
-        var dz  = 3;
-        
-        vw *= 1.1; // add some overscan
-        vh *= 1.1;
-
-        for (var z = 20; z >= 0; z--)
-        {
-            var mxy0 = FlyToExtent.LatLonToXYZ_EPSG3857(y1, x0, z);
-            var mxy1 = FlyToExtent.LatLonToXYZ_EPSG3857(y0, x1, z);
-
-            if (Math.abs(mxy1[0] - mxy0[0]) < vw && Math.abs(mxy1[1] - mxy0[1]) < vh)
-            {
-                dz = z;
-                break;
-            }//if
-        }//for
-    
-        return [yx0, dz];
-    };
-    
-    FlyToExtent.GetClientViewSize = function()
-    {
-        var _w = window,
-            _d = document,
-            _e = _d.documentElement,
-            _g = _d.getElementsByTagName("body")[0],
-            vw = _w.innerWidth || _e.clientWidth || _g.clientWidth,
-            vh = _w.innerHeight|| _e.clientHeight|| _g.clientHeight;
-        
-        return [vw, vh];
-    };
-    
-    FlyToExtent.ClampLatToMercPlane = function(lat) { return lat > 85.05112878 ? 85.05112878 : lat < -85.05112878 ? -85.05112878 : lat; };
-    
-    FlyToExtent.LatLonToXYZ_EPSG3857 = function(lat, lon, z)
-    {
-        var x  = (lon + 180.0) * 0.002777778;
-        var s  = Math.sin(lat * 0.0174532925199);
-        var y  = 0.5 - Math.log((1.0 + s) / (1.0 - s)) * 0.0795774715459;
-        var w  = 256 << z;
-        var px = parseInt(x * w + 0.5);
-        var py = parseInt(y * w + 0.5);
-        return [px, py];
-    };
-
-    FlyToExtent.XYZtoLatLon_EPSG3857 = function(x, y, z)
-    {
-        var w = 256 << z;
-        var r = 1.0  / w;
-        x = x * r - 0.5;
-        y = 0.5 - y * r;
-        var lat = 90.0 - 360.0 * Math.atan(Math.exp(-y * 6.283185307179586476925286766559)) * 0.31830988618379067153776752674503;
-        var lon = 360.0 * x;
-        return [lat, lon];
-    };
-    
-    FlyToExtent.GetNormalizedMapCentroid = function()
-    {
-        var centroid = map.getCenter();
-        var clat = FlyToExtent.ClampLatToMercPlane(centroid.lat()); // valid here because only being used to convert to EPSG:3857
-        var clon = centroid.lng();
-    
-        if (clon > 180.0 || clon < -180.0) clon = clon % 360.0 == clon % 180.0 ? clon % 180.0 : (clon > 0.0 ? -1.0 : 1.0) * 180.0 + (clon % 180.0); // thanks Google
-    
-        return { y:clat, x:clon };
-    };
-    
-    return FlyToExtent;
-})();
-
-
-
 // ===============================================================================================
 // ================================= TEMPORARY UI TEXT / IMAGES ==================================
 // ===============================================================================================
-
-function GetLocationText_Container(w_px, h_px)
-{
-    var e           = document.createElement("div");
-    var s           = e.style;
-    
-    e.id            = "location_text";
-    s.pointerEvents = "none";
-    s.position      = "absolute"; // rel position: DkS2 style; abs position: DkS1 style
-    s.display       = "block";
-    s.top           = "0px";
-    s.bottom        = "0px";
-    s.left          = "0px";
-    s.right         = "0px";
-    s.width         = w_px.toFixed(0) + "px";
-    s.height        = h_px.toFixed(0) + "px";
-    s.margin        = "auto";
-    s.textAlign     = "center";
-    s.opacity       = "0.0";
-    //s.transition    = "0.25s opacity";    // 2016-08-11 ND: Test for CSS3 animation
-
-    return e;
-}
-
-function GetLocationText_Text(txt, font_size, stroke_width, is_webkit)
-{
-    var e = document.createElement("div");
-    var s = e.style;
-
-    s.fontFamily    = "'Crimson Text'";
-    s.fontSize      = font_size.toFixed(0) + "px";
-    s.textAlign     = "center";
-    s.verticalAlign = "middle";
-    s.color         = "#FFF";
-    s.zIndex        = "1";
-    s.position      = "absolute";
-    s.left          = "0px";
-    s.right         = "0px";
-    s.margin        = "auto";
-
-    if (is_webkit)
-    {
-        s["-webkit-text-fill-color"]   = "#FFF";
-        s["-webkit-text-stroke-color"] = "#000";
-        s["-webkit-text-stroke-width"] = stroke_width.toFixed(1) + "px";
-        s.textShadow                   = "0px 0px 1px #000";
-    }//if
-    else
-    {
-        s.textShadow = "0px 0px 2px #000";
-    }//else
-
-    e.innerHTML = txt;
-    
-    return e;
-}
-
-function GetLocationText_Hr(w_px, h_px, t_px)
-{
-    var e = document.createElement("hr");
-    var s = e.style;
-    
-    s.position        = "absolute";
-    s.width           = w_px.toFixed(0) + "px";
-    s.height          = h_px.toFixed(0) + "px";
-    s.top             = t_px.toFixed(0) + "px";
-    s.left            = "0px";
-    s.right           = "0px";
-    s.margin          = "auto";
-    s.border          = "1px solid #000";
-    s.zIndex          = "0";
-    s.backgroundColor = "#FFF";
-
-    return e;
-}
-
-function GetLocationText_TextShadowLabel(txt, font_size, ox, oy, sx, sy, sr)
-{
-    var e = GetLocationText_Text(txt, font_size, 0, false);
-    var s = e.style;
-
-    s.color      = "#000";
-    s.zIndex     = "0";
-    s.top        = oy.toFixed(0) + "px";
-    s.textShadow = sx.toFixed(0) + "px" + " "
-                 + sy.toFixed(0) + "px" + " "
-                 + sr.toFixed(0) + "px" + " #000";
-    if (ox > 0)
-    {
-        s.left   = ox.toFixed(0) + "px";
-    }//if
-    else if (ox < 0)
-    {
-        ox      *= -1.0;
-        s.right  = ox.toFixed(0) + "px";
-    }//else if
-
-    return e;
-}
-
-function ShowLocationText(txt)
-{
-    InitFont_CrimsonText();
-
-    var map_w = (window.outerWidth || window.innerWidth || document.getElementById("map_canvas").offsetWidth) - 60.0;
-
-    if (map_w * window.devicePixelRatio < 400) { return; }
-
-    var is_webkit    = "WebkitAppearance" in document.documentElement.style;
-
-    var scale        = map_w < 1200 && map_w != 0 ? map_w / 1200.0 : 1.0;
-
-    var el_width     = Math.floor(1200.0 * scale);
-    var el_height    = Math.floor(144.0 * scale);
-    var el2_fontsize = Math.floor(96.0 * scale);
-    var el2_str_w    = 2.0 * scale;
-    var el3_top      = el2_fontsize + Math.ceil(5.0 * scale); //122; // DkS2 style = 27.0 * scale
-
-    if (!is_webkit) el3_top += 2.0 * scale; // 2016-08-11 ND: outset border means need to shift 1px down
-
-    var el3_width  = Math.floor(el_width * 0.9383); //1126;
-    var el3_height = Math.ceil(3.0 * scale);
-    var el         = GetLocationText_Container(el_width, el_height);
-    var el2        = GetLocationText_Text(txt, el2_fontsize, el2_str_w, is_webkit);
-    var el3        = GetLocationText_Hr(el3_width, el3_height, el3_top);
-
-    el.appendChild(el2);
-    el.appendChild(el3);
-
-    if (!is_webkit)
-    {
-        var el_t4 = GetLocationText_TextShadowLabel(txt, el2_fontsize,  0, -2,  1,  0, 0);
-        var el_t5 = GetLocationText_TextShadowLabel(txt, el2_fontsize,  0,  2, -1,  0, 0);
-        var el_t8 = GetLocationText_TextShadowLabel(txt, el2_fontsize,  2,  0,  0,  1, 0);
-        var el_t9 = GetLocationText_TextShadowLabel(txt, el2_fontsize, -2,  0,  0, -1, 0);
-
-        el.appendChild(el_t4);
-        el.appendChild(el_t5);
-        el.appendChild(el_t8);
-        el.appendChild(el_t9);
-    }//if
-
-    document.body.appendChild(el);
-
-    var cbFade = function()
-    {
-        setTimeout(function() {
-            el.style.opacity = "0.0";
-        }, 2000);
-        
-        setTimeout(function() {
-            document.body.removeChild(el);
-        }, 4000);
-    };
-    
-    /*
-    var audio = document.createElement("audio");
-    audio.src = "newarea.mp3";
-    audio.addEventListener("ended", function() 
-    {
-        document.body.removeChild(audio);
-    }, false);
-    
-    document.body.appendChild(audio);
-    
-    audio.play();
-    */
-    
-    // test for full CSS3 animation
-    /*
-    setTimeout(function() {
-        el.style.opacity = "1.0";
-        setTimeout(cbFade, 250 + 18);
-    }, 17);
-    */
-    
-    setTimeout(function() {
-        el.className += " dkstextfade";
-        
-        setTimeout(function() {
-            document.body.removeChild(el);
-        }, 4000);
-    }, 17);
-}//ShowLocationText
 
 // The "animate" functions use requestAnimationFrame, so timing is not
 // guaranteed.  Ideally, it's 60 FPS, or 16.666667ms.
@@ -3969,8 +3270,8 @@ var LoadingSpinnerHelper = (function()
     function LoadingSpinnerHelper() 
     {
     }
-        
-    LoadingSpinnerHelper.DoesStyleExist = function(src, t)
+
+    var _DoesStyleExist = function(src, t)
     {
         var d = false;
 
@@ -3995,9 +3296,9 @@ var LoadingSpinnerHelper = (function()
         return d;
     };
 
-    LoadingSpinnerHelper.InjectLoadingSpinnerStyleIfNeeded = function()
+    var _InjectLoadingSpinnerStyleIfNeeded = function()
     {
-        if (LoadingSpinnerHelper.DoesStyleExist("animation-ls-rotate", window.CSSRule.KEYFRAMES_RULE)) return;
+        if (_DoesStyleExist("animation-ls-rotate", window.CSSRule.KEYFRAMES_RULE)) return;
     
         var kfn = "keyframes animation-ls-rotate { 100% { ";
         var trr = "transform: rotate(360deg); } }" + " \n ";
@@ -4013,14 +3314,14 @@ var LoadingSpinnerHelper = (function()
         document.getElementsByTagName("head")[0].appendChild(els);
     };
 
-    LoadingSpinnerHelper.GetHexC = function(s,i)
+    var _GetHexC = function(s,i)
     {
         return parseInt("0x" + (s!=null&&s.length==4 ? s.substring(i+1,i+2)+s.substring(i+1,i+2) : s!=null&&s.length==7?s.substring(i*2+1,i*2+3) : "0") );
     };
 
-    LoadingSpinnerHelper.HexColorToRGBA = function(src, a)
+    var _HexColorToRGBA = function(src, a)
     {
-        return "rgba(" + LoadingSpinnerHelper.GetHexC(src,0) + ", " + LoadingSpinnerHelper.GetHexC(src,1) + ", " + LoadingSpinnerHelper.GetHexC(src,2) + ", " + a + ")";
+        return "rgba(" + _GetHexC(src,0) + ", " + _GetHexC(src,1) + ", " + _GetHexC(src,2) + ", " + a + ")";
     };
     
     LoadingSpinnerHelper.InjectLoadingSpinner = function(el, color, str_w, px_size)
@@ -4032,10 +3333,10 @@ var LoadingSpinnerHelper = (function()
         if (px_size > 18) px_size -= 16; // correct for CSS-SVG diffs
         str_w += 6;                      // correct for CSS-SVG diffs
 
-        var c0 = LoadingSpinnerHelper.HexColorToRGBA(color, 0.5);
-        var c1 = LoadingSpinnerHelper.HexColorToRGBA(color, 1.0);
+        var c0 = _HexColorToRGBA(color, 0.5);
+        var c1 = _HexColorToRGBA(color, 1.0);
 
-        LoadingSpinnerHelper.InjectLoadingSpinnerStyleIfNeeded();
+        _InjectLoadingSpinnerStyleIfNeeded();
 
         var anim = "animation: animation-ls-rotate 1000ms linear infinite;";
         var bdr  = "border-radius: 999px;";
@@ -4087,22 +3388,22 @@ var TimeSliceUI = (function()
     {
     }
 
-    TimeSliceUI.GetPanelDiv       = function()    { return document.getElementById("tsPanel"); };
-    TimeSliceUI.GetSliderEl       = function()    { return document.getElementById("tsSlider"); };
-    TimeSliceUI.GetStartDateEl    = function()    { return document.getElementById("tsStartDate"); };
-    TimeSliceUI.GetEndDateEl      = function()    { return document.getElementById("tsEndDate"); };
-    TimeSliceUI.SetLayerAndSync   = function(idx) { LayersHelper.SetSelectedIdxAndSync(idx); };
-    TimeSliceUI.BitsLegacyInit    = function()    { _bitsProxy.LegacyInitForSelection(); };
-    TimeSliceUI.SyncLayerWithMap  = function()    { LayersHelper.SyncSelectedWithMap(); };
-    TimeSliceUI.MapExtentOnChange = function(i)   { MapExtent_OnChange(i); };
-    TimeSliceUI.EnableHud         = function()    { _hudProxy.Enable(); };
-    TimeSliceUI.UpdateHud         = function()    { _hudProxy.Update(); };
-    TimeSliceUI.GetLabelsForIdx   = function(idx) { return SafecastDateHelper.GetTimeSliceDateRangeLabelsForIdxJST(idx); };
-    TimeSliceUI.GetTimeSliceIdxs  = function()    { return SafecastDateHelper.GetTimeSliceLayerDateRangesUTC() };
+    var _GetPanelDiv       = function()    { return document.getElementById("tsPanel"); };
+    var _GetSliderEl       = function()    { return document.getElementById("tsSlider"); };
+    var _GetStartDateEl    = function()    { return document.getElementById("tsStartDate"); };
+    var _GetEndDateEl      = function()    { return document.getElementById("tsEndDate"); };
+    var _SetLayerAndSync   = function(idx) { LayersHelper.SetSelectedIdxAndSync(idx); };
+    var _BitsLegacyInit    = function()    { _bitsProxy.LegacyInitForSelection(); };
+    var _SyncLayerWithMap  = function()    { LayersHelper.SyncSelectedWithMap(); };
+    var _MapExtentOnChange = function(i)   { MapExtent_OnChange(i); };
+    /*TimeSliceUI.EnableHud         = function()    { _hudProxy.Enable(); };*/ // unused
+    var _UpdateHud         = function()    { _hudProxy.Update(); };
+    var _GetLabelsForIdx   = function(idx) { return SafecastDateHelper.GetTimeSliceDateRangeLabelsForIdxJST(idx); };
+    var _GetTimeSliceIdxs  = function()    { return SafecastDateHelper.GetTimeSliceLayerDateRangesUTC() };
 
     TimeSliceUI.SetPanelHidden = function(isHidden)
     {
-        var el = TimeSliceUI.GetPanelDiv();
+        var el = _GetPanelDiv();
         el.style.display = isHidden ? "none" : "block";
     };
 
@@ -4114,10 +3415,12 @@ var TimeSliceUI = (function()
     // If either of these assumptions is untrue, then InitSliderRange() must also construct a
     // lookup table, mapping contiguous slider indices to the underlying layer indices.
     //
+    // unused
+    /*
     TimeSliceUI.InitSliderRange = function()
     {
-        var s = TimeSliceUI.GetSliderEl();
-        var o = TimeSliceUI.GetTimeSliceIdxs();
+        var s = _GetSliderEl();
+        var o = _GetTimeSliceIdxs();
 
         var min =  65535;
         var max = -65535;
@@ -4131,45 +3434,46 @@ var TimeSliceUI = (function()
         s.min = min;
         s.max = max;
     };
-
+    */
+    
     TimeSliceUI.SetSliderIdx = function(idx)
     {
-        var s = TimeSliceUI.GetSliderEl();
+        var s = _GetSliderEl();
         s.value = idx;
     };
     
     TimeSliceUI.GetSliderIdx = function()
     {
-        var s = TimeSliceUI.GetSliderEl();
+        var s = _GetSliderEl();
         var i = parseInt(s.value);
         return i;
     };
     
-    TimeSliceUI.SetSliderIdxToDefault = function()
+    var _SetSliderIdxToDefault = function()
     {
         TimeSliceUI.SetSliderIdx(13);
     };
     
     TimeSliceUI.Init = function()
     {
-        TimeSliceUI.SetSliderIdxToDefault();
+        _SetSliderIdxToDefault();
     };
     
     TimeSliceUI.tsSlider_OnChange = function()
     {    
-        var s   = TimeSliceUI.GetSliderEl();
+        var s   = _GetSliderEl();
         var idx = parseInt(s.value);
-        var ds  = TimeSliceUI.GetLabelsForIdx(idx);
+        var ds  = _GetLabelsForIdx(idx);
         
-        TimeSliceUI.GetStartDateEl().innerHTML = ds.s;
-        TimeSliceUI.GetEndDateEl().innerHTML   = ds.e;
+        _GetStartDateEl().innerHTML = ds.s;
+        _GetEndDateEl().innerHTML   = ds.e;
                 
-        TimeSliceUI.SetLayerAndSync(idx);
+        _SetLayerAndSync(idx);
         
-        TimeSliceUI.BitsLegacyInit();
-        TimeSliceUI.SyncLayerWithMap();
-        TimeSliceUI.MapExtentOnChange(100);     // force URL update
-        TimeSliceUI.UpdateHud();
+        _BitsLegacyInit();
+        _SyncLayerWithMap();
+        _MapExtentOnChange(100);     // force URL update
+        _UpdateHud();
     };
     
     return TimeSliceUI;
@@ -4177,6 +3481,91 @@ var TimeSliceUI = (function()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+var LocalizedStringsProxy = (function()
+{
+    function LocalizedStringsProxy() 
+    {
+        this._queue = new Array();
+        this._localized_strings = null;
+
+        this._GetStringsForLangOrLocale = function(l)
+        {
+            var d = null;
+            for (var i=0; i<this._localized_strings.length; i++)
+            {
+                if (   this._localized_strings[i].locale == l
+                    || this._localized_strings[i].lang   == l)
+                {
+                    d = this._localized_strings[i];
+                    break;
+                }
+            }
+            return d;
+        };
+    }
+
+    LocalizedStringsProxy.prototype.Init = function()
+    {
+        var cb = function(o) { this._localized_strings = o; this._ProcessQueue(); }.bind(this);
+        _LocalizedStringsProxy_GetJSONAsync("localized_strings.json", cb);
+    };
+
+    LocalizedStringsProxy.prototype.GetMenuStrings = function(s, cb) { this._GetStringsOrEnqueue(s, cb); };
+
+    LocalizedStringsProxy.prototype._ProcessQueue = function()
+    {
+        for (var i=0; i<this._queue.length; i++)
+        {
+            this._queue[i]();
+        }//for
+
+        this._queue = new Array();
+    };
+
+    LocalizedStringsProxy.prototype._GetStringsOrEnqueue = function(l, cb)
+    {
+        var fx = function()
+        {
+            var s = this._GetStringsForLangOrLocale(l);
+            if (s == null) s = this._GetStringsForLangOrLocale("en");
+            cb(s);
+        }.bind(this);
+
+        if (this._localized_strings != null) { fx(); }
+        else { this._queue.push(fx); }
+    };
+    
+    var _LocalizedStringsProxy_GetJSONAsync = function(url, cb) {
+        var jsoncb = function(response) {
+            if (response != null && response.length > 0) {
+                var obj = null;
+                try { obj = JSON.parse(response); }
+                catch (err) { console.log("LocalizedStringsProxy: JSON parsing exception."); }
+                if (obj != null) { cb(obj); }
+            }//if
+            else { console.log("LocalizedStringsProxy: Error getting polys from URL: %s", url); }
+        };
+        var req = new XMLHttpRequest();
+        req.open("GET", url + "?t=" + Date.now(), true);
+        req.onreadystatechange = function() { if (req.readyState === 4 && req.status == 200) { jsoncb(req.response); } };
+        req.send(null);
+    };
+
+    return LocalizedStringsProxy;
+})();
 
 
 
@@ -4192,155 +3581,6 @@ var TimeSliceUI = (function()
 //     * ""   indicates a dynamic label, set elsewhere.  This is used for the dynamic date display in
 //            the Safecast layers.
 //
-function GetMenuStringsEn()
-{
-    var s = 
-    {
-        MENU_ADDRESS_PLACEHOLDER:"Find Address",
-        MENU_TOGGLE_RETICLE_LABEL:"Crosshair",
-        MENU_LAYERS_TITLE:"Layers",
-        MENU_DONATE_LABEL:"Donate",
-        MENU_BLOG_LABEL:"News",
-        MENU_ABOUT_LABEL:"About this map",
-        MENU_ADVANCED_TITLE:"Advanced",
-        MENU_HDPI_LABEL:"High Res Tiles",
-        MENU_SCALE_LABEL:"Map Scale",
-        MENU_NN_SCALER_LABEL:"NN Tile Scaler",
-        MENU_ZOOM_BUTTONS_LABEL:"Zoom Buttons",
-        MENU_TILE_SHADOW_LABEL:"Tile Shadow",
-        MENU_API_QUERY_CENTER_LABEL:"Query API @ Center",
-        MENU_LAYERS_11_LABEL:"None",
-        MENU_LAYERS_11_DATE_LABEL:null,
-        MENU_LAYERS_0_LABEL:"Safecast",
-        MENU_LAYERS_0_DATE_LABEL:"",
-        MENU_LAYERS_1_LABEL:"&nbsp;&nbsp;Points",
-        MENU_LAYERS_1_DATE_LABEL:"",
-        MENU_LAYERS_2_LABEL:"&nbsp;&nbsp;Interpolation",
-        MENU_LAYERS_2_DATE_LABEL:"",
-        MENU_LAYERS_12_LABEL:"Safecast Snapshots...",
-        MENU_LAYERS_12_DATE_LABEL:null,
-        MENU_LAYERS_8_LABEL:"Safecast Points",
-        MENU_LAYERS_8_DATE_LABEL:"2013-04-15",
-        MENU_LAYERS_9_LABEL:"Safecast Points",
-        MENU_LAYERS_9_DATE_LABEL:"2014-03-11",
-        MENU_LAYERS_3_LABEL:"NNSA Japan",
-        MENU_LAYERS_3_DATE_LABEL:"2011-06-30",
-        MENU_LAYERS_4_LABEL:"USGS/GSC NURE",
-        MENU_LAYERS_4_DATE_LABEL:"1980",
-        MENU_LAYERS_5_LABEL:"Geoscience Australia",
-        MENU_LAYERS_5_DATE_LABEL:"2010",
-        MENU_LAYERS_6_LABEL:"AIST/GSJ Natural Bkg",
-        MENU_LAYERS_6_DATE_LABEL:null,
-        MENU_LAYERS_10_LABEL:"Add bGeigie Log...",
-        MENU_LAYERS_10_DATE_LABEL:null,
-        MENU_LAYERS_10001_LABEL:"Add Cosmic Logs...",
-        MENU_LAYERS_10001_DATE_LABEL:null,
-        MENU_LAYERS_MORE_LABEL:"List All",
-        MENU_BASEMAP_TITLE:"Basemap",
-        MENU_BASEMAP_0_LABEL:"Map",
-        MENU_BASEMAP_1_LABEL:"Satellite",
-        MENU_BASEMAP_2_LABEL:"Satellite (Labeled)",
-        MENU_BASEMAP_3_LABEL:"Terrain",
-        MENU_BASEMAP_4_LABEL:"Map (Gray)",
-        MENU_BASEMAP_5_LABEL:"Map (Dark)",
-        MENU_BASEMAP_6_LABEL:"Stamen Toner",
-        MENU_BASEMAP_7_LABEL:"Stamen Toner Light",
-        MENU_BASEMAP_8_LABEL:"Stamen Watercolor",
-        MENU_BASEMAP_9_LABEL:"OpenStreetMap",
-        MENU_BASEMAP_10_LABEL:"None (Black)",
-        MENU_BASEMAP_11_LABEL:"None (White)",
-        MENU_BASEMAP_12_LABEL:"Stamen Terrain",
-        MENU_BASEMAP_13_LABEL:"GSI Japan",
-        MENU_BASEMAP_14_LABEL:"Map (Retro)",
-        MENU_LOGS_TITLE:"bGeigie Logs",
-        MENU_LOGS_0_LABEL:"Search...",
-        MENU_LOGS_1_LABEL:"Add Cosmic Logs",
-        MENU_LOGS_2_LABEL:"Remove All",
-        MENU_LOGS_3_LABEL:"Options",
-        MENU_REALTIME_TITLE:"Realtime",
-        MENU_REALTIME_0_LABEL:"Radiation Sensors",
-        MENU_AREAS_TITLE:"Areas",
-        MENU_AREAS_0_LABEL:"Fukushima Zone",
-        MENU_LANGUAGE_CHANGE_TEXT:"Note: The new language setting will not be applied to the Google Maps labels until this page is reloaded."
-    };
-    
-    return s;
-}
-
-function GetMenuStringsJa()
-{
-    var s = 
-    {
-        MENU_ADDRESS_PLACEHOLDER:"住所検索",
-        MENU_TOGGLE_RETICLE_LABEL:"クロスヘア",
-        MENU_LAYERS_TITLE:"レイヤ",
-        MENU_DONATE_LABEL:"SAFECASTへの支援",
-        MENU_BLOG_LABEL:"ニュース",
-        MENU_ABOUT_LABEL:"このマップについて",
-        MENU_ADVANCED_TITLE:"詳細",
-        MENU_HDPI_LABEL:"高解像度のタイル",
-        MENU_SCALE_LABEL:"地図データの規模",
-        MENU_NN_SCALER_LABEL:"最近傍補間タイルのスケーラー",
-        MENU_ZOOM_BUTTONS_LABEL:"ズームボタン",
-        MENU_TILE_SHADOW_LABEL:"レイヤーの影",
-        MENU_API_QUERY_CENTER_LABEL:"（地図の中心に）APIクエリの実行",
-        MENU_LAYERS_11_LABEL:"なし",
-        MENU_LAYERS_11_DATE_LABEL:null,
-        MENU_LAYERS_0_LABEL:"Safecast",
-        MENU_LAYERS_0_DATE_LABEL:"",
-        MENU_LAYERS_1_LABEL:"&nbsp;&nbsp;ポイント",
-        MENU_LAYERS_1_DATE_LABEL:"",
-        MENU_LAYERS_2_LABEL:"&nbsp;&nbsp;空間的補間",
-        MENU_LAYERS_2_DATE_LABEL:"",
-        MENU_LAYERS_12_LABEL:"Safecast スナップショット",
-        MENU_LAYERS_12_DATE_LABEL:null,
-        MENU_LAYERS_8_LABEL:"Safecast ポイント",
-        MENU_LAYERS_8_DATE_LABEL:"2013-04-15",
-        MENU_LAYERS_9_LABEL:"Safecast ポイント",
-        MENU_LAYERS_9_DATE_LABEL:"2014-03-11",
-        MENU_LAYERS_3_LABEL:"NNSA 日本",
-        MENU_LAYERS_3_DATE_LABEL:"2011-06-30",
-        MENU_LAYERS_4_LABEL:"USGS/GSC NURE",
-        MENU_LAYERS_4_DATE_LABEL:"1980",
-        MENU_LAYERS_5_LABEL:"Geoscience Australia",
-        MENU_LAYERS_5_DATE_LABEL:"2010",
-        MENU_LAYERS_6_LABEL:"産総研/GSJ 自然放射能",
-        MENU_LAYERS_6_DATE_LABEL:null,
-        MENU_LAYERS_10_LABEL:"bGeigieログファイルを追加します",
-        MENU_LAYERS_10_DATE_LABEL:null,
-        MENU_LAYERS_10001_LABEL:"宇宙放射線のログファイルを追加します",
-        MENU_LAYERS_10001_DATE_LABEL:null,
-        MENU_LAYERS_MORE_LABEL:"全てのリスト",
-        MENU_BASEMAP_TITLE:"基礎地図",
-        MENU_BASEMAP_0_LABEL:"地図",
-        MENU_BASEMAP_1_LABEL:"航空写真",
-        MENU_BASEMAP_2_LABEL:"ラベル付きの航空写真",
-        MENU_BASEMAP_3_LABEL:"地形",
-        MENU_BASEMAP_4_LABEL:"地図（グレー）",
-        MENU_BASEMAP_5_LABEL:"地図（黒）",
-        MENU_BASEMAP_6_LABEL:"Stamen Toner",
-        MENU_BASEMAP_7_LABEL:"Stamen Toner Light",
-        MENU_BASEMAP_8_LABEL:"Stamen Watercolor",
-        MENU_BASEMAP_9_LABEL:"OpenStreetMap",
-        MENU_BASEMAP_10_LABEL:"なし（黒）",
-        MENU_BASEMAP_11_LABEL:"なし（白）",
-        MENU_BASEMAP_12_LABEL:"Stamen Terrain",
-        MENU_BASEMAP_13_LABEL:"国土地理院（日本）",
-        MENU_BASEMAP_14_LABEL:"地図（レトロ）",
-        MENU_LOGS_TITLE:"bGeigieログ",
-        MENU_LOGS_0_LABEL:"検索",
-        MENU_LOGS_1_LABEL:"宇宙放射線のログ追加",
-        MENU_LOGS_2_LABEL:"全削除",
-        MENU_LOGS_3_LABEL:"オプション",
-        MENU_REALTIME_TITLE:"リアルタイム",
-        MENU_REALTIME_0_LABEL:"放射線センサー",
-        MENU_AREAS_TITLE:"区域",
-        MENU_AREAS_0_LABEL:"福島の帰還困難区域",
-        MENU_LANGUAGE_CHANGE_TEXT:"注記：このページがリロードされるまで、新しい言語設定は、Googleマップのラベルには適用されません。"
-    };
-    
-    return s;
-}
 
 /* // dump strings
 var en = GetMenuStringsEn();
@@ -4364,28 +3604,6 @@ var Slideout = (function()
 {
     var html   = window.document.documentElement;
 
-    //var prefix = (function prefix() 
-    //{
-    //    var regex = /^(Webkit|Khtml|Moz|ms|O)(?=[A-Z])/;
-    //    var styleDeclaration = doc.getElementsByTagName("script")[0].style;
-    //    for (var prop in styleDeclaration) 
-    //    {
-    //        if (regex.test(prop)) 
-    //        {
-    //            return "-" + prop.match(regex)[0].toLowerCase() + "-";
-    //        }
-    //    }
-        
-        // Nothing found so far? Webkit does not enumerate over the CSS properties of the style object.
-        // However (prop in style) returns the correct value, so we'll have to test for
-        // the precence of a specific property
-        
-    //    if ("WebkitOpacity" in styleDeclaration) { return "-webkit-"; }
-    //    if ("KhtmlOpacity"  in styleDeclaration) { return "-khtml-";  }
-    //    
-    //    return "";
-    //}());
-    
     function Slideout(options) 
     {
         options = options || {};
@@ -4432,10 +3650,8 @@ var Slideout = (function()
 
     Slideout.prototype._setTransition = function() 
     {
-        //var t = prefix + "transform " + this._duration + "ms " + this._fx;
         var t = "transform " + this._duration + "ms " + this._fx;
 
-        //this.panel.style[prefix + "transition"] = t;
         this.panel.style["-webkit-transition"] = "-webkit-" + t;
         this.panel.style.transition = t;
 
@@ -4449,7 +3665,6 @@ var Slideout = (function()
 
         this._currentOffsetX = translateX;
 
-        //this.panel.style[prefix + "transform"] = t;
         this.panel.style["-webkit-transform"] = t;
         this.panel.style.transform = t;
 
@@ -4460,7 +3675,7 @@ var Slideout = (function()
     Slideout.prototype.close = function() 
     {
         var self = this;
-        
+
         if (!this.isOpen()) 
         {
             return this;
@@ -4469,15 +3684,13 @@ var Slideout = (function()
         this._setTransition();
         this._translateXTo(0);
         this._opened = false;
-        
+
         setTimeout(function() {
             html.className = html.className.replace(/ slideout-open/, "");
             self.panel.style.transition = "";
             self.panel.style["-webkit-transition"] = "";
-            //self.panel.style[prefix + "transform"] = "";
             self.panel.style["-webkit-transform"] = "";
             self.panel.style.transform = "";
-            //self.emit("close");
         }, this._duration + 50);
         
         return this;
@@ -4522,6 +3735,84 @@ var MenuHelper = (function()
     {
     }
     
+    var _RebindMenuLabels = function(eps)
+    {
+        if (eps == null) { return; }
+    
+        for (var i=0; i<eps.length; i++)
+        {
+            var span0 = ElGet("menu_areas_" + eps[i].poly_id + "_label");
+            
+            if (span0 != null)
+            {
+                span0.innerHTML = _mapPolysProxy.GetLocalizedPolyValue(eps[i], "desc")[0];
+            }//if
+        }//for
+    };
+    
+    MenuHelper.RegisterPolys = function(eps)
+    {
+        var ul = ElGet("ul_menu_areas");
+        
+        for (var i=0; i<eps.length; i++)
+        {
+            var li   = ElCr("li");
+            var div0 = ElCr("div");
+            var span0 = ElCr("span");
+            var div1 = ElCr("div");
+            var chk = ElCr("input");
+            var div2 = ElCr("div");
+            var div3 = ElCr("div");
+
+            div0.id = "menu_areas_" + eps[i].poly_id;
+            div0.className = "menu-prefs-chk-item";
+            span0.id = "menu_areas_" + eps[i].poly_id + "_label";
+            span0.innerHTML = _mapPolysProxy.GetLocalizedPolyValue(eps[i], "desc")[0];
+            chk.id = "chkMenuAreas" + eps[i].poly_id;
+            chk.type = "checkbox";
+            chk.className = "ios-switch scgreen bigswitch";
+            
+            li.appendChild(div0);
+            div0.appendChild(span0);
+            div0.appendChild(div1);
+            div1.appendChild(chk);
+            div1.appendChild(div2);
+            div2.appendChild(div3);
+            
+            ul.appendChild(li);
+            
+            chk.checked = PrefHelper.GetAreaXEnabledPref(eps[i].poly_id);
+            
+            if (PrefHelper.GetAreaXEnabledPref(eps[i].poly_id))
+            {
+                _mapPolysProxy.Add(eps[i].poly_id);
+            }//if
+            
+            chk.checked = _mapPolysProxy.Exists(eps[i].poly_id);
+            
+            div0.setAttribute("value", "" + eps[i].poly_id);
+
+            div0.addEventListener("click", function()
+            {
+                var pid = parseInt(this.getAttribute("value"));
+                var s = _mapPolysProxy.Exists(pid);
+                
+                if (s)
+                {
+                    _mapPolysProxy.Remove(pid);
+                }//if
+                else
+                {
+                    _mapPolysProxy.Add(pid);
+                }//else
+                
+                ElGet("chkMenuAreas" + pid).checked = !s;
+                
+                PrefHelper.SetAreaXEnabledPref(pid, !s);
+            }.bind(div0), false);
+        }//for
+    };
+    
     // should only be called after safemap.js is loaded
     //MenuHelper.InitLoadAsync = function()
     MenuHelper.Init = function()
@@ -4533,14 +3824,14 @@ var MenuHelper = (function()
             "tolerance": 70
         });
 
-        MenuHelper.InitLanguage();
-        MenuHelper.InitEvents();
-        MenuHelper.InitTooltips();
+        _InitLanguage();
+        _InitEvents();
+        //_InitTooltips();
 
         setTimeout(function() {
             MenuHelper.SyncBasemap();
-            MenuHelper.InitLayers_ApplyVisibilityStyles();
-            MenuHelper.InitBasemap_ApplyVisibilityStyles();
+            _InitLayers_ApplyVisibilityStyles();
+            _InitBasemap_ApplyVisibilityStyles();
             ElGet("menu").style.removeProperty("display");
         }, 50);
 
@@ -4548,28 +3839,23 @@ var MenuHelper = (function()
             ElGet("menu-header").style.backgroundImage = "url('schoriz_362x44.png')";
         }, 200);
 
-        setTimeout(MenuHelper.InitReticleFromPref, 250);
-        setTimeout(MenuHelper.InitAdvancedSection, 500);
+        setTimeout(_InitReticleFromPref, 250);
+        setTimeout(_InitAdvancedSection, 500);
 
         ElGet("logo2").style.visibility = "visible";
             
-        if (MenuHelper.GetMenuOpenPref() && !slideout.isOpen())
+        if (PrefHelper.GetMenuOpenPref() && !slideout.isOpen())
         {
             setTimeout(function() {
-                MenuHelper.OpenAnimationHack();
+                _OpenAnimationHack();
                 slideout.toggle();
             }, 501);
         }//if
     };
 
 
-    MenuHelper.InitTooltips = function()
+    var _GetTooltipsRefs = function()
     {
-        if (_nua("mobile") || _nua("iPhone") || _nua("iPad") || _nua("Android"))
-        {
-            return; // no tooltips on mobile.
-        }//if
-        
         // Static defs in index.html don't work with dynamically created menu items,
         // and load unncessary things on mobile.  So this is done here.
 
@@ -4605,9 +3891,9 @@ var MenuHelper = (function()
                   { n:"logs_3",       x0:32,  y0:2624,
                                       x1:288, y1:2624 },
                   { n:"logs_1",       x0:32,  y0:2880,
-                                      x1:288, y1:2880 },
-                  { n:"areas_0",      x0:32,  y0:3136,
-                                      x1:288, y1:3136 } ];
+                                      x1:288, y1:2880 } ];
+                  //{ n:"areas_0",      x0:32,  y0:3136,
+                  //                    x1:288, y1:3136 } ];
 
         for (var i=0; i<s.length; i++)
         {
@@ -4632,11 +3918,36 @@ var MenuHelper = (function()
             s.push({n:("basemap_" + sb[i]), need_create:true, x0:32, y0:y, x1:288, y1:y});
             y += 256;
         }//for
-    
+        
+        return s;
+    };
+
+
+    var _GetTooltipsParentRefs = function()
+    {
         // now, set the style for the element that should trigger the "event"
-    
-        var sp = ["hud_btnToggle", "menu_realtime_0", "menu_areas_0", "menu_scale", "menu_zoom_buttons", "menu_hdpi", "menu_nnscaler", "menu_tile_shadow", "menu_logs_0", "menu_logs_1", "menu_logs_2", "menu_logs_3", "menu_apiquery"];
-            
+
+        var sp = ["hud_btnToggle", "menu_realtime_0", "menu_scale", "menu_zoom_buttons", "menu_hdpi", "menu_nnscaler", "menu_tile_shadow", "menu_logs_0", "menu_logs_1", "menu_logs_2", "menu_logs_3", "menu_apiquery"];
+        // "menu_areas_0"
+
+        return sp;
+    };
+
+
+    var _InitTooltips = function()
+    {
+        /*
+        if (_nua("mobile") || _nua("iPhone") || _nua("iPad") || _nua("Android"))
+        {
+            return; // no tooltips on mobile.
+        }//if
+        */
+        
+        var s = _GetTooltipsRefs();
+
+        var sp = _GetTooltipsParentRefs();
+
+
         for (var i=0; i<sp.length; i++)
         {
             ElGet(sp[i]).parentElement.className += " tooltip";
@@ -4705,22 +4016,66 @@ var MenuHelper = (function()
             e1.style.background = "url(" + ss + ") -" + o.x1 + "px -" + o.y1 + "px";
         }//for
     };
+    
+    
+    var _DisableTooltips = function()
+    {
+        var s  = _GetTooltipsRefs();
+        var sp = _GetTooltipsParentRefs();
+
+        for (var i=0; i<sp.length; i++)
+        {
+            ElGet(sp[i]).parentElement.className = ElGet(sp[i]).parentElement.className.replace(/tooltip/, "");
+        }//for
+
+        for (var i=0; i<s.length; i++)
+        {
+            var o = s[i];
+            ElGet("menu_tooltip_" + o.n + "_off").style.removeProperty("background");
+            ElGet("menu_tooltip_" + o.n + "_on").style.removeProperty("background");
+        }//for
+
+        for (var i=0; i<s.length; i++)
+        {
+            if (s[i].need_create)
+            {
+                var el = ElGet("menu_" + s[i].n);
+                el.parentElement.className = el.parentElement.className.replace(/tooltip/, "");
+                var sps = el.parentElement.getElementsByTagName("span");
+                var sp = null;
+                for (var j=0; j<sps.length; j++)
+                {
+                    if (sps[j].className.indexOf("tooltiptext-bottom") > -1)
+                    {
+                        sp = sps[j];
+                        break;
+                    }//if
+                }//for
+                
+                if (sp != null)
+                {
+                    el.parentElement.removeChild(sp);
+                }//if
+            }//if
+        }//for
+    };
+    
 
     // binds misc UI events, can be init immediately
-    MenuHelper.InitEvents = function()
+    var _InitEvents = function()
     {
         document.querySelector(".js-slideout-toggle").addEventListener("click", function(e) 
         {
-            MenuHelper.SetMenuOpenPref(!slideout.isOpen());
+            PrefHelper.SetMenuOpenPref(!slideout.isOpen());
         
             if (slideout.isOpen()) 
             {
-                MenuHelper.CloseAnimationHack();
+                _CloseAnimationHack();
                 slideout.toggle();
             }
             else
             {
-                MenuHelper.OpenAnimationHack();
+                _OpenAnimationHack();
                 setTimeout(function() {
                     slideout.toggle();
                 }, 17);
@@ -4728,7 +4083,7 @@ var MenuHelper = (function()
             
         }, false);
 
-        // document.querySelector(".menu").addEventListener("click", function(e) { if (e.target.nodeName === "A") { MenuHelper.CloseAnimationHack(); slideout.close(); } }, false);
+        // document.querySelector(".menu").addEventListener("click", function(e) { if (e.target.nodeName === "A") { _CloseAnimationHack(); slideout.close(); } }, false);
 
         if (!_nua("mobile") && !_nua("iPhone") && !_nua("iPad") && !_nua("Android"))
         {
@@ -4763,13 +4118,13 @@ var MenuHelper = (function()
 
 
     // requires safemap.js load
-    MenuHelper.InitAdvancedSection = function()
+    var _InitAdvancedSection = function()
     {            
         if (window.devicePixelRatio < 1.5) 
         {
             ElGet("menu_hdpi").parentElement.style.display = "none";
         }//if
-        else if (!MenuHelper.GetHdpiEnabledPref())
+        else if (!PrefHelper.GetHdpiEnabledPref())
         {
             // todo: move to layer init(?)
             _no_hdpi_tiles = true;
@@ -4787,7 +4142,7 @@ var MenuHelper = (function()
             LayersHelper.SyncSelectedWithMap();
             ClientZoomHelper.SynchronizeLayersToZoomLevel(GetMapInstanceYXZ().z);
             ElGet("chkMenuHdpi").checked = !_no_hdpi_tiles;
-            MenuHelper.SetHdpiEnabledPref(!_no_hdpi_tiles);
+            PrefHelper.SetHdpiEnabledPref(!_no_hdpi_tiles);
         }, false);
 
 
@@ -4804,24 +4159,24 @@ var MenuHelper = (function()
                 ElGet("scale").style.removeProperty("background-image");
             }//else
         };
-        if (MenuHelper.GetScaleEnabledPref())
+        if (PrefHelper.GetScaleEnabledPref())
         {
             setTimeout(function() {
                 fxScaleVis(true);
             }, 250);
         }//if
-        ElGet("chkMenuScale").checked = ElGet("scale").style.display != "none";
+        ElGet("chkMenuScale").checked = PrefHelper.GetScaleEnabledPref();
         ElGet("menu_scale").addEventListener("click", function()
         {
             var v = ElGet("scale").style.display != "none";
             fxScaleVis(!v);
             ElGet("chkMenuScale").checked = !v;
-            MenuHelper.SetScaleEnabledPref(!v);
+            PrefHelper.SetScaleEnabledPref(!v);
         }, false);
 
 
-        if (   (!MenuHelper.GetNnScalerEnabledPref() && _img_scaler_idx  > 0)
-            || ( MenuHelper.GetNnScalerEnabledPref() && _img_scaler_idx == 0))
+        if (   (!PrefHelper.GetNnScalerEnabledPref() && _img_scaler_idx  > 0)
+            || ( PrefHelper.GetNnScalerEnabledPref() && _img_scaler_idx == 0))
         {
             ToggleScaler();
         }//if
@@ -4830,7 +4185,7 @@ var MenuHelper = (function()
         {
             ToggleScaler();
             ElGet("chkMenuNnScaler").checked = _img_scaler_idx > 0;
-            MenuHelper.SetNnScalerEnabledPref(_img_scaler_idx > 0);
+            PrefHelper.SetNnScalerEnabledPref(_img_scaler_idx > 0);
         }, false);
 
 
@@ -4854,7 +4209,7 @@ var MenuHelper = (function()
             ElGet("chkMenuRealtime0").checked = e;
         }, false);
 
-
+        /*
         if (MenuHelper.GetArea0EnabledPref())
         {
             _mapPolys.Add(0);
@@ -4874,7 +4229,7 @@ var MenuHelper = (function()
             ElGet("chkMenuAreas0").checked = !s;
             MenuHelper.SetArea0EnabledPref(!s);
         }, false);
-
+        */
 
         ElGet("chkMenuZoomButtons").checked = map.zoomControl;
         ElGet("menu_zoom_buttons").addEventListener("click", function()
@@ -4882,11 +4237,11 @@ var MenuHelper = (function()
             var s = !map.zoomControl;
             map.setOptions({zoomControl:s});
             ElGet("chkMenuZoomButtons").checked = s;
-            MenuHelper.SetZoomButtonsEnabledPref(s);
+            PrefHelper.SetZoomButtonsEnabledPref(s);
         }, false);
 
 
-        if (MenuHelper.GetTileShadowEnabledPref())
+        if (PrefHelper.GetTileShadowEnabledPref())
         {
             ToggleTileShadow();
         }//if
@@ -4895,7 +4250,34 @@ var MenuHelper = (function()
         {
             ToggleTileShadow();
             ElGet("chkMenuTileShadow").checked = _img_tile_shadow_idx > 0;
-            MenuHelper.SetTileShadowEnabledPref(_img_tile_shadow_idx > 0);
+            PrefHelper.SetTileShadowEnabledPref(_img_tile_shadow_idx > 0);
+        }, false);
+
+
+        if (_nua("mobile") || _nua("iPhone") || _nua("iPad") || _nua("Android"))
+        {
+            ElGet("menu_tooltips").parentElement.style.display = "none";
+        }//if
+        if (PrefHelper.GetTooltipsEnabledPref())
+        {
+            _InitTooltips();
+        }//if
+        ElGet("chkMenuTooltips").checked = PrefHelper.GetTooltipsEnabledPref();
+        ElGet("menu_tooltips").addEventListener("click", function()
+        {
+            var te = PrefHelper.GetTooltipsEnabledPref();
+            
+            if (te)
+            {
+                _DisableTooltips();
+            }//if
+            else
+            {
+                _InitTooltips();
+            }//else
+            
+            ElGet("chkMenuTooltips").checked = !te;
+            PrefHelper.SetTooltipsEnabledPref(!te);
         }, false);
 
 
@@ -4907,7 +4289,7 @@ var MenuHelper = (function()
     };
 
     // requires binds for layers and basemaps 
-    MenuHelper.InitLabelsFromStrings = function(s)
+    var _InitLabelsFromStrings = function(s)
     {
         ElGet("address").placeholder             = s.MENU_ADDRESS_PLACEHOLDER;
         ElGet("lblMenuToggleReticle").innerHTML  = s.MENU_TOGGLE_RETICLE_LABEL;
@@ -4925,11 +4307,11 @@ var MenuHelper = (function()
         ElGet("lblMenuNnScaler").innerHTML       = s.MENU_NN_SCALER_LABEL;
         ElGet("lblMenuZoomButtons").innerHTML    = s.MENU_ZOOM_BUTTONS_LABEL;
         ElGet("lblMenuTileShadow").innerHTML     = s.MENU_TILE_SHADOW_LABEL;
+        ElGet("lblMenuTooltips").innerHTML       = s.MENU_TOOLTIPS_LABEL;
         ElGet("menu_apiquery").innerHTML         = s.MENU_API_QUERY_CENTER_LABEL;
         ElGet("lblMenuRealtimeTitle").innerHTML  = s.MENU_REALTIME_TITLE;
         ElGet("menu_realtime_0_label").innerHTML = s.MENU_REALTIME_0_LABEL;
         ElGet("lblMenuAreasTitle").innerHTML     = s.MENU_AREAS_TITLE;
-        ElGet("menu_areas_0_label").innerHTML    = s.MENU_AREAS_0_LABEL;
 
         // layers    
         var a = MenuHelperStub.GetLayerIdxs_All();
@@ -4966,10 +4348,17 @@ var MenuHelper = (function()
         {
             ElGet("menu_logs_"+c[i]).innerHTML = s["MENU_LOGS_"+c[i]+"_LABEL"];
         }//for
+        
+        // areas
+        var eps = _mapPolysProxy.GetEncodedPolygons();
+        if (eps != null)
+        {
+            _RebindMenuLabels(eps);
+        }//if
     };
     
     
-    MenuHelper.InitBasemap_ApplyVisibilityStyles = function()
+    var _InitBasemap_ApplyVisibilityStyles = function()
     {
         var a = MenuHelperStub.GetBasemapIdxs_NotAlways();
 
@@ -4991,7 +4380,7 @@ var MenuHelper = (function()
 
 
     // requires binds for layers
-    MenuHelper.InitLayers_ApplyVisibilityStyles = function()
+    var _InitLayers_ApplyVisibilityStyles = function()
     {
         var a = MenuHelperStub.GetLayerIdxs_NotAlways();
 
@@ -5040,14 +4429,14 @@ var MenuHelper = (function()
             }//if
             else
             {
-                xs.maxHeight = "1024px";
+                xs.maxHeight = "65535px";
                 xs.opacity   = "1";
             }//else
         }//for
     };
 
     // nb: this is disabled as resizing the GMaps content area breaks GMaps due to an internal bug
-    MenuHelper.OpenAnimationHack = function()
+    var _OpenAnimationHack = function()
     {
         //ElGet("map_canvas").style.right = "0";
         ElGet("menu").style.removeProperty("display");
@@ -5061,7 +4450,7 @@ var MenuHelper = (function()
     // However -255 -> -256 doesn't work because it restarts the entire animation, so this
     // hack moves it to -255, then hides it, waits, moves it to -256 without animation, then
     // restores the original styles.
-    MenuHelper.CloseAnimationHack = function()
+    var _CloseAnimationHack = function()
     {
         ElGet("menu").style.transition = "0.3s";
         ElGet("menu").style["-webkit-transition"] = "0.3s";
@@ -5094,13 +4483,13 @@ var MenuHelper = (function()
         {
             var el = ElGet("menu_basemap_" + a[i]);
             var vis = _ui_menu_basemap_more_visible || (el.className != null && el.className.indexOf("menu_option_selected") > -1);
-            el.parentElement.style.maxHeight = vis ? "500px"   : "0";
+            el.parentElement.style.maxHeight = vis ? "65535px" : "0";
             el.parentElement.style.opacity   = vis ? "1"       : "0";
             el.parentElement.style.overflow  = vis ? "visible" : "hidden";
         }//for
         
         ElGet("chkMenuBasemapMore").checked = _ui_menu_basemap_more_visible;
-        MenuHelper.SetBasemapMorePref(_ui_menu_basemap_more_visible);
+        PrefHelper.SetBasemapMorePref(_ui_menu_basemap_more_visible);
 
     };
 
@@ -5115,13 +4504,13 @@ var MenuHelper = (function()
         {
             var el = ElGet("menu_layers_" + a[i]);
             var vis = _ui_menu_layers_more_visible || (el.className != null && el.className.indexOf("menu_option_selected") > -1);
-            el.parentElement.style.maxHeight = vis ? "500px"   : "0";
+            el.parentElement.style.maxHeight = vis ? "65535px" : "0";
             el.parentElement.style.opacity   = vis ? "1"       : "0";
             el.parentElement.style.overflow  = vis ? "visible" : "hidden";
         }//for
 
         ElGet("chkMenuLayersMore").checked = _ui_menu_layers_more_visible;
-        MenuHelper.SetLayersMorePref(_ui_menu_layers_more_visible);
+        PrefHelper.SetLayersMorePref(_ui_menu_layers_more_visible);
 
         var sb = ["sectionMenuLogs", "sectionMenuRealtime", "sectionMenuAreas"];
 
@@ -5131,8 +4520,8 @@ var MenuHelper = (function()
             {
                 var el = ElGet(sb[i]);
                 var vis = _ui_menu_layers_more_visible;
-                el.style.maxHeight = vis ? "1024px" : "0";
-                el.style.opacity   = vis ? "1"      : "0";
+                el.style.maxHeight = vis ? "65535px" : "0";
+                el.style.opacity   = vis ? "1"       : "0";
             }//for
         };
 
@@ -5173,58 +4562,26 @@ var MenuHelper = (function()
     {
         var d = ElGet("ddlLanguage");
         var s = d.options[d.selectedIndex].value;
-        MenuHelper.SetLanguage(s);
-        MenuHelper.SetLanguagePref(s);
+        PrefHelper.SetLanguagePref(s);
+        _SetLanguage(s);
 
-        var ms = MenuHelper.GetStringsForLanguage(s);
-        alert(ms.MENU_LANGUAGE_CHANGE_TEXT);
+        var cb = function(ms) { alert(ms.MENU_LANGUAGE_CHANGE_TEXT); };
+        _locStringsProxy.GetMenuStrings(s, cb);
     };
 
 
-    MenuHelper.SetLanguage = function(s)
+    var _SetLanguage = function(s)
     {
-        MenuHelper.InitLabelsFromStrings(MenuHelper.GetStringsForLanguage(s));
+        var cb = function(ms) { _InitLabelsFromStrings(ms); };
+        _locStringsProxy.GetMenuStrings(s, cb);
     };
 
 
-    MenuHelper.GetStringsForLanguage = function(s)
+    var _InitLanguage = function()
     {
-        return s == "en" ? GetMenuStringsEn() : GetMenuStringsJa();
-    };
+        var s = PrefHelper.GetEffectiveLanguagePref();
 
-
-    MenuHelper.GetEffectiveLanguagePref = function()
-    {
-        var s = MenuHelper.GetLanguagePref();
-
-        if (s == null)
-        {
-            s = (new Date()).getTimezoneOffset() == -540 ? "ja" : "en"; // JST
-            // 2016-09-20 ND: Fix for travelling issue
-            MenuHelper.SetLanguagePref(s);
-        }//if
-
-        return s;
-    };
-
-
-    MenuHelper.GetLanguagePref = function()
-    {
-        return localStorage.getItem("PREF_LANGUAGE");
-    };
-
-
-    MenuHelper.SetLanguagePref = function(s)
-    {
-        localStorage.setItem("PREF_LANGUAGE", s);
-    };
-
-
-    MenuHelper.InitLanguage = function()
-    {
-        var s = MenuHelper.GetEffectiveLanguagePref();
-
-        MenuHelper.SetLanguage(s);
+        _SetLanguage(s);
 
         var d = ElGet("ddlLanguage");
         for (var i=0; i<d.options.length; i++)
@@ -5242,89 +4599,13 @@ var MenuHelper = (function()
     {
         var hud_on = _hudProxy._hud == null || !_hudProxy._btnToggleStateOn;
         ElGet("chkMenuToggleReticle").checked = hud_on;
-        MenuHelper.SetReticleEnabledPref(hud_on);
-    };
-    
-    
-    MenuHelper.GetPrefBln = function(key, def)
-    {
-        var s = localStorage.getItem(key);
-        return s == null ? def : s == "1";
-    };
-    
-    MenuHelper.SetPrefBln = function(key, val)
-    {
-        localStorage.setItem(key, val ? "1" : "0");
-    };
-    
-    MenuHelper.GetPrefInt = function(key, def)
-    {
-        var s = localStorage.getItem(key);
-        return s == null ? def : parseInt(s);
-    };
-    
-    MenuHelper.SetPrefInt = function(key, val)
-    {
-        localStorage.setItem(key, ""+val);
-    };
-    
-    MenuHelper.GetPrefF64 = function(key, def)
-    {
-        var s = localStorage.getItem(key);
-        return s == null ? def : parseFloat(s);
-    };
-    
-    MenuHelper.SetPrefF64 = function(key, val)
-    {
-        localStorage.setItem(key, ""+val);
+        PrefHelper.SetReticleEnabledPref(hud_on);
     };
 
-    MenuHelper.GetArea0EnabledPref       = function()  { return MenuHelper.GetPrefBln("PREF_AREA_0_ENABLED",       true);  };
-    MenuHelper.SetArea0EnabledPref       = function(s) {        MenuHelper.SetPrefBln("PREF_AREA_0_ENABLED",       s);     };
-    MenuHelper.GetReticleEnabledPref     = function()  { return MenuHelper.GetPrefBln("PREF_RETICLE_ENABLED",      false); };
-    MenuHelper.SetReticleEnabledPref     = function(s) {        MenuHelper.SetPrefBln("PREF_RETICLE_ENABLED",      s);     };
-    MenuHelper.GetZoomButtonsEnabledPref = function()  { return MenuHelper.GetPrefBln("PREF_ZOOM_BUTTONS_ENABLED", true);  };
-    MenuHelper.SetZoomButtonsEnabledPref = function(s) {        MenuHelper.SetPrefBln("PREF_ZOOM_BUTTONS_ENABLED", s);     };
-    MenuHelper.GetScaleEnabledPref       = function()  { return MenuHelper.GetPrefBln("PREF_SCALE_ENABLED",        true);  };
-    MenuHelper.SetScaleEnabledPref       = function(s) {        MenuHelper.SetPrefBln("PREF_SCALE_ENABLED",        s);     };
-    MenuHelper.GetHdpiEnabledPref        = function()  { return MenuHelper.GetPrefBln("PREF_HDPI_ENABLED",         true);  };
-    MenuHelper.SetHdpiEnabledPref        = function(s) {        MenuHelper.SetPrefBln("PREF_HDPI_ENABLED",         s);     };
-    MenuHelper.GetNnScalerEnabledPref    = function()  { return MenuHelper.GetPrefBln("PREF_NN_SCALER_ENABLED",    true);  };
-    MenuHelper.SetNnScalerEnabledPref    = function(s) {        MenuHelper.SetPrefBln("PREF_NN_SCALER_ENABLED",    s);     };
-    MenuHelper.GetTileShadowEnabledPref  = function()  { return MenuHelper.GetPrefBln("PREF_TILE_SHADOW_ENABLED",  false); };
-    MenuHelper.SetTileShadowEnabledPref  = function(s) {        MenuHelper.SetPrefBln("PREF_TILE_SHADOW_ENABLED",  s);     };
-    MenuHelper.GetExpandedLayersPref     = function()  { return MenuHelper.GetPrefBln("PREF_EXPANDED_LAYERS",      true);  };
-    MenuHelper.SetExpandedLayersPref     = function(s) {        MenuHelper.SetPrefBln("PREF_EXPANDED_LAYERS",      s);     };
-    MenuHelper.GetExpandedLogsPref       = function()  { return MenuHelper.GetPrefBln("PREF_EXPANDED_LOGS",        true);  };
-    MenuHelper.SetExpandedLogsPref       = function(s) {        MenuHelper.SetPrefBln("PREF_EXPANDED_LOGS",        s);     };
-    MenuHelper.GetExpandedRealtimePref   = function()  { return MenuHelper.GetPrefBln("PREF_EXPANDED_REALTIME",    true);  };
-    MenuHelper.SetExpandedRealtimePref   = function(s) {        MenuHelper.SetPrefBln("PREF_EXPANDED_REALTIME",    s);     };
-    MenuHelper.GetExpandedAreasPref      = function()  { return MenuHelper.GetPrefBln("PREF_EXPANDED_AREAS",       true);  };
-    MenuHelper.SetExpandedAreasPref      = function(s) {        MenuHelper.SetPrefBln("PREF_EXPANDED_AREAS",       s);     };
-    MenuHelper.GetExpandedBasemapPref    = function()  { return MenuHelper.GetPrefBln("PREF_EXPANDED_BASEMAP",     false); };
-    MenuHelper.SetExpandedBasemapPref    = function(s) {        MenuHelper.SetPrefBln("PREF_EXPANDED_BASEMAP",     s);     };
-    MenuHelper.GetExpandedAdvancedPref   = function()  { return MenuHelper.GetPrefBln("PREF_EXPANDED_ADVANCED",    false); };
-    MenuHelper.SetExpandedAdvancedPref   = function(s) {        MenuHelper.SetPrefBln("PREF_EXPANDED_ADVANCED",    s);     };    
-    MenuHelper.GetLayerUiIndexPref       = function()  { return MenuHelper.GetPrefInt("PREF_LAYER_UI_INDEX",       0);     };
-    MenuHelper.SetLayerUiIndexPref       = function(s) {        MenuHelper.SetPrefInt("PREF_LAYER_UI_INDEX",       s);     };
-    MenuHelper.GetBasemapUiIndexPref     = function()  { return MenuHelper.GetPrefInt("PREF_BASEMAP_UI_INDEX",     0);     };
-    MenuHelper.SetBasemapUiIndexPref     = function(s) {        MenuHelper.SetPrefInt("PREF_BASEMAP_UI_INDEX",     s);     };
-    MenuHelper.GetLayersMorePref         = function()  { return MenuHelper.GetPrefBln("PREF_LAYERS_MORE",          false); };
-    MenuHelper.SetLayersMorePref         = function(s) {        MenuHelper.SetPrefBln("PREF_LAYERS_MORE",          s);     };
-    MenuHelper.GetBasemapMorePref        = function()  { return MenuHelper.GetPrefBln("PREF_BASEMAP_MORE",         false); };
-    MenuHelper.SetBasemapMorePref        = function(s) {        MenuHelper.SetPrefBln("PREF_BASEMAP_MORE",         s);     };
-    MenuHelper.GetMenuOpenPref           = function()  { return MenuHelper.GetPrefBln("PREF_MENU_OPEN",            false); };
-    MenuHelper.SetMenuOpenPref           = function(s) {        MenuHelper.SetPrefBln("PREF_MENU_OPEN",            s);     };
-    MenuHelper.GetVisibleExtentXPref     = function()  { return MenuHelper.GetPrefF64("PREF_VISIBLE_EXTENT_X",     140.515516); };
-    MenuHelper.SetVisibleExtentXPref     = function(s) {        MenuHelper.SetPrefF64("PREF_VISIBLE_EXTENT_X",       s);        };
-    MenuHelper.GetVisibleExtentYPref     = function()  { return MenuHelper.GetPrefF64("PREF_VISIBLE_EXTENT_Y",      37.316113); };
-    MenuHelper.SetVisibleExtentYPref     = function(s) {        MenuHelper.SetPrefF64("PREF_VISIBLE_EXTENT_Y",       s);        };
-    MenuHelper.GetVisibleExtentZPref     = function()  { return MenuHelper.GetPrefInt("PREF_VISIBLE_EXTENT_Z",       9);        };
-    MenuHelper.SetVisibleExtentZPref     = function(s) {        MenuHelper.SetPrefInt("PREF_VISIBLE_EXTENT_Z",       s);        };
 
-    MenuHelper.InitReticleFromPref = function()
+    var _InitReticleFromPref = function()
     {
-        if (MenuHelper.GetReticleEnabledPref())
+        if (PrefHelper.GetReticleEnabledPref())
         {
             _hudProxy.Enable();
             ElGet("chkMenuToggleReticle").checked = true;
@@ -5405,8 +4686,105 @@ var MenuHelper = (function()
 
 
 
+var PrefHelper = (function()
+{
+    function PrefHelper()
+    {
+    }
+    
+    var _GetPrefBln = function(key, def)
+    {
+        var s = localStorage.getItem(key);
+        return s == null ? def : s == "1";
+    };
+    
+    var _SetPrefBln = function(key, val)
+    {
+        localStorage.setItem(key, val ? "1" : "0");
+    };
+    
+    var _GetPrefInt = function(key, def)
+    {
+        var s = localStorage.getItem(key);
+        return s == null ? def : parseInt(s);
+    };
+    
+    var _SetPrefInt = function(key, val)
+    {
+        localStorage.setItem(key, ""+val);
+    };
+    
+    var _GetPrefF64 = function(key, def)
+    {
+        var s = localStorage.getItem(key);
+        return s == null ? def : parseFloat(s);
+    };
+
+    var _SetPrefF64 = function(key, val)
+    {
+        localStorage.setItem(key, ""+val);
+    };
+
+    PrefHelper.MakeFx = function()
+    {
+        var  d = !_nua("mobile") && !_nua("iPhone") && !_nua("iPad") && !_nua("Android");
+        var gp = function(t,k,d) { return t == 0 ? function() { return _GetPrefBln(k, d); }
+                                        : t == 1 ? function() { return _GetPrefInt(k, d); }
+                                        :          function() { return _GetPrefF64(k, d); }; };
+        var sp = function(t,k) { return t == 0 ? function(s) { return _SetPrefBln(k, s); }
+                                      : t == 1 ? function(s) { return _SetPrefInt(k, s); }
+                                      :          function(s) { return _SetPrefF64(k, s); }; };
+        var o = [["RETICLE_ENABLED",  0,0], ["ZOOM_BUTTONS_ENABLED",0,1], ["SCALE_ENABLED",   0,1], ["HDPI_ENABLED",     0,1], 
+                 ["NN_SCALER_ENABLED",0,1], ["TILE_SHADOW_ENABLED", 0,0], ["EXPANDED_LAYERS", 0,1], ["EXPANDED_LOGS",    0,1], 
+                 ["EXPANDED_REALTIME",0,1], ["EXPANDED_AREAS",      0,1], ["EXPANDED_BASEMAP",0,0], ["EXPANDED_ADVANCED",0,0],
+                 ["LAYER_UI_INDEX",   1,0], ["BASEMAP_UI_INDEX",    1,0], ["LAYERS_MORE",     0,0], ["BASEMAP_MORE",     0,0], 
+                 ["MENU_OPEN",        0,0], ["TOOLTIPS_ENABLED",    0,d],
+                 ["VISIBLE_EXTENT_X",2,140.515516], ["VISIBLE_EXTENT_Y",2,37.316113], ["VISIBLE_EXTENT_Z",1,9]];
+        for (var i=0; i<o.length; i++)
+        {
+            var fn0 = "";
+            var ps  = o[i][0].split("_");
+            for (var j=0; j<ps.length; j++)
+            {
+                fn0 += ps[j].substring(0,1) + ps[j].substring(1, ps[j].length).toLowerCase();
+            }
+            PrefHelper["Get" + fn0 + "Pref"] = gp(o[i][1], o[i][0], o[i][1] != 0 ? o[i][2] : o[i][2] != 0);
+            PrefHelper["Set" + fn0 + "Pref"] = sp(o[i][1], o[i][0], o[i][2]);
+        }//for
+    };
 
 
+    PrefHelper.GetAreaXEnabledPref       = function(x)   { return _GetPrefBln("PREF_AREA_"+x+"_ENABLED", true);  };
+    PrefHelper.SetAreaXEnabledPref       = function(x,s) {        _SetPrefBln("PREF_AREA_"+x+"_ENABLED", s);     };
+
+
+    PrefHelper.GetLanguagePref = function()
+    {
+        return localStorage.getItem("PREF_LANGUAGE");
+    };
+
+
+    PrefHelper.SetLanguagePref = function(s)
+    {
+        localStorage.setItem("PREF_LANGUAGE", s);
+    };
+    
+    PrefHelper.GetEffectiveLanguagePref = function()
+    {
+        var s = PrefHelper.GetLanguagePref();
+
+        if (s == null)
+        {
+            s = (new Date()).getTimezoneOffset() == -540 ? "ja" : "en"; // JST
+            // 2016-09-20 ND: Fix for travelling issue
+            PrefHelper.SetLanguagePref(s);
+        }//if
+
+        return s;
+    };
+    
+    return PrefHelper;
+})();
 
 
 // ===============================================================================================
@@ -5425,14 +4803,14 @@ var MenuHelperStub = (function()
 
     MenuHelperStub.Init = function()
     {
-        MenuHelperStub.InitLayers_BindLayers();
-        MenuHelperStub.InitBasemap_BindBasemap();
-        MenuHelperStub.InitLogs_BindEvents();
-        MenuHelperStub.InitMenu_MobileNoHoverHack();
+        _InitLayers_BindLayers();
+        _InitBasemap_BindBasemap();
+        _InitLogs_BindEvents();
+        _InitMenu_MobileNoHoverHack();
     };
 
     // todo: move to MenuHelper
-    MenuHelperStub.InitMenu_MobileNoHoverHack = function()
+    var _InitMenu_MobileNoHoverHack = function()
     {
         if (!_nua("mobile") && !_nua("iPhone") && !_nua("iPad") && !_nua("Android")) return;
         var s = ElCr("style");
@@ -5443,7 +4821,7 @@ var MenuHelperStub = (function()
 
 
     // todo: move to MenuHelper
-    MenuHelperStub.InitLogs_BindEvents = function()
+    var _InitLogs_BindEvents = function()
     {
         ElGet("menu_logs_0").addEventListener("click", function()
         {
@@ -5455,7 +4833,7 @@ var MenuHelperStub = (function()
             MenuHelper.OptionsClearSelection("ul_menu_layers");
             MenuHelper.OptionsSetSelection("ul_menu_layers", 11);
             _ui_layer_idx = 11;
-            MenuHelper.SetLayerUiIndexPref(11);
+            PrefHelper.SetLayerUiIndexPref(11);
             LayersHelper.UiLayers_OnChange();
             LayersHelper.AddLogsCosmic();
         }, false);
@@ -5482,7 +4860,7 @@ var MenuHelperStub = (function()
     };
 
 
-    MenuHelperStub.BindMore = function(ul_name, li_id, div_id, s0_id, chk_id, chk_checked, cb)
+    var _BindMore = function(ul_name, li_id, div_id, s0_id, chk_id, chk_checked, cb)
     {
         var ul = ElGet(ul_name);
         var li = ElCr("li"), div = ElCr("div"), s0 = ElCr("span"), d0 = ElCr("div");
@@ -5520,22 +4898,22 @@ var MenuHelperStub = (function()
     };
 
 
-    MenuHelperStub.InitBasemap_BindMore = function()
+    var _InitBasemap_BindMore = function()
     {
         var cb = function() { MenuHelper.MoreBasemap_OnClick(); };
-        MenuHelperStub.BindMore("ul_menu_basemap", "li_menu_morebasemap", "lnkMenuBasemapMore", "lblMenuBasemapMore", "chkMenuBasemapMore", _ui_menu_basemap_more_visible, cb);
+        _BindMore("ul_menu_basemap", "li_menu_morebasemap", "lnkMenuBasemapMore", "lblMenuBasemapMore", "chkMenuBasemapMore", _ui_menu_basemap_more_visible, cb);
     };
 
 
-    MenuHelperStub.InitLayers_BindMore = function()
+    var _InitLayers_BindMore = function()
     {
         var cb = function() { MenuHelper.MoreLayers_OnClick(); };
-        MenuHelperStub.BindMore("ul_menu_layers", "li_menu_morelayers", "lnkMenuLayersMore", "lblMenuLayersMore", "chkMenuLayersMore", _ui_menu_layers_more_visible, cb);
+        _BindMore("ul_menu_layers", "li_menu_morelayers", "lnkMenuLayersMore", "lblMenuLayersMore", "chkMenuLayersMore", _ui_menu_layers_more_visible, cb);
     };
 
 
     // todo: move to MenuHelper
-    MenuHelperStub.InitExpand = function(el_id, fxGet, fxSet)
+    var _InitExpand = function(el_id, fxGet, fxSet)
     {
         var el = ElGet(el_id);
 
@@ -5552,13 +4930,13 @@ var MenuHelperStub = (function()
     };
 
 
-    MenuHelperStub.InitLayers_BindLayers = function()
+    var _InitLayers_BindLayers = function()
     {
-        _ui_menu_layers_more_visible  = MenuHelper.GetLayersMorePref();
-        _ui_menu_basemap_more_visible = MenuHelper.GetBasemapMorePref();
+        _ui_menu_layers_more_visible  = PrefHelper.GetLayersMorePref();
+        _ui_menu_basemap_more_visible = PrefHelper.GetBasemapMorePref();
     
-        MenuHelperStub.InitLayers_BindMore();
-        MenuHelperStub.InitBasemap_BindMore();
+        _InitLayers_BindMore();
+        _InitBasemap_BindMore();
 
         var ids = MenuHelperStub.GetLayerIdxs_All();
 
@@ -5567,23 +4945,23 @@ var MenuHelperStub = (function()
             MenuHelper.OptionsClearSelection("ul_menu_layers");
             MenuHelper.OptionsSetSelection("ul_menu_layers", idx);
             _ui_layer_idx = idx;
-            MenuHelper.SetLayerUiIndexPref(idx);
+            PrefHelper.SetLayerUiIndexPref(idx);
             LayersHelper.UiLayers_OnChange();
         };
 
-        MenuHelperStub.BindOptions("ul_menu_layers", "menu_layers_", ids, cb);
-        MenuHelperStub.BindOptionLabelsToDivs("menu_layers_", ids);
+        _BindOptions("ul_menu_layers", "menu_layers_", ids, cb);
+        _BindOptionLabelsToDivs("menu_layers_", ids);
 
-        MenuHelperStub.InitExpand("lblMenuLayersTitle",   MenuHelper.GetExpandedLayersPref,   MenuHelper.SetExpandedLayersPref);
-        MenuHelperStub.InitExpand("lblMenuLogsTitle",     MenuHelper.GetExpandedLogsPref,     MenuHelper.SetExpandedLogsPref);
-        MenuHelperStub.InitExpand("lblMenuRealtimeTitle", MenuHelper.GetExpandedRealtimePref, MenuHelper.SetExpandedRealtimePref);
-        MenuHelperStub.InitExpand("lblMenuAreasTitle",    MenuHelper.GetExpandedAreasPref,    MenuHelper.SetExpandedAreasPref);
-        MenuHelperStub.InitExpand("lblMenuBasemapTitle",  MenuHelper.GetExpandedBasemapPref,  MenuHelper.SetExpandedBasemapPref);
-        MenuHelperStub.InitExpand("lblMenuAdvancedTitle", MenuHelper.GetExpandedAdvancedPref, MenuHelper.SetExpandedAdvancedPref);
+        _InitExpand("lblMenuLayersTitle",   PrefHelper.GetExpandedLayersPref,   PrefHelper.SetExpandedLayersPref);
+        _InitExpand("lblMenuLogsTitle",     PrefHelper.GetExpandedLogsPref,     PrefHelper.SetExpandedLogsPref);
+        _InitExpand("lblMenuRealtimeTitle", PrefHelper.GetExpandedRealtimePref, PrefHelper.SetExpandedRealtimePref);
+        _InitExpand("lblMenuAreasTitle",    PrefHelper.GetExpandedAreasPref,    PrefHelper.SetExpandedAreasPref);
+        _InitExpand("lblMenuBasemapTitle",  PrefHelper.GetExpandedBasemapPref,  PrefHelper.SetExpandedBasemapPref);
+        _InitExpand("lblMenuAdvancedTitle", PrefHelper.GetExpandedAdvancedPref, PrefHelper.SetExpandedAdvancedPref);
     };
 
 
-    MenuHelperStub.InitBasemap_BindBasemap = function()
+    var _InitBasemap_BindBasemap = function()
     {
         var ids = MenuHelperStub.GetBasemapIdxs_All();
 
@@ -5593,11 +4971,11 @@ var MenuHelperStub = (function()
             MenuHelper.SyncBasemap();
         };
 
-        MenuHelperStub.BindOptions("ul_menu_basemap", "menu_basemap_", ids, cb);
+        _BindOptions("ul_menu_basemap", "menu_basemap_", ids, cb);
     };
 
 
-    MenuHelperStub.BindOptionLabelsToDivs = function(div_id_prefix, div_ids)
+    var _BindOptionLabelsToDivs = function(div_id_prefix, div_ids)
     {
         for (var i=0; i<div_ids.length; i++)
         {
@@ -5618,7 +4996,7 @@ var MenuHelperStub = (function()
     };
 
 
-    MenuHelperStub.BindOptions = function(ul_id, div_id_prefix, div_ids, fx_callback)
+    var _BindOptions = function(ul_id, div_id_prefix, div_ids, fx_callback)
     {
         var ul = ElGet(ul_id);
 
@@ -5639,7 +5017,7 @@ var MenuHelperStub = (function()
     // These are used by MenuHelper, even when setting labels.
     // They are consolidated to be defined here in one location.
 
-    MenuHelperStub.GetLogIdxsWithUiVisibility = function()
+    var _GetLogIdxsWithUiVisibility = function()
     {
         var d = new Array();
         for (var i=0; i<=3; i++)
@@ -5649,7 +5027,7 @@ var MenuHelperStub = (function()
         return d;
     };
 
-    MenuHelperStub.GetBasemapIdxsWithUiVisibility = function()
+    var _GetBasemapIdxsWithUiVisibility = function()
     {
         var d = 
         [ 
@@ -5673,7 +5051,7 @@ var MenuHelperStub = (function()
         return d;
     };
 
-    MenuHelperStub.GetLayerIdxsWithUiVisibility = function()
+    var _GetLayerIdxsWithUiVisibility = function()
     {
         var d = 
         [ 
@@ -5695,7 +5073,7 @@ var MenuHelperStub = (function()
         return d;
     };
 
-    MenuHelperStub.GetGenericIdxs_WhereVisibilityIn = function(s, v)
+    var _GetGenericIdxs_WhereVisibilityIn = function(s, v)
     {
         var d = new Array();
         var j, m;
@@ -5719,82 +5097,82 @@ var MenuHelperStub = (function()
         return d;
     };
 
-    MenuHelperStub.GetBasemapIdxs_WhereVisibilityIn = function(v)
+    var _GetBasemapIdxs_WhereVisibilityIn = function(v)
     {
-        var s = MenuHelperStub.GetBasemapIdxsWithUiVisibility();
-        return MenuHelperStub.GetGenericIdxs_WhereVisibilityIn(s, v);
+        var s = _GetBasemapIdxsWithUiVisibility();
+        return _GetGenericIdxs_WhereVisibilityIn(s, v);
     };
 
-    MenuHelperStub.GetLogIdxs_WhereVisibilityIn = function(v)
+    var _GetLogIdxs_WhereVisibilityIn = function(v)
     {
-        var s = MenuHelperStub.GetLogIdxsWithUiVisibility();
-        return MenuHelperStub.GetGenericIdxs_WhereVisibilityIn(s, v);
+        var s = _GetLogIdxsWithUiVisibility();
+        return _GetGenericIdxs_WhereVisibilityIn(s, v);
     };
 
-    MenuHelperStub.GetLayerIdxs_WhereVisibilityIn = function(v)
+    var _GetLayerIdxs_WhereVisibilityIn = function(v)
     {
-        var s = MenuHelperStub.GetLayerIdxsWithUiVisibility();
-        return MenuHelperStub.GetGenericIdxs_WhereVisibilityIn(s, v);
+        var s = _GetLayerIdxsWithUiVisibility();
+        return _GetGenericIdxs_WhereVisibilityIn(s, v);
     };
 
     MenuHelperStub.GetLayerIdxs_All = function()
     {
         var v = [MenuHelperStub.UiVisibility.Hidden, MenuHelperStub.UiVisibility.Normal, MenuHelperStub.UiVisibility.Always];
-        return MenuHelperStub.GetLayerIdxs_WhereVisibilityIn(v);
+        return _GetLayerIdxs_WhereVisibilityIn(v);
     };
 
     MenuHelperStub.GetLayerIdxs_NotHidden = function()
     {
         var v = [MenuHelperStub.UiVisibility.Normal, MenuHelperStub.UiVisibility.Always];
-        return MenuHelperStub.GetLayerIdxs_WhereVisibilityIn(v);
+        return _GetLayerIdxs_WhereVisibilityIn(v);
     };
     
     MenuHelperStub.GetLayerIdxs_Hidden = function()
     {
         var v = [MenuHelperStub.UiVisibility.Hidden];
-        return MenuHelperStub.GetLayerIdxs_WhereVisibilityIn(v);
+        return _GetLayerIdxs_WhereVisibilityIn(v);
     };
 
     MenuHelperStub.GetLayerIdxs_NotAlways = function()
     {
         var v = [MenuHelperStub.UiVisibility.Hidden, MenuHelperStub.UiVisibility.Normal];
-        return MenuHelperStub.GetLayerIdxs_WhereVisibilityIn(v);
+        return _GetLayerIdxs_WhereVisibilityIn(v);
     };
 
     MenuHelperStub.GetLayerIdxs_Normal = function()
     {
         var v = [MenuHelperStub.UiVisibility.Normal];
-        return MenuHelperStub.GetLayerIdxs_WhereVisibilityIn(v);
+        return _GetLayerIdxs_WhereVisibilityIn(v);
     };
 
     MenuHelperStub.GetBasemapIdxs_All = function()
     {
         var v = [MenuHelperStub.UiVisibility.Hidden, MenuHelperStub.UiVisibility.Normal, MenuHelperStub.UiVisibility.Always];
-        return MenuHelperStub.GetBasemapIdxs_WhereVisibilityIn(v);
+        return _GetBasemapIdxs_WhereVisibilityIn(v);
     };
     
     MenuHelperStub.GetBasemapIdxs_NotHidden = function()
     {
         var v = [MenuHelperStub.UiVisibility.Normal, MenuHelperStub.UiVisibility.Always];
-        return MenuHelperStub.GetBasemapIdxs_WhereVisibilityIn(v);
+        return _GetBasemapIdxs_WhereVisibilityIn(v);
     };
 
     MenuHelperStub.GetBasemapIdxs_NotAlways = function()
     {
         var v = [MenuHelperStub.UiVisibility.Hidden, MenuHelperStub.UiVisibility.Normal];
-        return MenuHelperStub.GetBasemapIdxs_WhereVisibilityIn(v);
+        return _GetBasemapIdxs_WhereVisibilityIn(v);
     };
 
     MenuHelperStub.GetBasemapIdxs_Normal = function()
     {
         var v = [MenuHelperStub.UiVisibility.Normal];
-        return MenuHelperStub.GetBasemapIdxs_WhereVisibilityIn(v);
+        return _GetBasemapIdxs_WhereVisibilityIn(v);
     };
 
     MenuHelperStub.GetLogIdxs_All = function()
     {
         var v = [MenuHelperStub.UiVisibility.Hidden, MenuHelperStub.UiVisibility.Normal, MenuHelperStub.UiVisibility.Always];
-        return MenuHelperStub.GetLogIdxs_WhereVisibilityIn(v);
+        return _GetLogIdxs_WhereVisibilityIn(v);
     };
 
     MenuHelperStub.UiVisibility =
