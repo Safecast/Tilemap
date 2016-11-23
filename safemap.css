@@ -861,11 +861,10 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
   55% { opacity:1; } 
   66% { opacity:0; } 
  100% { opacity:0; } }
-</style>
 
 
 
-<style type="text/css">
+
 /* Animation for location text pop-ups */
 
 .dkstextfade {
