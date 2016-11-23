@@ -5,6 +5,7 @@
 // This code is released into the public domain.
 // ==============================================
 
+// 2016-11-22 ND: - Make various static/class functions private, comment out dead code.
 // 2015-04-05 ND: - Test fix for remaining known no-draw panning issue
 // 2015-03-30 ND: - Fix for various no-draw panning issues.
 // 2015-03-21 ND: - Support for retrieving all logids in string or limited number.
@@ -96,7 +97,7 @@ var BVM = (function()
     function BVM(map, dataBinds)
     {
         this.mapRef   = map;
-        this.isMobile = BVM.IsPlatformMobile();
+        this.isMobile = _IsPlatformMobile();
         this.xfm      = null; // data transfer manager
         this.mks      = null; // marker manager
         this.wwm      = null; // web worker manager
@@ -412,17 +413,17 @@ var BVM = (function()
     
         if (txt != null && txt.length > 0 && txt.substring(0,1) == "u")
         {
-            var url = BVM.ParseUserInput_UserID(txt);
+            var url = _ParseUserInput_UserID(txt);
             this.GetJSONAsyncByQuery_AllPages(url, XF.TypeLogQueryByUser, 1, page_limit, extra_params);
         }//if
     
         if (txt != null && txt.length > 0 && txt.substring(0,1) == "q")
         {
-            var url = BVM.ParseUserInput_QueryText(txt);
+            var url = _ParseUserInput_QueryText(txt);
             this.GetJSONAsyncByQuery_AllPages(url, XF.TypeLogQueryByText, 1, page_limit, extra_params);
         }//if
     
-        var ids = BVM.ParseUserInputIDs(txt);
+        var ids = _ParseUserInputIDs(txt);
     
         for (var i=0; i<ids.length; i++)
         {
@@ -458,7 +459,7 @@ var BVM = (function()
 
     BVM.prototype.TransferBar_SetHidden = function(isHidden)
     {
-        BVM.ChangeVisibilityForElementByIdByReplacingClass(this.dataBinds.elementIds.bv_transferBar, this.dataBinds.cssClasses.bv_transferBarHidden, this.dataBinds.cssClasses.bv_transferBarVisible, isHidden);
+        _ChangeVisibilityForElementByIdByReplacingClass(this.dataBinds.elementIds.bv_transferBar, this.dataBinds.cssClasses.bv_transferBarHidden, this.dataBinds.cssClasses.bv_transferBarVisible, isHidden);
     };
     
     BVM.prototype.SetParallelism = function(p)
@@ -503,7 +504,7 @@ var BVM = (function()
     // =======================================================================================================
     
     // returns value of querystring parameter "name"
-    BVM.GetParam = function(name) 
+    var _GetParam = function(name) 
     {
         name        = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
         var regexS  = "[\\?&]" + name + "=([^&#]*)";
@@ -516,10 +517,10 @@ var BVM = (function()
 
     // http://stackoverflow.com/questions/11381673/detecting-a-mobile-browser
     // returns true if useragent is detected as being a mobile platform, or "mobile=1" is set in querystring.
-    BVM.IsPlatformMobile = function()
+    var _IsPlatformMobile = function()
     {
         var check   = false;
-        var ovr_str = BVM.GetParam("mobile");
+        var ovr_str = _GetParam("mobile");
     
         if (ovr_str != null && ovr_str.length > 0)
         {
@@ -538,14 +539,14 @@ var BVM = (function()
         return check;
     };
     
-    BVM.ChangeVisibilityForElementByIdByReplacingClass = function(elementid, classHidden, classVisible, isHidden)
+    var _ChangeVisibilityForElementByIdByReplacingClass = function(elementid, classHidden, classVisible, isHidden)
     {
         var el = document.getElementById(elementid);
         if       (el != null &&  isHidden && el.className == classVisible) el.className = classHidden;
         else if  (el != null && !isHidden && el.className == classHidden)  el.className = classVisible;
     };
     
-    BVM.ParseUserInput_QueryText = function(txt)
+    var _ParseUserInput_QueryText = function(txt)
     {
         var q   = txt.length > 1 ? txt.substring(1, txt.length) : null;
         var url = q != null ? "https://api.safecast.org/bgeigie_imports.json?q=" + q + "&order=created_at+desc" : null;
@@ -553,7 +554,7 @@ var BVM = (function()
         return url;
     };
 
-    BVM.ParseUserInput_UserID = function(txt)
+    var _ParseUserInput_UserID = function(txt)
     {
         var user_id = txt.length > 1 ? txt.substring(1, txt.length) : null;
         var url = user_id != null ? "https://api.safecast.org/bgeigie_imports.json?by_user_id=" + user_id + "&order=created_at+desc" : null;
@@ -561,7 +562,7 @@ var BVM = (function()
         return url;
     };
 
-    BVM.ParseUserInputIDs = function(txt)
+    var _ParseUserInputIDs = function(txt)
     {
         var dest = new Array();
     
@@ -633,7 +634,7 @@ var WWM = (function()
     
     WWM.prototype.SetParallelism = function(n)
     {
-        var s  = WWM.sve(this.isBusy, 0, Math.min(this.n, this.workers.length));
+        var s  = _sve(this.isBusy, 0, Math.min(this.n, this.workers.length));
         this.n = n;
     
         if (s == 0)
@@ -863,8 +864,8 @@ var WWM = (function()
         }.bind(this);
     };
     
-    WWM.sve = function(s,o,n) { var e=0;for(var i=o;i<o+n;i++)e+=s[i];return e; };
-    WWM.vfill = function(x,d,n) { for(var i=0;i<n;i++)d[i]=x; };
+    var _sve = function(s,o,n) { var e=0;for(var i=o;i<o+n;i++)e+=s[i];return e; };
+    //var _vfill = function(x,d,n) { for(var i=0;i<n;i++)d[i]=x; }; // unused
     
     return WWM;
 })();
@@ -1468,11 +1469,11 @@ var XFM = (function()
             
             var td2 = row.insertCell(-1);
             td2.style.textAlign = "right";
-            td2.innerHTML = XFM.FormatXFCell(xf);
+            td2.innerHTML = _FormatXFCell(xf);
         }//if
         else if (xf.GetElapsedSinceDoneSS() < 3.0)
         {
-            this.bTbl.rows[idx].cells[2].innerHTML = XFM.FormatXFCell(xf);
+            this.bTbl.rows[idx].cells[2].innerHTML = _FormatXFCell(xf);
         }//else
         else if (idx != -1 && xf.GetElapsedSinceDoneSS() >= 3.0)
         {
@@ -1543,7 +1544,7 @@ var XFM = (function()
         this.div.appendChild(cdiv);
     };
     
-    XFM.FormatXFCell = function(xf)
+    var _FormatXFCell = function(xf)
     {
         var queued_text     = "Queued";
         var merging_text    = "Merging";
@@ -1920,7 +1921,7 @@ var MKS = (function()
             return;
         }//if
         
-        var r = MKS.GetRegionForExtentAndClientView_EPSG4326(this.mk_ex[0], this.mk_ex[1], this.mk_ex[2], this.mk_ex[3]);
+        var r = _GetRegionForExtentAndClientView_EPSG4326(this.mk_ex[0], this.mk_ex[1], this.mk_ex[2], this.mk_ex[3]);
         this.mapref.panTo(r[0]);
         this.mapref.setZoom(r[1]);
     };
@@ -1933,8 +1934,8 @@ var MKS = (function()
             var dest_n  = src_n + new_n;
             var newids  = new Int32Array(dest_n);
             var newidxs = new Uint32Array(dest_n);
-            MKS.vcopy_s32(newids,  0, this.m_ids,  0, src_n);
-            MKS.vcopy_u32(newidxs, 0, this.m_idxs, 0, src_n);
+            _vcopy_s32(newids,  0, this.m_ids,  0, src_n);
+            _vcopy_u32(newidxs, 0, this.m_idxs, 0, src_n);
             this.m_ids  = newids;
             this.m_idxs = newidxs;
             this.m_n    = dest_n;
@@ -2101,7 +2102,7 @@ var MKS = (function()
         else
         {
             // 2015-04-05 ND: Reset last rendered marker extent when outside of marker extent entirely
-            MKS.vfill(0, this.last_ex, 0, this.last_ex.length);
+            _vfill(0, this.last_ex, 0, this.last_ex.length);
         }//else
     };
     
@@ -2110,12 +2111,12 @@ var MKS = (function()
     MKS.prototype.GetMercExtentForLatLonExtent = function(ex)
     {
         var mex = new Uint32Array(7);
-        mex[0] = MKS.LonToX_z21(ex[0]);
-        mex[1] = MKS.LatToY_z21(MKS.ClampLatToMercPlane(ex[3]));
-        mex[2] = MKS.LonToX_z21(ex[2]);
-        mex[3] = MKS.LatToY_z21(MKS.ClampLatToMercPlane(ex[1]));
-        mex[4] = ex[4] == -9000.0 ? 0xFFFFFFFF : MKS.LonToX_z21(ex[4]);
-        mex[5] = ex[5] == -9000.0 ? 0xFFFFFFFF : MKS.LonToX_z21(ex[5]);
+        mex[0] = _LonToX_z21(ex[0]);
+        mex[1] = _LatToY_z21(_ClampLatToMercPlane(ex[3]));
+        mex[2] = _LonToX_z21(ex[2]);
+        mex[3] = _LatToY_z21(_ClampLatToMercPlane(ex[1]));
+        mex[4] = ex[4] == -9000.0 ? 0xFFFFFFFF : _LonToX_z21(ex[4]);
+        mex[5] = ex[5] == -9000.0 ? 0xFFFFFFFF : _LonToX_z21(ex[5]);
         mex[6] = ex[6];
         return mex;
     };
@@ -2170,7 +2171,7 @@ var MKS = (function()
             
             if (!still_vis) 
             {
-                MKS.vfill(0, this.last_ex, 0, this.last_ex.length); // 2015-03-30 ND: attempt to fix no-draw issue on panning after abort
+                _vfill(0, this.last_ex, 0, this.last_ex.length); // 2015-03-30 ND: attempt to fix no-draw issue on panning after abort
                 return;                                             // 2015-04-05 ND: this may be unnecessary.  todo: remove and test.
             }//if
         
@@ -2236,7 +2237,7 @@ var MKS = (function()
                 if (cs_n >= cs.length - 1)
                 {
                     var _cs = new Uint32Array(cs.length + chunk_n);
-                    MKS.vcopy_u32(_cs, 0, cs, 0, cs.length);
+                    _vcopy_u32(_cs, 0, cs, 0, cs.length);
                     cs = _cs;
                     chunk_n *= 2;
                 }//if
@@ -2569,8 +2570,8 @@ var MKS = (function()
             csi = adds[i];
             
             this.onmaps[csi] = 1;
-            lat    = MKS.YtoLat_z21(this.mys[csi]);
-            lon    = MKS.XtoLon_z21(this.mxs[csi]);
+            lat    = _YtoLat_z21(this.mys[csi]);
+            lon    = _XtoLon_z21(this.mxs[csi]);
             lutidx = this.lut.GetIdxForValue(this.cpms[csi], rsn);
                     
             this.AddMarker(csi, lat, lon, this.degs[csi], lutidx);
@@ -2618,7 +2619,7 @@ var MKS = (function()
         var w_px = this.isRetina ? this.width  << 1 : this.width;
         var h_px = this.isRetina ? this.height << 1 : this.height;
         var s_px = this.isRetina ? this.shd_r  << 1 : this.shd_r;
-        deg      = parseInt(Math.round(parseFloat(MKS.UnpackDegreeValue(deg))*0.03333333333333333)*30.0); // round to nearest 30 degree "tick"
+        deg      = parseInt(Math.round(parseFloat(_UnpackDegreeValue(deg))*0.03333333333333333)*30.0); // round to nearest 30 degree "tick"
         deg      = deg == 0 ? 360 : deg; // degrees=0 causes problems with rendering
         
         for (var i=0; i<this.icons.length; i++)
@@ -2668,10 +2669,10 @@ var MKS = (function()
         var d     = new Date(unixMS);
         var sdate = d.toISOString().substring( 0, 10);
         var stime = d.toISOString().substring(11, 19);
-        var sdeg  = this.degs[i] > 0 ? "" + parseInt(MKS.UnpackDegreeValue(this.degs[i])) : "N/A";
+        var sdeg  = this.degs[i] > 0 ? "" + parseInt(_UnpackDegreeValue(this.degs[i])) : "N/A";
         var sdre  = (this.cpms[i] * 0.0029940119760479).toFixed(2);
                  
-        return MKS.GetInfoWindowHtmlForParams(sdre, this.cpms[i], this.alts[i], sdeg, sdate, stime, this.logids[i], this.fontCssClass);
+        return _GetInfoWindowHtmlForParams(sdre, this.cpms[i], this.alts[i], sdeg, sdate, stime, this.logids[i], this.fontCssClass);
     };
     
     MKS.prototype.AttachInfoWindow = function(marker)
@@ -2726,7 +2727,7 @@ var MKS = (function()
             if (mxs != null && mxs.length > 0)
             {
                 var logids = new Int32Array(mxs.length);
-                MKS.vfill(logId, logids, 0, logids.length);
+                _vfill(logId, logids, 0, logids.length);
                 this.AddData(minzs, cpms, alts, degs, logids, times, mxs, mys);
             }//if
             
@@ -2763,10 +2764,10 @@ var MKS = (function()
         var destminzs = new Int8Array(dest_n);
         var destcpms  = new Uint16Array(dest_n);
         
-        MKS.vcopy_u32(destmxs,   0, this.mxs,   0, dest_n);
-        MKS.vcopy_u32(destmys,   0, this.mys,   0, dest_n);
-        MKS.vcopy_s08(destminzs, 0, this.minzs, 0, dest_n);
-        MKS.vsmul(this.cpms, 0.18724571, destcpms, dest_n); // rescale to uint16_t range
+        _vcopy_u32(destmxs,   0, this.mxs,   0, dest_n);
+        _vcopy_u32(destmys,   0, this.mys,   0, dest_n);
+        _vcopy_s08(destminzs, 0, this.minzs, 0, dest_n);
+        _vsmul(this.cpms, 0.18724571, destcpms, dest_n); // rescale to uint16_t range
 
         return [destmxs, destmys, destminzs, destcpms];
     };
@@ -2776,15 +2777,15 @@ var MKS = (function()
     {
         if (newcpms == null || newcpms.length < 2) return;
 
-        this.minzs   = MKS.vcombine_s08(this.minzs,  newminzs);
-        this.cpms    = MKS.vcombine_f32(this.cpms,   newcpms);
-        this.alts    = MKS.vcombine_s16(this.alts,   newalts);
-        this.degs    = MKS.vcombine_s08(this.degs,   newdegs);
-        this.logids  = MKS.vcombine_s32(this.logids, newlogids);
-        this.times   = MKS.vcombine_u32(this.times,  newtimes);
-        this.mxs     = MKS.vcombine_u32(this.mxs,    newmxs);
-        this.mys     = MKS.vcombine_u32(this.mys,    newmys);
-        this.onmaps  = MKS.vcombine_u08(this.onmaps, new Uint8Array(newcpms.length));
+        this.minzs   = _vcombine_s08(this.minzs,  newminzs);
+        this.cpms    = _vcombine_f32(this.cpms,   newcpms);
+        this.alts    = _vcombine_s16(this.alts,   newalts);
+        this.degs    = _vcombine_s08(this.degs,   newdegs);
+        this.logids  = _vcombine_s32(this.logids, newlogids);
+        this.times   = _vcombine_u32(this.times,  newtimes);
+        this.mxs     = _vcombine_u32(this.mxs,    newmxs);
+        this.mys     = _vcombine_u32(this.mys,    newmys);
+        this.onmaps  = _vcombine_u08(this.onmaps, new Uint8Array(newcpms.length));
         
         console.log("MKS.AddData: Added %d items, new total = %d.", newcpms.length, this.cpms.length);
         
@@ -2881,7 +2882,7 @@ var MKS = (function()
         this.onmaps = null;
     };
     
-    MKS.GetInfoWindowHtmlForParams = function(dre, cpm, alt, deg, date, time, logId, fontCssClass)
+    var _GetInfoWindowHtmlForParams = function(dre, cpm, alt, deg, date, time, logId, fontCssClass)
     {
         return "<table style='border:0;border-collapse:collapse;' class='" + fontCssClass + "'>"
                + "<tr><td align=right>" + dre + "</td><td>"        + "\u00B5" + "Sv/h"     + "</td></tr>"
@@ -2895,21 +2896,21 @@ var MKS = (function()
     
     // based on the client's screen size and extent, find the center and zoom level
     // to pass to Google Maps to pan the view.
-    MKS.GetRegionForExtentAndClientView_EPSG4326 = function(x0, y0, x1, y1)
+    var _GetRegionForExtentAndClientView_EPSG4326 = function(x0, y0, x1, y1)
     {
-        var vwh = MKS.GetClientViewSize();
-        return MKS.GetRegionForExtentAndScreenSize_EPSG4326(x0, y0, x1, y1, vwh[0], vwh[1]);
+        var vwh = _GetClientViewSize();
+        return _GetRegionForExtentAndScreenSize_EPSG4326(x0, y0, x1, y1, vwh[0], vwh[1]);
     };
     
-    MKS.GetRegionForExtentAndScreenSize_EPSG4326 = function(x0, y0, x1, y1, vw, vh)
+    var _GetRegionForExtentAndScreenSize_EPSG4326 = function(x0, y0, x1, y1, vw, vh)
     {
         var yx0 = new google.maps.LatLng(y0+(y1-y0)*0.5, x0+(x1-x0)*0.5);
         var dz  = 3;
                 
         for (var z = 20; z >= 0; z--)
         {
-            var mxy0 = MKS.LatLonToXYZ_EPSG3857(y1, x0, z);
-            var mxy1 = MKS.LatLonToXYZ_EPSG3857(y0, x1, z);
+            var mxy0 = _LatLonToXYZ_EPSG3857(y1, x0, z);
+            var mxy1 = _LatLonToXYZ_EPSG3857(y0, x1, z);
                     
             if (Math.abs(mxy1[0] - mxy0[0]) < vw && Math.abs(mxy1[1] - mxy0[1]) < vh)
             {
@@ -2923,7 +2924,7 @@ var MKS = (function()
         return [yx0, dz];
     };
     
-    MKS.GetClientViewSize = function()
+    var _GetClientViewSize = function()
     {
         var _w = window,
             _d = document,
@@ -2935,9 +2936,9 @@ var MKS = (function()
         return [vw, vh];
     };
     
-    MKS.ClampLatToMercPlane = function(lat) { return lat > 85.05112878 ? 85.05112878 : lat < -85.05112878 ? -85.05112878 : lat; };
+    var _ClampLatToMercPlane = function(lat) { return lat > 85.05112878 ? 85.05112878 : lat < -85.05112878 ? -85.05112878 : lat; };
     
-    MKS.LatLonToXYZ_EPSG3857 = function(lat, lon, z)
+    var _LatLonToXYZ_EPSG3857 = function(lat, lon, z)
     {
         var x  = (lon + 180.0) * 0.002777778;
         var s  = Math.sin(lat * 0.0174532925199);
@@ -2948,28 +2949,30 @@ var MKS = (function()
         return [px, py];
     };
     
-    MKS.YtoLat_z21 = function(y)
+    var _YtoLat_z21 = function(y)
     {
         return 90.0 - 360.0 * Math.atan(Math.exp(-(0.5 - y * 0.00000000186264514923095703125) * 6.283185307179586476925286766559)) * 0.318309886183790671538;
     };
     
-    MKS.XtoLon_z21 = function(x)
+    var _XtoLon_z21 = function(x)
     {
         return 360.0 * (x * 0.00000000186264514923095703125 - 0.5);
     };
     
-    MKS.LatToY_z21 = function(lat)
+    var _LatToY_z21 = function(lat)
     {
         var s = Math.sin(lat * 0.0174532925199);
         var y = 0.5 - Math.log((1.0 + s) / (1.0 - s)) * 0.0795774715459;
         return parseInt(y * 536870912.0 + 0.5);
     };
     
-    MKS.LonToX_z21 = function(lon)
+    var _LonToX_z21 = function(lon)
     {
         return parseInt((lon + 180.0) * 0.002777778 * 536870912.0 + 0.5);
     };
     
+    // unused
+    /*
     MKS.XYZtoLatLon_EPSG3857 = function (x, y, z)
     {
         var w = 256 << z;
@@ -2980,46 +2983,50 @@ var MKS = (function()
         var lon = 360.0 * x;
         return [lat, lon];
     };
+    */
     
+    // unused
+    /*
     MKS.MercXZtoMercXZ = function(x, src_z, dest_z)
     {
         return dest_z > src_z ? x << (dest_z - src_z) : x >>> (src_z - dest_z);
     };
+    */
     
     // Bearing degrees are stored more compactly as an 8-bit signed integer, which loses precision, but
     // they're relatively non-essential and get rounded to 30 degree ticks for rendering markers anyway.
-    MKS.UnpackDegreeValue = function(deg_s08)
+    var _UnpackDegreeValue = function(deg_s08)
     {
         return deg_s08 == -1 ? -1.0 : parseFloat(deg_s08) * 2.8346456692913385826771653543307;
     };
 
     
-    MKS.vcombine_f64 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new Float64Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    MKS.vcombine_f32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new Float32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    MKS.vcombine_u32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new  Uint32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    MKS.vcombine_s32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Int32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    MKS.vcombine_u16 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new  Uint16Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    MKS.vcombine_s16 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Int16Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    MKS.vcombine_u08 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Uint8Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    MKS.vcombine_s08 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new    Int8Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    //MKS.vcombine_f64 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new Float64Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    var _vcombine_f32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new Float32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    var _vcombine_u32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new  Uint32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    var _vcombine_s32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Int32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    //MKS.vcombine_u16 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new  Uint16Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    var _vcombine_s16 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Int16Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    var _vcombine_u08 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Uint8Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    var _vcombine_s08 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new    Int8Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
     
-    MKS.vcopy_f64 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
-    MKS.vcopy_f32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
-    MKS.vcopy_u32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
-    MKS.vcopy_s32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
-    MKS.vcopy_u16 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
-    MKS.vcopy_s16 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
-    MKS.vcopy_u08 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
-    MKS.vcopy_s08 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    //MKS.vcopy_f64 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    //MKS.vcopy_f32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    var _vcopy_u32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    var _vcopy_s32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    //MKS.vcopy_u16 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    //MKS.vcopy_s16 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    //MKS.vcopy_u08 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    var _vcopy_s08 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
     
-    MKS.vcopy_convert = function(d,od,s,os,n) { for(var i=od;i<od+n;i++)d[i]=s[os++]; };
+    //MKS.vcopy_convert = function(d,od,s,os,n) { for(var i=od;i<od+n;i++)d[i]=s[os++]; };
 
     // id[x]s are used as indices into [s]rc and written to [d]est.
-    MKS.vindex_f32 = function(s,x,d,n) { var i,m=n-(n%4);for(i=0;i<m;i+=4){d[i]=s[parseInt(x[i])];d[i+1]=s[parseInt(x[i+1])];d[i+2]=s[parseInt(x[i+2])];d[i+3]=s[parseInt(x[i+3])];}for(i=m;i<m+n%4;i++)d[i]=s[parseInt(x[i])]; };
-    MKS.vindex_u32 = function(s,x,d,n) { var i,m=n-(n%4);for(i=0;i<m;i+=4){d[i]=s[x[i]];d[i+1]=s[x[i+1]];d[i+2]=s[x[i+2]];d[i+3]=s[x[i+3]];}for(i=m;i<m+n%4;i++)d[i]=s[x[i]]; };
+    //MKS.vindex_f32 = function(s,x,d,n) { var i,m=n-(n%4);for(i=0;i<m;i+=4){d[i]=s[parseInt(x[i])];d[i+1]=s[parseInt(x[i+1])];d[i+2]=s[parseInt(x[i+2])];d[i+3]=s[parseInt(x[i+3])];}for(i=m;i<m+n%4;i++)d[i]=s[parseInt(x[i])]; };
+    //MKS.vindex_u32 = function(s,x,d,n) { var i,m=n-(n%4);for(i=0;i<m;i+=4){d[i]=s[x[i]];d[i+1]=s[x[i+1]];d[i+2]=s[x[i+2]];d[i+3]=s[x[i+3]];}for(i=m;i<m+n%4;i++)d[i]=s[x[i]]; };
     
-    MKS.vsmul      = function(s,x,d,n) { var i,m=n-(n%4);for(i=0;i<m;i+=4){d[i]=s[i]*x;d[i+1]=s[i+1]*x;d[i+2]=s[i+2]*x;d[i+3]=s[i+3]*x;}for(i=m;i<m+n%4;i++)d[i]=s[i]*x; };
-    MKS.vfill      = function(x,d,o,n) { var i,m=(o+n)-((o+n)%4);for(i=o;i<m;i+=4){d[i]=x;d[i+1]=x;d[i+2]=x;d[i+3]=x;}for(i=m;i<m+n%4;i++)d[i]=x; };
+    var _vsmul = function(s,x,d,n) { var i,m=n-(n%4);for(i=0;i<m;i+=4){d[i]=s[i]*x;d[i+1]=s[i+1]*x;d[i+2]=s[i+2]*x;d[i+3]=s[i+3]*x;}for(i=m;i<m+n%4;i++)d[i]=s[i]*x; };
+    var _vfill = function(x,d,o,n) { var i,m=(o+n)-((o+n)%4);for(i=o;i<m;i+=4){d[i]=x;d[i+1]=x;d[i+2]=x;d[i+3]=x;}for(i=m;i<m+n%4;i++)d[i]=x; };
 
     return MKS;
 })();

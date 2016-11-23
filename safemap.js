@@ -6,7 +6,7 @@
 // See http://creativecommons.org/publicdomain/zero/1.0/
 // ----------------------------------------------------------------
 //
-// Modifications - 2014, 2015 - Nick Dolezal
+// Modifications - 2014, 2015, 2016 - Nick Dolezal
 
 // safemap.js is the primary code-behind for the Safecast webmap and loads all other components
 // asynchronously as needed.
@@ -2091,6 +2091,11 @@ var FlyToExtentProxy = (function()
         if (this._IsReady()) this._flyToExtent.GoToPresetLocationIdIfNeeded(locId);
     };
     
+    FlyToExtentProxy.prototype.GoToLocationWithTextIfNeeded = function(x0, y0, x1, y1, z_min, z_max, loc_text)
+    {
+        if (this._IsReady()) this._flyToExtent.GoToLocationWithTextIfNeeded(x0, y0, x1, y1, z_min, z_max, loc_text);
+    };
+
     FlyToExtentProxy.prototype.ShowLocationText = function(txt)
     {
         if (this._IsReady()) this._flyToExtent.ShowLocationText(txt);
@@ -3809,6 +3814,30 @@ var MenuHelper = (function()
                 ElGet("chkMenuAreas" + pid).checked = !s;
                 
                 PrefHelper.SetAreaXEnabledPref(pid, !s);
+                
+                var ps = _mapPolysProxy._mapPolys.polygons;
+                var ex = null;
+                var txt = null;
+                
+                for (var i=0; i<ps.length; i++)
+                {
+                    if (ps[i].ext_poly_id == pid)
+                    {
+                        txt = _mapPolysProxy.GetLocalizedPolyValue(ps[i], "ext_poly_desc")[0];
+                        ex = ps[i].ext_poly_extent != null ? ps[i].ext_poly_extent 
+                                                           : { x0:ps[i].getPosition().lng() - 0.01, 
+                                                               y0:ps[i].getPosition().lat() - 0.01,
+                                                               x1:ps[i].getPosition().lng() + 0.01, 
+                                                               y1:ps[i].getPosition().lat() + 0.01 };
+                        break;
+                    }
+
+                }//for
+                
+                if (ex != null)
+                {
+                    _flyToExtentProxy.GoToLocationWithTextIfNeeded(ex.x0, ex.y0, ex.x1, ex.y1, 10, 21, txt);
+                }//if
             }.bind(div0), false);
         }//for
     };

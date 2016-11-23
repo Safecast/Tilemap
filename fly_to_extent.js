@@ -13,25 +13,26 @@ var FlyToExtent = (function()
         this._locationText     = new LocationText();
         this.mapref            = mapref;
         this.fxUpdateMapExtent = fxUpdateMapExtent;
+        this._inFlight         = false;
     }
-    
+
     //FlyToExtent.MapRef             = window.map;
     //FlyToExtent.fxShowLocationText = function(txt) { ShowLocationText(txt); };
     //FlyToExtent.fxUpdateMapExtent  = function()    { MapExtent_OnChange(0); MapExtent_OnChange(1); };
     
     //FlyToExtent.GoToPresetLocationIdIfNeeded(idx); };
-    
+
     FlyToExtent.prototype.ShowLocationText = function(txt)
     {
         this._locationText.ShowLocationText(txt);
     };
-    
+
     FlyToExtent.prototype.GoToPresetLocationIdIfNeeded = function(locId)
     {
         var p = _GetExtentForLocId(locId);    
         if (p != null) this.GoToLocationWithTextIfNeeded(p[0], p[1], p[2], p[3], p[4], p[5], p[6])
     };
-    
+
     FlyToExtent.prototype.GetNormalizedMapCentroid = function()
     {
         var centroid = this.mapref.getCenter();
@@ -42,7 +43,7 @@ var FlyToExtent = (function()
     
         return { y:clat, x:clon };
     };
-    
+
     FlyToExtent.prototype.GetCurrentVisibleExtent = function()
     {
         var b   = this.mapref.getBounds();
@@ -63,7 +64,7 @@ var FlyToExtent = (function()
         
         return [x0, y0, x1, y1, ex0, ex1, z];
     };
-    
+
     FlyToExtent.prototype.GoToLocationWithTextIfNeeded = function(x0, y0, x1, y1, min_z, z, txt)
     {
         // first, don't bother if the user is already looking at it.
@@ -85,9 +86,10 @@ var FlyToExtent = (function()
             }//if
         }//if
     
-        if (already_in || !("requestAnimationFrame" in window)) return;
+        if (already_in || this._inFlight || !("requestAnimationFrame" in window)) return;
 
         // but if they aren't looking at it, then fly to it.
+        this._inFlight = true;
 
         var yxz   = _GetRegionForExtentAndClientView_EPSG4326(x0, y0, x1, y1);
         var stops = new Array();
@@ -192,6 +194,12 @@ var FlyToExtent = (function()
         {
             stops.push( { x:(dest_x-net_x), y:(dest_y-net_y), z:null, t:1 } );
         }//if
+
+
+
+        var lat = y0 + (y1 - y0) * 0.5;
+        var lon = x0 + (x1 - x0) * 0.5;
+        var  sm = x1 - x0 < 1.0 && y1 - y0 < 1.0;
     
         // 3. now finally zoom in
         if (zoom_out_dest < yxz[1])
@@ -199,29 +207,43 @@ var FlyToExtent = (function()
             for (var dz = zoom_out_dest + 1; dz <= yxz[1]; dz++)
             {
                 stops.push( { x:null, y:null, z:dz, t:50 } );
+                if (sm) stops.push( { x:lon,  y:lat,  z:-1, t:1  } ); // 2016-11-23 ND: correct centroid during zoom, or it will be wrong for small dests.
             }//for
         }//if
+        
+        //console.log("FlyToExtent: Flight plan for lat=%1.6f, lon=%1.6f or (%d, %d) - (%d, %d):", lat, lon, src_x, src_y, dest_x, dest_y);
+        //console.log(stops);
     
-        this.ProcessFlyToStops(stops, txt, 0);
+        this.ProcessFlyToStops(stops, txt, 0, lat, lon);
     };
-    
-    
-    FlyToExtent.prototype.ProcessFlyToStops = function(stops, txt, start_idx)
+
+
+    FlyToExtent.prototype.ProcessFlyToStops = function(stops, txt, start_idx, lat, lon)
     {
         if (start_idx == stops.length)  // end of flight
         {
+            setTimeout(function() // fix for weird fractional zoom level bug in Gmaps
+            {
+                map.panBy(1,1);
+            }.bind(this), 100);
+        
             setTimeout(function() 
             {
-                this.ShowLocationText(txt);
+                if (txt != null && txt.length > 0)
+                {
+                    this.ShowLocationText(txt);
+                }//if
+
                 this.fxUpdateMapExtent();
+                this._inFlight = false;
             }.bind(this), 500);
-        
+
             return;
         }//if
     
         var stop = stops[start_idx];
     
-        if (stop.z != null && start_idx > 0 && stops[start_idx-1].x != null) // short delay at end of panning for animation lag
+        if (stop.z != null && stop.z >=0 && start_idx > 0 && stops[start_idx-1].x != null) // short delay at end of panning for animation lag
         {
             setTimeout(function() 
             {
@@ -229,22 +251,26 @@ var FlyToExtent = (function()
                 {
                     this.mapref.setZoom(stop.z);
                     if (stop.x != null) this.mapref.panBy(stop.x, stop.y);
-                    setTimeout(function() { this.ProcessFlyToStops(stops, txt, start_idx+1); }.bind(this), stop.t);
+                    setTimeout(function() { this.ProcessFlyToStops(stops, txt, start_idx+1, lat, lon); }.bind(this), stop.t);
                 }.bind(this));
             }.bind(this), 100);
         }//if
-        else if (stop.z != null)
+        else if (stop.z != null && stop.z >= 0)
         {
             requestAnimationFrame(function() 
             {
                 this.mapref.setZoom(stop.z);
                 if (stop.x != null) this.mapref.panBy(stop.x, stop.y); // shouldn't happen at the moment
-                setTimeout(function() { this.ProcessFlyToStops(stops, txt, start_idx+1); }.bind(this), stop.t);
+                setTimeout(function() { this.ProcessFlyToStops(stops, txt, start_idx+1, lat, lon); }.bind(this), stop.t);
             }.bind(this));
         }//if
+        else if (stop.z != null && stop.z == -1)
+        {
+            requestAnimationFrame(function() { this.mapref.panTo(new google.maps.LatLng(stop.y, stop.x)); this.ProcessFlyToStops(stops, txt, start_idx+1, lat, lon); }.bind(this));
+        }//else if
         else
         {   
-            requestAnimationFrame(function() { this.mapref.panBy(stop.x, stop.y); this.ProcessFlyToStops(stops, txt, start_idx+1); }.bind(this));
+            requestAnimationFrame(function() { this.mapref.panBy(stop.x, stop.y); this.ProcessFlyToStops(stops, txt, start_idx+1, lat, lon); }.bind(this));
         }//else
     };
     
