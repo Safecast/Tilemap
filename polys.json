@@ -640,7 +640,7 @@
     },
     {
         "poly_id":42,
-         "author": [ { "k":"en", "v":"Lubomír Gryc, Jan Helebrant<br/>TL: N/A" },
+         "author": [ { "k":"en", "v":"Lubomír Gryc and Jan Helebrant<br/>TL: N/A" },
                      { "k":"ja", "v":"Lubomír Gryc, Jan Helebrant<br/>翻訳: なし" } ],
            "date":"2015-11-17T02:32:21Z",
            "desc": [ { "k":"en", "v":"bGeigie Aero"  },
