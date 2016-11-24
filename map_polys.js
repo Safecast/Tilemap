@@ -305,10 +305,10 @@ var MapPolys = (function()
 
         d += "<tr>"
           +     "<td style='text-align:center; font-size:10px; color:#AAA; padding-top:4px;'>" 
-          +         this._GetLocalizedRevisionHeader()
-          +         " "
-          +         poly.ext_poly_ver
-          +         ", "
+          //+         this._GetLocalizedRevisionHeader()
+          //+         " "
+          //+         poly.ext_poly_ver
+          //+         ", "
           +         _GetFormattedDateStringForIsoString(poly.ext_poly_date)
           +     "</td>"
           +  "</tr>";
@@ -455,7 +455,6 @@ var MapPolys = (function()
         m.ext_poly_atts   = ep.atts;
         m.ext_poly_more   = ep.more;
         m.ext_poly_author = ep.author;
-        m.ext_poly_ver    = ep.ver;
         m.ext_poly_date   = ep.date;
         m.ext_poly_imgs   = ep.imgs;
         m.ext_poly_icon_w = ep.icon.w;
@@ -481,7 +480,6 @@ var MapPolys = (function()
                                          ext_poly_atts:ep.atts,
                                          ext_poly_more:ep.more,
                                        ext_poly_author:ep.author,
-                                          ext_poly_ver:ep.ver,
                                          ext_poly_date:ep.date,
                                          ext_poly_imgs:ep.imgs,
                                        ext_poly_extent:_GetExtentForPath(gmaps_path)
