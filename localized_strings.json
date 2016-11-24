@@ -71,14 +71,13 @@
         "MENU_REALTIME_TITLE":"Realtime",
         "MENU_REALTIME_0_LABEL":"Radiation Sensors",
         "MENU_AREAS_TITLE":"Areas",
-        "MENU_AREAS_0_LABEL":"Fukushima Zone",
+        "MENU_SAFECASTING_TITLE":"Safecasting",
         "MENU_LANGUAGE_CHANGE_TEXT":"Note: The new language setting will not be applied to the Google Maps labels until this page is reloaded.",
         "INFOWINDOW_REFERENCES":"References",
         "INFOWINDOW_AUTHOR_BY":"By",
         "INFOWINDOW_COAUTHOR_BY":"With",
         "INFOWINDOW_TL_BY":"TL",
-        "INFOWINDOW_FULL_ARTICLE":"Full Article",
-        "INFOWINDOW_REVISION":"Revision"
+        "INFOWINDOW_FULL_ARTICLE":"Full Article"
     },
     {
         "lang":"ja",
@@ -152,13 +151,12 @@
         "MENU_REALTIME_TITLE":"リアルタイム",
         "MENU_REALTIME_0_LABEL":"放射線センサー",
         "MENU_AREAS_TITLE":"区域",
-        "MENU_AREAS_0_LABEL":"福島の帰還困難区域",
+        "MENU_SAFECASTING_TITLE":"セーフキャスティング",
         "MENU_LANGUAGE_CHANGE_TEXT":"注記：このページがリロードされるまで、新しい言語設定は、Googleマップのラベルには適用されません。",
         "INFOWINDOW_REFERENCES":"帰属",
         "INFOWINDOW_AUTHOR_BY":"著者",
         "INFOWINDOW_COAUTHOR_BY":"共著",
         "INFOWINDOW_TL_BY":"翻訳",
-        "INFOWINDOW_FULL_ARTICLE":"全記事",
-        "INFOWINDOW_REVISION":"版数"
+        "INFOWINDOW_FULL_ARTICLE":"全記事"
     }
 ]

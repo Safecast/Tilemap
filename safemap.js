@@ -4074,7 +4074,8 @@ var MenuHelper = (function()
                 var sp = null;
                 for (var j=0; j<sps.length; j++)
                 {
-                    if (sps[j].className.indexOf("tooltiptext-bottom") > -1)
+                    if (   sps[j].className.indexOf("tooltiptext-bottom") > -1
+                        || sps[j].className.indexOf("tooltiptext-top")    > -1)
                     {
                         sp = sps[j];
                         break;
@@ -4337,7 +4338,7 @@ var MenuHelper = (function()
         ElGet("lblMenuZoomButtons").innerHTML    = s.MENU_ZOOM_BUTTONS_LABEL;
         ElGet("lblMenuTileShadow").innerHTML     = s.MENU_TILE_SHADOW_LABEL;
         ElGet("lblMenuTooltips").innerHTML       = s.MENU_TOOLTIPS_LABEL;
-        ElGet("menu_apiquery").innerHTML         = s.MENU_API_QUERY_CENTER_LABEL;
+        ElGet("lblMenuApiQuery").innerHTML       = s.MENU_API_QUERY_CENTER_LABEL;
         ElGet("lblMenuRealtimeTitle").innerHTML  = s.MENU_REALTIME_TITLE;
         ElGet("menu_realtime_0_label").innerHTML = s.MENU_REALTIME_0_LABEL;
         ElGet("lblMenuAreasTitle").innerHTML     = s.MENU_AREAS_TITLE;

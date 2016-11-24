@@ -45,7 +45,8 @@ var MapPolys = (function()
     {
         return _PolysDoesExistPoly(poly_id, this.polygons);
     };
-    
+
+
     MapPolys.prototype.GetEncodedPolygons = function()
     {
         return this.encoded_polygons;
@@ -58,6 +59,69 @@ var MapPolys = (function()
         {
             this._OpenRetainedInfoWindow(e, poly);
         }.bind(this));
+    };
+
+
+    MapPolys.prototype.RemoveAllMarkers = function()
+    {
+        var t = new Array();
+        
+        for (var i=0; i<this.polygons.length; i++)
+        {
+            if (this.polygons[i].ext_poly_icon_w != null)
+            {
+                t.push(this.polygons[i].ext_poly_id);
+            }//if
+        }//for
+        
+        for (var i=0; i<t.length; i++)
+        {
+            this.Remove(t[i]);
+        }//for
+    };
+
+
+    MapPolys.prototype.AddAllMarkers = function()
+    {
+        for (var i=0; i<this.encoded_polygons.length; i++)
+        {
+            if (this.encoded_polygons[i].path == null)
+            {
+                this.add(this.encoded_polygons[i].poly_id);
+            }//if
+        }//for
+    };
+
+
+    MapPolys.prototype.GetAllMarkersCount = function()
+    {
+        var n = 0;
+
+        for (var i=0; i<this.encoded_polygons.length; i++)
+        {
+            if (this.encoded_polygons[i].path == null)
+            {
+                n++;
+            }//if
+        }//for
+
+        return n;
+    };
+
+
+    MapPolys.prototype.GetCurrentMarkersCount = function()
+    {
+        var n = 0;
+
+        for (var i=0; i<this.polygons.length; i++)
+        {
+            if (this.polygons[i].ext_poly_icon_w != null)
+            {
+                n++;
+            }//if
+        }//for
+
+        return n;
     };
 
 
