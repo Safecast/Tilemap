@@ -52,7 +52,6 @@ Fundamentally, three things are being defined with polys.js for each item:
     {
         "poly_id":1,
          "author":"Bob the Christmas Llama",
-            "ver":"1",
            "date":"2016-11-08T22:02:00Z",
            "desc":"Anomaly #1",
            "info":"This is an example marker for a radiological anomaly.",
@@ -73,7 +72,6 @@ Fundamentally, three things are being defined with polys.js for each item:
         "poly_id":0,
          "author": [ { "k":"en", "v":"Azby Brown"      },
                      { "k":"ja", "v":"アズビー・ブラウン" } ],
-            "ver":"2",
            "date":"2016-11-08T22:02:00Z",
            "desc": [ { "k":"en", "v":"Fukushima Zone"  },
                      { "k":"ja", "v":"福島の帰還困難区域" } ],
@@ -102,8 +100,7 @@ Fundamentally, three things are being defined with polys.js for each item:
 
 * `poly_id` - INT.  A unique identifier for each feature.  `poly_id` should never be reused, as it becomes associated with a user preference for enabling/disabling the feature with that `poly_id`.  Again, this must be unique, or things will break.
 * `author` - STRING, KV-ARRAY.  The author(s) of the feature.
-* `ver` - STRING.  The revision of the feature and/or metadata.
-* `date` - STRING.  The ISO date (UTC) for the last revision.
+* `date` - STRING.  The ISO date (UTC) displayed in the info window.
  * To get this manually, enter `(new Date()).toISOString();` into your browser's console.
 * `desc` - STRING, KV-ARRAY. The title of the feature, used for both the info window **and the menu**.  This should be very terse, as a long title will wrap and make the menu look bad.  Use `&quot;` instead of double-quotes (`"`), and `&gt;` instead of `>` and `&lt;` instead of `<` to prevent HTML.
 * `info` - STRING, KV-ARRAY. Info window content for the feature, if the user clicks on it.  This should ideally be a few sentences at most.  Do *not* escape double-quotes (`"`), use `&quot;` instead.  Use of arbitrary HTML is possible, but not recommended.  Use single quotes, rather than double, if you must use embedded HTML.
