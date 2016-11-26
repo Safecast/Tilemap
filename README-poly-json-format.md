@@ -16,7 +16,7 @@ polys.json was created to allow greater customization of the map by more individ
 
 ## Usage
 
-Edit polys.json and submit a pull request.  Please test it locally first, via JSON.parse() etc.
+Edit `polys.json` and submit a pull request.  Of course, before that, please verify any JSON edits via [JSONLint](http://jsonlint.com/) or similar.
 
 You should be able to just copy and paste one of the existing items as a template and not have to read anything here.  But this document is provided for reference nonetheless.
 
@@ -24,11 +24,72 @@ You should be able to just copy and paste one of the existing items as a templat
 
 ## Overview
 
-Fundamentally, three things are being defined with polys.js for each item:
+At a high level, `polys.json` defines the following structure:
 
-1. Location - Where the feature is on the map.
-2. Styles - How it should be displayed on the map.
-3. Metadata - What content should be in the infowindow when the user clicks on it.
+1. Group Definions
+2. Features (content)
+ 1. Location - Where the feature is on the map.
+ 2. Styles - How it should be displayed on the map.
+ 3. Metadata - What content should be in the infowindow when the user clicks on it.
+
+More specifically in terms of JSON:
+
+```
+{
+     "groups":[],
+      "polys":[]
+}
+```
+
+Thus, in the above:  
+
+ * `groups` is an array of one or more group objects.
+ * `polys` is an array of one or more feature objects.
+
+
+
+## Groups
+
+Group definitions are used by the UI to provide user controls in the menu for the features.  Currently, features can be controlled individually, or as a group.
+
+* group's `parent_id`?
+ * `null`: Full menu section created.  All features set to this group's `group_id` are listed individually.
+ * `INT`: Group menu item created under the parent.  No feature set to this group's `group_id` will be listed.  Instead, all features are turned on or off by clicking on the group switch.
+
+Example group defs:  
+```
+"groups":
+[
+    {
+        "group_id":0,
+       "parent_id":null,
+            "desc": [ { "k":"en", "v":"Areas" },
+                      { "k":"ja", "v":"区域"   } ]
+    },
+    {
+        "group_id":1,
+       "parent_id":null,
+            "desc": [ { "k":"en", "v":"Interest"   },
+                      { "k":"ja", "v":"興味がある点" } ]
+    },
+    {
+        "group_id":2,
+       "parent_id":1,
+            "desc": [ { "k":"en", "v":"Safecasting"      },
+                      { "k":"ja", "v":"セーフキャスティング" } ]
+    }
+],
+```
+
+Assuming the example features later in this document, the above menu defs will create the following menu:
+
+```
+AREAS
+ - Fukushima Zone [ON/OFF]
+
+INTEREST
+ - Safecasting [ON/OFF]
+```
 
 
 
@@ -51,6 +112,7 @@ Fundamentally, three things are being defined with polys.js for each item:
 [
     {
         "poly_id":1,
+       "group_id":2,
          "author":"Bob the Christmas Llama",
            "date":"2016-11-08T22:02:00Z",
            "desc":"Anomaly #1",
@@ -70,6 +132,7 @@ Fundamentally, three things are being defined with polys.js for each item:
 [
     { 
         "poly_id":0,
+       "group_id":0,
          "author": [ { "k":"en", "v":"Azby Brown"      },
                      { "k":"ja", "v":"アズビー・ブラウン" } ],
            "date":"2016-11-08T22:02:00Z",
@@ -99,6 +162,7 @@ Fundamentally, three things are being defined with polys.js for each item:
 ## Field Descriptions
 
 * `poly_id` - INT.  A unique identifier for each feature.  `poly_id` should never be reused, as it becomes associated with a user preference for enabling/disabling the feature with that `poly_id`.  Again, this must be unique, or things will break.
+* `group_id` - INT. A reference to a `group_id` defined in the `groups` section of `polys.json`.  This controls how the feature will appear to the user on the UI menu.  
 * `author` - STRING, KV-ARRAY.  The author(s) of the feature.
 * `date` - STRING.  The ISO date (UTC) displayed in the info window.
  * To get this manually, enter `(new Date()).toISOString();` into your browser's console.
