@@ -457,8 +457,8 @@ var MapPolys = (function()
                 
                 if (obj != null)
                 {
-                    this.groups           = _GetGroupsFilteredByEncodedPolyUse(obj[0], obj[1]);
-                    this.encoded_polygons = obj[1];
+                    this.groups           = _GetGroupsFilteredByEncodedPolyUse(obj.groups, obj.polys);
+                    this.encoded_polygons = obj.polys;
 
                     this.fxMenuInit(this.groups, this.encoded_polygons);
                     
