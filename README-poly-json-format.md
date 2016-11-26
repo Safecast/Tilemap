@@ -48,7 +48,7 @@ Thus, in the above:
 
 
 
-## Groups
+## Groups > Summary
 
 Group definitions are used by the UI to provide user controls in the menu for the features.  Currently, features can be controlled individually, or as a group.
 
@@ -56,7 +56,7 @@ Group definitions are used by the UI to provide user controls in the menu for th
  * `null`: Full menu section created.  All features set to this group's `group_id` are listed individually.
  * `INT`: Group menu item created under the parent.  No feature set to this group's `group_id` will be listed.  Instead, all features are turned on or off by clicking on the group switch.
 
-Example group defs:  
+## Groups > Example Defs  
 ```
 "groups":
 [
@@ -81,6 +81,14 @@ Example group defs:
 ],
 ```
 
+## Groups > Field Descriptions
+
+* `group_id` - INT.  A unique identifier for each group.  `group_id` should never be reused, as it becomes associated with a user preference for enabling/disabling features with that `group_id`.  This must be unique, or things will break.
+* `parent_id` - INT, NULL. A reference to another `group_id` that this group will be displayed as a child of in the menu. Or, set to null if the group is a root-level node that should define a section.
+* `desc` - STRING, KV-ARRAY. The title of the group displayed on the menu.  This should be very terse, as a long title will wrap and make the menu look bad.  Use `&quot;` instead of double-quotes (`"`), and `&gt;` instead of `>` and `&lt;` instead of `<` to prevent HTML.
+
+## Groups > Example Menu Created From Group Defs
+
 Assuming the example features later in this document, the above menu defs will create the following menu:
 
 ```
@@ -93,7 +101,7 @@ INTEREST
 
 
 
-## Supported Feature Types
+## Features > Supported Feature Types
 
 1. Polygons
  * Unique field: `path`
@@ -104,7 +112,7 @@ INTEREST
  
  
  
-## Simple Example - Point
+## Features > Simple Example - Point
 
 **ATTENTION!**  This is a simplified example only.  I would reject this pull request because it does not contain a Japanese localization.
 
@@ -126,7 +134,7 @@ INTEREST
 ]
 ```
 
-## More Complex Example - Polygon
+## Features > More Complex Example - Polygon
 
 ```
 [
@@ -159,7 +167,7 @@ INTEREST
 
 
 
-## Field Descriptions
+## Features > Field Descriptions
 
 * `poly_id` - INT.  A unique identifier for each feature.  `poly_id` should never be reused, as it becomes associated with a user preference for enabling/disabling the feature with that `poly_id`.  Again, this must be unique, or things will break.
 * `group_id` - INT. A reference to a `group_id` defined in the `groups` section of `polys.json`.  This controls how the feature will appear to the user on the UI menu.  
@@ -192,7 +200,7 @@ INTEREST
 
 
 
-## Object Definitions
+## Features > Object Definitions
 
 The format for many fields in polys.json is quite flexible, and it will autodetect if a string or array is present.
 
@@ -215,7 +223,7 @@ These are shown in specific detail below.
 
 
 
-## `author` Value Types
+## Features > `author` Value Types
 
 ####1. Basic
 ```
@@ -230,7 +238,7 @@ These are shown in specific detail below.
 
 
 
-## `desc` Value Types
+## Features > `desc` Value Types
 
 ####1. Basic
 ```
@@ -245,7 +253,7 @@ These are shown in specific detail below.
 
 
 
-## `info` Value Types
+## Features > `info` Value Types
 
 ####1. Basic
 ```
@@ -260,7 +268,7 @@ These are shown in specific detail below.
 
 
 
-## `more` Value Types
+## Features > `more` Value Types
 
 ####1. Localized
 ```
@@ -270,7 +278,7 @@ These are shown in specific detail below.
 
 
 
-## `atts` Value Types
+## Features > `atts` Value Types
 
 ####1. Localized
 ```
@@ -280,7 +288,7 @@ These are shown in specific detail below.
 
 
 
-## `imgs` Value Types
+## Features > `imgs` Value Types
 
 The `imgs` field is the most flexible and complex, supporting several different value formats, and allowing for multiple images.
 
