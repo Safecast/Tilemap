@@ -50,7 +50,7 @@ Thus, in the above:
 
 ## Groups > Summary
 
-Group definitions are used by the UI to provide user controls in the menu for the features.  Currently, features can be controlled individually, or as a group.
+Group definitions are used by the UI to provide user controls in the menu for the features.  Currently, features can be controlled individually, or as a group.  Thus:
 
 * group's `parent_id`?
  * `null`: Full menu section created.  All features set to this group's `group_id` are listed individually.
