@@ -285,8 +285,9 @@ function initialize()
     MenuHelper.Init(); // contains its own delayed loads; should be at end of initialize()
     
     setTimeout(function() {
-        var rp = function(eps) { MenuHelper.RegisterPolys(eps); };
-        var gl = function()    { return PrefHelper.GetEffectiveLanguagePref(); };
+        //var rp = function(eps) { MenuHelper.RegisterPolys(eps); };
+        var rp = function(gs,eps) { MenuHelper.RegisterGroupsAndPolys(gs,eps);    };
+        var gl = function()       { return PrefHelper.GetEffectiveLanguagePref(); };
         _mapPolysProxy.Init(map, rp, gl); // must occur after "map" ivar is set
     }, 1000);
 }//initialize
@@ -2006,7 +2007,17 @@ var MapPolysProxy = (function()
 
     MapPolysProxy.prototype.GetEncodedPolygons = function()
     {
-        return this._IsReady() ? this._mapPolys.GetEncodedPolygons() : null;
+        return this._IsReady() ? this._mapPolys.GetEncodedPolygons() : new Array();
+    };
+
+    MapPolysProxy.prototype.GetGroups = function()
+    {
+        return this._IsReady() ? this._mapPolys.GetGroups() : new Array();
+    };
+    
+    MapPolysProxy.prototype.GetPolygons = function()
+    {
+        return this._IsReady() ? this._mapPolys.GetPolygons() : new Array();
     };
 
     MapPolysProxy.prototype._LoadAsync = function(mapref, fxMenuInit, fxGetLangPref)
@@ -3739,11 +3750,24 @@ var MenuHelper = (function()
     function MenuHelper()
     {
     }
-    
-    var _RebindMenuLabels = function(eps)
+
+
+    var _RebindGroupLabels = function(gs)
     {
-        if (eps == null) { return; }
-    
+        for (var i=0; i<gs.length; i++)
+        {
+            var el = gs[i].parent_id == null ? ElGet("lblMenuAreaGroups" + gs[i].group_id + "Title")
+                                             : ElGet("menu_area_groups_" + gs[i].group_id + "_label");
+            if (el != null)
+            {
+                el.innerHTML = _mapPolysProxy.GetLocalizedPolyValue(gs[i], "desc")[0];
+            }//if
+        }//for
+    };
+
+
+    var _RebindPolyLabels = function(eps)
+    {
         for (var i=0; i<eps.length; i++)
         {
             var span0 = ElGet("menu_areas_" + eps[i].poly_id + "_label");
@@ -3754,7 +3778,306 @@ var MenuHelper = (function()
             }//if
         }//for
     };
-    
+
+
+    var _GetDynamicAreaSectionIds = function()
+    {
+        var gs = _mapPolysProxy.GetGroups();
+        var  d = new Array();
+
+        for (var i=0; i<gs.length; i++)
+        {
+            if (gs[i].parent_id == null)
+            {
+                var base_name    = "area_groups_" + gs[i].group_id;
+                var cc_base_name = PrefHelper.UnderscoresToCamelCase(base_name);
+                d.push("sectionMenu" + cc_base_name);
+            }//if
+        }//for
+
+        return d;
+    };
+
+
+    var _CreateSection = function(base_name, label_txt, insert_before_node_id, is_layer_pseudochild)
+    {
+        var sec = ElCr("section");
+        var h3  = ElCr("h3");
+        var span = ElCr("span");
+        var div = ElCr("div");
+        var ul = ElCr("ul");
+
+        var cc_base_name = PrefHelper.UnderscoresToCamelCase(base_name);
+
+        sec.className = "menu-section";
+        sec.id = "sectionMenu" + cc_base_name;
+        h3.className = "menu-section-title";
+        span.className = "btn_accordion";
+        span.id = "lblMenu" + cc_base_name + "Title";
+        span.innerHTML = label_txt;
+        div.className = "div_accordion";
+        ul.className = "menu-section-list";
+        ul.id = "ul_menu_" + base_name;
+
+        sec.appendChild(h3);
+        h3.appendChild(span);
+        sec.appendChild(div);
+        div.appendChild(ul);
+
+        var muh_ibn = ElGet(insert_before_node_id);
+
+        muh_ibn.parentNode.insertBefore(sec, muh_ibn);
+        
+        // <init expand>
+        /*
+        span.setAttribute("value", "" + base_name);
+        span.addEventListener("click", function()
+        {
+            var el = 
+            var v = this.getAttribute("value");
+            PrefHelper.SetExpandedXPref(v, !this.classList.contains("active"));
+        }.bind(span), false);
+        
+        if (PrefHelper.GetExpandedXPref(base_name))
+        {
+            span.classList.toggle("active");
+            span.parentElement.nextElementSibling.classList.toggle("show");
+        }//if
+        */
+        // </init expand>
+        
+        _InitExpandWithBaseName("lblMenu" + cc_base_name + "Title", base_name, PrefHelper.GetExpandedXPref, PrefHelper.SetExpandedXPref);
+
+        if (is_layer_pseudochild)
+        {
+            _InitLayers_ApplyVisibilityStylesToSectionsById(["sectionMenu" + cc_base_name]);
+        }//if
+    };
+
+
+    var _CreateItemWithSwitch = function(base_name, div_value, label_txt, ul_id, is_checked, fx_chk_changed)
+    {
+        var ul = ElGet(ul_id);
+
+        if (ul_id == null)
+        {
+            console.log("MenuHelper._CreateItemWithSwitch: bad ul_id=[%s], aborted.", ul_id);
+            return;
+        }//if
+
+        var base_name_cc = PrefHelper.UnderscoresToCamelCase(base_name);
+
+        var li   = ElCr("li");
+        var div0 = ElCr("div");
+        var span0 = ElCr("span");
+        var div1 = ElCr("div");
+        var chk = ElCr("input");
+        var div2 = ElCr("div");
+        var div3 = ElCr("div");
+
+        div0.id = "menu_" + base_name;
+        div0.className = "menu-prefs-chk-item";
+        div0.setAttribute("value", "" + div_value);
+        span0.id = "menu_" + base_name + "_label";
+        span0.innerHTML = label_txt;
+        chk.id = "chkMenu" + base_name_cc;
+        chk.type = "checkbox";
+        chk.className = "ios-switch scgreen bigswitch";
+        chk.checked = is_checked;
+
+        li.appendChild(div0);
+        div0.appendChild(span0);
+        div0.appendChild(div1);
+        div1.appendChild(chk);
+        div1.appendChild(div2);
+        div2.appendChild(div3);
+        ul.appendChild(li);
+
+        div0.addEventListener("click", function() 
+        {
+            var v = parseInt(this.getAttribute("value"));
+            fx_chk_changed(v); 
+        }.bind(div0), false);
+    };
+
+
+    var _RegisterGroupAsSection = function(group)
+    {
+        var base_name = "area_groups_" + group.group_id;
+        var txt = _mapPolysProxy.GetLocalizedPolyValue(group, "desc")[0];
+
+        _CreateSection(base_name, txt, "muh_insert_before_menu_layers_node", true);
+    };
+
+
+    var _RegisterGroupAsItem = function(group, ul_id)
+    {
+        var base_name = "area_groups_" + group.group_id;
+        var txt = _mapPolysProxy.GetLocalizedPolyValue(group, "desc")[0];
+        var is_enabled = PrefHelper.GetAreaGroupXEnabledPref(group.group_id);
+
+        var cb = function(gid)
+        {
+            var s = PrefHelper.GetAreaGroupXEnabledPref(gid);
+
+            ElGet("chkMenuAreaGroups" + gid).checked = !s;
+
+            PrefHelper.SetAreaGroupXEnabledPref(gid, !s);
+
+            var eps = _mapPolysProxy.GetEncodedPolygons();
+            var p2s = new Array();
+
+            for (var i=0; i<eps.length; i++)
+            {
+                if (eps[i].group_id == gid
+                    && (   ( s &&  _mapPolysProxy.Exists(eps[i].poly_id))
+                        || (!s && !_mapPolysProxy.Exists(eps[i].poly_id)))
+                   )
+                {
+                    p2s.push(eps[i].poly_id);
+                }//if
+            }//for
+
+            for (var i=0; i<p2s.length; i++)
+            {
+                if (s)
+                {
+                    _mapPolysProxy.Remove(p2s[i]);
+                    PrefHelper.SetAreaXEnabledPref(p2s[i], !s);
+                }//if
+                else
+                {
+                    _mapPolysProxy.Add(p2s[i]);
+                    PrefHelper.SetAreaXEnabledPref(p2s[i], !s);
+                }//else
+            }//for
+        };
+
+        _CreateItemWithSwitch(base_name, group.group_id, txt, ul_id, is_enabled, cb);
+
+        if (is_enabled)
+        {
+            var _eps = _mapPolysProxy.GetEncodedPolygons();
+
+            for (var i=0; i<_eps.length; i++)
+            {
+                if (_eps[i].group_id == group.group_id)
+                {
+                    _mapPolysProxy.Add(_eps[i].poly_id);
+                }//if
+            }//for
+        }//if
+    };
+
+
+    var _RegisterPolyAsItem = function(ep, ul_id)
+    {
+        var base_name = "areas_" + ep.poly_id;
+        var txt = _mapPolysProxy.GetLocalizedPolyValue(ep, "desc")[0];
+        var is_enabled = PrefHelper.GetAreaXEnabledPref(ep.poly_id);
+
+        var cb = function(pid)
+        {
+            var s = _mapPolysProxy.Exists(pid);
+
+            if (s)
+            {
+                _mapPolysProxy.Remove(pid);
+            }//if
+            else
+            {
+                _mapPolysProxy.Add(pid);
+            }//else
+
+            ElGet("chkMenuAreas" + pid).checked = !s;
+
+            PrefHelper.SetAreaXEnabledPref(pid, !s);
+
+            var ps = _mapPolysProxy.GetPolygons();
+            var ex = null;
+            var tx = null;
+            var minz;
+
+            for (var i=0; i<ps.length; i++)
+            {
+                if (ps[i].ext_poly_id == pid)
+                {
+                    tx = _mapPolysProxy.GetLocalizedPolyValue(ps[i], "ext_poly_desc")[0];
+                    ex = ps[i].ext_poly_extent != null ? ps[i].ext_poly_extent 
+                                                       : { x0:ps[i].getPosition().lng() - 0.01, 
+                                                           y0:ps[i].getPosition().lat() - 0.01,
+                                                           x1:ps[i].getPosition().lng() + 0.01, 
+                                                           y1:ps[i].getPosition().lat() + 0.01 };
+                    minz = ps[i].ext_poly_extent != null ? 8 : 10;
+                    break;
+                }//if
+            }//for
+
+            if (ex != null)
+            {
+                _flyToExtentProxy.GoToLocationWithTextIfNeeded(ex.x0, ex.y0, ex.x1, ex.y1, minz, 21, tx);
+            }//if
+        };
+
+        _CreateItemWithSwitch(base_name, ep.poly_id, txt, ul_id, is_enabled, cb);
+
+        if (is_enabled)
+        {
+            _mapPolysProxy.Add(ep.poly_id);
+        }//if
+    };
+
+
+    var _RegisterGroups = function(gs)
+    {
+        // 1. Create all root-level nodes (without parents)
+
+        for (var i=0; i<gs.length; i++)
+        {
+            if (gs[i].parent_id == null)
+            {
+                _RegisterGroupAsSection(gs[i]);
+            }//if
+        }//for
+
+        // 2. Create the rest.  Not recursive at this time.
+
+        for (var i=0; i<gs.length; i++)
+        {
+            if (gs[i].parent_id != null)
+            {
+                _RegisterGroupAsItem(gs[i], "ul_menu_" + "area_groups_" + gs[i].parent_id);
+            }//if
+        }//for
+    };
+
+
+    var _RegisterPolys = function(eps)
+    {
+        for (var i=0; i<eps.length; i++)
+        {
+            var ul_id = "ul_menu_" + "area_groups_" + eps[i].group_id;
+            var ul = ElGet(ul_id);
+
+            // assuming groups are registered first, ul will be null if the group
+            // is an aggregate item, thus the poly menu item will not be bound
+            // individually (as intended)
+
+            if (ul != null)
+            {
+                _RegisterPolyAsItem(eps[i], ul_id);
+            }//if
+        }//for
+    };
+
+
+    MenuHelper.RegisterGroupsAndPolys = function(gs, eps)
+    {
+        _RegisterGroups(gs);
+        _RegisterPolys(eps);
+    };
+
+    /*
     MenuHelper.RegisterPolys = function(eps)
     {
         var ul = ElGet("ul_menu_areas");
@@ -3841,6 +4164,7 @@ var MenuHelper = (function()
             }.bind(div0), false);
         }//for
     };
+    */
     
     // should only be called after safemap.js is loaded
     //MenuHelper.InitLoadAsync = function()
@@ -3879,6 +4203,42 @@ var MenuHelper = (function()
                 _OpenAnimationHack();
                 slideout.toggle();
             }, 501);
+        }//if
+    };
+
+
+    var _InitExpandWithBaseName = function(el_id, base_name, fxGet, fxSet)
+    {
+        var el = ElGet(el_id);
+
+        el.addEventListener("click", function()
+        {
+            fxSet(base_name, !el.classList.contains("active")); // this event is wired before the one that toggles the state onclick
+            el.classList.toggle("active");
+            el.parentElement.nextElementSibling.classList.toggle("show");
+        }, false);
+
+        if (fxGet(base_name))
+        {
+            el.classList.toggle("active");
+            el.parentElement.nextElementSibling.classList.toggle("show");
+        }//if
+    };
+
+
+    var _InitExpand = function(el_id, fxGet, fxSet)
+    {
+        var el = ElGet(el_id);
+
+        el.addEventListener("click", function()
+        {
+            fxSet(!el.classList.contains("active")); // this event is wired before the one that toggles the state onclick
+        }, false);
+
+        if (fxGet())
+        {
+            el.classList.toggle("active");
+            el.parentElement.nextElementSibling.classList.toggle("show");
         }//if
     };
 
@@ -4134,6 +4494,14 @@ var MenuHelper = (function()
             });
         }//if
 
+        // nb: InitExpand must go before the general btn_accordion wireup.
+        _InitExpand("lblMenuLayersTitle",   PrefHelper.GetExpandedLayersPref,   PrefHelper.SetExpandedLayersPref);
+        _InitExpand("lblMenuLogsTitle",     PrefHelper.GetExpandedLogsPref,     PrefHelper.SetExpandedLogsPref);
+        _InitExpand("lblMenuRealtimeTitle", PrefHelper.GetExpandedRealtimePref, PrefHelper.SetExpandedRealtimePref);
+        //_InitExpand("lblMenuAreasTitle",    PrefHelper.GetExpandedAreasPref,    PrefHelper.SetExpandedAreasPref);
+        _InitExpand("lblMenuBasemapTitle",  PrefHelper.GetExpandedBasemapPref,  PrefHelper.SetExpandedBasemapPref);
+        _InitExpand("lblMenuAdvancedTitle", PrefHelper.GetExpandedAdvancedPref, PrefHelper.SetExpandedAdvancedPref);
+
         var acc = document.getElementsByClassName("btn_accordion");
 
         for (var i = 0; i < acc.length; i++) 
@@ -4341,7 +4709,7 @@ var MenuHelper = (function()
         ElGet("lblMenuApiQuery").innerHTML       = s.MENU_API_QUERY_CENTER_LABEL;
         ElGet("lblMenuRealtimeTitle").innerHTML  = s.MENU_REALTIME_TITLE;
         ElGet("menu_realtime_0_label").innerHTML = s.MENU_REALTIME_0_LABEL;
-        ElGet("lblMenuAreasTitle").innerHTML     = s.MENU_AREAS_TITLE;
+        //ElGet("lblMenuAreasTitle").innerHTML     = s.MENU_AREAS_TITLE;
 
         // layers    
         var a = MenuHelperStub.GetLayerIdxs_All();
@@ -4380,14 +4748,11 @@ var MenuHelper = (function()
         }//for
         
         // areas
-        var eps = _mapPolysProxy.GetEncodedPolygons();
-        if (eps != null)
-        {
-            _RebindMenuLabels(eps);
-        }//if
+        _RebindPolyLabels(_mapPolysProxy.GetEncodedPolygons());
+        _RebindGroupLabels(_mapPolysProxy.GetGroups());
     };
-    
-    
+
+
     var _InitBasemap_ApplyVisibilityStyles = function()
     {
         var a = MenuHelperStub.GetBasemapIdxs_NotAlways();
@@ -4408,6 +4773,28 @@ var MenuHelper = (function()
         }//for
     };
 
+
+    var _InitLayers_ApplyVisibilityStylesToSectionsById = function(sb)
+    {
+        for (var i=0; i<sb.length; i++)
+        {
+            var xs = ElGet(sb[i]).style;
+            xs.transition = "0.6s ease-in-out";
+            
+            if (!_ui_menu_layers_more_visible)
+            {
+                xs.overflow  = "hidden";
+                xs.maxHeight = "0";
+                xs.opacity   = "0";
+                xs.display   = "none";
+            }//if
+            else
+            {
+                xs.maxHeight = "65535px";
+                xs.opacity   = "1";
+            }//else
+        }//for
+    };
 
     // requires binds for layers
     var _InitLayers_ApplyVisibilityStyles = function()
@@ -4443,26 +4830,9 @@ var MenuHelper = (function()
             }//for
         }//if
         
-        var sb = ["sectionMenuLogs", "sectionMenuRealtime", "sectionMenuAreas"];
-        
-        for (var i=0; i<sb.length; i++)
-        {
-            var xs = ElGet(sb[i]).style;
-            xs.transition = "0.6s ease-in-out";
-            
-            if (!_ui_menu_layers_more_visible)
-            {
-                xs.overflow  = "hidden";
-                xs.maxHeight = "0";
-                xs.opacity   = "0";
-                xs.display   = "none";
-            }//if
-            else
-            {
-                xs.maxHeight = "65535px";
-                xs.opacity   = "1";
-            }//else
-        }//for
+        var sb = ["sectionMenuLogs", "sectionMenuRealtime"];//, "sectionMenuAreas"];
+
+        _InitLayers_ApplyVisibilityStylesToSectionsById(sb);
     };
 
     // nb: this is disabled as resizing the GMaps content area breaks GMaps due to an internal bug
@@ -4520,7 +4890,6 @@ var MenuHelper = (function()
         
         ElGet("chkMenuBasemapMore").checked = _ui_menu_basemap_more_visible;
         PrefHelper.SetBasemapMorePref(_ui_menu_basemap_more_visible);
-
     };
 
 
@@ -4542,7 +4911,12 @@ var MenuHelper = (function()
         ElGet("chkMenuLayersMore").checked = _ui_menu_layers_more_visible;
         PrefHelper.SetLayersMorePref(_ui_menu_layers_more_visible);
 
-        var sb = ["sectionMenuLogs", "sectionMenuRealtime", "sectionMenuAreas"];
+        var sb = ["sectionMenuLogs", "sectionMenuRealtime"];//, "sectionMenuAreas"];
+        var asb = _GetDynamicAreaSectionIds();
+        for (var i=0; i<asb.length; i++)
+        {
+            sb.push(asb[i]);
+        }//for
 
         var fxToggleLogStyles = function()
         {
@@ -4721,7 +5095,18 @@ var PrefHelper = (function()
     function PrefHelper()
     {
     }
-    
+
+    var _GetPrefStr = function(key, def)
+    {
+        var s = localStorage.getItem(key);
+        return s == null ? def : s;
+    };
+
+    var _SetPrefStr = function(key, val)
+    {
+        localStorage.setItem(key, val);
+    };
+
     var _GetPrefBln = function(key, def)
     {
         var s = localStorage.getItem(key);
@@ -4755,49 +5140,62 @@ var PrefHelper = (function()
         localStorage.setItem(key, ""+val);
     };
 
+    PrefHelper.UnderscoresToCamelCase = function(src)
+    {
+        var d = "";
+        var p = src.split("_");
+
+        for (var i=0; i<p.length; i++)
+        {
+            d += p[i].substring(0,1).toUpperCase() + p[i].substring(1, p[i].length).toLowerCase();
+        }//for
+
+        return d;
+    };
+
     PrefHelper.MakeFx = function()
     {
         var  d = !_nua("mobile") && !_nua("iPhone") && !_nua("iPad") && !_nua("Android");
         var gp = function(t,k,d) { return t == 0 ? function() { return _GetPrefBln(k, d); }
                                         : t == 1 ? function() { return _GetPrefInt(k, d); }
-                                        :          function() { return _GetPrefF64(k, d); }; };
+                                        : t == 2 ? function() { return _GetPrefF64(k, d); }
+                                        :          function() { return _GetPrefStr(k, d); }; };
         var sp = function(t,k) { return t == 0 ? function(s) { return _SetPrefBln(k, s); }
                                       : t == 1 ? function(s) { return _SetPrefInt(k, s); }
-                                      :          function(s) { return _SetPrefF64(k, s); }; };
+                                      : t == 2 ? function(s) { return _SetPrefF64(k, s); }
+                                      :          function(s) { return _SetPrefStr(k, s); }; };
         var o = [["RETICLE_ENABLED",  0,0], ["ZOOM_BUTTONS_ENABLED",0,1], ["SCALE_ENABLED",   0,1], ["HDPI_ENABLED",     0,1], 
                  ["NN_SCALER_ENABLED",0,1], ["TILE_SHADOW_ENABLED", 0,0], ["EXPANDED_LAYERS", 0,1], ["EXPANDED_LOGS",    0,1], 
                  ["EXPANDED_REALTIME",0,1], ["EXPANDED_AREAS",      0,1], ["EXPANDED_BASEMAP",0,0], ["EXPANDED_ADVANCED",0,0],
                  ["LAYER_UI_INDEX",   1,0], ["BASEMAP_UI_INDEX",    1,0], ["LAYERS_MORE",     0,0], ["BASEMAP_MORE",     0,0], 
-                 ["MENU_OPEN",        0,0], ["TOOLTIPS_ENABLED",    0,d],
+                 ["MENU_OPEN",        0,0], ["TOOLTIPS_ENABLED",    0,d], 
+                 ["LANGUAGE",         3,null],
                  ["VISIBLE_EXTENT_X",2,140.515516], ["VISIBLE_EXTENT_Y",2,37.316113], ["VISIBLE_EXTENT_Z",1,9]];
         for (var i=0; i<o.length; i++)
         {
-            var fn0 = "";
-            var ps  = o[i][0].split("_");
-            for (var j=0; j<ps.length; j++)
-            {
-                fn0 += ps[j].substring(0,1) + ps[j].substring(1, ps[j].length).toLowerCase();
-            }
-            PrefHelper["Get" + fn0 + "Pref"] = gp(o[i][1], o[i][0], o[i][1] != 0 ? o[i][2] : o[i][2] != 0);
-            PrefHelper["Set" + fn0 + "Pref"] = sp(o[i][1], o[i][0], o[i][2]);
+            //var fn0 = "";
+            //var ps  = o[i][0].split("_");
+            //for (var j=0; j<ps.length; j++)
+            //{
+            //    fn0 += ps[j].substring(0,1) + ps[j].substring(1, ps[j].length).toLowerCase();
+            //}
+            var fn0 = PrefHelper.UnderscoresToCamelCase(o[i][0]);
+            PrefHelper["Get" + fn0 + "Pref"] = gp(o[i][1], "PREF_" + o[i][0], o[i][1] != 0 ? o[i][2] : o[i][2] != 0);
+            PrefHelper["Set" + fn0 + "Pref"] = sp(o[i][1], "PREF_" + o[i][0]);
         }//for
     };
 
+    PrefHelper.GetAreaGroupXEnabledPref = function(x)   { return _GetPrefBln("PREF_AREA_GROUP_"+x+"_ENABLED", true);  };
+    PrefHelper.SetAreaGroupXEnabledPref = function(x,s) {        _SetPrefBln("PREF_AREA_GROUP_"+x+"_ENABLED", s);     };
 
-    PrefHelper.GetAreaXEnabledPref       = function(x)   { return _GetPrefBln("PREF_AREA_"+x+"_ENABLED", true);  };
-    PrefHelper.SetAreaXEnabledPref       = function(x,s) {        _SetPrefBln("PREF_AREA_"+x+"_ENABLED", s);     };
+    PrefHelper.GetAreaXEnabledPref = function(x)   { return _GetPrefBln("PREF_AREA_"+x+"_ENABLED", true);  };
+    PrefHelper.SetAreaXEnabledPref = function(x,s) {        _SetPrefBln("PREF_AREA_"+x+"_ENABLED", s);     };
+    
+    PrefHelper.GetExpandedXPref = function(x)   { return _GetPrefBln("PREF_EXPANDED_"+x.toUpperCase(), true); };
+    PrefHelper.SetExpandedXPref = function(x,s) {        _SetPrefBln("PREF_EXPANDED_"+x.toUpperCase(), s);    };
 
-
-    PrefHelper.GetLanguagePref = function()
-    {
-        return localStorage.getItem("PREF_LANGUAGE");
-    };
-
-
-    PrefHelper.SetLanguagePref = function(s)
-    {
-        localStorage.setItem("PREF_LANGUAGE", s);
-    };
+    //PrefHelper.GetLanguagePref = function()  { return localStorage.getItem("PREF_LANGUAGE");    };
+    //PrefHelper.SetLanguagePref = function(s) {        localStorage.setItem("PREF_LANGUAGE", s); };
     
     PrefHelper.GetEffectiveLanguagePref = function()
     {
@@ -4943,6 +5341,7 @@ var MenuHelperStub = (function()
 
 
     // todo: move to MenuHelper
+    /*
     var _InitExpand = function(el_id, fxGet, fxSet)
     {
         var el = ElGet(el_id);
@@ -4958,7 +5357,7 @@ var MenuHelperStub = (function()
             el.parentElement.nextElementSibling.classList.toggle("show");
         }//if
     };
-
+    */
 
     var _InitLayers_BindLayers = function()
     {
@@ -4982,12 +5381,14 @@ var MenuHelperStub = (function()
         _BindOptions("ul_menu_layers", "menu_layers_", ids, cb);
         _BindOptionLabelsToDivs("menu_layers_", ids);
 
+        /*
         _InitExpand("lblMenuLayersTitle",   PrefHelper.GetExpandedLayersPref,   PrefHelper.SetExpandedLayersPref);
         _InitExpand("lblMenuLogsTitle",     PrefHelper.GetExpandedLogsPref,     PrefHelper.SetExpandedLogsPref);
         _InitExpand("lblMenuRealtimeTitle", PrefHelper.GetExpandedRealtimePref, PrefHelper.SetExpandedRealtimePref);
         _InitExpand("lblMenuAreasTitle",    PrefHelper.GetExpandedAreasPref,    PrefHelper.SetExpandedAreasPref);
         _InitExpand("lblMenuBasemapTitle",  PrefHelper.GetExpandedBasemapPref,  PrefHelper.SetExpandedBasemapPref);
         _InitExpand("lblMenuAdvancedTitle", PrefHelper.GetExpandedAdvancedPref, PrefHelper.SetExpandedAdvancedPref);
+        */
     };
 
 

@@ -1,7 +1,34 @@
+[[
+    {
+        "group_id":0,
+       "parent_id":null,
+            "desc": [ { "k":"en", "v":"Areas" },
+                      { "k":"ja", "v":"区域"   } ]
+    },
+    {
+        "group_id":1,
+       "parent_id":null,
+            "desc": [ { "k":"en", "v":"Interest"   },
+                      { "k":"ja", "v":"興味がある点" } ]
+    },
+    {
+        "group_id":2,
+       "parent_id":1,
+            "desc": [ { "k":"en", "v":"Safecasting"      },
+                      { "k":"ja", "v":"セーフキャスティング" } ]
+    },
+    {
+        "group_id":3,
+       "parent_id":1,
+            "desc": [ { "k":"en", "v":"Photos" },
+                      { "k":"ja", "v":"写真"    } ]
+    }
+],
 [   
     { 
         "poly_id":0,
-         "author": [ { "k":"en", "v":"Azby Brown"  },
+       "group_id":0,
+         "author": [ { "k":"en", "v":"Azby Brown" },
                      { "k":"ja", "v":"Azby Brown" } ],
            "date":"2016-11-08T22:02:00Z",
            "desc": [ { "k":"en", "v":"Fukushima Zone"  },
@@ -18,6 +45,7 @@
     },
     {
         "poly_id":1,
+       "group_id":2,
          "author": [ { "k":"en", "v":"Azby Brown<br/>TL: Kiyoshi Yoshiyama"  },
                      { "k":"ja", "v":"Azby Brown<br/>翻訳: Kiyoshi Yoshiyama" } ],
            "date":"2015-11-07T23:01:32Z",
@@ -33,7 +61,8 @@
     },
     {
         "poly_id":2,
-         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: Kohei Watanabe" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: Kohei Watanabe"   },
                      { "k":"ja", "v":"Azby Brown<br/>翻訳： Kohei Watanabe" } ],
            "date":"2015-05-02T23:42:49Z",
            "desc": [ { "k":"en", "v":"Svalbard Islands" },
@@ -48,7 +77,8 @@
     },
     {
         "poly_id":3,
-         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: Kohei Watanabe, Kiki Tanaka" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: Kohei Watanabe, Kiki Tanaka"  },
                      { "k":"ja", "v":"Azby Brown<br/>翻訳：Kohei Watanabe, Kiki Tanaka" } ],
            "date":"2014-10-13T21:19:48Z",
            "desc": [ { "k":"en", "v":"Fukushima Daiichi" },
@@ -63,6 +93,7 @@
     },
     {
         "poly_id":4,
+       "group_id":2,
          "author":"BergiX<br/>TL: N/A",
            "date":"2016-11-07T21:03:15Z",
            "desc": [ { "k":"en", "v":"Uranium Mines" },
@@ -77,6 +108,7 @@
     },
     {
         "poly_id":5,
+       "group_id":2,
          "author":"Nesya<br/>TL: N/A",
            "date":"2016-08-08T07:18:06Z",
            "desc": [ { "k":"en", "v":"kGeigie Workshop"    },
@@ -92,10 +124,11 @@
     },
     {
         "poly_id":6,
+       "group_id":2,
          "author":"Sean Bonner<br/>TL: N/A",
            "date":"2016-04-27T05:00:35Z",
            "desc": [ { "k":"en", "v":"Washington, DC" },
-                     { "k":"ja", "v":"ワシントンDC"    } ],
+                     { "k":"ja", "v":"ワシントンDC"     } ],
            "info": [ { "k":"en", "v":"Thanks to coordination and support from the NRDC and N*Squared, several of us were lucky enough to visit Washington DC during the week of the Nuclear Security Summit for a series of presentations and meetings about what we’ve been up to, what we’ve produced that people might make use of, and who we might be able to further collaborate with." },
                      { "k":"ja", "v":"NRDCとN * Squaredの協力と支援のおかげで、私たちのいくつかは、私たちが何をしていたのか、私たちが何をしているのか、 人々が利用する可能性があり、さらに誰と協力し合うことができるのだろうか。" } ],
            "imgs":"http://i2.wp.com/blog.safecast.org/wp-content/uploads/2016/04/bgeigieWhiteHouse1000px.jpg?zoom=2&fit=1000%2C667",
@@ -106,6 +139,7 @@
     },
     {
         "poly_id":7,
+       "group_id":2,
          "author":"Sean Bonner<br/>TL: N/A",
            "date":"2013-12-11T10:10:35Z",
            "desc": [ { "k":"en", "v":"McMurdo Station" },
@@ -120,7 +154,8 @@
     },
     {
         "poly_id":8,
-         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: Akiko Henmi" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: Akiko Henmi"  },
                      { "k":"ja", "v":"Azby Brown<br/>翻訳：Akiko Henmi" } ],
            "date":"2014-06-21T00:35:06Z",
            "desc": [ { "k":"en", "v":"Palisades NPP"      },
@@ -135,7 +170,8 @@
     },
     {
         "poly_id":9,
-         "author": [ { "k":"en", "v":"Pieter Franken<br/>TL: N/A" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Pieter Franken<br/>TL: N/A"  },
                      { "k":"ja", "v":"Pieter Franken<br/>翻訳: なし" } ],
            "date":"2012-02-04T00:42:09Z",
            "desc": [ { "k":"en", "v":"Tokyo Snow" },
@@ -151,6 +187,7 @@
     },
     {
         "poly_id":10,
+       "group_id":2,
          "author": [ { "k":"en", "v":"Azby Brown<br/>TL: Shin-ichiro Yamamoto" },
                      { "k":"ja", "v":"Azby Brown<br/>翻訳：Shin-ichiro Yamamoto" } ],
            "date":"2015-01-24T00:04:24Z",
@@ -167,7 +204,8 @@
     },
     {
         "poly_id":11,
-         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: N/A" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: N/A"  },
                      { "k":"ja", "v":"Azby Brown<br/>翻訳: なし" } ],
            "date":"2016-05-28T00:33:37Z",
            "desc": [ { "k":"en", "v":"Pointcast: Koriyama" },
@@ -183,7 +221,8 @@
     },
     {
         "poly_id":12,
-         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: N/A" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: N/A"  },
                      { "k":"ja", "v":"Azby Brown<br/>翻訳: なし" } ],
            "date":"2016-07-17T20:00:54Z",
            "desc": [ { "k":"en", "v":"Pointcast: Iitate" },
@@ -199,7 +238,8 @@
     },
     {
         "poly_id":13,
-         "author": [ { "k":"en", "v":"Edouard Lafargue<br/>TL: N/A" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Edouard Lafargue<br/>TL: N/A"  },
                      { "k":"ja", "v":"Edouard Lafargue<br/>翻訳: なし" } ],
            "date":"2016-07-28T07:58:26Z",
            "desc": [ { "k":"en", "v":"Iceland and France" },
@@ -215,8 +255,9 @@
     },
     {
         "poly_id":14,
-         "author": [ { "k":"en", "v":"Azby Brown<br/>With Yuka Hayashi, Rob Oudendijk, and Mamie Lau"  },
-                     { "k":"ja", "v":"Azby Brown<br/>共著: Yuka Hayashi, Rob Oudendijk, Mamie Lau" } ],
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Azby Brown<br/>With Yuka Hayashi, Rob Oudendijk, and Mamie Lau" },
+                     { "k":"ja", "v":"Azby Brown<br/>共著: Yuka Hayashi, Rob Oudendijk, Mamie Lau"     } ],
            "date":"2016-01-08T21:02:41Z",
            "desc": [ { "k":"en", "v":"Hong Kong Workshop" },
                      { "k":"ja", "v":"香港ワークショップ"    } ],
@@ -230,7 +271,8 @@
     },
     {
         "poly_id":15,
-         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: N/A" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: N/A"  },
                      { "k":"ja", "v":"Azby Brown<br/>翻訳: なし" } ],
            "date":"2014-10-29T02:08:33Z",
            "desc": [ { "k":"en", "v":"Taipei Workshop" },
@@ -245,7 +287,8 @@
     },
     {
         "poly_id":16,
-         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: N/A" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: N/A"  },
                      { "k":"ja", "v":"Azby Brown<br/>翻訳: なし" } ],
            "date":"2014-10-29T02:08:33Z",
            "desc": [ { "k":"en", "v":"Strasbourg Workshop"      },
@@ -260,6 +303,7 @@
     },
     {
         "poly_id":17,
+       "group_id":2,
          "author": [ { "k":"en", "v":"Jonathan Wilder<br/>TL: Akiko Hennmi"   },
                      { "k":"ja", "v":"Jonathan Wilder<br/>翻訳:　Akiko Hennmi" } ],
            "date":"2014-12-17T05:11:55Z",
@@ -275,7 +319,8 @@
     },
     {
         "poly_id":18,
-         "author": [ { "k":"en", "v":"Bilal Ghalib<br/>TL: ?" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Bilal Ghalib<br/>TL: ?"  },
                      { "k":"ja", "v":"Bilal Ghalib<br/>翻訳: ?" } ],
            "date":"2014-04-17T10:56:43Z",
            "desc": [ { "k":"en", "v":"Safecasting Iraq"        },
@@ -290,7 +335,8 @@
     },
     {
         "poly_id":19,
-         "author": [ { "k":"en", "v":"?<br/>TL: ?" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"?<br/>TL: ?"  },
                      { "k":"ja", "v":"?<br/>翻訳: ?" } ],
            "date":"2014-12-07T03:42:36Z",
            "desc": [ { "k":"en", "v":"Kobe Workshop"     },
@@ -305,7 +351,8 @@
     },
     {
         "poly_id":20,
-         "author": [ { "k":"en", "v":"Pieter Franken<br/>TL: N/A" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Pieter Franken<br/>TL: N/A"  },
                      { "k":"ja", "v":"Pieter Franken<br/>翻訳: なし" } ],
            "date":"2012-05-03T19:26:59Z",
            "desc": [ { "k":"en", "v":"Safecasting Ibaraki"     },
@@ -320,7 +367,8 @@
     },
     {
         "poly_id":21,
-         "author": [ { "k":"en", "v":"the_STIG<br/>TL: ?" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"the_STIG<br/>TL: ?"  },
                      { "k":"ja", "v":"the_STIG<br/>翻訳: ?" } ],
            "date":"2011-09-04T15:21:29Z",
            "desc": [ { "k":"en", "v":"Safecasting Mt. Fuji"  },
@@ -336,7 +384,8 @@
     },
     {
         "poly_id":22,
-         "author": [ { "k":"en", "v":"Sean Bonner<br/>TL: ?" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Sean Bonner<br/>TL: ?"  },
                      { "k":"ja", "v":"Sean Bonner<br/>翻訳: ?" } ],
            "date":"2011-05-31T02:23:50Z",
            "desc": [ { "k":"en", "v":"Safecasting Koriyama &amp; Chiba"  },
@@ -351,7 +400,8 @@
     },
     {
         "poly_id":23,
-         "author": [ { "k":"en", "v":"Sean Bonner<br/>TL: ?" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Sean Bonner<br/>TL: ?"  },
                      { "k":"ja", "v":"Sean Bonner<br/>翻訳: ?" } ],
            "date":"2011-05-26T16:52:27Z",
            "desc": [ { "k":"en", "v":"Safecasting Aizu"  },
@@ -366,7 +416,8 @@
     },
     {
         "poly_id":24,
-         "author": [ { "k":"en", "v":"Sean Bonner<br/>TL: ?" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Sean Bonner<br/>TL: ?"  },
                      { "k":"ja", "v":"Sean Bonner<br/>翻訳: ?" } ],
            "date":"2011-05-15T01:44:27Z",
            "desc": [ { "k":"en", "v":"Safecasting Iwaki"  },
@@ -381,7 +432,8 @@
     },
     {
         "poly_id":25,
-         "author": [ { "k":"en", "v":"Kiki Tanaka<br/>TL: Kiki Tanaka" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Kiki Tanaka<br/>TL: Kiki Tanaka"  },
                      { "k":"ja", "v":"Kiki Tanaka<br/>翻訳: Kiki Tanaka" } ],
            "date":"2011-05-12T04:51:42Z",
            "desc": [ { "k":"en", "v":"Volunteer Report: Kiki"  },
@@ -396,7 +448,8 @@
     },
     {
         "poly_id":26,
-         "author": [ { "k":"en", "v":"Robin Scheibler<br/>TL: ?" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Robin Scheibler<br/>TL: ?"  },
                      { "k":"ja", "v":"Robin Scheibler<br/>翻訳: ?" } ],
            "date":"2011-07-29T17:16:23Z",
            "desc": [ { "k":"en", "v":"Safecasting Kita-Dake"  },
@@ -411,7 +464,8 @@
     },
     {
         "poly_id":27,
-         "author": [ { "k":"en", "v":"Sean Bonner<br/>TL: Hiroyo, Emmy, Meg" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Sean Bonner<br/>TL: Hiroyo, Emmy, Meg"  },
                      { "k":"ja", "v":"Sean Bonner<br/>翻訳: Hiroyo, Emmy, Meg" } ],
            "date":"2011-08-07T21:25:22Z",
            "desc": [ { "k":"en", "v":"Safecasting Fukushima-ken"  },
@@ -426,7 +480,8 @@
     },
     {
         "poly_id":28,
-         "author": [ { "k":"en", "v":"Lionel Bergeret<br/>TL: ?" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Lionel Bergeret<br/>TL: ?"  },
                      { "k":"ja", "v":"Lionel Bergeret<br/>翻訳: ?" } ],
            "date":"2011-08-03T10:01:10Z",
            "desc": [ { "k":"en", "v":"Safecasting Oshima Island"  },
@@ -441,7 +496,8 @@
     },
     {
         "poly_id":29,
-         "author": [ { "k":"en", "v":"Sean Bonner<br/>TL: ?" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Sean Bonner<br/>TL: ?"  },
                      { "k":"ja", "v":"Sean Bonner<br/>翻訳: ?" } ],
            "date":"2011-10-03T18:43:30Z",
            "desc": [ { "k":"en", "v":"Safecasting Oshima Island"  },
@@ -456,7 +512,8 @@
     },
     {
         "poly_id":30,
-         "author": [ { "k":"en", "v":"Richard Zajac<br/>TL: N/A" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Richard Zajac<br/>TL: N/A"  },
                      { "k":"ja", "v":"Richard Zajac<br/>翻訳: なし" } ],
            "date":"2011-10-27T21:33:42Z",
            "desc": [ { "k":"en", "v":"HS Student Safecasting"  },
@@ -471,7 +528,8 @@
     },
     {
         "poly_id":31,
-         "author": [ { "k":"en", "v":"the_STIG<br/>TL: ?" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"the_STIG<br/>TL: ?"  },
                      { "k":"ja", "v":"the_STIG<br/>翻訳: ?" } ],
            "date":"2011-10-14T14:09:39Z",
            "desc": [ { "k":"en", "v":"Safecasting Seoul &amp; Hong Kong"  },
@@ -486,7 +544,8 @@
     },
     {
         "poly_id":32,
-         "author": [ { "k":"en", "v":"Ray Ozzie, Sean Bonner<br/>TL: ?" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Ray Ozzie, Sean Bonner<br/>TL: ?"  },
                      { "k":"ja", "v":"Ray Ozzie, Sean Bonner<br/>翻訳: ?" } ],
            "date":"2011-11-16T00:52:14Z",
            "desc": [ { "k":"en", "v":"Safecasting Seabrook"  },
@@ -501,7 +560,8 @@
     },
     {
         "poly_id":33,
-         "author": [ { "k":"en", "v":"Joe Moross<br/>TL: ?" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Joe Moross<br/>TL: ?"  },
                      { "k":"ja", "v":"Joe Moross<br/>翻訳: ?" } ],
            "date":"2012-05-06T14:13:45Z",
            "desc": [ { "k":"en", "v":"Iitate-mura Hotspot"  },
@@ -516,7 +576,8 @@
     },
     {
         "poly_id":34,
-         "author": [ { "k":"en", "v":"Dirk Rösler<br/>TL: N/A" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Dirk Rösler<br/>TL: N/A"  },
                      { "k":"ja", "v":"Dirk Rösler<br/>翻訳: なし" } ],
            "date":"2012-10-23T08:52:43Z",
            "desc": [ { "k":"en", "v":"Report: Abiko"  },
@@ -531,7 +592,8 @@
     },
     {
         "poly_id":35,
-         "author": [ { "k":"en", "v":"Pieter Franken<br/>TL: N/A" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Pieter Franken<br/>TL: N/A"  },
                      { "k":"ja", "v":"Pieter Franken<br/>翻訳: なし" } ],
            "date":"2012-10-13T12:35:29Z",
            "desc": [ { "k":"en", "v":"Safecasting Holland"  },
@@ -546,7 +608,8 @@
     },
     {
         "poly_id":36,
-         "author": [ { "k":"en", "v":"Rob Oudendijk<br/>TL: N/A" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Rob Oudendijk<br/>TL: N/A"  },
                      { "k":"ja", "v":"Rob Oudendijk<br/>翻訳: なし" } ],
            "date":"2012-12-19T12:51:12Z",
            "desc": [ { "k":"en", "v":"Aizu Workshop"  },
@@ -561,7 +624,8 @@
     },
     {
         "poly_id":37,
-         "author": [ { "k":"en", "v":"Rob Oudendijk<br/>TL: N/A" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Rob Oudendijk<br/>TL: N/A"  },
                      { "k":"ja", "v":"Rob Oudendijk<br/>翻訳: なし" } ],
            "date":"2013-03-06T23:43:10Z",
            "desc": [ { "k":"en", "v":"Bike 2.0 &amp; bGeigie Nano"  },
@@ -576,7 +640,8 @@
     },
     {
         "poly_id":38,
-         "author": [ { "k":"en", "v":"Norio Watanabe<br/>TL: Megumi Minami, Kevin Stride" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Norio Watanabe<br/>TL: Megumi Minami, Kevin Stride"  },
                      { "k":"ja", "v":"Norio Watanabe<br/>翻訳: Megumi Minami, Kevin Stride" } ],
            "date":"2013-06-25T04:03:15Z",
            "desc": [ { "k":"en", "v":"Aizu Workshop"  },
@@ -591,7 +656,8 @@
     },
     {
         "poly_id":39,
-         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: N/A" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: N/A"  },
                      { "k":"ja", "v":"Azby Brown<br/>翻訳: なし" } ],
            "date":"2013-08-18T02:03:43Z",
            "desc": [ { "k":"en", "v":"Fukushima Decontamination"  },
@@ -606,7 +672,8 @@
     },
     {
         "poly_id":40,
-         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: Kohei Watanabe, Akiko Hemmi" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: Kohei Watanabe, Akiko Hemmi"  },
                      { "k":"ja", "v":"Azby Brown<br/>翻訳: Kohei Watanabe, Akiko Hemmi" } ],
            "date":"2014-02-17T08:57:20Z",
            "desc": [ { "k":"en", "v":"Safecasting the IAEA"  },
@@ -621,7 +688,8 @@
     },
     {
         "poly_id":41,
-         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: Shin-ichiro Yamamoto" },
+       "group_id":2,
+         "author": [ { "k":"en", "v":"Azby Brown<br/>TL: Shin-ichiro Yamamoto"  },
                      { "k":"ja", "v":"Azby Brown<br/>翻訳: Shin-ichiro Yamamoto" } ],
            "date":"2015-05-10T06:56:15Z",
            "desc": [ { "k":"en", "v":"Droid Trouble"  },
@@ -636,8 +704,9 @@
     },
     {
         "poly_id":42,
+       "group_id":2,
          "author": [ { "k":"en", "v":"Lubomír Gryc and Jan Helebrant<br/>TL: N/A" },
-                     { "k":"ja", "v":"Lubomír Gryc, Jan Helebrant<br/>翻訳: なし" } ],
+                     { "k":"ja", "v":"Lubomír Gryc, Jan Helebrant<br/>翻訳: なし"   } ],
            "date":"2015-11-17T02:32:21Z",
            "desc": [ { "k":"en", "v":"bGeigie Aero"  },
                      { "k":"ja", "v":"bGeigieエアロ" } ],
@@ -649,4 +718,4 @@
           "point": { "x":12.6322, "y":50.5914 },
            "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
     }
-]
+]]

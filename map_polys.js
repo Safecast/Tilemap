@@ -11,7 +11,8 @@ var MapPolys = (function()
 {
     function MapPolys(mapref, fxMenuInit, fxGetLangPref) 
     {
-        this.encoded_polygons = null;
+        this.encoded_polygons = new Array();
+        this.groups           = new Array();
         this.polygons         = new Array();
         this.mapref           = mapref;
         this.inforef          = null;
@@ -53,6 +54,18 @@ var MapPolys = (function()
     };
 
 
+    MapPolys.prototype.GetGroups = function()
+    {
+        return this.groups;
+    };
+
+
+    MapPolys.prototype.GetPolygons = function()
+    {
+        return this.polygons;
+    };
+
+
     MapPolys.prototype.AttachInfoWindow = function(poly)
     {
         google.maps.event.addListener(poly, "click", function(e) 
@@ -62,6 +75,7 @@ var MapPolys = (function()
     };
 
 
+    /*
     MapPolys.prototype.RemoveAllMarkers = function()
     {
         var t = new Array();
@@ -123,7 +137,8 @@ var MapPolys = (function()
 
         return n;
     };
-
+    */
+    
 
     MapPolys.prototype._OpenRetainedInfoWindow = function(e, poly)
     {
@@ -346,20 +361,20 @@ var MapPolys = (function()
         d += _GetInfoWindowImagesArrayOrString(imgs, tblw);
 
         d += "<tr>"
-          +     "<td style='padding-top:5px;'>"
+          +     "<td style='padding-top:5px; padding-bottom:5px;'>"
           +         (infos.length > 0 ? infos[0] : "")
           +     "</td>"
           +  "</tr>";
 
         if (mores.length > 0)
         {
-            d += _GetInfoWindowLinksArrayOrString(mores, 5, false);
+            d += _GetInfoWindowLinksArrayOrString(mores, 1, false); //5
         }//if
 
         if (atts.length > 0)
         {
             d += "<tr style='border-top:1px solid gainsboro;'>"
-              +     "<td style='padding-top:10px;'>"
+              +     "<td style='padding-top:5px;'>"
               +         this._GetLocalizedReferencesHeader()
               +     "</td>"
               +  "</tr>";
@@ -442,9 +457,10 @@ var MapPolys = (function()
                 
                 if (obj != null)
                 {
-                    this.encoded_polygons = obj;
-                    //MenuHelper.RegisterPolys(this.encoded_polygons);
-                    this.fxMenuInit(this.encoded_polygons);
+                    this.groups           = _GetGroupsFilteredByEncodedPolyUse(obj[0], obj[1]);
+                    this.encoded_polygons = obj[1];
+
+                    this.fxMenuInit(this.groups, this.encoded_polygons);
                     
                     this._RescaleIcons();
                     
@@ -461,6 +477,82 @@ var MapPolys = (function()
         }.bind(this);
 
         _GetAsync_HTTP(url + "?t=" + Date.now(), null, null, cb, null);
+    };
+
+
+    var _GetPolyRefCountByGroupId = function(gs, eps)
+    {
+        var ns = new Array(gs.length);
+
+        for (var i=0; i<gs.length; i++)
+        {
+            ns[i] = 0;
+        }//for
+
+        for (var i=0; i<eps.length; i++)
+        {
+            for (var j=0; j<gs.length; j++)
+            {
+                if (gs[j].group_id == eps[i].group_id)
+                {
+                    ns[j]++;
+                    break;
+                }//if
+            }//for
+        }//for
+
+        return ns;
+    };
+
+
+    // prune any dead groups that aren't being referenced so this doesn't
+    // have to be checked repeatedly in the UI later.
+    var _GetGroupsFilteredByEncodedPolyUse = function(gs, eps)
+    {
+        var ns = _GetPolyRefCountByGroupId(gs, eps);
+        var d  = new Array();
+        var txt = "";
+
+        for (var i=0; i<gs.length; i++)
+        {
+            var hr = false;
+
+            if (ns[i] > 0)
+            {
+                d.push(gs[i]);
+                hr = true;
+            }//if
+            else
+            {
+                var n=0;
+                
+                for (var j=0; j<gs.length; j++)
+                {
+                    if (gs[i].group_id == gs[j].parent_id)
+                    {
+                        n += ns[j];
+                    }//if
+                }//for
+                
+                if (n > 0)
+                {
+                    d.push(gs[i]);
+                    hr = true;
+                }//if
+            }//else
+            
+            if (!hr)
+            {
+                txt += gs[i].group_id + ", ";
+            }//if
+        }//for
+        
+        if (txt.length > 0)
+        {
+            console.log("MapPolys._GetGroupsFilteredByEncodedPolyUse: Purged the following unused groups: [%s]", txt);
+        }//if
+
+        return d;
     };
 
 
@@ -513,16 +605,17 @@ var MapPolys = (function()
         m.setIcon(icon);
         m.setZIndex(ep.icon.zi);
 
-        m.ext_poly_id     = ep.poly_id;
-        m.ext_poly_desc   = ep.desc;
-        m.ext_poly_info   = ep.info;
-        m.ext_poly_atts   = ep.atts;
-        m.ext_poly_more   = ep.more;
-        m.ext_poly_author = ep.author;
-        m.ext_poly_date   = ep.date;
-        m.ext_poly_imgs   = ep.imgs;
-        m.ext_poly_icon_w = ep.icon.w;
-        m.ext_poly_icon_h = ep.icon.h;
+        m.ext_poly_id       = ep.poly_id;
+        m.ext_poly_group_id = ep.group_id;
+        m.ext_poly_desc     = ep.desc;
+        m.ext_poly_info     = ep.info;
+        m.ext_poly_atts     = ep.atts;
+        m.ext_poly_more     = ep.more;
+        m.ext_poly_author   = ep.author;
+        m.ext_poly_date     = ep.date;
+        m.ext_poly_imgs     = ep.imgs;
+        m.ext_poly_icon_w   = ep.icon.w;
+        m.ext_poly_icon_h   = ep.icon.h;
 
         return m;
     };
@@ -538,6 +631,7 @@ var MapPolys = (function()
                                            fillOpacity:s.fo,
                                                 zIndex:s.zi,
                                            ext_poly_id:ep.poly_id,
+                                     ext_poly_group_id:ep.group_id,
                                     ext_poly_style_idx:sidx,
                                          ext_poly_desc:ep.desc,
                                          ext_poly_info:ep.info,
