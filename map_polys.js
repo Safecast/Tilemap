@@ -75,71 +75,6 @@ var MapPolys = (function()
     };
 
 
-    /*
-    MapPolys.prototype.RemoveAllMarkers = function()
-    {
-        var t = new Array();
-        
-        for (var i=0; i<this.polygons.length; i++)
-        {
-            if (this.polygons[i].ext_poly_icon_w != null)
-            {
-                t.push(this.polygons[i].ext_poly_id);
-            }//if
-        }//for
-        
-        for (var i=0; i<t.length; i++)
-        {
-            this.Remove(t[i]);
-        }//for
-    };
-
-
-    MapPolys.prototype.AddAllMarkers = function()
-    {
-        for (var i=0; i<this.encoded_polygons.length; i++)
-        {
-            if (this.encoded_polygons[i].path == null)
-            {
-                this.add(this.encoded_polygons[i].poly_id);
-            }//if
-        }//for
-    };
-
-
-    MapPolys.prototype.GetAllMarkersCount = function()
-    {
-        var n = 0;
-
-        for (var i=0; i<this.encoded_polygons.length; i++)
-        {
-            if (this.encoded_polygons[i].path == null)
-            {
-                n++;
-            }//if
-        }//for
-
-        return n;
-    };
-
-
-    MapPolys.prototype.GetCurrentMarkersCount = function()
-    {
-        var n = 0;
-
-        for (var i=0; i<this.polygons.length; i++)
-        {
-            if (this.polygons[i].ext_poly_icon_w != null)
-            {
-                n++;
-            }//if
-        }//for
-
-        return n;
-    };
-    */
-    
-
     MapPolys.prototype._OpenRetainedInfoWindow = function(e, poly)
     {
         if (this.inforef == null) this.inforef = new google.maps.InfoWindow({size: new google.maps.Size(60, 40)});
@@ -193,6 +128,50 @@ var MapPolys = (function()
     MapPolys.prototype._GetLocalizedPolyValue = function(poly, prop)
     {
         return _GetValueForLang(poly[prop], this.fxGetLangPref(), "en");
+    };
+
+    MapPolys.prototype._GetLocalizedPolyString = function(poly, prop)
+    {
+        var s = this._GetLocalizedPolyValue(poly, prop);
+        return s.length > 0 ? s[0] : "";
+    };
+
+    MapPolys.prototype.GetLocalizedDescString = function(poly)
+    {
+        var ss = this._GetLocalizedPolyValue(poly, "desc");
+        var s  = ss.length > 0 ? ss[0] : null;
+
+        if (s == null)
+        {
+            return "";
+        }//if
+        else if (typeof s == 'string' || s instanceof String)
+        {
+            return s;
+        }//else if
+        else // assume array with string
+        {
+            return s[0];
+        }//else
+    };
+
+    MapPolys.prototype.GetLocalizedDescCssString = function(poly)
+    {
+        var ss = this._GetLocalizedPolyValue(poly, "desc");
+        var s  = ss.length > 0 ? ss[0] : null;
+        
+        if (s == null)
+        {
+            return "";
+        }//if
+        else if (typeof s == 'string' || s instanceof String || s.length == 1)
+        {
+            return "";
+        }//else if
+        else // assume array with string
+        {
+            return s[1];
+        }//else
     };
 
     MapPolys.prototype._GetLocalizedReferencesHeader = function()
@@ -320,15 +299,47 @@ var MapPolys = (function()
     };
 
 
-    var _GetFormattedDateStringForIsoString = function(s)
+    var _Pad2 = function(x)
     {
-        var d  = new Date(s);
-        var p2 = function(x) { return x < 10 ? "0"+x : ""+x; };
+        return x < 10 ? "0"+x : ""+x;
+    };
 
-        return d.getFullYear()  + "-" + p2(d.getMonth()+1) + "-" + p2(d.getDate()) + " "
-             + p2(d.getHours()) + ":" + p2(d.getMinutes())
-             + " GMT" + (d.getTimezoneOffset() > 0 ? "-" : "+") + Math.abs(d.getTimezoneOffset()/60)
-             + " (" + d.toLocaleString('en', {timeZoneName:'short'}).split(' ').pop() + ")";
+    var _GetFormattedTimeStringForDate = function(d)
+    {
+        return _Pad2(d.getHours()) + ":" + _Pad2(d.getMinutes());
+    };
+
+    var _GetFormattedDateStringForDate = function(d)
+    {
+        return d.getFullYear()  + "-" + _Pad2(d.getMonth()+1) + "-" + _Pad2(d.getDate());
+    };
+
+    var _GetFormattedUtcOffsetStringForDate = function(d)
+    {
+        return "UTC" + (d.getTimezoneOffset() > 0 ? "─" : "+") + _Pad2(Math.abs(d.getTimezoneOffset()/60));
+    };
+    
+    var _GetTzAbbrStringForDate = function(d)
+    {
+        return d.toLocaleString("en", {timeZoneName:"short"}).split(" ").pop();
+    };
+
+    var _GetDateTimeHtmlForIsoString = function(s)
+    {
+        var d = new Date(s);
+        var gmt = _GetFormattedUtcOffsetStringForDate(d);
+        var tza = _GetTzAbbrStringForDate(d);
+
+        var h = "<span style='color:#555;'>" 
+              + _GetFormattedDateStringForDate(d)
+              + "</span>" 
+              + "&nbsp;&nbsp;"
+              + _GetFormattedTimeStringForDate(d)
+              + " &nbsp;"
+              + "<span style='color:#CCC;'>"
+              + gmt + " (" + tza + ")</span>";
+
+        return h;
     };
 
 
@@ -337,24 +348,21 @@ var MapPolys = (function()
         var cwhs  = _GetClientViewSize();
         var mini  = cwhs[0] <= 450;
         var tblw  = mini ? 320-30-10-50 : 320; // Google's styles seem to add 30 x-axis pixels of padding
-        var descs = this._GetLocalizedPolyValue(poly, "ext_poly_desc");
-        var infos = this._GetLocalizedPolyValue(poly, "ext_poly_info");
         var mores = this._GetLocalizedPolyValue(poly, "ext_poly_more");
         var atts  = this._GetLocalizedPolyValue(poly, "ext_poly_atts");
-        var auths = this._GetLocalizedPolyValue(poly, "ext_poly_author");
         var imgs  = this._GetLocalizedPolyValue(poly, "ext_poly_imgs");
         var d     = "<table style='width:"+tblw+"px;border:0;border-collapse:collapse;' class='" + "FuturaFont" + "'>";
 
         d += "<tr>"
           +     "<td style='text-transform: uppercase; font-size:22px; text-align:center; padding-top:12px;'>" 
-          +         (descs.length > 0 ? descs[0] : "")
+          +         this._GetLocalizedPolyString(poly, "ext_poly_desc")
           +     "</td>"
           +  "</tr>";
 
         d += "<tr>"
           +     "<td style='text-align:right; font-size:10px; color:#AAA;'>"
           +         this._GetLocalizedAuthorHeader()
-          +         (auths.length > 0 ? auths[0] : "")
+          +         this._GetLocalizedPolyString(poly, "ext_poly_author")
           +     "</td>"
           +  "</tr>";
 
@@ -362,7 +370,7 @@ var MapPolys = (function()
 
         d += "<tr>"
           +     "<td style='padding-top:5px; padding-bottom:5px;'>"
-          +         (infos.length > 0 ? infos[0] : "")
+          +         this._GetLocalizedPolyString(poly, "ext_poly_info")
           +     "</td>"
           +  "</tr>";
 
@@ -384,11 +392,7 @@ var MapPolys = (function()
 
         d += "<tr>"
           +     "<td style='text-align:center; font-size:10px; color:#AAA; padding-top:4px;'>" 
-          //+         this._GetLocalizedRevisionHeader()
-          //+         " "
-          //+         poly.ext_poly_ver
-          //+         ", "
-          +         _GetFormattedDateStringForIsoString(poly.ext_poly_date)
+          +         _GetDateTimeHtmlForIsoString(poly.ext_poly_date)
           +     "</td>"
           +  "</tr>";
 
@@ -590,11 +594,20 @@ var MapPolys = (function()
     };
 
 
+    var _GetZindexModifiedByDateStr = function(zi, dstr)
+    {
+        var  d = new Date(dstr);
+        var dd = Math.round(d.getTime() / 86400000.0);
+        return zi - (32768 - dd);
+    };
+
+
     var _GmapsCreateMarkerFromPoint = function(ep)
     {
         var size = new google.maps.Size(ep.icon.w, ep.icon.h);
         var anch = new google.maps.Point(ep.icon.w >>> 1, ep.icon.h >>> 1);
         var icon = { url:ep.icon.url, size:size, anchor:anch };
+        var   zi = _GetZindexModifiedByDateStr(ep.icon.zi, ep.date);
 
         icon.scaledSize = new google.maps.Size(ep.icon.w, ep.icon.h);
 
@@ -603,7 +616,7 @@ var MapPolys = (function()
 
         m.setPosition(yx);
         m.setIcon(icon);
-        m.setZIndex(ep.icon.zi);
+        m.setZIndex(zi);
 
         m.ext_poly_id       = ep.poly_id;
         m.ext_poly_group_id = ep.group_id;
@@ -796,68 +809,6 @@ var MapPolys = (function()
 
         req.send(null);
     };
-
-/*
-    MapPolys._encoded_polygons =
-    [   
-        { 
-            poly_id:0,
-             author: [ { k:"en", v:"Azby Brown" },
-                       { k:"ja", v:"Azby Brown" } ],
-                ver:"2",
-               date:"2016-11-08T22:02:00Z",
-               desc: [ { k:"en", v:"Fukushima Zone"  },
-                       { k:"ja", v:"福島の帰還困難区域" } ],
-               info: [ { k:"en", v:"As of 2013-05-28, Fukushima's 帰還困難区域 (Kikan Konnan Kuiki), or &quot;Difficult to Return Area&quot;, is defined as having an annual cumulative radiation dose of 50+ mSv, and 20+ mSv after five years." },
-                       { k:"ja", v:"2013年5月28日 - 5年を経過してもなお、年間積算放射線量が20 mSvを下回らないおそれのある、現時点で年間積算放射線量が50 mSvを超える区域。" } ],
-               imgs: [ { k:"en", v:["This must be the work of an enemy「stand」", "futaba_640x300.png"] },
-                       { k:"ja", v:["This must be the work of an enemy「stand」", "futaba_640x300.png"] },
-                       { k:"en", v:"fukushima-sign_640x132.png" },
-                       { k:"ja", v:"fukushima-sign_640x132.png" }, 
-                       { k:"en", v:["War. War never changes.", "fo1_640x480.jpg"] },
-                       { k:"ja", v:["War. War never changes.", "fo1_640x480.jpg"] } ],
-               atts: [ { k:"en", v:["Wikipedia",   "http://ja.wikipedia.org/wiki/帰還困難区域"] },
-                       { k:"ja", v:["ウィキペディア", "http://ja.wikipedia.org/wiki/帰還困難区域"] } ],
-               more: [ { k:"en", v:["More Info",    "http://more.info"   ] },
-                       { k:"ja", v:["詳細",          "http://more.info"   ] },
-                       { k:"en", v:["Another Link", "http://another.info"] },
-                       { k:"ja", v:["Another Link", "http://another.info"] } ],
-               path:"gtwcFezl{YdbAmc@|a@xcBm{@d_@u@xsAoo@`@wWzKlBqd@}a@pGuh@_z@kN`@cOvu@s]dQoMj_A|JvdAkrAbvBohBvXg}C`dCcf@ppAizE`yAwdAflAdDr}B|OrV`r@bA`hA|aCub@veAt@vIeZjE{cAdm@oz@zKkSxlDrWbPjHrnBry@qd@xx@_k@hNf`@jBl`Arh@{i@lj@vI~sAf~@eOvdAfIxYvoAeArFvWnhBj`At@mjChNse@@g}@dk@ewBZuu@}PiDya@~MyKio@j_@am@_Ei}@zPmaAzVa]ni@d_@dOe|@za@~Llj@eoEjY_z@dhAgBx~@mE~cAaOx\\wIrn@b^zVst@hNuH|a@nFpo@`@lSqe@lxAqF`Vqe@yKqUtLoc@uLse@gq@yh@`DsVyVi~@j~A_@aJwWlp@yKb[jb@rX{Zza@ePy\\c{@ri@wJsLor@hk@pU_Vw~Bsi@saB|J{v@h|@os@hw@uHzVchBjsAePpAiRzy@e_@nSg`@sRyY[soBgf@iR?e^iZ_NgC`NozF`Ow{CoF_dAcAo^uHcJoFuWbAgT?w@toBeIwIaa@eAcl@nE{\\~k@dDbOcJzKhCfQyKrVhC|x@sRkDiTbOfIzx@aP|[zKxX",
-                 ss: [ { sc:"#0F0", sw:2, so:1, fc:"#0F0", fo:0.0, zi:1 },
-                       { sc:"#000", sw:6, so:1, fc:"#000", fo:0.2, zi:0 } ]
-        },
-        {
-            poly_id:1,
-             author:"Bob the Christmas Llama",
-                ver:"1",
-               date:"2016-11-08T22:02:00Z",
-               desc:"Marker Test 1",
-               info:"Something goes here.",
-              point: { x:140.515516, y:37.316113 },
-               icon: { url:"emoji-trefoil-go_64x64.png", w:16, h:16, zi:0 }
-        },
-        {
-            poly_id:2,
-             author:"Bob the Christmas Llama",
-                ver:"1",
-               date:"2016-11-08T22:02:00Z",
-               desc:"Marker Test 2",
-               info:"Something goes here.",
-              point: { x:141.515516, y:37.316113 },
-               icon: { url:"emoji-newspaper-go_64x64.png", w:16, h:16, zi:0 }
-        },
-        {
-            poly_id:3,
-             author:"Bob the Christmas Llama",
-                ver:"1",
-               date:"2016-11-08T22:02:00Z",
-               desc:"Marker Test 3",
-               info:"Something goes here.",
-              point: { x:140.515516, y:36.316113 },
-               icon: { url:"emoji-camera-go_64x64.png", w:16, h:16, zi:0 }
-        }
-    ];
-*/
 
     return MapPolys;
 })();

@@ -16,14 +16,20 @@
     {
         "group_id":2,
        "parent_id":1,
-            "desc": [ { "k":"en", "v":"Safecasting"      },
-                      { "k":"ja", "v":"セーフキャスティング" } ]
+            "desc": [ { "k":"en", "v":"Safecasting"                                                 },
+                      { "k":"ja", "v":"<span style='letter-spacing:-2px;'>セーフキャスティング</span>" } ]
     },
     {
         "group_id":3,
        "parent_id":1,
             "desc": [ { "k":"en", "v":"Photos" },
                       { "k":"ja", "v":"写真"    } ]
+    },
+    {
+        "group_id":4,
+       "parent_id":1,
+            "desc": [ { "k":"en", "v":"Anomalies" },
+                      { "k":"ja", "v":"異常"       } ]
     }
 ],
 "polys":
@@ -471,7 +477,7 @@
          "author": [ { "k":"en", "v":"Sean Bonner<br/>TL: Hiroyo, Emmy, Meg"  },
                      { "k":"ja", "v":"Sean Bonner<br/>翻訳: Hiroyo, Emmy, Meg" } ],
            "date":"2011-08-07T21:25:22Z",
-           "desc": [ { "k":"en", "v":"Safecasting Fukushima-ken"  },
+           "desc": [ { "k":"en", "v":"Safecasting Fukushima"  },
                      { "k":"ja", "v":"福島県でセーフキャスティング" } ],
            "info": [ { "k":"en", "v":"The Safecasting drives officially started after my last trip to Japan, so I’ve been watching from afar as Pieter and an ever growing volunteer team of total heros have set out time and time again to try and map the radiation levels in the areas surrounding the Fukushima plant, as well as the rest of Japan. Knowing that I was going to be back in Tokyo for a number of Safecast meetings and the Radiation Seminar at the same time that Miles O’Brien and Xeni Jardin were going to be working on a story for PBS News Hour that had some focus on Safecast, organizing a drive seemed like an obvious option." },
                      { "k":"ja", "v":"「セーフキャスティング」と私達が呼ぶ走行測定が正式に始まったのは、私が前回日本を訪れた後でした。このため、どんどん増え続けるボランティアの皆さんとピーター（彼らは真のヒーローです）が、何度も時間をかけて福島原発周辺や日本各地の放射線レベルを計り、地図にしていく作業を、私は遠くから見ていました。私自身 Safecast のミーティングと放射線セミナーのために東京に戻るということ、また、同時期に Miles O’Brien と Xeni Jardin が PBS News Hour の Safecasat に焦点を当てたストーリーに取り組むことも知っていたため、来日中に走行測定を行うことは当然だと思っていました。" } ],

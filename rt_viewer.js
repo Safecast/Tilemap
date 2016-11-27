@@ -1218,6 +1218,7 @@ var RTMKS = (function()
             locstxt[i] = rts[i].location;
             //imgtxt[i] = rts[i].chart_url;            
             imgtxt[i]  = "http://107.161.164.166/plots_new/out/" + ids[i] + "_640x400.png";
+            //imgtxt[i]  = "http://realtime.safecast.org/plots_new/out/" + ids[i] + "_640x400.png";
             linktxt[i] = rts[i].article_url;
         }//for
         

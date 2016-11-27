@@ -238,6 +238,7 @@ function initialize()
     map = new google.maps.Map(document.getElementById("map_canvas"), map_options);
 
     BasemapHelper.InitBasemaps();   // must occur after "map" ivar is set
+
     ClientZoomHelper.InitGmapsLayers();
 
     TimeSliceUI.Init();
@@ -2050,6 +2051,11 @@ var MapPolysProxy = (function()
     {
         return this._IsReady() ? this._mapPolys._GetLocalizedPolyValue(poly, prop) : new Array();
     };
+    
+    MapPolysProxy.prototype.GetLocalizedPolyString = function(poly, prop)
+    {
+        return this._IsReady() ? this._mapPolys._GetLocalizedPolyString(poly, prop) : "";
+    };
 
     MapPolysProxy.src = "map_polys_min.js";
 
@@ -3760,7 +3766,7 @@ var MenuHelper = (function()
                                              : ElGet("menu_area_groups_" + gs[i].group_id + "_label");
             if (el != null)
             {
-                el.innerHTML = _mapPolysProxy.GetLocalizedPolyValue(gs[i], "desc")[0];
+                el.innerHTML = _mapPolysProxy.GetLocalizedPolyString(gs[i], "desc");
             }//if
         }//for
     };
@@ -3774,7 +3780,7 @@ var MenuHelper = (function()
             
             if (span0 != null)
             {
-                span0.innerHTML = _mapPolysProxy.GetLocalizedPolyValue(eps[i], "desc")[0];
+                span0.innerHTML = _mapPolysProxy.GetLocalizedPolyString(eps[i], "desc");
             }//if
         }//for
     };
@@ -3904,7 +3910,7 @@ var MenuHelper = (function()
     var _RegisterGroupAsSection = function(group)
     {
         var base_name = "area_groups_" + group.group_id;
-        var txt = _mapPolysProxy.GetLocalizedPolyValue(group, "desc")[0];
+        var txt = _mapPolysProxy.GetLocalizedPolyString(group, "desc");
 
         _CreateSection(base_name, txt, "muh_insert_before_menu_layers_node", true);
     };
@@ -3913,7 +3919,7 @@ var MenuHelper = (function()
     var _RegisterGroupAsItem = function(group, ul_id)
     {
         var base_name = "area_groups_" + group.group_id;
-        var txt = _mapPolysProxy.GetLocalizedPolyValue(group, "desc")[0];
+        var txt = _mapPolysProxy.GetLocalizedPolyString(group, "desc");
         var is_enabled = PrefHelper.GetAreaGroupXEnabledPref(group.group_id);
 
         var cb = function(gid)
@@ -3973,7 +3979,7 @@ var MenuHelper = (function()
     var _RegisterPolyAsItem = function(ep, ul_id)
     {
         var base_name = "areas_" + ep.poly_id;
-        var txt = _mapPolysProxy.GetLocalizedPolyValue(ep, "desc")[0];
+        var txt = _mapPolysProxy.GetLocalizedPolyString(ep, "desc");
         var is_enabled = PrefHelper.GetAreaXEnabledPref(ep.poly_id);
 
         var cb = function(pid)
