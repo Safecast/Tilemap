@@ -66,7 +66,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2015/11/drive-of-the-month-semipalatinsk-test-site/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2015/12/今月のドライブセミパラチンスク核実験場/"]                 } ],
           "point": { "x":79.044, "y":49.929 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-car_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":2,
@@ -82,7 +82,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2015/05/drive-of-the-month-svalbard-islands/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2015/05/drive-of-the-month-svalbard-islands/"]       } ],
           "point": { "x":15.6513, "y":78.2199 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-car_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":3,
@@ -98,17 +98,18 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2014/10/drive-of-the-month-safecasting-daiichi-again-and-again/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2014/10/drive-of-the-month-safecasting-daiichi-again-and-again/"]       } ],
           "point": { "x":141.03224, "y":37.42215 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-car_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":4,
        "group_id":2,
-         "author":"BergiX<br/>TL: N/A",
+         "author": [ { "k":"en", "v":"BergiX<br/>TL: N/A"  },
+                     { "k":"ja", "v":"BergiX<br/>翻訳: なし" } ],
            "date":"2016-11-07T21:03:15Z",
            "desc": [ { "k":"en", "v":"Uranium Mines" },
                      { "k":"ja", "v":"ウラン鉱山"      } ],
            "info": [ { "k":"en", "v":"Safecast volunteer BergiX has uploaded quite a few interesting logs from former uranium mining sites in Germany and elsewhere. In the process of checking with him about some of the surprisingly high readings he posted before approving his uploads, we learned that he is careful, well-informed, and researches sites well before visiting them. We invited him to share his experiences on our blog." },
-                     { "k":"ja", "v":"SafecastのボランティアBergiXは、ドイツや他の地域の旧ウラン鉱山のサイトからかなりの興味深いログをアップロードしています。 彼のアップロードを承認する前に彼が投稿した驚くほど高い読書について彼に確認する過程で、彼は注意深く、十分な情報を得て、よくサイトを訪れる前に研究していることを学びました。 私たちは、彼の経験をブログで共有するように彼を招待しました。" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] Safecast volunteer BergiX has uploaded quite a few interesting logs from former uranium mining sites in Germany and elsewhere. In the process of checking with him about some of the surprisingly high readings he posted before approving his uploads, we learned that he is careful, well-informed, and researches sites well before visiting them. We invited him to share his experiences on our blog." } ],
            "imgs":"http://i2.wp.com/blog.safecast.org/wp-content/uploads/2016/11/Nano-bergiX-01.jpg?zoom=2&fit=1184%2C1353",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/11/safecasting-abandoned-uranium-mines/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2016/11/safecasting-abandoned-uranium-mines/"] } ],
@@ -118,28 +119,30 @@
     {
         "poly_id":5,
        "group_id":2,
-         "author":"Nesya<br/>TL: N/A",
+         "author": [ { "k":"en", "v":"Nesya<br/>TL: N/A"  },
+                     { "k":"ja", "v":"Nesya<br/>翻訳: なし" } ],
            "date":"2016-08-08T07:18:06Z",
            "desc": [ { "k":"en", "v":"kGeigie Workshop"    },
                      { "k":"ja", "v":"kGeigieワークショップ" } ],
            "info": [ { "k":"en", "v":"On 24th July 2016, a Safecast volunteer crew participated in hosting a workshop at the  “Mirai Summer Camp Kids Workshop” event at Roppongi Hills in Tokyo. About sixty kids from as young as eight to fifteen years old proved that anyone can be a citizen scientist." },
-                     { "k":"ja", "v":"2016年7月24日、東京の六本木ヒルズで開催された「未来サマーキャンプキッズワークショップ」で、セーフキャストのボランティアクルーがワークショップを開催しました。 8歳から15歳の若者から約60名の子供が、誰もが市民の科学者になることができることを証明した」" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] On 24th July 2016, a Safecast volunteer crew participated in hosting a workshop at the  “Mirai Summer Camp Kids Workshop” event at Roppongi Hills in Tokyo. About sixty kids from as young as eight to fifteen years old proved that anyone can be a citizen scientist." } ],
            "imgs": [ { "k":"en", "v":["&quot;It's kGeigie time!&quot; &quot;No, JAM, no!&quot;", "http://i1.wp.com/blog.safecast.org/wp-content/uploads/2016/08/DSC09598.jpg?zoom=2&fit=1184%2C789"] },
                      { "k":"ja", "v":["「それはkGigigieの時間です！」 「いいえ、JAM、いいえ！」",       "http://i1.wp.com/blog.safecast.org/wp-content/uploads/2016/08/DSC09598.jpg?zoom=2&fit=1184%2C789"] } ],
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/08/kgeigie-and-the-future-citizen-scientists/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2016/08/kgeigie-and-the-future-citizen-scientists/"] } ],
           "point": { "x":139.72923, "y":35.66047 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-hammer-wrench_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":6,
        "group_id":2,
-         "author":"Sean Bonner<br/>TL: N/A",
+         "author": [ { "k":"en", "v":"Sean Bonner<br/>TL: N/A"  },
+                     { "k":"ja", "v":"Sean Bonner<br/>翻訳: なし" } ],
            "date":"2016-04-27T05:00:35Z",
            "desc": [ { "k":"en", "v":"Washington, DC" },
                      { "k":"ja", "v":"ワシントンDC"     } ],
            "info": [ { "k":"en", "v":"Thanks to coordination and support from the NRDC and N*Squared, several of us were lucky enough to visit Washington DC during the week of the Nuclear Security Summit for a series of presentations and meetings about what we’ve been up to, what we’ve produced that people might make use of, and who we might be able to further collaborate with." },
-                     { "k":"ja", "v":"NRDCとN * Squaredの協力と支援のおかげで、私たちのいくつかは、私たちが何をしていたのか、私たちが何をしているのか、 人々が利用する可能性があり、さらに誰と協力し合うことができるのだろうか。" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] Thanks to coordination and support from the NRDC and N*Squared, several of us were lucky enough to visit Washington DC during the week of the Nuclear Security Summit for a series of presentations and meetings about what we’ve been up to, what we’ve produced that people might make use of, and who we might be able to further collaborate with." } ],
            "imgs":"http://i2.wp.com/blog.safecast.org/wp-content/uploads/2016/04/bgeigieWhiteHouse1000px.jpg?zoom=2&fit=1000%2C667",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/04/safecast-visits-washington-dc/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2014/04/safecasting-dc/"]                      } ],
@@ -149,12 +152,13 @@
     {
         "poly_id":7,
        "group_id":2,
-         "author":"Sean Bonner<br/>TL: N/A",
+         "author": [ { "k":"en", "v":"Sean Bonner<br/>TL: N/A"  },
+                     { "k":"ja", "v":"Sean Bonner<br/>翻訳: なし" } ],
            "date":"2013-12-11T10:10:35Z",
            "desc": [ { "k":"en", "v":"McMurdo Station" },
                      { "k":"ja", "v":"マクマード駅"      } ],
            "info": [ { "k":"en", "v":"Safecaster Ryan recently put on his heavy coat and took a trip to Antarctica, brining along a trusty bGeigie and took these readings – making it official that Safecast has measured all seven continents! Nothing scary or unexpected here – everything is around 40 to 50 cpm / 0.11 to 0.13 μSv –  but exciting to check off this accomplishment." },
-                     { "k":"ja", "v":"セーフキャスト一員のRyanは、先日、厚手のコートを着て信頼性の高い計測機、bガイギーを持って南極への旅行し、ここでの値を計測してきました。これで、セーフキャストは全７大陸を測定したことになりました！さて、計測の結果ですが、何も恐ろしいことも意外なこともありませんでした。どの測定値も40～50cpm/0.11～0.13μSvでした。しかし、このミッションを成し得たことに興奮しています。" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] Safecaster Ryan recently put on his heavy coat and took a trip to Antarctica, brining along a trusty bGeigie and took these readings – making it official that Safecast has measured all seven continents! Nothing scary or unexpected here – everything is around 40 to 50 cpm / 0.11 to 0.13 μSv –  but exciting to check off this accomplishment." } ],
            "imgs":"http://safecast.jp/wp-content/uploads/2013/12/image-1024x798.jpg",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2013/12/7-continents/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2013/12/7-continents/"]       } ],
@@ -186,13 +190,13 @@
            "desc": [ { "k":"en", "v":"Tokyo Snow" },
                      { "k":"ja", "v":"東京雪"      } ],
            "info": [ { "k":"en", "v":"On January 22-23 it snowed heavily in Tokyo. To see if it affects radiation measurements I ran out with a few geiger counters to see if I could detect any change." },
-                     { "k":"ja", "v":"1月22日から23日にかけて、東京で大きく雪が降りました。 それが放射線測定に影響を与えるかどうかを確認するために、幾つかのガイガーカウンターで逃げ出しました。" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] On January 22-23 it snowed heavily in Tokyo. To see if it affects radiation measurements I ran out with a few geiger counters to see if I could detect any change." } ],
            "imgs": [ { "k":"en", "v":["Safecasters Joe Moross and THE STIG in action in downtown Tokyo", "http://i1.wp.com/blog.safecast.org/wp-content/uploads/2012/02/Photo-23-1-12-10-55-06-PM-e1328344041992-768x1024.jpg?zoom=2&resize=695%2C926"] },
                      { "k":"ja", "v":["Safecasters Joe MorossとTHE STIGが東京都心に展開",                   "http://i1.wp.com/blog.safecast.org/wp-content/uploads/2012/02/Photo-23-1-12-10-55-06-PM-e1328344041992-768x1024.jpg?zoom=2&resize=695%2C926"] } ],
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2012/02/measuring-radiation-in-snow/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2012/02/measuring-radiation-in-snow/"]       } ],
           "point": { "x":139.695576, "y":35.656452 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-atom3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":10,
@@ -220,13 +224,13 @@
            "desc": [ { "k":"en", "v":"Pointcast: Koriyama" },
                      { "k":"ja", "v":"Pointcast: 郡山市"    } ],
            "info": [ { "k":"en", "v":"While the bGeigie and mobile radiation monitoring have been the major focus of Safecast for some time, we have also steadily been building, testing, and deploying a fixed realtime radiation monitoring system which is the first to receive the designation &quot;Pointcast.&quot;" },
-                     { "k":"ja", "v":"bGeigieとモバイル放射線の監視がSafecastの主な焦点でしたが、「Pointcast」という名称を初めて取得した固定リアルタイム放射線モニタリングシステムを着実に構築し、テストし、導入しています。" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] While the bGeigie and mobile radiation monitoring have been the major focus of Safecast for some time, we have also steadily been building, testing, and deploying a fixed realtime radiation monitoring system which is the first to receive the designation &quot;Pointcast.&quot;" } ],
            "imgs": [ { "k":"en", "v":["Check These Dubs", "http://i1.wp.com/blog.safecast.org/wp-content/uploads/2016/05/Koriyama-Pointcast-group-02.jpg?zoom=2&resize=640%2C640"] },
                      { "k":"ja", "v":["これらの繰り返しの数字をチェックしてください", "http://i1.wp.com/blog.safecast.org/wp-content/uploads/2016/05/Koriyama-Pointcast-group-02.jpg?zoom=2&resize=640%2C640"] } ],
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/05/pointcast-rollout-part-1/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2016/05/pointcast-rollout-part-1/"] } ],
           "point": { "x":140.5295, "y":37.3668 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-gear_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":12,
@@ -237,13 +241,13 @@
            "desc": [ { "k":"en", "v":"Pointcast: Iitate" },
                      { "k":"ja", "v":"Pointcast: 飯舘村"    } ],
            "info": [ { "k":"en", "v":"The new Pointcast in Iitate is being hosted by Iitate Farms, founded and operated by Nobuyoshi Ito. Ito-san is originally from Niigata, and had a very successful engineering business in Tokyo. He discovered Iitate several years before the 2011 disaster, and was attracted by the way the town had begun to focus on &quot;slow life&quot; — called &quot;madei life&quot; in the local dialect — and reviving traditional agricultural and cultural practices." },
-                     { "k":"ja", "v":"飯舘村の新しいポイントキャストは、伊藤信義が創業し運営する飯舘ファームが主催しています。 伊藤さんはもともと新潟出身で、東京で非常に成功したエンジニアリング会社でした。 彼は2011年の災害の数年前に飯舘を発見し、地元の方言では「メイドライフ」と呼ばれる「遅い人生」に焦点を当て始め、伝統的な農業や文化の実践を復活させる方法に魅力を感じました。" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] The new Pointcast in Iitate is being hosted by Iitate Farms, founded and operated by Nobuyoshi Ito. Ito-san is originally from Niigata, and had a very successful engineering business in Tokyo. He discovered Iitate several years before the 2011 disaster, and was attracted by the way the town had begun to focus on &quot;slow life&quot; — called &quot;madei life&quot; in the local dialect — and reviving traditional agricultural and cultural practices." } ],
            "imgs": [ { "k":"en", "v":["From left: Pieter, Joe, Ito-san, Azby", "http://i2.wp.com/blog.safecast.org/wp-content/uploads/2016/06/Pointacst-Iitate-1000px023.jpg?zoom=2&resize=827%2C620"] },
                      { "k":"ja", "v":["左から：Pieter、Joe、Ito-san、Azby",      "http://i2.wp.com/blog.safecast.org/wp-content/uploads/2016/06/Pointacst-Iitate-1000px023.jpg?zoom=2&resize=827%2C620"] } ],
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/07/pointcast-rollout-part-2-iitate-village/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2016/07/pointcast-rollout-part-2-iitate-village/"] } ],
           "point": { "x":140.8009, "y":37.6444 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-gear_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":13,
@@ -254,7 +258,7 @@
            "desc": [ { "k":"en", "v":"Iceland and France" },
                      { "k":"ja", "v":"アイスランドとフランス" } ],
            "info": [ { "k":"en", "v":"During a recent family visit to Iceland and France this July, I took my bGeigie along, and in the course of a few weeks, this has allowed me to send about 50,000 measurements to the Safecast database, during many drives. Once you get into the habit of hanging the bGeigie on the outside of your car, it is impressive how many data points you end up collecting very fast!  I thought I would share a couple of notes from the road, hoping it will encourage even more bGeigie owners to regularly share their drives." },
-                     { "k":"ja", "v":"最近の7月のアイスランドとフランスでの家族訪問の間、私はbGeigieを連れて行きました。数週間のうちに、これにより多くのドライブでSafecastデータベースに約5万回の測定を送信できました。 あなたの車の外側にbGeigieをぶら下げる習慣に入ると、あなたは非常に速く収集するデータポイントの数が印象的です！ 私は道路からのメモをいくつか共有して、もっと多くのbGeigieオーナーがドライブを定期的に共有することを願っていました。" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] During a recent family visit to Iceland and France this July, I took my bGeigie along, and in the course of a few weeks, this has allowed me to send about 50,000 measurements to the Safecast database, during many drives. Once you get into the habit of hanging the bGeigie on the outside of your car, it is impressive how many data points you end up collecting very fast!  I thought I would share a couple of notes from the road, hoping it will encourage even more bGeigie owners to regularly share their drives." } ],
            "imgs": [ { "k":"en", "v":["Safecast:Drive on Android", "http://i2.wp.com/blog.safecast.org/wp-content/uploads/2016/07/IMG_20160724_111631-1.jpg?zoom=2&resize=320%2C320"] },
                      { "k":"ja", "v":["AndroidのSafecast:Drive",   "http://i2.wp.com/blog.safecast.org/wp-content/uploads/2016/07/IMG_20160724_111631-1.jpg?zoom=2&resize=320%2C320"] } ],
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/07/notes-from-the-road-safecasting-iceland-and-france/"] },
@@ -276,7 +280,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/01/hong-kong-workshop-20-22-december-2015/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2016/01/hong-kong-workshop-20-22-december-2015/"]       } ],
           "point": { "x":114.140216, "y":22.284515 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-hammer-wrench_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":15,
@@ -287,12 +291,12 @@
            "desc": [ { "k":"en", "v":"Taipei Workshop" },
                      { "k":"ja", "v":"台北ワークショップ" } ],
            "info": [ { "k":"en", "v":"SAFECAST had another first this past weekend: simultaneous bGeigie Nano workshops on opposite sides of the world. Specifically, on Saturday Oct. 25, teams of people were building Nanos in both Taiwan and France. In Taipei, the workshop was held at FabCafe Taipei, in Huashan Creative Park. Safecaster Joe Moross traveled from Tokyo to be there as an instructor, and there were 7 participants in all." },
-                     { "k":"ja", "v":"SAFECASTには、世界の反対側にある同時開催のbGeigie Nanoワークショップがあります。 具体的には、10月25日の土曜日に、台湾とフランスの両方でNanosを建設する人々のチームがあった。 台北では、Huashan Creative ParkのFabCafe Taipeiでワークショップが開催されました。 Safecaster Joe Morossは東京から講師として参加し、7人の参加者が参加しました。" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] SAFECAST had another first this past weekend: simultaneous bGeigie Nano workshops on opposite sides of the world. Specifically, on Saturday Oct. 25, teams of people were building Nanos in both Taiwan and France. In Taipei, the workshop was held at FabCafe Taipei, in Huashan Creative Park. Safecaster Joe Moross traveled from Tokyo to be there as an instructor, and there were 7 participants in all." } ],
            "imgs":"http://i1.wp.com/blog.safecast.org/wp-content/uploads/2014/10/15648535475_2314173b8f_k.jpg?zoom=2&fit=1024%2C1024",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2014/10/bgeigie-nano-workshops-on-opposite-sides-of-the-world/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2014/10/bgeigie-nano-workshops-on-opposite-sides-of-the-world/"] } ],
           "point": { "x":121.529139, "y":25.044008 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-hammer-wrench_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":16,
@@ -303,12 +307,12 @@
            "desc": [ { "k":"en", "v":"Strasbourg Workshop"      },
                      { "k":"ja", "v":"ストラスブール ワークショップ" } ],
            "info": [ { "k":"en", "v":"SAFECAST had another first this past weekend: simultaneous bGeigie Nano workshops on opposite sides of the world. Specifically, on Saturday Oct. 25, teams of people were building Nanos in both Taiwan and France. The Strasbourg workshop was organized by Dimitri Pletschette, founder of the NPO Fukushima Future. Nine participants, including staff from CRIIRAD and IRSN, gathered at the Av-Lab in Strasbourg, and Safecaster Robin Scheibler traveled from Lausanne to be the instructor." },
-                     { "k":"ja", "v":"SAFECASTには、世界の反対側にある同時開催のbGeigie Nanoワークショップがあります。 具体的には、10月25日の土曜日に、台湾とフランスの両方でNanosを建設する人々のチームがあった。 ストラスブールのワークショップは、NPO福島未来の創始者であるディミトリ・プレットシェットが主催しました。 CRIIRADとIRSNのスタッフを含む9人の参加者がストラスブールのAv-Labに集まり、Safecaster Robin Scheiblerがローザンヌからインストラクターになりました。" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] SAFECAST had another first this past weekend: simultaneous bGeigie Nano workshops on opposite sides of the world. Specifically, on Saturday Oct. 25, teams of people were building Nanos in both Taiwan and France. The Strasbourg workshop was organized by Dimitri Pletschette, founder of the NPO Fukushima Future. Nine participants, including staff from CRIIRAD and IRSN, gathered at the Av-Lab in Strasbourg, and Safecaster Robin Scheibler traveled from Lausanne to be the instructor." } ],
            "imgs":"http://i0.wp.com/blog.safecast.org/wp-content/uploads/2014/10/10710396_920241634671411_4844588090324365650_o.jpg?zoom=2&fit=480%2C720",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2014/10/bgeigie-nano-workshops-on-opposite-sides-of-the-world/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2014/10/bgeigie-nano-workshops-on-opposite-sides-of-the-world/"] } ],
           "point": { "x":7.76357, "y":48.574115 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-hammer-wrench_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":17,
@@ -324,7 +328,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2014/12/safecast-seaweed-collection-feasibility-study/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2014/12/safecast-seaweed-collection-feasibility-study/"]       } ],
           "point": { "x":140.9994, "y":37.1717 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-atom3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":18,
@@ -356,7 +360,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2014/12/bgeigie-nano-workshop-kobe/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2014/12/bgeigie-nano-workshop-kobe/"]       } ],
           "point": { "x":135.19941, "y":34.68523 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-hammer-wrench_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":20,
@@ -367,7 +371,7 @@
            "desc": [ { "k":"en", "v":"Safecasting Ibaraki"     },
                      { "k":"ja", "v":"茨城市でセーフキャスティング" } ],
            "info": [ { "k":"en", "v":"Today’s goal is to measure a hotspot we recently found on our map in Minamisoma, take soil samples, cover a few roads not covered yet, and meet with volunteers in Koriyama in the evening. So far we have had heavy traffic due to rain and Golden Week holiday rush, and we hope to achieve as much as possible. Total distance 500km back and forth. On board we have a lot of measurement equipment – 8 bGeigies, 14 various geiger counters and 1 spectrometer (SAM940 7.62cm). We also have tools for taking soil samples." },
-                     { "k":"ja", "v":"今日、南相馬市の地図上で最近見つかったホットスポットを測定し、土壌サンプルを採取し、まだカバーされていないいくつかの道路をカバーし、夜に郡山でボランティアと会うことが目標です。 これまでのところ、雨やゴールデンウィークの休暇のために交通量が多かったので、できるだけ多くのことを実現したいと考えています。 総距離500km前後。 当社には、8 bGeigies、14種類のガイガーカウンター、1つの分光器（SAM940 7.62cm）のような多くの測定装置があります。 土壌サンプルを採取するツールもあります。" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] Today’s goal is to measure a hotspot we recently found on our map in Minamisoma, take soil samples, cover a few roads not covered yet, and meet with volunteers in Koriyama in the evening. So far we have had heavy traffic due to rain and Golden Week holiday rush, and we hope to achieve as much as possible. Total distance 500km back and forth. On board we have a lot of measurement equipment – 8 bGeigies, 14 various geiger counters and 1 spectrometer (SAM940 7.62cm). We also have tools for taking soil samples." } ],
            "imgs":"http://i2.wp.com/blog.safecast.org/wp-content/uploads/2012/05/sc7.jpeg?zoom=2&fit=640%2C480",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2012/05/safecasting-fukushima-live-report/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2012/05/safecasting-fukushima-live-report/"]       } ],
@@ -528,12 +532,12 @@
            "desc": [ { "k":"en", "v":"HS Student Safecasting"  },
                      { "k":"ja", "v":"HS Student Safecasting" } ],
            "info": [ { "k":"en", "v":"My name is Richard Zajac and I am a senior at a St. Louis, MO High School. I first learned about SafeCast when I began looking for information about the radiation levels in Japan in preparation for a visit filming a documentary. I soon discovered that SafeCast was the best source of this data, and that awareness of this data and these efforts should to be raised." },
-                     { "k":"ja", "v":"My name is Richard Zajac and I am a senior at a St. Louis, MO High School. I first learned about SafeCast when I began looking for information about the radiation levels in Japan in preparation for a visit filming a documentary. I soon discovered that SafeCast was the best source of this data, and that awareness of this data and these efforts should to be raised." } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] My name is Richard Zajac and I am a senior at a St. Louis, MO High School. I first learned about SafeCast when I began looking for information about the radiation levels in Japan in preparation for a visit filming a documentary. I soon discovered that SafeCast was the best source of this data, and that awareness of this data and these efforts should to be raised." } ],
            "imgs":"http://i0.wp.com/blog.safecast.org/wp-content/uploads/2011/10/DSC_0730.jpg?zoom=2&resize=695%2C462",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2011/10/a-high-school-student/"] },
-                     { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2011/10/a-high-school-student/"]       } ],
+                     { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2011/10/a-high-school-student/"] } ],
           "point": { "x":140.33214, "y":37.40406 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-doc2_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":31,
@@ -581,7 +585,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2012/05/visualizing-a-radiation-hotspot/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2012/05/visualizing-a-radiation-hotspot/"]       } ],
           "point": { "x":140.7383, "y":37.6794 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-atom3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":34,
@@ -592,7 +596,7 @@
            "desc": [ { "k":"en", "v":"Report: Abiko"  },
                      { "k":"ja", "v":"レポート：愛子市" } ],
            "info": [ { "k":"en", "v":"As an update to from last year, I would like to provide a brief report on the situation in Abiko City. Even though the area is mostly referred to the Kashiwa hotspot, my impression from measurements has been that the consistently highest levels of radiation are found in Abiko City, not Kashiwa City." },
-                     { "k":"ja", "v":"As an update to from last year, I would like to provide a brief report on the situation in Abiko City. Even though the area is mostly referred to the Kashiwa hotspot, my impression from measurements has been that the consistently highest levels of radiation are found in Abiko City, not Kashiwa City." } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] As an update to from last year, I would like to provide a brief report on the situation in Abiko City. Even though the area is mostly referred to the Kashiwa hotspot, my impression from measurements has been that the consistently highest levels of radiation are found in Abiko City, not Kashiwa City." } ],
            "imgs":"http://i2.wp.com/blog.safecast.org/wp-content/uploads/2012/10/abiko-4.jpg?zoom=2&resize=640%2C480",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2012/10/report-from-abiko-eat-not-eat-go-not-go-escape-not-escape-do-not-do-stop-not-stop-decide-for-yourself/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2012/10/report-from-abiko-eat-not-eat-go-not-go-escape-not-escape-do-not-do-stop-not-stop-decide-for-yourself/"]       } ],
@@ -608,7 +612,7 @@
            "desc": [ { "k":"en", "v":"Safecasting Holland"  },
                      { "k":"ja", "v":"オランダでセーフキャスティング" } ],
            "info": [ { "k":"en", "v":"This summer I returned back to Holland for a summer break. As I had not had a chance to Safecast Holland yet (all bGeigies where in heavy rotation here in Japan!), I decided to make a special version of the bGeigie, so I could easily carry it on board of an airplane, and measure radiation on the way to Holland. Also a small form factor would allow for easy mounting on a bicycle (I don’t own a car) and use it while walking. Lionel Bergeret adopted the bGeigie software to run flawlessly on the Nano. Ergo, the bGeigie Nano was born. The initial prototype was based on a black Pelican 1010 case, and for the trip it was rebuild it into a transparent, yellow case with better mounting of the LND 7313 pancake tube. Over the past three months, the bGeigie Nano has matured quite a bit from this initial prototype, but more about that &quot;any time soon&quot;!" },
-                     { "k":"ja", "v":"この夏、私は夏休みのためにオランダに戻った。 Safecast Hollandにはまだチャンスがなかったので（私はここ日本で大きく回転しているすべてのbGeigies！）、私はbGeigieの特別版を作ることにしたので、簡単に飛行機に乗せて放射線を測定することができました オランダに向かう途中。 また、小さなフォームファクタは、自転車に簡単に取り付け（私は車を持っていない）、歩いている間にそれを使用することができます。 Lionel BergeretはbGeigieソフトウェアを採用し、Nanoで完全に動作しました。 Ergo、bGeigie Nanoが生まれました。 最初のプロトタイプは黒いPelican 1010ケースをベースにしていましたが、トリップのためにLND 7313パンケーキチューブの取り付けを改善して透明な黄色のケースに再構築しました。 過去3ヶ月の間、bGeigie Nanoはこの初期プロトタイプからかなり成熟しましたが、それについては「いつでもすぐに」！" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] This summer I returned back to Holland for a summer break. As I had not had a chance to Safecast Holland yet (all bGeigies where in heavy rotation here in Japan!), I decided to make a special version of the bGeigie, so I could easily carry it on board of an airplane, and measure radiation on the way to Holland. Also a small form factor would allow for easy mounting on a bicycle (I don’t own a car) and use it while walking. Lionel Bergeret adopted the bGeigie software to run flawlessly on the Nano. Ergo, the bGeigie Nano was born. The initial prototype was based on a black Pelican 1010 case, and for the trip it was rebuild it into a transparent, yellow case with better mounting of the LND 7313 pancake tube. Over the past three months, the bGeigie Nano has matured quite a bit from this initial prototype, but more about that &quot;any time soon&quot;!" } ],
            "imgs":"http://i2.wp.com/blog.safecast.org/wp-content/uploads/2012/10/photo2.jpg?zoom=2&resize=691%2C691",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2012/10/safecasting-holland-by-air-sea-and-land/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2012/10/safecasting-holland-by-air-sea-and-land/"]       } ],
@@ -624,12 +628,12 @@
            "desc": [ { "k":"en", "v":"Aizu Workshop"  },
                      { "k":"ja", "v":"会津若松市ワークショップ" } ],
            "info": [ { "k":"en", "v":"It all started with a short Skype call after having tried the satellite phone. Pieter Franken and others from the &quot;block hoofden&quot; group (a Dutch embassy initiative for organizing Dutch citizen abroad) trying to connect with each other and collecting information how bad the damage of the earthquake was. The next day EenVandaag (Dutch TV channel) called us (Yuka Hayashi and me) to ask if we were willing to go with a reporter and cameraman to Tohoku." },
-                     { "k":"ja", "v":"それは衛星電話を試した後、短いSkypeコールで始まった。 ピーテルフランケン（Pieter Franken）らの「ブロックフープデン（block hoofden） グループ（海外のオランダ市民を組織するためのオランダ大使館イニシアチブ）、お互いにつながり、地震の被害がどれほど悪いかという情報を収集しようとしました。 翌日、EenVandaag（オランダのテレビチャンネル）が私たちに電話して、東北にレポーターとカメラマンを喜んで頼むかどうか尋ねました。" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] It all started with a short Skype call after having tried the satellite phone. Pieter Franken and others from the &quot;block hoofden&quot; group (a Dutch embassy initiative for organizing Dutch citizen abroad) trying to connect with each other and collecting information how bad the damage of the earthquake was. The next day EenVandaag (Dutch TV channel) called us (Yuka Hayashi and me) to ask if we were willing to go with a reporter and cameraman to Tohoku." } ],
            "imgs":"https://i0.wp.com/blog.safecast.org/wp-content/uploads/2012/12/barhacking.png?zoom=2&fit=406%2C271",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2012/12/building-bgeigies-in-aizu/"] },
-                     { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2012/12/building-bgeigies-in-aizu/"]       } ],
+                     { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2012/12/building-bgeigies-in-aizu/"] } ],
           "point": { "x":139.8191, "y":37.47484 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-hammer-wrench_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":37,
@@ -640,12 +644,12 @@
            "desc": [ { "k":"en", "v":"Bike 2.0 &amp; bGeigie Nano"  },
                      { "k":"ja", "v":"Bike 2.0 &amp; bGeigie Nano" } ],
            "info": [ { "k":"en", "v":"The start of the project for YR-Design was an extension of building bGiegies in Aizu Wakamatsu. By being in Aizu, having build a few bGeigies for SAFECAST and being exposed to the GreenSmile project from Jun Yamadera (Eyes-Japan), it was a logical step to enter the project. Jun Yamadera first came to YR-Design with his, at that time current version, sensor, a big box behind a bicycle. The box contained a custom build Geiger counter and other sensors. It also contained a big battery to power the WiFi access router. Jun asked us to looking possibilities for modifying the design to make it smaller. At that time YR-Design could not commit enough resources and time to help out." },
-                     { "k":"ja", "v":"会津若松のプロジェクトの開始は、会津若松での建築を拡張したものです。 会津にいることで、SAFECASTのためのいくつかのbGeigiesを構築し、Yamadera Jun（Eyes-Japan）のGreenSmileプロジェクトにさらされていることは、プロジェクトに入るための論理的なステップでした。 山田淳は、当時の現在のバージョン、センサー、自転車の後ろにある大きな箱でYR-Designに来ました。 このボックスにはカスタムビルガイガーカウンターと他のセンサーが含まれていました。 それはまた、WiFiアクセスルータに電力を供給するための大きなバッテリーを含んでいた。 Jun氏は、設計変更の可能性を検討して、設計をより小さくするよう求めました。 その時、YR-Designは十分なリソースと時間を手に入れることができませんでした。" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] The start of the project for YR-Design was an extension of building bGiegies in Aizu Wakamatsu. By being in Aizu, having build a few bGeigies for SAFECAST and being exposed to the GreenSmile project from Jun Yamadera (Eyes-Japan), it was a logical step to enter the project. Jun Yamadera first came to YR-Design with his, at that time current version, sensor, a big box behind a bicycle. The box contained a custom build Geiger counter and other sensors. It also contained a big battery to power the WiFi access router. Jun asked us to looking possibilities for modifying the design to make it smaller. At that time YR-Design could not commit enough resources and time to help out." } ],
            "imgs":"http://i1.wp.com/blog.safecast.org/wp-content/uploads/2013/03/jun-bike-2.jpg",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2013/03/bike-v2-0-and-bgeigienano/"] },
-                     { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2013/03/bike-v2-0-and-bgeigienano/"]       } ],
+                     { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2013/03/bike-v2-0-and-bgeigienano/"] } ],
           "point": { "x":139.9332, "y":37.49347 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-doc2_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":38,
@@ -661,7 +665,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2013/06/safecast-workshop-bgeigie-nano-in-aizu/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2013/06/safecast-workshop-bgeigie-nano-in-aizu/"]       } ],
           "point": { "x":139.9331, "y":37.49278 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-hammer-wrench_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":39,
@@ -672,12 +676,12 @@
            "desc": [ { "k":"en", "v":"Fukushima Decontamination"  },
                      { "k":"ja", "v":"福島県汚染除去" } ],
            "info": [ { "k":"en", "v":"Does the Japanese government have a clear plan for decontaminating Fukushima Prefecture? Are the aims they’ve stated really feasible? Is anyone really able to keep track of the changing standards and guidelines? Lately the ministries tasked with managing this work, as well as spokespersons from various corners, seem to be falling all over themselves acknowledging on the one hand that the work is falling short but insisting on the other that it’s been successful. How reliable is government information about decontamination, and is it possible to weed through the contradictions to find some real data on which to base decisions?" },
-                     { "k":"ja", "v":"日本政府は福島県の汚染除去計画を明確にしていますか？ 彼らが本当に実現可能な目標はありますか？ 誰も本当に変化する基準とガイドラインを把握することができますか？ 最近では、この仕事を管理する省庁やさまざまなコーナーのスポークスパーソンが、一方では仕事が不足していると認めている一方で、成功していると主張しています。 政府の汚染除去に関する情報はどれくらい信頼できるのか、矛盾を根絶して決定を下すための実際のデータを見つけることは可能ですか？" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] Does the Japanese government have a clear plan for decontaminating Fukushima Prefecture? Are the aims they’ve stated really feasible? Is anyone really able to keep track of the changing standards and guidelines? Lately the ministries tasked with managing this work, as well as spokespersons from various corners, seem to be falling all over themselves acknowledging on the one hand that the work is falling short but insisting on the other that it’s been successful. How reliable is government information about decontamination, and is it possible to weed through the contradictions to find some real data on which to base decisions?" } ],
            "imgs":"http://i1.wp.com/blog.safecast.org/wp-content/uploads/2013/08/SafecastIitate.jpg?zoom=2&fit=980%2C480",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2013/08/decon-or-con-how-is-remediation-being-managed-and-how-effective-is-it/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2013/08/decon-or-con-how-is-remediation-being-managed-and-how-effective-is-it/"]       } ],
           "point": { "x":140.74802, "y":37.69823 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-atom3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":40,
@@ -709,7 +713,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2015/05/more-droid-trouble/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2015/05/more-droid-trouble/"]       } ],
           "point": { "x":140.995949, "y":37.563149 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-atom3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":42,
@@ -720,7 +724,7 @@
            "desc": [ { "k":"en", "v":"bGeigie Aero"  },
                      { "k":"ja", "v":"bGeigieエアロ" } ],
            "info": [ { "k":"en", "v":"Note: Safecast is fortunate to have a small group of very active volunteers in the Czech Republic. The Safecast radiation map has a lot of data from the Czech Republic, almost all of it logged by Jan Helebrant and Lubomír Gryc, radioprotection professionals who work at the Czech National Radiation Protection Institute (Statni ustav radiacni ochrany, aka SURO). They told us about the great success they had a deploying a bGeigie Nano at a high-level international radiation survey exercise called the International Aero-Gammaspectrometry Campaign 2015, held in Germany last summer. We invited them to write a guest blog post about it." },
-                     { "k":"ja", "v":"注：Safecastは、チェコ共和国に少数の非常に活発なボランティアを持つのは幸いです。 Safecastの放射線マップにはチェコ共和国のデータが多く、チェコ国家放射線防護研究所（Statni ustav radiacni ochrany、別名SURO）で放射線防護の専門家であるJan HelebrantとLubomírGrycによって記録されたデータがほとんどです。 彼らは、昨年の夏、ドイツで開催された国際エアロガンマ線スペクトロメトリーキャンペーン2015と呼ばれる高レベルの国際放射線調査でbGeigie Nanoを導入したことで大きな成功を収めました。 私たちは彼らにゲストのブログ記事を書くよう招いた」" } ],
+                     { "k":"ja", "v":"[翻訳はまだ利用できません] Note: Safecast is fortunate to have a small group of very active volunteers in the Czech Republic. The Safecast radiation map has a lot of data from the Czech Republic, almost all of it logged by Jan Helebrant and Lubomír Gryc, radioprotection professionals who work at the Czech National Radiation Protection Institute (Statni ustav radiacni ochrany, aka SURO). They told us about the great success they had a deploying a bGeigie Nano at a high-level international radiation survey exercise called the International Aero-Gammaspectrometry Campaign 2015, held in Germany last summer. We invited them to write a guest blog post about it." } ],
            "imgs":"http://i0.wp.com/blog.safecast.org/wp-content/uploads/2015/11/CzechHeli03-leteckecviceni2015-05.jpg?zoom=2&resize=768%2C576",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2015/11/bgeigie-at-the-international-aero-gammaspectrometry-campaign-2015/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2015/11/bgeigie-at-the-international-aero-gammaspectrometry-campaign-2015/"]       } ],
