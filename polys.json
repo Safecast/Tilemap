@@ -147,7 +147,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/04/safecast-visits-washington-dc/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2014/04/safecasting-dc/"]                      } ],
           "point": { "x":-77.035571, "y":38.904939 },
-           "icon": { "url":"sc-icon-doc2_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-doc3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":7,
@@ -537,7 +537,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2011/10/a-high-school-student/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2011/10/a-high-school-student/"] } ],
           "point": { "x":140.33214, "y":37.40406 },
-           "icon": { "url":"sc-icon-doc2_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-doc3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":31,
@@ -649,7 +649,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2013/03/bike-v2-0-and-bgeigienano/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2013/03/bike-v2-0-and-bgeigienano/"] } ],
           "point": { "x":139.9332, "y":37.49347 },
-           "icon": { "url":"sc-icon-doc2_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-doc3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":38,
