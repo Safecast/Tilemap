@@ -147,7 +147,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/04/safecast-visits-washington-dc/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2014/04/safecasting-dc/"]                      } ],
           "point": { "x":-77.035571, "y":38.904939 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-doc2_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":7,
