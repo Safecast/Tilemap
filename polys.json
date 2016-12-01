@@ -66,7 +66,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2015/11/drive-of-the-month-semipalatinsk-test-site/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2015/12/今月のドライブセミパラチンスク核実験場/"]                 } ],
           "point": { "x":79.044, "y":49.929 },
-           "icon": { "url":"sc-icon-car_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-car_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":2,
@@ -82,7 +82,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2015/05/drive-of-the-month-svalbard-islands/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2015/05/drive-of-the-month-svalbard-islands/"]       } ],
           "point": { "x":15.6513, "y":78.2199 },
-           "icon": { "url":"sc-icon-car_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-car_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":3,
@@ -98,7 +98,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2014/10/drive-of-the-month-safecasting-daiichi-again-and-again/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2014/10/drive-of-the-month-safecasting-daiichi-again-and-again/"]       } ],
           "point": { "x":141.03224, "y":37.42215 },
-           "icon": { "url":"sc-icon-car_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-car_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":4,
@@ -114,7 +114,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/11/safecasting-abandoned-uranium-mines/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2016/11/safecasting-abandoned-uranium-mines/"] } ],
           "point": { "x":8.0408, "y":47.84 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":5,
@@ -131,7 +131,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/08/kgeigie-and-the-future-citizen-scientists/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2016/08/kgeigie-and-the-future-citizen-scientists/"] } ],
           "point": { "x":139.72923, "y":35.66047 },
-           "icon": { "url":"sc-icon-hammer-wrench_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-hammer-wrench_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":6,
@@ -147,7 +147,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/04/safecast-visits-washington-dc/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2014/04/safecasting-dc/"]                      } ],
           "point": { "x":-77.035571, "y":38.904939 },
-           "icon": { "url":"sc-icon-doc3_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-doc_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":7,
@@ -163,7 +163,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2013/12/7-continents/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2013/12/7-continents/"]       } ],
           "point": { "x":166.746, "y":-77.828 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":8,
@@ -179,7 +179,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2014/06/upload-of-the-month/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2014/06/upload-of-the-month/"]       } ],
           "point": { "x":-86.30766, "y":42.32958 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":9,
@@ -196,7 +196,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2012/02/measuring-radiation-in-snow/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2012/02/measuring-radiation-in-snow/"]       } ],
           "point": { "x":139.695576, "y":35.656452 },
-           "icon": { "url":"sc-icon-atom3_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-atom_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":10,
@@ -213,7 +213,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2015/01/hello-bikini/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2015/01/hello-bikini/"]       } ],
           "point": { "x":165.441, "y":11.565 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":11,
@@ -230,7 +230,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/05/pointcast-rollout-part-1/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2016/05/pointcast-rollout-part-1/"] } ],
           "point": { "x":140.5295, "y":37.3668 },
-           "icon": { "url":"sc-icon-gear_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-gear_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":12,
@@ -247,7 +247,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/07/pointcast-rollout-part-2-iitate-village/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2016/07/pointcast-rollout-part-2-iitate-village/"] } ],
           "point": { "x":140.8009, "y":37.6444 },
-           "icon": { "url":"sc-icon-gear_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-gear_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":13,
@@ -264,7 +264,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/07/notes-from-the-road-safecasting-iceland-and-france/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2016/07/notes-from-the-road-safecasting-iceland-and-france/"] } ],
           "point": { "x":-20.43, "y":64.12 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":14,
@@ -280,7 +280,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2016/01/hong-kong-workshop-20-22-december-2015/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2016/01/hong-kong-workshop-20-22-december-2015/"]       } ],
           "point": { "x":114.140216, "y":22.284515 },
-           "icon": { "url":"sc-icon-hammer-wrench_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-hammer-wrench_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":15,
@@ -296,7 +296,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2014/10/bgeigie-nano-workshops-on-opposite-sides-of-the-world/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2014/10/bgeigie-nano-workshops-on-opposite-sides-of-the-world/"] } ],
           "point": { "x":121.529139, "y":25.044008 },
-           "icon": { "url":"sc-icon-hammer-wrench_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-hammer-wrench_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":16,
@@ -312,7 +312,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2014/10/bgeigie-nano-workshops-on-opposite-sides-of-the-world/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2014/10/bgeigie-nano-workshops-on-opposite-sides-of-the-world/"] } ],
           "point": { "x":7.76357, "y":48.574115 },
-           "icon": { "url":"sc-icon-hammer-wrench_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-hammer-wrench_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":17,
@@ -328,7 +328,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2014/12/safecast-seaweed-collection-feasibility-study/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2014/12/safecast-seaweed-collection-feasibility-study/"]       } ],
           "point": { "x":140.9994, "y":37.1717 },
-           "icon": { "url":"sc-icon-atom3_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-atom_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":18,
@@ -344,7 +344,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2014/04/safecasting-iraq-open-data-to-open-doors/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2014/04/safecasting-iraq-open-data-to-open-doors/"]       } ],
           "point": { "x":44.346, "y":33.363 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":19,
@@ -360,7 +360,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2014/12/bgeigie-nano-workshop-kobe/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2014/12/bgeigie-nano-workshop-kobe/"]       } ],
           "point": { "x":135.19941, "y":34.68523 },
-           "icon": { "url":"sc-icon-hammer-wrench_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-hammer-wrench_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":20,
@@ -376,7 +376,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2012/05/safecasting-fukushima-live-report/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2012/05/safecasting-fukushima-live-report/"]       } ],
           "point": { "x":140.42191, "y":36.28662 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":21,
@@ -393,7 +393,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2011/09/safecasting-mount-fuji/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2011/09/safecasting-mount-fuji/"]       } ],
           "point": { "x":138.69481, "y":35.3906 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":22,
@@ -409,7 +409,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2011/05/safecasting-koriyama-chiba/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2011/05/safecasting-koriyama-chiba/"]       } ],
           "point": { "x":139.9239, "y":35.802 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":23,
@@ -425,7 +425,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2011/05/safecasting-aizu/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2011/05/safecasting-aizu/"]       } ],
           "point": { "x":139.928383, "y":37.479626 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":24,
@@ -441,7 +441,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2011/05/safecasting-iwaki/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2011/05/safecasting-iwaki/"]       } ],
           "point": { "x":140.8171, "y":37.0408 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":25,
@@ -457,7 +457,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2011/05/volunteer-field-report-kiki/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2011/05/volunteer-field-report-kiki/"]       } ],
           "point": { "x":141.910589, "y":39.344234 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":26,
@@ -473,7 +473,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2011/07/safecasting-kita-dake-japans-second-highest-mountain/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2011/07/safecasting-kita-dake-japans-second-highest-mountain/"]       } ],
           "point": { "x":138.236667, "y":35.674167 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":27,
@@ -489,7 +489,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2011/08/drive-report-august-7/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2011/08/drive-report-august-7/"]       } ],
           "point": { "x":140.751, "y":37.4645 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":28,
@@ -505,7 +505,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2011/08/safecasting-in-oshima-island-japan/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2011/08/safecasting-in-oshima-island-japan/"]       } ],
           "point": { "x":139.4, "y":34.733333 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":29,
@@ -521,7 +521,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2011/10/safecasting-oshima-island/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2011/10/safecasting-oshima-island/"]       } ],
           "point": { "x":139.396, "y":34.7842 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":30,
@@ -537,7 +537,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2011/10/a-high-school-student/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2011/10/a-high-school-student/"] } ],
           "point": { "x":140.33214, "y":37.40406 },
-           "icon": { "url":"sc-icon-doc3_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-doc_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":31,
@@ -553,7 +553,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2011/10/safecasting-seoul-korea-hong-kong-china/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2011/10/safecasting-seoul-korea-hong-kong-china/"]       } ],
           "point": { "x":126.96665, "y":37.56548 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":32,
@@ -569,7 +569,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2011/11/safecasting-seabrook/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2011/11/safecasting-seabrook/"]       } ],
           "point": { "x":-70.850833, "y":42.898889 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":33,
@@ -585,7 +585,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2012/05/visualizing-a-radiation-hotspot/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2012/05/visualizing-a-radiation-hotspot/"]       } ],
           "point": { "x":140.7383, "y":37.6794 },
-           "icon": { "url":"sc-icon-atom3_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-atom_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":34,
@@ -599,9 +599,9 @@
                      { "k":"ja", "v":"[翻訳はまだ利用できません] As an update to from last year, I would like to provide a brief report on the situation in Abiko City. Even though the area is mostly referred to the Kashiwa hotspot, my impression from measurements has been that the consistently highest levels of radiation are found in Abiko City, not Kashiwa City." } ],
            "imgs":"http://i2.wp.com/blog.safecast.org/wp-content/uploads/2012/10/abiko-4.jpg?zoom=2&resize=640%2C480",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2012/10/report-from-abiko-eat-not-eat-go-not-go-escape-not-escape-do-not-do-stop-not-stop-decide-for-yourself/"] },
-                     { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2012/10/report-from-abiko-eat-not-eat-go-not-go-escape-not-escape-do-not-do-stop-not-stop-decide-for-yourself/"]       } ],
+                     { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2012/10/report-from-abiko-eat-not-eat-go-not-go-escape-not-escape-do-not-do-stop-not-stop-decide-for-yourself/"] } ],
           "point": { "x":140.0155, "y":35.8756 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":35,
@@ -615,9 +615,9 @@
                      { "k":"ja", "v":"[翻訳はまだ利用できません] This summer I returned back to Holland for a summer break. As I had not had a chance to Safecast Holland yet (all bGeigies where in heavy rotation here in Japan!), I decided to make a special version of the bGeigie, so I could easily carry it on board of an airplane, and measure radiation on the way to Holland. Also a small form factor would allow for easy mounting on a bicycle (I don’t own a car) and use it while walking. Lionel Bergeret adopted the bGeigie software to run flawlessly on the Nano. Ergo, the bGeigie Nano was born. The initial prototype was based on a black Pelican 1010 case, and for the trip it was rebuild it into a transparent, yellow case with better mounting of the LND 7313 pancake tube. Over the past three months, the bGeigie Nano has matured quite a bit from this initial prototype, but more about that &quot;any time soon&quot;!" } ],
            "imgs":"http://i2.wp.com/blog.safecast.org/wp-content/uploads/2012/10/photo2.jpg?zoom=2&resize=691%2C691",
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2012/10/safecasting-holland-by-air-sea-and-land/"] },
-                     { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2012/10/safecasting-holland-by-air-sea-and-land/"]       } ],
+                     { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2012/10/safecasting-holland-by-air-sea-and-land/"] } ],
           "point": { "x":4.8983, "y":52.3724 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":36,
@@ -633,7 +633,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2012/12/building-bgeigies-in-aizu/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2012/12/building-bgeigies-in-aizu/"] } ],
           "point": { "x":139.8191, "y":37.47484 },
-           "icon": { "url":"sc-icon-hammer-wrench_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-hammer-wrench_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":37,
@@ -649,7 +649,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2013/03/bike-v2-0-and-bgeigienano/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2013/03/bike-v2-0-and-bgeigienano/"] } ],
           "point": { "x":139.9332, "y":37.49347 },
-           "icon": { "url":"sc-icon-doc3_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-doc_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":38,
@@ -665,7 +665,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2013/06/safecast-workshop-bgeigie-nano-in-aizu/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2013/06/safecast-workshop-bgeigie-nano-in-aizu/"]       } ],
           "point": { "x":139.9331, "y":37.49278 },
-           "icon": { "url":"sc-icon-hammer-wrench_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-hammer-wrench_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":39,
@@ -681,7 +681,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2013/08/decon-or-con-how-is-remediation-being-managed-and-how-effective-is-it/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2013/08/decon-or-con-how-is-remediation-being-managed-and-how-effective-is-it/"]       } ],
           "point": { "x":140.74802, "y":37.69823 },
-           "icon": { "url":"sc-icon-atom3_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-atom_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":40,
@@ -697,7 +697,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2014/02/safecasting-the-iaea/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2014/02/safecasting-the-iaea/"]       } ],
           "point": { "x":16.41633, "y":48.23421 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":41,
@@ -713,7 +713,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2015/05/more-droid-trouble/"] },
                      { "k":"ja", "v":["全記事",        "http://safecast.jp/2015/05/more-droid-trouble/"]       } ],
           "point": { "x":140.995949, "y":37.563149 },
-           "icon": { "url":"sc-icon-atom3_80x80.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-atom_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {
         "poly_id":42,
@@ -729,7 +729,7 @@
            "more": [ { "k":"en", "v":["Full Article", "http://blog.safecast.org/2015/11/bgeigie-at-the-international-aero-gammaspectrometry-campaign-2015/"] },
                      { "k":"ja", "v":["全記事",        "http://blog.safecast.org/2015/11/bgeigie-at-the-international-aero-gammaspectrometry-campaign-2015/"]       } ],
           "point": { "x":12.6322, "y":50.5914 },
-           "icon": { "url":"sc-icon-go_80x80b.png", "w":20, "h":20, "zi":-32768 }
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     }
 ]
 }
