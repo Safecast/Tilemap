@@ -393,6 +393,23 @@ var RTLUT = (function()
     {
         return [this.r[i], this.g[i], this.b[i]];
     };
+
+    var _ScaleNormValueLOG10 = function(x) // y-you're going to inline this, right senpai VM?
+    {
+        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
+        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
+        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
+        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
+        return x;
+    };
+    
+    var _ScaleNormValueLN = function(x)
+    {
+        x = Math.log(x * 1.718281828459045 + 1.0);
+        x = Math.log(x * 1.718281828459045 + 1.0);
+        x = Math.log(x * 1.718281828459045 + 1.0);
+        return x;
+    };
     
     var _ScaleNormValueNasaPm25 = function(x)
     {
@@ -402,28 +419,23 @@ var RTLUT = (function()
         return x;
     };
 
-    var _ScaleNormValueLOG10 = function(x)
-    {
-        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
-        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
-        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
-        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
-        return x;
-    };
-
     RTLUT.prototype.GetIdxForValue = function(x, rsn)
     {
         x = (x - this.min) * this.rdiff;
         if (x > 1.0) x = 1.0; else if (x < 0.0) x = 0.0;
     
-        if (this.scale_type_id == RTLUT.ScaleType.NasaPm25)
+        switch (this.scale_type_id)
         {
-            x = _ScaleNormValueNasaPm25(x);
-        }//if
-        else
-        {
-            x = _ScaleNormValueLOG10(x);
-        }//else
+            case RTLUT.ScaleType.LOG10:
+                x = _ScaleNormValueLOG10(x);
+                break;
+            case RTLUT.ScaleType.LN:
+                x = _ScaleNormValueLN(x);
+                break;
+            case RTLUT.ScaleType.NasaPm25:
+                x = _ScaleNormValueNasaPm25(x);
+                break;
+        }//switch
         
         if (x > 1.0) x = 1.0; else if (x < 0.0) x = 0.0;
         
@@ -913,7 +925,7 @@ var RTMKS = (function()
         this.lut      = new RTLUT(this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? 0.03 : 0.0, 
                                   this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? 65.535 : 80.0, 
                                   this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? 30 : 32,
-                                  this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? RTLUT.ScaleType.LOG10 : RTLUT.ScaleType.NasaPm25); 
+                                  this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? RTLUT.ScaleType.LOG10 : RTLUT.ScaleType.LN); 
 
         this.mapref  = mapRef;
         this.inforef = null;
