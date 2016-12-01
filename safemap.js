@@ -2542,7 +2542,7 @@ var BitsProxy = (function()
                     for (var j=0; j<bs.bitstores.length; j++) {
                         var src = null, src_n = 0, bits = bs.bitstores[j];
                         if (bits != null && bits.data != null) { src = bits.GetNewPlanar8FromBitmap(1, 0); for (var k=0; k<src.length; k++) { if (src[k] != 0) src_n++; } }
-                        txt += " +-- (" + bits.x + ", " + bits.y + ") @ " + bits.z; + ", dc=" + bits.GetDataCount() + ", ready=" + (bits.isReady ? "Y" : "N") + ", data.length=" + (bits.data != null ? bits.data.length : "<NULL>") +  ", src_n=" + src_n + ", extent=(" + bits.extent[0].toLocaleString() + " ~~ " + bits.extent[1].toLocaleString() + ") (" + bits.extent[2].toLocaleString() + " ~~ " + bits.extent[3].toLocaleString() + ")\n";
+                        txt += " +-- (" + bits.x + ", " + bits.y + ") @ " + bits.z + ", dc=" + bits.GetDataCount() + ", ready=" + (bits.isReady ? "Y" : "N") + ", data.length=" + (bits.data != null ? bits.data.length : "<NULL>") +  ", src_n=" + src_n + ", extent=(" + bits.extent[0].toLocaleString() + " ~~ " + bits.extent[1].toLocaleString() + ") (" + bits.extent[2].toLocaleString() + " ~~ " + bits.extent[3].toLocaleString() + ")\n";
                         if (bits.data != null && src != null) {
                             var x, y, src_idx, dest_idx, w_rsn=2, h_rsn=4, imgpre="   +- ", src_w = bits.img_width, src_h = bits.img_height;
                             var dest_w = src_w >>> w_rsn, dest_h = src_h >>> h_rsn;
@@ -3824,6 +3824,10 @@ var MenuHelper = (function()
         div.className = "div_accordion";
         ul.className = "menu-section-list";
         ul.id = "ul_menu_" + base_name;
+        
+        // hack because of some weird bug in Chrome that drops GPU compositing
+        sec.style["-webkit-transform"] = "translateZ(0px)";
+        sec.style.transform = "translateZ(0px)";
 
         sec.appendChild(h3);
         h3.appendChild(span);
