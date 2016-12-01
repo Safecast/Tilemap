@@ -130,7 +130,7 @@ var RTVM = (function()
     //
     RTVM.prototype.ConnectionWatchdog = function()
     {
-        if ((new Date()).getTime() - this.last_tx > 20 * 60 * 1000)
+        if (Date.now() - this.last_tx > 20 * 60 * 1000)
         {
             console.log("RTVM.prototype.ConnectionWatchdog: >20 mins since last connection attempt, restarting connection...");
             this.InitMarkersAsync();
@@ -148,15 +148,14 @@ var RTVM = (function()
         if (!this.enabled)
         {
             setTimeout(function() {
-                this.last_tx = (new Date()).getTime();
+                this.last_tx = Date.now();
                 this.GetJSONAsync(url);
             }.bind(this), 60 * 1000);
                 
             return;
         }//if
     
-        var d           = new Date();
-        var ss_now      = "" + (parseInt(d.getTime() * 0.001));
+        var ss_now      = "" + (parseInt(Date.now() * 0.001));
         var url_nocache = url + "?t=" + ss_now;
         
         var cb = function(response, userData)
@@ -207,7 +206,7 @@ var RTVM = (function()
             if (this.failures < this.fail_max)
             {
                 setTimeout(function() {
-                    this.last_tx = (new Date()).getTime();
+                    this.last_tx = Date.now();
                     this.GetJSONAsync(url);
                 }.bind(this), after_ms);
             }//if
@@ -1481,7 +1480,7 @@ var RTMKS = (function()
             obj[i].unix_ms = Date.parse(obj[i].updated);
         }//if
 
-        var thr     = (new Date().getTime()) - 3600.0 * 1000.0;
+        var thr     = Date.now() - 3600.0 * 1000.0;
         var rts     = _SortJSONLtThr(obj, "id", "unix_ms", thr);
         var n       = rts.length;
         
@@ -1541,7 +1540,7 @@ var RTMKS = (function()
     var _GetElapsedTimeText = function(unixSS)
     {
         unixSS = parseFloat(unixSS);
-        var nowSS  = new Date().getTime() / 1000.0;
+        var nowSS  = Date.now() / 1000.0;
         var diffSS = nowSS - unixSS;
         var dest   = null;
         var trs    = new Array();
