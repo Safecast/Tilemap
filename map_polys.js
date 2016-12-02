@@ -217,19 +217,38 @@ var MapPolys = (function()
 
     MapPolys.prototype._GetLocalizedReferencesHeader = function()
     {
-        return this.fxGetLangPref() == "ja" ? "帰属" : "References";
+        return this.fxGetLangPref() == "ja" ? "帰属" 
+             : this.fxGetLangPref() == "es" ? "Referencias"
+             :                                "References";
     };
 
     MapPolys.prototype._GetLocalizedAuthorHeader = function()
     {
-        return this.fxGetLangPref() == "ja" ? "著者" : "By ";
+        return this.fxGetLangPref() == "ja" ? "著者" 
+             : this.fxGetLangPref() == "es" ? "Por"
+             :                                "By";
     };
-
-    MapPolys.prototype._GetLocalizedRevisionHeader = function()
+    
+    MapPolys.prototype._GetLocalizedCoauthorHeader = function()
     {
-        return this.fxGetLangPref() == "ja" ? "版数" : "Revision";
+        return this.fxGetLangPref() == "ja" ? "共著" 
+             : this.fxGetLangPref() == "es" ? "Con"
+             :                                "With";
     };
-
+    
+    MapPolys.prototype._GetLocalizedTranslatorHeader = function()
+    {
+        return this.fxGetLangPref() == "ja" ? "翻訳" 
+             : this.fxGetLangPref() == "es" ? "TL"
+             :                                "TL";
+    };
+    
+    MapPolys.prototype._GetLocalizedFullArticleLabel = function()
+    {
+        return this.fxGetLangPref() == "ja" ? "全記事"
+             : this.fxGetLangPref() == "es" ? "Articulo Entero"
+             :                                "Full Article";
+    };
 
     var _GetInfoWindowLinksArrayOrString = function(src, vert_padding, is_always_list)
     {
@@ -392,6 +411,8 @@ var MapPolys = (function()
         var mores = this._GetLocalizedPolyValue(poly, "ext_poly_more");
         var atts  = this._GetLocalizedPolyValue(poly, "ext_poly_atts");
         var imgs  = this._GetLocalizedPolyValue(poly, "ext_poly_imgs");
+        var   tl  = this._GetLocalizedPolyString(poly, "ext_poly_tl");
+        var  coa  = this._GetLocalizedPolyString(poly, "ext_poly_coauthor");
         var d     = "<table style='width:"+tblw+"px;border:0;border-collapse:collapse;' class='" + "FuturaFont" + "'>";
 
         d += "<tr>"
@@ -402,9 +423,20 @@ var MapPolys = (function()
 
         d += "<tr>"
           +     "<td style='text-align:right; font-size:10px; color:#AAA;'>"
-          +         this._GetLocalizedAuthorHeader()
-          +         this._GetLocalizedPolyString(poly, "ext_poly_author")
-          +     "</td>"
+          +         this._GetLocalizedAuthorHeader() + " "
+          +         this._GetLocalizedPolyString(poly, "ext_poly_author");
+
+        if (coa.length > 0)
+        {
+            d += "<br/>" + this._GetLocalizedCoauthorHeader() + " " + coa;
+        }//if
+
+        if (tl.length > 0)
+        {
+            d += "<br/>" + this._GetLocalizedTranslatorHeader() + ": " + tl;
+        }//if
+          
+        d +=    "</td>"
           +  "</tr>";
 
         d += _GetInfoWindowImagesArrayOrString(imgs, tblw);
@@ -438,6 +470,8 @@ var MapPolys = (function()
           +  "</tr>";
 
         d += "</table>";
+        
+        d = d.replace(/{FULL_ARTICLE}/g, this._GetLocalizedFullArticleLabel());
 
         return d;
     };
@@ -671,6 +705,8 @@ var MapPolys = (function()
         m.ext_poly_atts     = ep.atts;
         m.ext_poly_more     = ep.more;
         m.ext_poly_author   = ep.author;
+        m.ext_poly_coauthor = ep.coauthor;
+        m.ext_poly_tl       = ep.tl;
         m.ext_poly_date     = ep.date;
         m.ext_poly_imgs     = ep.imgs;
         m.ext_poly_icon_w   = ep.icon.w;
@@ -697,6 +733,8 @@ var MapPolys = (function()
                                          ext_poly_atts:ep.atts,
                                          ext_poly_more:ep.more,
                                        ext_poly_author:ep.author,
+                                     ext_poly_coauthor:ep.coauthor,
+                                           ext_poly_tl:ep.tl,
                                          ext_poly_date:ep.date,
                                          ext_poly_imgs:ep.imgs,
                                        ext_poly_extent:_GetExtentForPath(gmaps_path)
