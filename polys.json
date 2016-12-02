@@ -5,31 +5,36 @@
         "group_id":0,
        "parent_id":null,
             "desc": [ { "k":"en", "v":"Areas" },
-                      { "k":"ja", "v":"区域"   } ]
+                      { "k":"ja", "v":"区域"   },
+                      { "k":"es", "v":"Áreas" } ]
     },
     {
         "group_id":1,
        "parent_id":null,
             "desc": [ { "k":"en", "v":"Interest"   },
-                      { "k":"ja", "v":"興味がある点" } ]
+                      { "k":"ja", "v":"興味がある点" },
+                      { "k":"es", "v":"Interés"    } ]
     },
     {
         "group_id":2,
        "parent_id":1,
             "desc": [ { "k":"en", "v":"Safecasting"                                                 },
-                      { "k":"ja", "v":"<span style='letter-spacing:-2px;'>セーフキャスティング</span>" } ]
+                      { "k":"ja", "v":"<span style='letter-spacing:-2px;'>セーフキャスティング</span>" },
+                      { "k":"es", "v":"Safecasting"                                                 } ]
     },
     {
         "group_id":3,
        "parent_id":1,
             "desc": [ { "k":"en", "v":"Photos" },
-                      { "k":"ja", "v":"写真"    } ]
+                      { "k":"ja", "v":"写真"    },
+                      { "k":"es", "v":"Fotos"  } ]
     },
     {
         "group_id":4,
        "parent_id":1,
             "desc": [ { "k":"en", "v":"Anomalies" },
-                      { "k":"ja", "v":"異常"       } ]
+                      { "k":"ja", "v":"異常"       },
+                      { "k":"es", "v":"Anomalías" } ]
     }
 ],
 "polys":
