@@ -17,6 +17,7 @@ var MapPolys = (function()
         this.mapref           = mapref;
         this.inforef          = null;
         this.zoomlistener     = null;
+        this.draglistener     = null;
         this.last_z           = -1;
         this.fxMenuInit       = fxMenuInit;
         this.fxGetLangPref    = fxGetLangPref;
@@ -82,6 +83,46 @@ var MapPolys = (function()
         this.inforef.setContent(this.GetInfoWindowContentForPoly(poly));
         this.inforef.setPosition(e.latLng);
         this.inforef.open(this.mapref, poly);
+    };
+    
+    
+    MapPolys.prototype._GetCurrentVisibleExtent = function()
+    {
+        var e = {};
+        var b = this.mapref.getBounds();
+        e.x0  = b.getSouthWest().lng();
+        e.y0  = b.getSouthWest().lat();
+        e.x1  = b.getNorthEast().lng();
+        e.y1  = b.getNorthEast().lat();
+        e.z   = this.mapref.getZoom();
+        
+        if (e.x0 > e.x1) // 180th meridian handling -- need to split into second extent
+        {                // but, y-coordinates stay the same, so only need two more x-coordinates.
+            e.ex1 = e.x1;
+            e.x1  =  180.0;
+            e.ex0 = -180.0;
+        }//if
+        else
+        {
+            e.ex0 = -9000.0;
+            e.ex1 = -9000.0;
+        }//else
+        
+        return e;
+    };
+
+
+    var _IsIntersectingExtents = function(e0, e1)
+    {
+        return !(e0.x1 < e1.x0 || e0.x0 > e1.x1 || e0.y1 < e1.y0 || e0.y0 > e1.y1);
+    };
+    
+    var _IsPointInExtent = function(x, y, e)
+    {
+        return !(y < e.y0
+             ||  y > e.y1
+             || (x < e.x0 && (e.ex0 == -9000.0 || x < e.ex0))
+             || (x > e.x1 && (e.ex1 == -9000.0 || x > e.ex1)));
     };
 
 
@@ -417,19 +458,22 @@ var MapPolys = (function()
     MapPolys.prototype._RescaleIcons = function()
     {
         var z = this.mapref.getZoom();
+        var e = this._GetCurrentVisibleExtent();
         
-        if (   (z >  7 && this.last_z >  7)
-            && (z < 13 && this.last_z < 13))
+        if (   (e.z >  7 && this.last_z >  7)
+            && (e.z < 13 && this.last_z < 13)
+            &&  e.z > this.last_z)
         {
-            this.last_z = z;
+            this.last_z = e.z;
             return;
         }//if
         
-        var scale = _GetIconScaleFactorForZ(z);
+        var scale = _GetIconScaleFactorForZ(e.z);
 
         for (var i=0; i<this.polygons.length; i++)
         {
-            if (this.polygons[i].ext_poly_icon_w != null)
+            if (this.polygons[i].ext_poly_icon_w != null
+                && _IsPointInExtent(this.polygons[i].getPosition().lng(), this.polygons[i].getPosition().lat(), e))
             {
                 var ico = this.polygons[i].getIcon();
 
@@ -444,7 +488,7 @@ var MapPolys = (function()
             }//if
         }//for
         
-        this.last_z = z;
+        this.last_z = e.z;
     };
     
     MapPolys.prototype._GetJSONAsync = function(url)
@@ -470,6 +514,7 @@ var MapPolys = (function()
                     
                     var fxRefresh = function(e) { this._RescaleIcons(); }.bind(this);
                     this.zoomlistener = google.maps.event.addListener(this.mapref, "zoom_changed", fxRefresh);
+                    this.draglistener = google.maps.event.addListener(this.mapref, "dragend", fxRefresh);
                 }//if
                 else
                 {

@@ -52,8 +52,6 @@ var RTVM = (function()
         
         this.dataBinds = dataBinds;
         
-        this.zoom_to_data_extent     = false;   // whether or not to zoom to the extent of the sensor(s) after processing.
-        
         if (this.dataBinds == null)
         {
             this.Init_DataBindDefaults();
@@ -87,12 +85,6 @@ var RTVM = (function()
         
         this.dataBinds = binds;
     };
-    
-    RTVM.RtType =
-    {
-        SafecastRad: 0,
-        SafecastAir: 1
-    };
 
     RTVM.prototype.Init_MKS = function()
     {
@@ -102,7 +94,7 @@ var RTVM = (function()
         var pf = this.rt_type == RTVM.RtType.SafecastRad ? RTMKS.ParseFormat.SafecastRtRad
                                                          : RTMKS.ParseFormat.SafecastRtAir;
 
-        this.mks = new RTMKS(this.mapRef, RTICO.IconStyleLg, window.devicePixelRatio, this.isMobile, this.dataBinds.cssClasses.FuturaFont, pf, rs);
+        this.mks = new RTMKS(this.mapRef, window.devicePixelRatio, this.isMobile, this.dataBinds.cssClasses.FuturaFont, pf, rs);
     };
     
     RTVM.prototype.InitMarkersAsync = function()
@@ -226,27 +218,12 @@ var RTVM = (function()
     
     RTVM.prototype.AddGmapsListeners = function()
     {
-        this.mks.AddGmapsListener_ZoomChanged(); // only needed if they are manually removed.
+        this.mks.AddGmapsListeners(); // only needed if they are manually removed.
     };
     
     RTVM.prototype.RemoveAllMarkersFromMapAndPurgeData = function()
     {
         this.mks.RemoveAllMarkersFromMapAndPurgeData();
-    };
-
-    RTVM.prototype.SetZoomToDataExtent = function(shouldZoom)
-    {
-        this.zoom_to_data_extent = shouldZoom;
-    };
-    
-    RTVM.prototype.SetNewCustomMarkerOptions = function(width, height, alpha_fill, alpha_stroke, shadow_radius, hasBearingTick)
-    {
-        this.mks.SetNewCustomMarkerOptions(width, height, alpha_fill, alpha_stroke, shadow_radius, hasBearingTick);
-    };
-    
-    RTVM.prototype.SetNewMarkerType = function(iconTypeId)
-    {
-        this.mks.SetNewMarkerType(iconTypeId);
     };
     
     RTVM.prototype.GetMarkerCount = function()
@@ -348,7 +325,11 @@ var RTVM = (function()
     };
 
 
-
+    RTVM.RtType =
+    {
+        SafecastRad: 0,
+        SafecastAir: 1
+    };
 
 
     return RTVM;
@@ -365,9 +346,8 @@ var RTVM = (function()
 
 
 
-
-
 // RTLUT: contains color lookup table and returns RGB colors for a numeric value.
+
 var RTLUT = (function()
 {
     function RTLUT(min, max, lut_id, scale_type_id)
@@ -517,10 +497,10 @@ var RTLUT = (function()
 
 
 
-
 // ICO: Renders marker icon to ivar "this.url" as base64 png.
 //      Can be retained in cache as rendering pngs is slow.
 //      This is completely ignorant of retina displays.
+
 var RTICO = (function()
 {
     function RTICO(width, height, deg, showBearingTick, lutidx, red0, green0, blue0, red1, green1, blue1, alpha_fill, alpha_stroke, shadow_radius, render_style)
@@ -837,60 +817,23 @@ var RTICO = (function()
 
         this.url = c.toDataURL("image/png");
     };
-    
-    
-    RTICO.GetIconOptionsForIconStyle = function(iconStyle)
-    {
-        var p;
-        
-        switch (iconStyle)
-        {
-            case RTICO.IconStyleSm:
-                p = [ 7, 7, 0.75, 0.75, 0.0, false];
-                break;
-            case RTICO.IconStyleMdB:
-                p = [ 10, 10, 0.75, 0.75, 0.0, true];
-                break;
-            case RTICO.IconStyleLgB:
-                p = [ 16, 16, 0.75, 0.75, 0.0, true];
-                break;
-            case RTICO.IconStyleLg:
-                p = [ 16, 16, 0.75, 0.75, 0.0, false];
-                break;
-            case RTICO.IconStyleMd:
-                p = [ 10, 10, 0.75, 0.75, 0.0, false];
-                break;
-            default:
-                p = [ 10, 10, 0.75, 0.75, 0.0, true];
-                break;
-        }//switch
-        
-        return { width:p[0], height:p[1], fill_alpha:p[2], stroke_alpha:p[3], shadow_radius:p[4], show_bearing_tick:p[5] };
-    };
-    
-    RTICO.IconStyleSm     = 0;
-    RTICO.IconStyleMdB    = 1;
-    RTICO.IconStyleMd     = 2;
-    RTICO.IconStyleLgB    = 3;
-    RTICO.IconStyleLg     = 4;
-    RTICO.IconStyleCustom = 5;
-    
+
     RTICO.RenderStyle =
     {
         Dot: 0,
         Chevron: 1
     };
-    
+
     return RTICO;
 })();
 
 
 
-
 // MKS: Marker manager
+
 var RTMKS = (function()
 {
-    function RTMKS(mapRef, iconType, pxScale, isMobile, fontCssClass, parse_format, render_style)
+    function RTMKS(mapRef, pxScale, isMobile, fontCssClass, parse_format, render_style)
     {
         // Typed arrays, these hold the parsed log data.
         this.raws    = null;    // CPM value of point
@@ -903,6 +846,7 @@ var RTMKS = (function()
         this.locstxt = null;
         this.imgtxt  = null;
         this.linktxt = null;
+        this.m_idxs  = null;
         
         this.isMobile = isMobile; // Disables some caching and renders less markers per pass.
         
@@ -910,12 +854,11 @@ var RTMKS = (function()
         this.parse_format = parse_format;
         this.render_style = render_style;
         
-        this.mkType   = iconType;       // Predefined marker templates.
         this.pxScale  = pxScale == null || pxScale < 1.0 ? 1.0 : pxScale;
         this.width    = 20;             // Marker icon width, in non-retina pixels
         this.height   = 20;             // Marker icon height, in non-retina pixels
-        this.alpha0   = 1.0;           // Marker icon fill alpha, [0.0 - 1.0]
-        this.alpha1   = 1.0;           // Maker icon stroke alpha, [0.0 - 1.0]
+        this.alpha0   = 1.0;            // Marker icon fill alpha, [0.0 - 1.0]
+        this.alpha1   = 1.0;            // Maker icon stroke alpha, [0.0 - 1.0]
         this.shd_r    = 0.0;            // Marker icon shadow radius, pixels.
         this.icons    = new Array();
         
@@ -930,8 +873,7 @@ var RTMKS = (function()
         this.inforef = null;
         
         this.zoomlistener = null;
-        
-        //var d = new Date();
+        this.draglistener = null;
         
         this.create_ss = (Date.now() * 0.001)>>>0;
         
@@ -956,47 +898,51 @@ var RTMKS = (function()
         this.mk_ex   = new Float64Array([9000.0, 9000.0, -9000.0, -9000.0]); // x0, y0, x1, y1 - EPSG:4326 only.
         this.last_z  = 0;
         
-        this.AddGmapsListener_ZoomChanged();
+        this.AddGmapsListeners();
     }//RTMKS
     
-    RTMKS.prototype.SetNewCustomMarkerOptions = function(width, height, alpha_fill, alpha_stroke, shadow_radius, hasBearingTick)
-    {
-        if (this.icons.length > 0) this.icons = new Array();
-        
-        this.RemoveAllMarkersFromMap();
-        
-        this.mkType = RTICO.IconStyleCustom;
-        this.width  = width;
-        this.height = height;
-        this.alpha0 = alpha_fill;
-        this.alpha1 = alpha_stroke;
-        this.shd_r  = shadow_radius;
-        
-        this.AddMarkersToMap();
-    };
     
-    RTMKS.prototype.SetNewMarkerType = function(markerType)
+    RTMKS.prototype._GetCurrentVisibleExtent = function()
     {
-        if (markerType != this.mkType)
-        {
-            if (this.icons.length > 0) this.icons = new Array();
-            this.mkType = markerType;
-            this.RemoveAllMarkersFromMap();
-            this.ApplyMarkerType();
-            this.AddMarkersToMap();
+        var e = {};
+        var b = this.mapref.getBounds();
+        e.x0  = b.getSouthWest().lng();
+        e.y0  = b.getSouthWest().lat();
+        e.x1  = b.getNorthEast().lng();
+        e.y1  = b.getNorthEast().lat();
+        e.z   = this.mapref.getZoom();
+        
+        if (e.x0 > e.x1) // 180th meridian handling -- need to split into second extent
+        {                // but, y-coordinates stay the same, so only need two more x-coordinates.
+            e.ex1 = e.x1;
+            e.x1  =  180.0;
+            e.ex0 = -180.0;
         }//if
+        else
+        {
+            e.ex0 = -9000.0;
+            e.ex1 = -9000.0;
+        }//else
+        
+        return e;
+    };
+
+
+    var _IsIntersectingExtents = function(e0, e1)
+    {
+        return !(e0.x1 < e1.x0 || e0.x0 > e1.x1 || e0.y1 < e1.y0 || e0.y0 > e1.y1);
     };
     
-    RTMKS.prototype.ApplyMarkerType = function()
+    var _IsPointInExtent = function(x, y, e)
     {
-        var p = RTICO.GetIconOptionsForIconStyle(this.mkType);
-        
-        this.width  = p.width;
-        this.height = p.height;
-        this.alpha0 = p.fill_alpha;
-        this.alpha1 = p.stroke_alpha;
-        this.shd_r  = p.shadow_radius;
+        return !(y < e.y0
+             ||  y > e.y1
+             || (x < e.x0 && (e.ex0 == -9000.0 || x < e.ex0))
+             || (x > e.x1 && (e.ex1 == -9000.0 || x > e.ex1)));
     };
+
+    
+
     
     RTMKS.prototype.UpdateMarkerExtent = function(x0, y0, x1, y1)
     {
@@ -1048,29 +994,37 @@ var RTMKS = (function()
         
         this.markers = new Array();
     };
-
-    RTMKS.prototype.RecycleMarker = function(marker)
-    {
-        google.maps.event.clearInstanceListeners(marker);
-        marker.setMap(null);
-        marker.setIcon(null);
-    };
     
     RTMKS.prototype.ClearGmapsListeners = function()
     {
-        if (this.zoomlistener == null) return;
+        if (this.zoomlistener != null)
+        {
+            google.maps.event.removeListener(this.zoomlistener);
+            this.zoomlistener = null;
+        }//if
         
-        google.maps.event.removeListener(this.zoomlistener);
-        this.zoomlistener = null;
+        if (this.draglistener != null)
+        {
+            google.maps.event.removeListener(this.draglistener);
+            this.draglistener = null;
+        }//if
     };
     
-    RTMKS.prototype.AddGmapsListener_ZoomChanged = function()
+    RTMKS.prototype.AddGmapsListeners = function()
     {
-        if (this.mapref == null || this.zoomlistener != null) return;
+        if (this.mapref == null) return;
         
         var fxRefresh = function(e) { this.RescaleIcons(); }.bind(this);
         
-        this.zoomlistener = google.maps.event.addListener(this.mapref, "zoom_changed", fxRefresh);
+        if (this.zoomlistener == null)
+        {
+            this.zoomlistener = google.maps.event.addListener(this.mapref, "zoom_changed", fxRefresh);
+        }//if
+        
+        if (this.draglistener == null)
+        {
+            this.draglistener = google.maps.event.addListener(this.mapref, "dragend", fxRefresh);
+        }//if
     };
     
     // Synchronizes marker icons with marker data.  This assumes that 
@@ -1084,38 +1038,41 @@ var RTMKS = (function()
     //
     RTMKS.prototype.UpdateIconsForMarkers = function()
     {
-        var z     = this.mapref.getZoom();
-        var scale = _GetIconScaleFactorForZ(z);
+        var e     = this._GetCurrentVisibleExtent();
+        var scale = _GetIconScaleFactorForZ(e.z);
 
         for (var i=0; i<this.markers.length; i++)
         {
-            var ico     = this.markers[i].getIcon();
-            var val     = this.vals[this.markers[i].ext_id];
-            var offline = this.IsSensorOffline(this.markers[i].ext_id);
-            var lutidx  = this.lut.GetIdxForValue(val, this.lut_rsn);
-            var zindex  = _GetMarkerZIndexForAttributes(lutidx, offline);
-            var lat     = this.lats[this.markers[i].ext_id];
-            var lon     = this.lons[this.markers[i].ext_id];
-            
+            var lat = this.lats[this.markers[i].ext_id];
+            var lon = this.lons[this.markers[i].ext_id];
+        
             if (   lat != this.markers[i].getPosition().lat()
                 || lon != this.markers[i].getPosition().lng())
             {
                 this.markers[i].setPosition(new google.maps.LatLng(lat, lon));
             }//if
-
-            if (ico.scaledSize.width != this.width * scale
-                || offline != this.markers[i].ext_offline
-                ||  lutidx != this.markers[i].ext_lut_idx)
+            
+            if (_IsPointInExtent(lon, lat, e))
             {
-                ico.size       = new google.maps.Size(this.width * scale, this.height * scale);
-                ico.scaledSize = new google.maps.Size(this.width * scale, this.height * scale);
-                ico.anchor     = new google.maps.Point(this.width * scale * 0.5, this.height * scale * 0.5);
-                ico.url        = this.GetIconCached(lutidx, offline, this.width, this.height, this.pxScale * scale);
+                var ico     = this.markers[i].getIcon();
+                var val     = this.vals[this.markers[i].ext_id];
+                var offline = this.IsSensorOffline(this.markers[i].ext_id);
+                var lutidx  = this.lut.GetIdxForValue(val, this.lut_rsn);
+
+                if (ico.scaledSize.width != this.width * scale
+                    || offline != this.markers[i].ext_offline
+                    ||  lutidx != this.markers[i].ext_lut_idx)
+                {
+                    ico.size       = new google.maps.Size(this.width * scale, this.height * scale);
+                    ico.scaledSize = new google.maps.Size(this.width * scale, this.height * scale);
+                    ico.anchor     = new google.maps.Point(this.width * scale * 0.5, this.height * scale * 0.5);
+                    ico.url        = this.GetIconCached(lutidx, offline, this.width, this.height, this.pxScale * scale);
                 
-                this.markers[i].setIcon(ico);
-                this.markers[i].setZIndex(zindex);
-                this.markers[i].ext_offline = offline;
-                this.markers[i].ext_lut_idx = lutidx;
+                    this.markers[i].setIcon(ico);
+                    this.markers[i].setZIndex(_GetMarkerZIndexForAttributes(lutidx, offline));
+                    this.markers[i].ext_offline = offline;
+                    this.markers[i].ext_lut_idx = lutidx;
+                }//if
             }//if
         }//for
     };
@@ -1127,7 +1084,8 @@ var RTMKS = (function()
         
         var z = this.mapref.getZoom();
         
-        if (z > 7 && this.last_z > 7)
+        if (z > 7 && this.last_z > 7
+            && z > this.last_z) // 2016-12-01 ND: for lazy extent-based updates
         {
             this.last_z = z;
             return;
@@ -1772,7 +1730,6 @@ var RTMKS = (function()
 
     return RTMKS;
 })();
-
 
 
 
