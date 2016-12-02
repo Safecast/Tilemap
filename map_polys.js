@@ -468,6 +468,7 @@ var MapPolys = (function()
             return;
         }//if
         
+        
         var scale = _GetIconScaleFactorForZ(e.z);
 
         for (var i=0; i<this.polygons.length; i++)
@@ -477,7 +478,7 @@ var MapPolys = (function()
             {
                 var ico = this.polygons[i].getIcon();
 
-                if (ico.scaledSize.width != this.width * scale)
+                if (ico.scaledSize.width != this.polygons[i].ext_poly_icon_w * scale)
                 {
                     ico.size       = new google.maps.Size(this.polygons[i].ext_poly_icon_w * scale, this.polygons[i].ext_poly_icon_h * scale);
                     ico.scaledSize = new google.maps.Size(this.polygons[i].ext_poly_icon_w * scale, this.polygons[i].ext_poly_icon_h * scale);
