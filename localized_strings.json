@@ -78,7 +78,8 @@
         "INFOWINDOW_AUTHOR_BY":"By",
         "INFOWINDOW_COAUTHOR_BY":"With",
         "INFOWINDOW_TL_BY":"TL",
-        "INFOWINDOW_FULL_ARTICLE":"Full Article"
+        "INFOWINDOW_FULL_ARTICLE":"Full Article",
+        "INFOWINDOW_TL_NA":"[Translation Unavailable]"
     },
     {
         "lang":"ja",
@@ -159,7 +160,8 @@
         "INFOWINDOW_AUTHOR_BY":"著者",
         "INFOWINDOW_COAUTHOR_BY":"共著",
         "INFOWINDOW_TL_BY":"翻訳",
-        "INFOWINDOW_FULL_ARTICLE":"全記事"
+        "INFOWINDOW_FULL_ARTICLE":"全記事",
+        "INFOWINDOW_TL_NA":"[翻訳はまだ利用できません]"
     },
     {
         "lang":"es",
@@ -240,6 +242,7 @@
         "INFOWINDOW_AUTHOR_BY":"Por",
         "INFOWINDOW_COAUTHOR_BY":"Con",
         "INFOWINDOW_TL_BY":"TL",
-        "INFOWINDOW_FULL_ARTICLE":"Articulo Entero"
+        "INFOWINDOW_FULL_ARTICLE":"Articulo Entero",
+        "INFOWINDOW_TL_NA":"[Traducción no Disponible]"
     }
 ]

@@ -133,6 +133,36 @@ var MapPolys = (function()
     };
 
 
+    var _IsValueForLang = function(src, lang)
+    {
+        var d = false;
+
+        if (src != null && (typeof src == 'string' || src instanceof String))
+        {
+            d = true;
+        }//if
+
+        if (!d && src != null)
+        {
+            for (var i=0; i<src.length; i++)
+            {
+                if (src[i].k == lang)
+                {
+                    d = true;
+                    break;
+                }//if
+            }//for
+        }//if
+
+        return d;
+    };
+    
+    MapPolys.prototype._IsLocalizedPolyValuePresent = function(poly, prop)
+    {
+        return _IsValueForLang(poly[prop], this.fxGetLangPref());
+    };
+
+
     var _GetValueForLang = function(src, lang, lang_def)
     {
         var d = new Array();
@@ -259,6 +289,11 @@ var MapPolys = (function()
     MapPolys.prototype._GetLocalizedFullArticleLabel = function()
     {
         return this._GetLocalizedString("INFOWINDOW_FULL_ARTICLE");
+    };
+    
+    MapPolys.prototype._GetLocalizedTlNaLabel = function()
+    {
+        return this._GetLocalizedString("INFOWINDOW_TL_NA");
     };
 
     var _GetInfoWindowLinksArrayOrString = function(src, vert_padding, is_always_list)
@@ -483,6 +518,7 @@ var MapPolys = (function()
         d += "</table>";
         
         d = d.replace(/{FULL_ARTICLE}/g, this._GetLocalizedFullArticleLabel());
+        d = d.replace(/{TL_NA}/g, this._IsLocalizedPolyValuePresent(poly, "ext_poly_info") ? "" : (this._GetLocalizedTlNaLabel() + " "));
 
         return d;
     };
