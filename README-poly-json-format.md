@@ -388,8 +388,8 @@ String           | `localized_strings.json` Key | Example Value (English)     | 
 * Ideally: show the user a "translation not available" message.
 * Bad: Duplicating the English `info` text and prepending a "translation not available" message for every language --  inefficient and time-consuming to maintain.
 * Solution: the tag `{TL_NA}` allows this to be handled automatically.
-* `{TL_NA}` is replaced by a localized "translation not available" message if:
- 1. The user's language is **not** specified by an `info` key-value pair.
+* `{TL_NA}` is replaced by a localized "translation not available" message if both:
+ 1. The user's language is **not** specified by an `info` key-value pair, and
  2. The `info` node must specify a language, and cannot simply be a string.
 * `{TL_NA}` is removed instead if either:
  1. The user's language is specified by an `info` key-value pair, or 
