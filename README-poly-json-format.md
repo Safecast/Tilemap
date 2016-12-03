@@ -235,8 +235,10 @@ These are shown in specific detail below.
 ####2. Localized
 ```
 "author": [ { "k":"en", "v":"Azby Brown"      },
+            { "k":"es", "v":"Azby Brown"      },
             { "k":"ja", "v":"アズビー・ブラウン" } ]
 ```
+*(nb: in the above example, it is safe to omit the `es` pair, as it will default to the `en` pair which has the same value.)*
 
 
 
@@ -244,13 +246,13 @@ These are shown in specific detail below.
 
 ####1. Basic
 ```
-"coauthor": "Gendo Ikari"
+"coauthor": "Yuka Hayashi, Rob Oudendijk, Mamie Lau"
 ```
 
 ####2. Localized
 ```
-"coauthor": [ { "k":"en", "v":"Gendo Ikari" },
-              { "k":"ja", "v":"碇 ゲンドウ"   } ]
+"coauthor": [ { "k":"en", "v":"Yuka Hayashi, Rob Oudendijk, Mamie Lau" },
+              { "k":"ja", "v":"林 由佳, ロブ・オーデンダイク, マミ・ラウ"    } ]
 ```
 
 
