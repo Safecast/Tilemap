@@ -289,7 +289,8 @@ function initialize()
         //var rp = function(eps) { MenuHelper.RegisterPolys(eps); };
         var rp = function(gs,eps) { MenuHelper.RegisterGroupsAndPolys(gs,eps);    };
         var gl = function()       { return PrefHelper.GetEffectiveLanguagePref(); };
-        _mapPolysProxy.Init(map, rp, gl); // must occur after "map" ivar is set
+        var gs = function(s,cb)   { _locStringsProxy.GetMenuStrings(s, cb);       };
+        _mapPolysProxy.Init(map, rp, gl, gs); // must occur after "map" ivar is set
     }, 1000);
 }//initialize
 
@@ -1999,11 +2000,11 @@ var MapPolysProxy = (function()
         return this._mapPolys != null;
     };
 
-    MapPolysProxy.prototype.Init = function(mapref, fxMenuInit, fxGetLangPref)
+    MapPolysProxy.prototype.Init = function(mapref, fxMenuInit, fxGetLangPref, fxGetLangStrings)
     {
         if (this._IsReady()) return;
 
-        this._LoadAsync(mapref, fxMenuInit, fxGetLangPref);
+        this._LoadAsync(mapref, fxMenuInit, fxGetLangPref, fxGetLangStrings);
     };
 
     MapPolysProxy.prototype.GetEncodedPolygons = function()
@@ -2021,11 +2022,11 @@ var MapPolysProxy = (function()
         return this._IsReady() ? this._mapPolys.GetPolygons() : new Array();
     };
 
-    MapPolysProxy.prototype._LoadAsync = function(mapref, fxMenuInit, fxGetLangPref)
+    MapPolysProxy.prototype._LoadAsync = function(mapref, fxMenuInit, fxGetLangPref, fxGetLangStrings)
     {
         var cb = function()
         {
-            this._mapPolys = new MapPolys(mapref, fxMenuInit, fxGetLangPref);
+            this._mapPolys = new MapPolys(mapref, fxMenuInit, fxGetLangPref, fxGetLangStrings);
             this._mapPolys.Init();
         }.bind(this);
     

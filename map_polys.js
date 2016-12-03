@@ -9,7 +9,7 @@
 //
 var MapPolys = (function()
 {
-    function MapPolys(mapref, fxMenuInit, fxGetLangPref) 
+    function MapPolys(mapref, fxMenuInit, fxGetLangPref, fxGetLangStrings) 
     {
         this.encoded_polygons = new Array();
         this.groups           = new Array();
@@ -21,6 +21,13 @@ var MapPolys = (function()
         this.last_z           = -1;
         this.fxMenuInit       = fxMenuInit;
         this.fxGetLangPref    = fxGetLangPref;
+        this.fxGetLangStrings = fxGetLangStrings;
+
+        this.localized_strings =
+        {
+            lang:"",
+            strings: { }
+        };
     }
 
 
@@ -196,58 +203,62 @@ var MapPolys = (function()
         }//else
     };
 
-    MapPolys.prototype.GetLocalizedDescCssString = function(poly)
+
+    MapPolys.prototype._GetLocalizedString = function(key)
     {
-        var ss = this._GetLocalizedPolyValue(poly, "desc");
-        var s  = ss.length > 0 ? ss[0] : null;
-        
-        if (s == null)
-        {
-            return "";
-        }//if
-        else if (typeof s == 'string' || s instanceof String || s.length == 1)
-        {
-            return "";
-        }//else if
-        else // assume array with string
-        {
-            return s[1];
-        }//else
+        this._CheckLocalizedStrings();
+        var d = this.localized_strings.strings[key];
+        return d == null ? "" : d;
     };
+
+
+    MapPolys.prototype._CheckLocalizedStrings = function()
+    {
+        var s = this.fxGetLangPref();
+
+        if (s != this.localized_strings.lang)
+        {
+            var cb = function(ms) 
+            {
+                for (var key in ms)
+                {
+                    if (key.substring(0,11) == "INFOWINDOW_")
+                    {
+                        this.localized_strings.strings[key] = ms[key];
+                    }//if
+                }//for
+
+                this.localized_strings.lang = s;
+            }.bind(this);
+
+            this.fxGetLangStrings(s, cb);
+        }//if
+    };
+
 
     MapPolys.prototype._GetLocalizedReferencesHeader = function()
     {
-        return this.fxGetLangPref() == "ja" ? "帰属" 
-             : this.fxGetLangPref() == "es" ? "Referencias"
-             :                                "References";
+        return this._GetLocalizedString("INFOWINDOW_REFERENCES");
     };
 
     MapPolys.prototype._GetLocalizedAuthorHeader = function()
     {
-        return this.fxGetLangPref() == "ja" ? "著者" 
-             : this.fxGetLangPref() == "es" ? "Por"
-             :                                "By";
+        return this._GetLocalizedString("INFOWINDOW_AUTHOR_BY");
     };
     
     MapPolys.prototype._GetLocalizedCoauthorHeader = function()
     {
-        return this.fxGetLangPref() == "ja" ? "共著" 
-             : this.fxGetLangPref() == "es" ? "Con"
-             :                                "With";
+        return this._GetLocalizedString("INFOWINDOW_COAUTHOR_BY");
     };
     
     MapPolys.prototype._GetLocalizedTranslatorHeader = function()
     {
-        return this.fxGetLangPref() == "ja" ? "翻訳" 
-             : this.fxGetLangPref() == "es" ? "TL"
-             :                                "TL";
+        return this._GetLocalizedString("INFOWINDOW_TL_BY");
     };
     
     MapPolys.prototype._GetLocalizedFullArticleLabel = function()
     {
-        return this.fxGetLangPref() == "ja" ? "全記事"
-             : this.fxGetLangPref() == "es" ? "Articulo Entero"
-             :                                "Full Article";
+        return this._GetLocalizedString("INFOWINDOW_FULL_ARTICLE");
     };
 
     var _GetInfoWindowLinksArrayOrString = function(src, vert_padding, is_always_list)
