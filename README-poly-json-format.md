@@ -439,14 +439,19 @@ The output text for the user's language setting is as follows:
 * **`en`**: "[Translation Unavailable] 2012年12月..."  
 * **`ja`**: "2012年12月..."  
 * **`es`**: "[Traducción no Disponible] 2012年12月..."
-
+  
 &nbsp; 
+  
 &nbsp; 
+  
 &nbsp; 
+  
 &nbsp; 
+  
 &nbsp; 
+  
 &nbsp; 
-
+  
 ## Appendix: Basic JSON Errors
 
 A common mistake in editing JSON is to use trailing commas.  This is bad and breaks parsing the entire JSON object.
