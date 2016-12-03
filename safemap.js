@@ -458,9 +458,10 @@ var BasemapHelper = (function()
         o.b4 = _NewGmapsBasemap(0, 19, 256, "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap", null, osm_subs);
         
         o.b9 = _NewGmapsBasemap(0, 18, 256, "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", "GSI Japan", null, null);
-        
-        o.b5 = _NewGmapsBasemapConst(256, "Pure Black World Tendency", "None (Black)", "http://safecast.media.mit.edu/tilemap/black.png");
-        o.b6 = _NewGmapsBasemapConst(256, "Pure White World Tendency", "None (White)", "http://safecast.media.mit.edu/tilemap/white.png");
+
+        o.b5 = _NewGmapsBasemapConst(256, "Pure Black World Tendency", "None (Black)", "data:image/gif;base64,R0lGODdhAQABAPAAAAAAAAAAACwAAAAAAQABAAACAkQBADs=");
+        o.b6 = _NewGmapsBasemapConst(256, "Pure White World Tendency", "None (White)", "data:image/gif;base64,R0lGODdhAQABAPAAAP///wAAACwAAAAAAQABAAACAkQBADs=");
+
         o.b7 = new google.maps.StyledMapType(_GetGmapsMapStyled_Gray(), {name: "Map (Gray)"});
         o.b8 = new google.maps.StyledMapType(_GetGmapsMapStyled_Dark(), {name: "Map (Dark)"});
         o.b10 = new google.maps.StyledMapType(_GetGmapsMapStyled_Retro(), {name: "Map (Retro)"});
