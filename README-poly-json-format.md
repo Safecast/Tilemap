@@ -357,13 +357,15 @@ The `imgs` field is the most flexible and complex, supporting several different 
 
 When displaying the infowindow, some of the strings come from an external file, `localized_strings.json` as follows:
 
-Description        | `localized_strings.json` Key | Example Value (English) | Example Value (Japanese)|
--------------------|------------------------------|-------------------------|-------------------------|
-"atts" header      | `INFOWINDOW_REFERENCES`      | "References"            | "帰属"                   |
-"author" prepend   | `INFOWINDOW_AUTHOR_BY`       | "By"                    | "著者"                   |
-"coauthor" prepend | `INFOWINDOW_COAUTHOR_BY`     | "With"                  | "共著"                   |
-"tl" prepend       | `INFOWINDOW_TL_BY`           | "TL"                    | "翻訳"                   |
-Regex'd link text* | `INFOWINDOW_FULL_ARTICLE`    | "Full Article"          | "全記事"                 |
+Description         | `localized_strings.json` Key | Example Value (English)     | Example Value (Japanese)|
+--------------------|------------------------------|-----------------------------|-------------------------|
+"atts" header       | `INFOWINDOW_REFERENCES`      | "References"                | "帰属"                   |
+"author" prepend    | `INFOWINDOW_AUTHOR_BY`       | "By"                        | "著者"                   |
+"coauthor" prepend  | `INFOWINDOW_COAUTHOR_BY`     | "With"                      | "共著"                   |
+"tl" prepend        | `INFOWINDOW_TL_BY`           | "TL"                        | "翻訳"                   |
+Regex'd link text\* | `INFOWINDOW_FULL_ARTICLE`    | "Full Article"              | "全記事"                  |
+Regex'd info text\* | `INFOWINDOW_TL_NA`           | "[Translation Unavailable]" | "[翻訳はまだ利用できません]" |
+
 
 \* See "String Substitution" below for more information.
 
@@ -373,9 +375,32 @@ Regex'd link text* | `INFOWINDOW_FULL_ARTICLE`    | "Full Article"          | "�
 
 When displaying the infowindow, any of the below strings appearing in any of the metadata will be replaced by a value from `localized_strings.json` as follows:
 
-String           | `localized_strings.json` Key | Example Value (English) | Example Value (Japanese)|
------------------|------------------------------|-------------------------|-------------------------|
-`{FULL_ARTICLE}` | `INFOWINDOW_FULL_ARTICLE`    | "Full Article"          | "全記事"                 |
+String           | `localized_strings.json` Key | Example Value (English)     | Example Value (Japanese) |
+-----------------|------------------------------|-----------------------------|--------------------------|
+`{FULL_ARTICLE}` | `INFOWINDOW_FULL_ARTICLE`    | "Full Article"              | "全記事"                  |
+`{TL_NA}`        | `INFOWINDOW_TL_NA`           | "[Translation Unavailable]" | "[翻訳はまだ利用できません]" |
+
+
+
+### String Substitution: `{TL_NA}` Details
+
+* `{TL_NA}` should be used when it is desired to inform users that the content has not yet been translated to their language.
+* `{TL_NA}` is only replaced with a value if there is no `info` value available for the user's preferred language.
+* `{TL_NA}` is removed if either:
+ 1. The language is available, or 
+ 2. The `info` node is simply a string that does not specify a language.
+* It is recommended to put `{TL_NA}` at the beginning of the `info` value string.
+
+`{TL_NA}` Example:
+```
+"info": [ { "k":"en", "v":"{TL_NA}Back in December of 2012..." },
+          { "k":"ja", "v":"{TL_NA}2012年12月..."                } ],
+```
+The output text for the user's language setting is as follows:
+
+* **`en`**: "Back in December of 2012..."  
+* **`ja`**: "2012年12月..."  
+* **`es`**: "[Traducción no Disponible] Back in December of 2012..."
 
 
 ## Appendix: Basic JSON Errors
