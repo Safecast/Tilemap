@@ -1,18 +1,18 @@
 <img src="http://blog.safecast.org/wp-content/uploads/2014/01/header.png?w=460&amp;h=120&amp;crop=1" alt="Safecast">
 
- 
+&nbsp; 
 
 # polys.json
 
 Polygon and point features displayed as annotations on the Tilemap.
 
-
+&nbsp; 
 
 ## Why polys.json?
 
 polys.json was created to allow greater customization of the map by more individuals.  Editing a JSON file is relatively easy, and the contents will be automatically formatted.
 
-
+&nbsp; 
 
 ## Usage
 
@@ -20,7 +20,7 @@ Edit `polys.json` and submit a pull request.  Of course, before that, please ver
 
 You should be able to just copy and paste one of the existing items as a template and not have to read anything here.  But this document is provided for reference nonetheless.
 
-
+&nbsp; 
 
 ## Overview
 
@@ -46,7 +46,7 @@ Thus, in the above:
  * `groups` is an array of one or more group objects.
  * `polys` is an array of one or more feature objects.
 
-
+&nbsp; 
 
 ## Groups > Summary
 
@@ -55,6 +55,8 @@ Group definitions are used by the UI to provide user controls in the menu for th
 * group's `parent_id`?
  * `null`: Full menu section created.  All features set to this group's `group_id` are listed individually.
  * `INT`: Group menu item created under the parent.  No feature set to this group's `group_id` will be listed.  Instead, all features are turned on or off by clicking on the group switch.
+
+&nbsp; 
 
 ## Groups > Example Defs  
 ```
@@ -81,11 +83,15 @@ Group definitions are used by the UI to provide user controls in the menu for th
 ],
 ```
 
+&nbsp; 
+
 ## Groups > Field Descriptions
 
 * `group_id` - INT.  A unique identifier for each group.  `group_id` should never be reused, as it becomes associated with a user preference for enabling/disabling features with that `group_id`.  This must be unique, or things will break.
 * `parent_id` - INT, NULL. A reference to another `group_id` that this group will be displayed as a child of in the menu. Or, set to null if the group is a root-level node that should define a section.
 * `desc` - STRING, KV-ARRAY. The title of the group displayed on the menu.  This should be very terse, as a long title will wrap and make the menu look bad.  Use `&quot;` instead of double-quotes (`"`), and `&gt;` instead of `>` and `&lt;` instead of `<` to prevent HTML.
+
+&nbsp; 
 
 ## Groups > Example Menu Created From Group Defs
 
@@ -99,7 +105,7 @@ INTEREST
  - Safecasting [ON/OFF]
 ```
 
-
+&nbsp; 
 
 ## Features > Supported Feature Types
 
@@ -110,7 +116,7 @@ INTEREST
  * Unique field: `point`
  * Unique field: `icon`
  
- 
+ &nbsp; 
  
 ## Features > Simple Example - Point
 
@@ -133,6 +139,7 @@ INTEREST
     }
 ]
 ```
+&nbsp; 
 
 ## Features > More Complex Example - Polygon
 
@@ -165,7 +172,7 @@ INTEREST
 
 *Note:* The above polygon example uses two styles in `ss`.  This is done in order to draw a green stroke for the polygon, with a thick black outline around it for visibility.
 
-
+&nbsp; 
 
 ## Features > Field Descriptions
 
@@ -200,7 +207,7 @@ INTEREST
  * `ss.fo` - FLOAT.  Fill opacity, [0.0 - 1.0], eg, `1.0`.
  * `ss.zi` - INT.  The z-index of the polygon, eg, `0`.
 
-
+&nbsp; 
 
 ## Features > Object Definitions
 
@@ -223,7 +230,7 @@ Special notes for `v` types, by field:
 
 These are shown in specific detail below.
 
-
+&nbsp; 
 
 ## Features > `author` Value Types
 
@@ -240,7 +247,7 @@ These are shown in specific detail below.
 ```
 *(nb: in the above example, it is safe to omit the `es` pair, as it will default to the `en` pair which has the same value.)*
 
-
+&nbsp; 
 
 ## Features > `coauthor` Value Types
 
@@ -255,7 +262,7 @@ These are shown in specific detail below.
               { "k":"ja", "v":"林 由佳, ロブ・オーデンダイク, マミ・ラウ"    } ]
 ```
 
-
+&nbsp; 
 
 ## Features > `tl` Value Types
 
@@ -270,7 +277,7 @@ These are shown in specific detail below.
         { "k":"ja", "v":"田中響子"     } ]
 ```
 
-
+&nbsp; 
 
 ## Features > `desc` Value Types
 
@@ -285,7 +292,7 @@ These are shown in specific detail below.
           { "k":"ja", "v":"福島の帰還困難区域" } ]
 ```
 
-
+&nbsp; 
 
 ## Features > `info` Value Types
 
@@ -300,7 +307,7 @@ These are shown in specific detail below.
           { "k":"ja", "v":"2013年5月28日..."      } ]
 ```
 
-
+&nbsp; 
 
 ## Features > `more` Value Types
 
@@ -310,7 +317,7 @@ These are shown in specific detail below.
           { "k":"ja", "v":["詳細",       "http://more.info" ] },
 ```
 
-
+&nbsp; 
 
 ## Features > `atts` Value Types
 
@@ -320,7 +327,7 @@ These are shown in specific detail below.
           { "k":"ja", "v":["ウィキペディア", "http://ja.wikipedia.org/wiki/帰還困難区域"] } ]
 ```
 
-
+&nbsp; 
 
 ## Features > `imgs` Value Types
 
@@ -351,7 +358,7 @@ The `imgs` field is the most flexible and complex, supporting several different 
 
 *Note:* While a caption must be specified to use custom CSS attributes, leaving the caption as an empty string (`""`) allows for the use of custom CSS attributes and in effect, no caption.
 
-
+&nbsp; 
 
 ## Externally-Defined Localized Strings
 
@@ -369,7 +376,7 @@ Regex'd info text\* | `INFOWINDOW_TL_NA`           | "[Translation Unavailable]"
 
 \* See "String Substitution" below for more information.
 
-
+&nbsp; 
 
 ## String Substitution
 
@@ -380,7 +387,7 @@ String           | `localized_strings.json` Key | Example Value (English)     | 
 `{FULL_ARTICLE}` | `INFOWINDOW_FULL_ARTICLE`    | "Full Article"              | "全記事"                  |
 `{TL_NA}`        | `INFOWINDOW_TL_NA`           | "[Translation Unavailable]" | "[翻訳はまだ利用できません]" |
 
-
+&nbsp; 
 
 ### String Substitution > `{TL_NA}` Details
 
@@ -396,7 +403,7 @@ String           | `localized_strings.json` Key | Example Value (English)     | 
  2. The `info` node does not specify a language, and is simply a string.
 * It is recommended to put `{TL_NA}` at the beginning of the `info` value string.
 
-
+&nbsp; 
 
 ### String Substitution > `{TL_NA}` Details > Example 1
 ```
@@ -409,7 +416,7 @@ The output text for the user's language setting is as follows:
 * **`ja`**: "2012年12月..."  
 * **`es`**: "[Traducción no Disponible] Back in December of 2012..."
 
-
+&nbsp; 
 
 ### String Substitution > `{TL_NA}` Details > Example 2
 ```
@@ -421,7 +428,7 @@ The output text for the user's language setting is as follows:
 * **`ja`**: "Back in December of 2012..."  
 * **`es`**: "Back in December of 2012..."  
 
-
+&nbsp; 
 
 ### String Substitution > `{TL_NA}` Details > Example 3
 ```
@@ -433,6 +440,12 @@ The output text for the user's language setting is as follows:
 * **`ja`**: "2012年12月..."  
 * **`es`**: "[Traducción no Disponible] 2012年12月..."
 
+&nbsp; 
+&nbsp; 
+&nbsp; 
+&nbsp; 
+&nbsp; 
+&nbsp; 
 
 ## Appendix: Basic JSON Errors
 
