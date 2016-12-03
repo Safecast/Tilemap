@@ -171,7 +171,9 @@ INTEREST
 
 * `poly_id` - INT.  A unique identifier for each feature.  `poly_id` should never be reused, as it becomes associated with a user preference for enabling/disabling the feature with that `poly_id`.  Again, this must be unique, or things will break.
 * `group_id` - INT. A reference to a `group_id` defined in the `groups` section of `polys.json`.  This controls how the feature will appear to the user on the UI menu.  
-* `author` - STRING, KV-ARRAY.  The author(s) of the feature.
+* `author` - STRING, KV-ARRAY.  The author(s) of the feature or linked article.
+* `coauthor` - STRING, KV-ARRAY.  The coauthor(s) of the feature or linked article, if any.  They will appear on a line below the author.
+* `tl` - STRING, KV-ARRAY.  The translator(s) of the feature or linked article, if any.  They will appear on a line below the author, or coauthors if any are defined.
 * `date` - STRING.  The ISO date (UTC) displayed in the info window.
  * To get this manually, enter `(new Date()).toISOString();` into your browser's console.
 * `desc` - STRING, KV-ARRAY. The title of the feature, used for both the info window **and the menu**.  This should be very terse, as a long title will wrap and make the menu look bad.  Use `&quot;` instead of double-quotes (`"`), and `&gt;` instead of `>` and `&lt;` instead of `<` to prevent HTML.
@@ -205,7 +207,7 @@ INTEREST
 The format for many fields in polys.json is quite flexible, and it will autodetect if a string or array is present.
 
 * `KV-ARRAY` - ARRAY.  An array of objects with key-value pairs (`k` and `v`).
- * `k` - STRING.  The language of the value, either `en` or `ja`.
+ * `k` - STRING.  The language of the value, either `en`, `ja`, `es` or any language added in the future.
  * `v` - STRING, ARRAY.  The value.
 * `MULTIPLE` - An ARRAY can hold multiple values. (links, images, etc)
 
@@ -234,6 +236,36 @@ These are shown in specific detail below.
 ```
 "author": [ { "k":"en", "v":"Azby Brown"      },
             { "k":"ja", "v":"アズビー・ブラウン" } ]
+```
+
+
+
+## Features > `coauthor` Value Types
+
+####1. Basic
+```
+"coauthor": "Gendo Ikari"
+```
+
+####2. Localized
+```
+"coauthor": [ { "k":"en", "v":"Gendo Ikari" },
+              { "k":"ja", "v":"碇 ゲンドウ"   } ]
+```
+
+
+
+## Features > `tl` Value Types
+
+####1. Basic
+```
+"tl": "Kiki Tanaka"
+```
+
+####2. Localized
+```
+"tl": [ { "k":"en", "v":"Kiki Tanaka" },
+        { "k":"ja", "v":"田中響子"     } ]
 ```
 
 
@@ -317,6 +349,31 @@ The `imgs` field is the most flexible and complex, supporting several different 
 
 *Note:* While a caption must be specified to use custom CSS attributes, leaving the caption as an empty string (`""`) allows for the use of custom CSS attributes and in effect, no caption.
 
+
+
+## Externally-Defined Localized Strings
+
+When displaying the infowindow, some of the strings come from an external file, `localized_strings.json` as follows:
+
+Description        | `localized_strings.json` Key | Example Value (English) | Example Value (Japanese)|
+-------------------|------------------------------|-------------------------|-------------------------|
+"atts" header      | `INFOWINDOW_REFERENCES`      | "References"            | "帰属"                   |
+"author" prepend   | `INFOWINDOW_AUTHOR_BY`       | "By"                    | "著者"                   |
+"coauthor" prepend | `INFOWINDOW_COAUTHOR_BY`     | "With"                  | "共著"                   |
+"tl" prepend       | `INFOWINDOW_TL_BY`           | "TL"                    | "翻訳"                   |
+Regex'd link text* | `INFOWINDOW_FULL_ARTICLE`    | "Full Article"          | "全記事"                 |
+
+\* See "String Substitution" below for more information.
+
+
+
+## String Substitution
+
+When displaying the infowindow, any of the below strings appearing in any of the metadata will be replaced by a value from `localized_strings.json` as follows:
+
+String           | `localized_strings.json` Key | Example Value (English) | Example Value (Japanese)|
+-----------------|------------------------------|-------------------------|-------------------------|
+`{FULL_ARTICLE}` | `INFOWINDOW_FULL_ARTICLE`    | "Full Article"          | "全記事"                 |
 
 
 ## Appendix: Basic JSON Errors
