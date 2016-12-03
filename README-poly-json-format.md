@@ -45,9 +45,17 @@ Thus, in the above:
 
  * `groups` is an array of one or more group objects.
  * `polys` is an array of one or more feature objects.
-
+  
 &nbsp; 
-
+  
+&nbsp; 
+  
+&nbsp; 
+  
+&nbsp; 
+  
+---  
+  
 ## Groups > Summary
 
 Group definitions are used by the UI to provide user controls in the menu for the features.  Currently, features can be controlled individually, or as a group.  Thus:
@@ -104,9 +112,17 @@ AREAS
 INTEREST
  - Safecasting [ON/OFF]
 ```
-
+  
 &nbsp; 
-
+  
+&nbsp; 
+  
+&nbsp; 
+  
+&nbsp; 
+  
+---  
+  
 ## Features > Supported Feature Types
 
 1. Polygons
@@ -357,9 +373,17 @@ The `imgs` field is the most flexible and complex, supporting several different 
 ```
 
 *Note:* While a caption must be specified to use custom CSS attributes, leaving the caption as an empty string (`""`) allows for the use of custom CSS attributes and in effect, no caption.
-
+  
 &nbsp; 
-
+  
+&nbsp; 
+  
+&nbsp; 
+  
+&nbsp; 
+  
+---  
+  
 ## Externally-Defined Localized Strings
 
 When displaying the infowindow, some of the strings come from an external file, `localized_strings.json` as follows:
@@ -451,6 +475,13 @@ The output text for the user's language setting is as follows:
 &nbsp; 
   
 &nbsp; 
+  
+&nbsp; 
+  
+&nbsp; 
+  
+---  
+  
   
 ## Appendix: Basic JSON Errors
 
