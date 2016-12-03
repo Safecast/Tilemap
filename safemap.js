@@ -4720,7 +4720,13 @@ var MenuHelper = (function()
         ElGet("lblMenuApiQuery").innerHTML       = s.MENU_API_QUERY_CENTER_LABEL;
         ElGet("lblMenuRealtimeTitle").innerHTML  = s.MENU_REALTIME_TITLE;
         ElGet("menu_realtime_0_label").innerHTML = s.MENU_REALTIME_0_LABEL;
-        //ElGet("lblMenuAreasTitle").innerHTML     = s.MENU_AREAS_TITLE;
+        
+        if (PrefHelper.GetEffectiveLanguagePref() != "ja")
+        {
+            ElGet("tsPanelContentTitle").innerHTML      = s.SNAPSHOTS_CONTENT_TITLE;
+            ElGet("tsPanelStartDateSubLabel").innerHTML = s.SNAPSHOTS_START_DATE_SUBTITLE;
+            ElGet("tsPanelEndDateSubLabel").innerHTML   = s.SNAPSHOTS_END_DATE_SUBTITLE;
+        }//if
 
         // layers    
         var a = MenuHelperStub.GetLayerIdxs_All();

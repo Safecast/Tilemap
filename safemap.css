@@ -242,6 +242,7 @@ body
     text-align:left;
     vertical-align:middle;
     padding:1px 0 1px 30px;
+    text-transform:uppercase;
 }
 
 #tsPanelContentTable
@@ -263,7 +264,7 @@ body
 .tsInfoLabel, .tsInfoSubLabel { padding:0 0 0 10px; }
 
 .tsInfoLabel    { font-size:19px; }
-.tsInfoSubLabel { font-size:10px; }
+.tsInfoSubLabel { font-size:10px; text-transform:uppercase; }
 
 #tsStartDate, #tsEndDate
 {
