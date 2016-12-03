@@ -382,16 +382,23 @@ String           | `localized_strings.json` Key | Example Value (English)     | 
 
 
 
-### String Substitution: `{TL_NA}` Details
+### String Substitution > `{TL_NA}` Details
 
-* `{TL_NA}` should be used when it is desired to inform users that the content has not yet been translated to their language.
-* `{TL_NA}` is only replaced with a value if there is no `info` value available for the user's preferred language.
-* `{TL_NA}` is removed if either:
- 1. The language is available, or 
- 2. The `info` node is simply a string that does not specify a language.
+* Problem: What if there isn't a translation available for the user's language?
+* Ideally: show the user a "translation not available" message.
+* Bad: Duplicating the English `info` text and prepending a "translation not available" message for every language --  inefficient and time-consuming to maintain.
+* Solution: the tag `{TL_NA}` allows this to be handled automatically.
+* `{TL_NA}` is replaced by a localized "translation not available" message if:
+ 1. The user's language is **not** specified by an `info` key-value pair.
+ 2. The `info` node must specify a language, and cannot simply be a string.
+* `{TL_NA}` is removed instead if either:
+ 1. The user's language is specified by an `info` key-value pair, or 
+ 2. The `info` node does not specify a language, and is simply a string.
 * It is recommended to put `{TL_NA}` at the beginning of the `info` value string.
 
-`{TL_NA}` Example:
+
+
+### String Substitution > `{TL_NA}` Details > Example 1
 ```
 "info": [ { "k":"en", "v":"{TL_NA}Back in December of 2012..." },
           { "k":"ja", "v":"{TL_NA}2012年12月..."                } ],
@@ -401,6 +408,30 @@ The output text for the user's language setting is as follows:
 * **`en`**: "Back in December of 2012..."  
 * **`ja`**: "2012年12月..."  
 * **`es`**: "[Traducción no Disponible] Back in December of 2012..."
+
+
+
+### String Substitution > `{TL_NA}` Details > Example 2
+```
+"info":"{TL_NA}Back in December of 2012...",
+```
+The output text for the user's language setting is as follows:
+
+* **`en`**: "Back in December of 2012..."  
+* **`ja`**: "Back in December of 2012..."  
+* **`es`**: "Back in December of 2012..."  
+
+
+
+### String Substitution > `{TL_NA}` Details > Example 3
+```
+"info": [ { "k":"ja", "v":"{TL_NA}2012年12月..." } ],
+```
+The output text for the user's language setting is as follows:
+
+* **`en`**: "[Translation Unavailable] 2012年12月..."  
+* **`ja`**: "2012年12月..."  
+* **`es`**: "[Traducción no Disponible] 2012年12月..."
 
 
 ## Appendix: Basic JSON Errors
