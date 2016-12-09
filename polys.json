@@ -6,35 +6,40 @@
        "parent_id":null,
             "desc": [ { "k":"en", "v":"Areas" },
                       { "k":"ja", "v":"区域"   },
-                      { "k":"es", "v":"Áreas" } ]
+                      { "k":"es", "v":"Áreas" },
+                      { "k":"pt", "v":"Areas" } ]
     },
     {
         "group_id":1,
        "parent_id":null,
             "desc": [ { "k":"en", "v":"Interest"   },
                       { "k":"ja", "v":"興味がある点" },
-                      { "k":"es", "v":"Interés"    } ]
+                      { "k":"es", "v":"Interés"    },
+                      { "k":"pt", "v":"Interest"   } ]
     },
     {
         "group_id":2,
        "parent_id":1,
             "desc": [ { "k":"en", "v":"Safecasting"                                                 },
                       { "k":"ja", "v":"<span style='letter-spacing:-2px;'>セーフキャスティング</span>" },
-                      { "k":"es", "v":"Safecasting"                                                 } ]
+                      { "k":"es", "v":"Safecasting"                                                 },
+                      { "k":"pt", "v":"Safecasting"                                                 } ]
     },
     {
         "group_id":3,
        "parent_id":1,
             "desc": [ { "k":"en", "v":"Photos" },
                       { "k":"ja", "v":"写真"    },
-                      { "k":"es", "v":"Fotos"  } ]
+                      { "k":"es", "v":"Fotos"  },
+                      { "k":"pt", "v":"Photos" } ]
     },
     {
         "group_id":4,
        "parent_id":1,
             "desc": [ { "k":"en", "v":"Anomalies" },
                       { "k":"ja", "v":"異常"       },
-                      { "k":"es", "v":"Anomalías" } ]
+                      { "k":"es", "v":"Anomalías" },
+                      { "k":"pt", "v":"Anomalies" } ]
     }
 ],
 "polys":
@@ -43,14 +48,17 @@
         "poly_id":0,
        "group_id":0,
          "author":"Azby Brown",
-             "tl":"Jim Ruiz",
+             "tl":"Jim Ruiz, Renato Nakagomi",
            "date":"2016-11-08T22:02:00Z",
            "desc": [ { "k":"en", "v":"Fukushima Zone"    },
                      { "k":"ja", "v":"福島の帰還困難区域"   },
-                     { "k":"es", "v":"Zona de Fukushima" } ],
+                     { "k":"es", "v":"Zona de Fukushima" },
+                     { "k":"pt", "v":"Fukushima Zone"    } ],
            "info": [ { "k":"en", "v":"As of 2013-05-28, Fukushima's 帰還困難区域 (Kikan Konnan Kuiki), or &quot;Difficult to Return Area&quot;, is defined as having an annual cumulative radiation dose of 50+ mSv, and 20+ mSv after five years." },
-                     { "k":"ja", "v":"2013年5月28日 - 5年を経過してもなお、年間積算放射線量が20 mSvを下回らないおそれのある、現時点で年間積算放射線量が50 mSvを超える区域。" } ],
-           "imgs": [ { "k":"en", "v":["This must be the work of an enemy「stand」", "https://maps.googleapis.com/maps/api/streetview?size=640x300&location=37.4534048,141.0090188&heading=283.99&fov=48&pitch=8&key=AIzaSyAC5-_YqoGgLWli64OHZ1HUL2XHgMJel_g", "filter:brightness(1.25);"] } ],
+                     { "k":"ja", "v":"2013年5月28日 - 5年を経過してもなお、年間積算放射線量が20 mSvを下回らないおそれのある、現時点で年間積算放射線量が50 mSvを超える区域。" },
+                     { "k":"es", "v":"As of 2013-05-28, Fukushima's 帰還困難区域 (Kikan Konnan Kuiki), or &quot;Difficult to Return Area&quot;, is defined as having an annual cumulative radiation dose of 50+ mSv, and 20+ mSv after five years." },
+                     { "k":"pt", "v":"As of 2013-05-28, Fukushima's 帰還困難区域 (Kikan Konnan Kuiki), or &quot;Difficult to Return Area&quot;, is defined as having an annual cumulative radiation dose of 50+ mSv, and 20+ mSv after five years." } ],
+           "imgs": [ { "k":"en", "v":["", "https://maps.googleapis.com/maps/api/streetview?size=640x300&location=37.4534048,141.0090188&heading=283.99&fov=48&pitch=8&key=AIzaSyAC5-_YqoGgLWli64OHZ1HUL2XHgMJel_g", "filter:brightness(1.25);"] } ],
            "atts": [ { "k":"en", "v":["Wikipedia",   "http://ja.wikipedia.org/wiki/帰還困難区域"] },
                      { "k":"ja", "v":["ウィキペディア", "http://ja.wikipedia.org/wiki/帰還困難区域"] } ],
            "path":"gtwcFezl{YdbAmc@|a@xcBm{@d_@u@xsAoo@`@wWzKlBqd@}a@pGuh@_z@kN`@cOvu@s]dQoMj_A|JvdAkrAbvBohBvXg}C`dCcf@ppAizE`yAwdAflAdDr}B|OrV`r@bA`hA|aCub@veAt@vIeZjE{cAdm@oz@zKkSxlDrWbPjHrnBry@qd@xx@_k@hNf`@jBl`Arh@{i@lj@vI~sAf~@eOvdAfIxYvoAeArFvWnhBj`At@mjChNse@@g}@dk@ewBZuu@}PiDya@~MyKio@j_@am@_Ei}@zPmaAzVa]ni@d_@dOe|@za@~Llj@eoEjY_z@dhAgBx~@mE~cAaOx\\wIrn@b^zVst@hNuH|a@nFpo@`@lSqe@lxAqF`Vqe@yKqUtLoc@uLse@gq@yh@`DsVyVi~@j~A_@aJwWlp@yKb[jb@rX{Zza@ePy\\c{@ri@wJsLor@hk@pU_Vw~Bsi@saB|J{v@h|@os@hw@uHzVchBjsAePpAiRzy@e_@nSg`@sRyY[soBgf@iR?e^iZ_NgC`NozF`Ow{CoF_dAcAo^uHcJoFuWbAgT?w@toBeIwIaa@eAcl@nE{\\~k@dDbOcJzKhCfQyKrVhC|x@sRkDiTbOfIzx@aP|[zKxX",
