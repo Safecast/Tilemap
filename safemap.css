@@ -165,7 +165,7 @@ body
 .sc_hline:before { right:0.5em; margin-left:-50%; }
 .sc_hline:after  { left:0.5em; margin-right:-50%; }
 
-#popup
+#about_content
 {
     position:absolute;
     top:30px;

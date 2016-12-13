@@ -99,8 +99,9 @@ var RTVM = (function()
     
     RTVM.prototype.InitMarkersAsync = function()
     {
-        var url = this.rt_type == RTVM.RtType.SafecastRad ? "http://realtime.safecast.org/wp-content/uploads/devices.json"
-                                                          : "http://realtime.safecast.org/wp-content/uploads/devices.json";
+        var pre = window.location.href.substring(0,5) == "https" ? "https://" : "http://";
+        var url = this.rt_type == RTVM.RtType.SafecastRad ? pre + "realtime.safecast.org/wp-content/uploads/devices.json"
+                                                          : pre + "realtime.safecast.org/wp-content/uploads/devices.json";
         this.GetJSONAsync(url);
     };
     
@@ -1452,6 +1453,8 @@ var RTMKS = (function()
         var imgtxt  = new Array(n);
         var linktxt = new Array(n);
         
+        var pre = window.location.href.substring(0,5) == "https" ? "https://" : "http://";
+        
         for (var i=0; i<n; i++)
         {
             ids[i]  = parseInt(rts[i].id);
@@ -1463,7 +1466,8 @@ var RTMKS = (function()
                 raws[i] = parseFloat(rts[i].cpm);
                 vals[i] = parseFloat(rts[i].usvh);
                 //imgtxt[i]  = "http://107.161.164.166/plots_new/out/" + ids[i] + "_640x400.png";
-                imgtxt[i]  = "http://realtime.safecast.org/plots_new/out/" + ids[i] + "_640x400.png";
+
+                imgtxt[i]  = pre + "realtime.safecast.org/plots_new/out/" + ids[i] + "_640x400.png";
             }//if
             else
             {

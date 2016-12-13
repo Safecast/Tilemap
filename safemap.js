@@ -29,9 +29,10 @@ var _rtvm             = null;    // retained RT sensor viewer instance
 var _mapPolysProxy    = null;    // retained proxy instance for map polygons
 var _flyToExtentProxy = null;    // retained proxy instance for map pans/zooms/stylized text display
 var _locStringsProxy  = null;    // retained proxy instance for localized UI strings
+var slideout          = null;    // retained slideout menu
 
 // ========== INTERNAL STATES =============
-var _cached_ext       = { baseurl:GetBaseWindowURL(), urlyxz:null, lidx:-1, cd:false, cd_y:0.0, cd_x:0.0, cd_z:0, midx:-1, mt:null };
+var _cached_ext       = { baseurl:null, urlyxz:null, lidx:-1, cd:false, cd_y:0.0, cd_x:0.0, cd_z:0, midx:-1, mt:null };
 var _lastLayerIdx     = 0;
 var _disable_alpha    = false;           // hack for media request regarding layer opacity
 var _cm_hidden        = true;            // state of menu visibility - cached to reduce CPU hit on map pans
@@ -48,7 +49,7 @@ var _img_tile_shadow_idx = -1;
 var _no_hdpi_tiles    = false;
 var _img_scaler_idx   = 1;
 var _use_jp_region    = false;
-var _show_last_slice  = false;
+var _use_https        = window.location.href.substring(0,5) == "https";
 
 
 // ============ LEGACY SUPPORT =============
@@ -66,107 +67,9 @@ var basemapMapTypes      = null;
 var _test_client_render = false; // should be off here by default
 var LOCAL_TEST_MODE     = false; // likely does *not* work anymore.
 
-function SetUseJpRegion()
-{
-    var jstmi      = -540;
-    var tzmi       = (new Date()).getTimezoneOffset(); // JST = -540
-    _use_jp_region = (jstmi - 180) <= tzmi && tzmi <= (jstmi + 180); // get +/- 3 TZs from Japan... central asia - NZ
-}//SetUseJpRegion
-
-function GetContentBaseUrl()
-{
-    //return "http://tilemap" + (_use_jp_region ? "jp" : "") + ".safecast.org.s3.amazonaws.com/";
-    return "";
-}//GetContentBaseUrl
 
 
-// 2015-04-03 ND: "What's New" popup that fires once.  May also be called
-//                from the about window.
 
-function GetClientViewSize()
-{
-    var _w = window,
-        _d = document,
-        _e = _d.documentElement,
-        _g = _d.getElementsByTagName("body")[0],
-        vw = _w.innerWidth || _e.clientWidth || _g.clientWidth,
-        vh = _w.innerHeight|| _e.clientHeight|| _g.clientHeight;
-
-    return [vw, vh];
-}
-
-function WhatsNewGetShouldShow() // 2015-08-22 ND: fix for non-Chrome date parsing
-{
-    if (Date.now() > Date.parse("2015-04-30T00:00:00Z")) return false;
-    
-    var sval = localStorage.getItem("WHATSNEW_2_0");
-    var vwh  = GetClientViewSize();
-    if ((sval != null && sval == "1") || vwh[0] < 424 || vwh[1] < 424) return false;
-    
-    localStorage.setItem("WHATSNEW_2_0", "1");
-    return true;
-}//WhatsNewGetShouldShow
-
-function WhatsNewClose()
-{
-    var el = document.getElementById("whatsnew");
-    el.innerHTML = "";
-    el.style.display = "none";
-}//WhatsNewClose
-
-function WhatsNewShow(language)
-{
-    var el = document.getElementById("whatsnew");
-    
-    el.style.display = "block";
-    
-    if (el.innerHTML != null && el.innerHTML.length > 0) 
-    {
-        el.innerHTML = "";
-    }//if
-    
-    LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
-
-    var url = GetContentBaseUrl() + "whatsnew_" + language + "_inline.html";
-    var req = new XMLHttpRequest();
-    req.open("GET", url, true);
-    req.onreadystatechange = function()
-    {   
-        if (req.readyState === 4 && req.status == 200) el.innerHTML = req.response || req.responseText;
-    };
-    req.send(null);
-}//WhatsNewShow
-
-function WhatsNewShowIfNeeded()
-{
-    if (WhatsNewGetShouldShow()) WhatsNewShow("en");
-}//WhatsNewShowIfNeeded
-
-function WarningShowIfNeeded()
-{
-    if (Date.now() < Date.parse("2015-09-23T13:00:00Z")) 
-    {
-        var el = document.getElementById("warning_message");
-        
-        el.style.display = "block";
-        
-        if (el.innerHTML != null && el.innerHTML.length > 0) 
-        {
-            el.innerHTML = "";
-        }//if
-    
-        LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
-
-        var url = GetContentBaseUrl() + "warning_inline.html";
-        var req = new XMLHttpRequest();
-        req.open("GET", url, true);
-        req.onreadystatechange = function()
-        {   
-            if (req.readyState === 4 && req.status == 200) el.innerHTML = req.response || req.responseText;
-        };
-        req.send(null);
-    }//if
-}//WarningShowIfNeeded
 
 
 
@@ -176,134 +79,368 @@ function WarningShowIfNeeded()
 // ===============================================================================================
 
 
-
-function initialize() 
+var SafemapInit = (function()
 {
-    if (document == null || document.body == null) return;  // real old browsers that are going to break on everything
-
-    PrefHelper.MakeFx();   // must happen before MenuHelperStub.Init();
-    MenuHelperStub.Init(); // must happen before basemaps or layers are init
-
-    _bitsProxy        = new BitsProxy("layers"); // mandatory, never disable
-    _bvProxy          = new BvProxy();           // mandatory, never disable
-    _hudProxy         = new HudProxy();          // mandatory, never disable
-    _mapPolysProxy    = new MapPolysProxy();     // mandatory, never disable
-    _flyToExtentProxy = new FlyToExtentProxy();  // mandatory, never disable
-    _locStringsProxy  = new LocalizedStringsProxy(); // mandatory, never disable
-    
-    SetUseJpRegion();
-    
-    if (_bitsProxy.GetUseBitstores()) // *** bitmap index dependents ***
+    function SafemapInit()
     {
-        var showIndicesParam = QueryString_GetParamAsInt("showIndices");
-        if (showIndicesParam != -1)
-        {
-            var rendererIdParam = QueryString_GetParamAsInt("rendererId");
-            setTimeout(function() { ShowBitmapIndexVisualization(showIndicesParam == 1, rendererIdParam == -1 ? 4 : rendererIdParam); }, 500);
-            return; // this is a destructive action, no need for rest of init.
-        }//if
-    }//if
+    }
 
-    // ************************** GMAPS **************************
-    
-    var yxz = GetUserLocationFromQuerystring();
-    var yx  = yxz.yx != null ? yxz.yx : new google.maps.LatLng(PrefHelper.GetVisibleExtentYPref(), PrefHelper.GetVisibleExtentXPref());
-    var z   = yxz.z  != -1   ? yxz.z  : PrefHelper.GetVisibleExtentZPref();
-    
-    var map_options = 
+
+    var _InitUseJpRegion = function()
     {
-                            zoom: z,
-                         maxZoom: 21,
-                          center: yx,
-                     scrollwheel: true,
-                     zoomControl: PrefHelper.GetZoomButtonsEnabledPref(),
-                      panControl: false,
-                    scaleControl: true,
-                  mapTypeControl: false,
-               streetViewControl: true,
-               navigationControl: true,
-              overviewMapControl: false,
-        streetViewControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
-              zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
-            rotateControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
-        navigationControlOptions: { style: google.maps.NavigationControlStyle.DEFAULT },
-           mapTypeControlOptions: {
-                                     position: google.maps.ControlPosition.TOP_RIGHT,
-                                        style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
-                                   mapTypeIds: BasemapHelper.basemaps
-                                  },
-                       mapTypeId: GetDefaultBasemapOrOverrideFromQuerystring()
+        var jstmi      = -540;
+        var tzmi       = (new Date()).getTimezoneOffset(); // JST = -540
+        _use_jp_region = (jstmi - 180) <= tzmi && tzmi <= (jstmi + 180); // get +/- 3 TZs from Japan... central asia - NZ
     };
 
-    map = new google.maps.Map(document.getElementById("map_canvas"), map_options);
 
-    BasemapHelper.InitBasemaps();   // must occur after "map" ivar is set
+    var _InitAboutMenu = function()
+    {
+        document.getElementById("aMenuAbout").addEventListener("click", SafemapPopupHelper.ToggleAboutPopup, false);
+        document.getElementById("about_content").addEventListener("click", SafemapPopupHelper.ToggleAboutPopup, false);
+    };
 
-    ClientZoomHelper.InitGmapsLayers();
 
-    TimeSliceUI.Init();
-    InitDefaultRasterLayerOrOverrideFromQuerystring();
-
-    MapExtent_OnChange(1); //fire on init for client zoom
-
-    // arbitrarily space out some loads / init that don't need to happen right now, so as not to block on the main thread here.
-
-    setTimeout(function() {
-        InitMapExtent_OnChange();
-    }, 250);
-
-    setTimeout(function() {
-        InitLogIdsFromQuerystring();
-    }, 500);
-
-    setTimeout(function() {
-        RtViewer_Init();
-    }, 1000);
+    var _InitLogIdsFromQuerystring = function()
+    {
+        var logIds = SafemapUI.GetParam("logids");
     
-    setTimeout(function() {
-        var cb = function() { MapExtent_OnChange(0); MapExtent_OnChange(1); };
-        _flyToExtentProxy.Init(map, cb);
-    }, 500);
+        if (logIds != null && logIds.length > 0)
+        {
+            _bvProxy.AddLogsCSV(logIds, false);
+        }//if
+    };
 
-    setTimeout(function() {
-        InitShowLocationIfDefault();
-    }, 1500);
 
-    setTimeout(function() {
-        InitAboutMenu(); 
-        InitContextMenu(); 
-        (map.getStreetView()).setOptions({ zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM }, panControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM }, enableCloseButton:true, imageDateControl:true, addressControlOptions:{ position: google.maps.ControlPosition.TOP_RIGHT } });
-    }, 2000);
+    var _GetDefaultBasemapOrOverrideFromQuerystring = function()
+    {
+        var midx = SafemapUI.QueryString_GetParamAsInt("m");
+        if (midx == -1) midx = SafemapUI.QueryString_GetParamAsInt("midx");
+        if (midx == -1) midx = PrefHelper.GetBasemapUiIndexPref();
 
-    setTimeout(function() {
-        WhatsNewShowIfNeeded();
-    }, 3000);
+        return BasemapHelper.GetMapTypeIdForBasemapIdx(midx);
+    };
+
+
+    var _InitDefaultRasterLayerOrOverrideFromQuerystring = function()
+    {
+        var lidx = SafemapUI.QueryString_GetParamAsInt("l");
+        if (lidx == -1) lidx = SafemapUI.QueryString_GetParamAsInt("lidx");
+
+        if (lidx == -1)
+        {
+            lidx = PrefHelper.GetLayerUiIndexPref();
+        
+            // 2016-11-21 ND: Fix for proxy value being stored as pref
+            if (lidx == 12) lidx = 13;
+        }//if    
+
+        LayersHelper.SetSelectedIdxAndSync(lidx);
+
+        if (LayersHelper.IsIdxTimeSlice(lidx))
+        {
+            TimeSliceUI.SetPanelHidden(false);
+        }//if    
+    };
+
+
+
+    // The more complete version of IsDefaultLocation().
+    // This accomodates the location preference.  Previously, it could be
+    // safely assumed that if a link with the location wasn't followed,
+    // it was the default location and the text should be displayed.
+    // However, this should not be used for the case of determining whether
+    // or not to autozoom to logids in the querystring.  Rather, the
+    // old IsDefaultLocation() should be checked for that.
+    var _IsDefaultLocationOrPrefLocation = function()
+    {
+        var d = SafemapUI.IsDefaultLocation();
+
+        if (d)
+        {
+            var yx = SafemapUtil.GetNormalizedMapCentroid();
+            var z  = map.getZoom();
+        
+            d = z == 9 && Math.abs(yx.x - 140.515516) < 0.000001
+                       && Math.abs(yx.y -  37.316113) < 0.000001;
+        }//if
+
+        return d;
+    };
+
+
+    var _InitShowLocationIfDefault = function()
+    {
+        if (_IsDefaultLocationOrPrefLocation() && SafemapUI.GetParam("logids").length == 0 && "requestAnimationFrame" in window)
+        {
+            _flyToExtentProxy.ShowLocationText("Honshu, Japan");
+        }//if
+    };
+
+
+    var _InitContextMenu = function() 
+    {
+        if (SafemapUI.IsBrowserOldIE() || map == null || navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)) return;
+
+        // Original from http://justgizzmo.com/2010/12/07/google-maps-api-v3-context-menu/
+
+        var cm = document.createElement("ul");
+        cm.id = "contextMenu";
+        cm.style.display = "none";
+        cm.innerHTML = '<li><a href="#apiQuery" class="FuturaFont">Query Safecast API Here</a></li>'
+                           + '<li class="separator"></li>'
+                           + '<li><a href="#zoomIn" class="FuturaFont">Zoom In</a></li>'
+                           + '<li><a href="#zoomOut" class="FuturaFont">Zoom Out</a></li>'
+                           + '<li><a href="#centerHere" class="FuturaFont">Center Map Here</a></li>';
+        document.getElementById("map_canvas").appendChild(cm);
+
+        var clickLL;
+        var fxClickRight = function(e)
+        {
+            _cm_hidden = false;
+            SafemapUI.AnimateElementFadeIn(cm, -1.0, 0.166666666667);
+            var mapDiv = document.getElementById("map_canvas");
+            var x      = e.pixel.x;
+            var y      = e.pixel.y;
+            clickLL    = e.latLng;
+            if (x > mapDiv.offsetWidth  - cm.offsetWidth)  x -= cm.offsetWidth;
+            if (y > mapDiv.offsetHeight - cm.offsetHeight) y -= cm.offsetHeight;
+
+            cm.style.top  = ""+y+"px";
+            cm.style.left = ""+x+"px";        
+        };
+
+        google.maps.event.addListener(map, "rightclick", fxClickRight);
+
+        var fxClickLeft = function(e)
+        {
+            var action = this.getAttribute("href").substr(1);
+            var retVal = false;                        
+            switch (action) 
+            {
+                case "zoomIn":
+                    map.setZoom(map.getZoom() + 3);
+                    map.panTo(clickLL);
+                    break;
+                case "zoomOut":
+                    map.setZoom(map.getZoom() - 3);
+                    map.panTo(clickLL);
+                    break;
+                case "centerHere":
+                    map.panTo(clickLL);
+                    break;
+                case "null":
+                    break;
+                case "showIndices1":
+                    ShowBitmapIndexVisualization(true, 4);
+                    break;
+                case "showIndices2":
+                    ShowBitmapIndexVisualization(false, 4);
+                    break;
+                case "apiQuery":
+                    SafemapUI.QuerySafecastApiAsync(clickLL.lat(), clickLL.lng(), map.getZoom());
+                    break;
+                default:
+                    retVal = true;
+                    break;
+            }//switch
+
+            _cm_hidden = true; 
+            cm.style.display = "none";
+
+            return retVal;
+        };
+
+        var as = cm.getElementsByTagName("a");
+
+        for (var i=0; i<as.length; i++)
+        {
+            as[i].addEventListener("click", fxClickLeft, false);
+            as[i].addEventListener("mouseover", function() { this.parentNode.className = "hover"; }.bind(as[i]), false);
+            as[i].addEventListener("mouseout",  function() { this.parentNode.className = null;    }.bind(as[i]), false);
+        }//for
+
+        var events = [ "click" ]; //"dragstart", "zoom_changed", "maptypeid_changed"
+
+        var hide_cb = function(e)
+        {
+            if (!_cm_hidden)
+            { 
+                _cm_hidden       = true; 
+                cm.style.display = "none";
+            }//if
+        };
+
+        for (var i=0; i<events.length; i++)
+        {
+            google.maps.event.addListener(map, events[i], hide_cb);
+        }//for
+    };
+
+
+    // supports showing the bitmap indices, which is contained in legacy code
+    // with nasty deps that i haven't had time to rewrite.
+    var _ShowBitmapIndexVisualization = function(isShowAll, rendererId)
+    {
+        if (!_bitsProxy.GetIsReady()) // bad way of handling deps... but this is just a legacy hack anyway.
+        {
+            _setTimeout(function() { _ShowBitmapIndexVisualization(isShowAll, rendererId); }.bind(this), 500);
+            return;
+        }//if
     
-    setTimeout(function() {
-        _locStringsProxy.Init();
-    }, 250);
+        _cached_baseURL = _cached_ext.baseurl;  // 2015-08-22 ND: fix for legacy bitmap viewer support
+        _layerBitstores = new Array();    
+        _bitsProxy.InitLayerIds([2,3,6,8,9,16]);
+        for (var i=0; i<_bitsProxy._layerBitstores.length; i++)
+        {
+            _layerBitstores.push(_bitsProxy._layerBitstores[i]);
+        }
+        if (_rtvm != null) _rtvm.RemoveAllMarkersFromMapAndPurgeData();
+        SafemapUI.RequireJS("bmp_lib_min.js", false, null, null);  // ugly bad legacy feature hack, but not worth rewriting this at the moment
+        SafemapUI.RequireJS("png_zlib_min.js", false, null, null);
+        SafemapUI.RequireJS("gbGIS_min.js", false, null, null);
+        TestDump(isShowAll, rendererId);
+    };
+
+
+    var _InitRtViewer = function()
+    {
+        if (_rtvm == null && !SafemapUI.IsBrowserOldIE() && "ArrayBuffer" in window)
+        {
+            var cb = function() {
+                _rtvm = new RTVM(map, null);
+            };
+        
+            SafemapUI.RequireJS(SafemapUI.GetContentBaseUrl() + "rt_viewer_min.js", true, cb, null);
+        }//if
+    };
+
+
+
+
+    SafemapInit.Init = function()
+    {
+        if (document == null || document.body == null) return;  // real old browsers that are going to break on everything
+
+        _cached_ext.baseurl = SafemapUI.GetBaseWindowURL();
+
+        PrefHelper.MakeFx();   // must happen before MenuHelperStub.Init();
+        MenuHelperStub.Init(); // must happen before basemaps or layers are init
+
+        _bitsProxy        = new BitsProxy("layers"); // mandatory, never disable
+        _bvProxy          = new BvProxy();           // mandatory, never disable
+        _hudProxy         = new HudProxy();          // mandatory, never disable
+        _mapPolysProxy    = new MapPolysProxy();     // mandatory, never disable
+        _flyToExtentProxy = new FlyToExtentProxy();  // mandatory, never disable
+        _locStringsProxy  = new LocalizedStringsProxy(); // mandatory, never disable
+
+        _InitUseJpRegion();
+
+        if (_bitsProxy.GetUseBitstores()) // *** bitmap index dependents ***
+        {
+            var showIndicesParam = SafemapUI.QueryString_GetParamAsInt("showIndices");
+            if (showIndicesParam != -1)
+            {
+                var rendererIdParam = SafemapUI.QueryString_GetParamAsInt("rendererId");
+                setTimeout(function() { _ShowBitmapIndexVisualization(showIndicesParam == 1, rendererIdParam == -1 ? 4 : rendererIdParam); }.bind(this), 500);
+                return; // this is a destructive action, no need for rest of init.
+            }//if
+        }//if
+
+        // ************************** GMAPS **************************
+
+        var yxz = SafemapUI.GetUserLocationFromQuerystring();
+        var yx  = yxz.yx != null ? yxz.yx : new google.maps.LatLng(PrefHelper.GetVisibleExtentYPref(), PrefHelper.GetVisibleExtentXPref());
+        var z   = yxz.z  != -1   ? yxz.z  : PrefHelper.GetVisibleExtentZPref();
+
+        var map_options = 
+        {
+                                zoom: z,
+                             maxZoom: 21,
+                              center: yx,
+                         scrollwheel: true,
+                         zoomControl: PrefHelper.GetZoomButtonsEnabledPref(),
+                          panControl: false,
+                        scaleControl: true,
+                      mapTypeControl: false,
+                   streetViewControl: true,
+                   navigationControl: true,
+                  overviewMapControl: false,
+            streetViewControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
+                  zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
+                rotateControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
+            navigationControlOptions: { style: google.maps.NavigationControlStyle.DEFAULT },
+               mapTypeControlOptions: {
+                                         position: google.maps.ControlPosition.TOP_RIGHT,
+                                            style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+                                       mapTypeIds: BasemapHelper.basemaps
+                                      },
+                           mapTypeId: _GetDefaultBasemapOrOverrideFromQuerystring()
+        };
+
+        map = new google.maps.Map(document.getElementById("map_canvas"), map_options);
+
+        BasemapHelper.InitBasemaps();   // must occur after "map" ivar is set
+
+        ClientZoomHelper.InitGmapsLayers();
+
+        TimeSliceUI.Init();
+        _InitDefaultRasterLayerOrOverrideFromQuerystring();
+
+        SafemapExtent.OnChange(SafemapExtent.Event.ZoomChanged); //fire on init for client zoom
+
+        // arbitrarily space out some loads / init that don't need to happen right now, so as not to block on the main thread here.
+
+        setTimeout(function() {
+            //_InitMapExtent_OnChange();
+            SafemapExtent.InitEvents();
+        }, 250);
+
+        setTimeout(function() {
+            _InitLogIdsFromQuerystring();
+        }, 500);
+
+        setTimeout(function() {
+            _InitRtViewer();
+        }, 1000);
+
+        setTimeout(function() {
+            var cb = function() { SafemapExtent.OnChange(SafemapExtent.Event.DragEnd); SafemapExtent.OnChange(SafemapExtent.Event.ZoomChanged); };
+            _flyToExtentProxy.Init(map, cb);
+        }, 500);
+
+        setTimeout(function() {
+            _InitShowLocationIfDefault();
+        }, 1500);
+
+        setTimeout(function() {
+            _InitAboutMenu(); 
+            _InitContextMenu(); 
+            (map.getStreetView()).setOptions({ zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM }, panControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM }, enableCloseButton:true, imageDateControl:true, addressControlOptions:{ position: google.maps.ControlPosition.TOP_RIGHT } });
+        }, 2000);
+
+        //setTimeout(function() {
+        //    SafemapPopupHelper.WhatsNewShowIfNeeded();
+        //}, 3000);
+
+        setTimeout(function() {
+            _locStringsProxy.Init();
+        }, 250);
+
+        MenuHelper.Init(); // contains its own delayed loads; should be at end of initialize()
+
+        setTimeout(function() {
+            //var rp = function(eps) { MenuHelper.RegisterPolys(eps); };
+            var rp = function(gs,eps) { MenuHelper.RegisterGroupsAndPolys(gs,eps);    };
+            var gl = function()       { return PrefHelper.GetEffectiveLanguagePref(); };
+            var gs = function(s,cb)   { _locStringsProxy.GetMenuStrings(s, cb);       };
+            _mapPolysProxy.Init(map, rp, gl, gs); // must occur after "map" ivar is set
+        }, 1000);
+    };
+
     
-    MenuHelper.Init(); // contains its own delayed loads; should be at end of initialize()
-    
-    setTimeout(function() {
-        //var rp = function(eps) { MenuHelper.RegisterPolys(eps); };
-        var rp = function(gs,eps) { MenuHelper.RegisterGroupsAndPolys(gs,eps);    };
-        var gl = function()       { return PrefHelper.GetEffectiveLanguagePref(); };
-        var gs = function(s,cb)   { _locStringsProxy.GetMenuStrings(s, cb);       };
-        _mapPolysProxy.Init(map, rp, gl, gs); // must occur after "map" ivar is set
-    }, 1000);
-}//initialize
-
-
-
-
-
-function GetIsRetina() 
-{ 
-    return !_no_hdpi_tiles && window.devicePixelRatio > 1.5; 
-}//GetIsRetina
-
-
+    return SafemapInit;
+})();
 
 
 
@@ -384,7 +521,7 @@ var BasemapHelper = (function()
         return url;
     };
 
-    var _fxGetNormalizedCoord = function(xy, z) { return GetNormalizedCoord(xy, z); };
+    var _fxGetNormalizedCoord = function(xy, z) { return SafemapUtil.GetNormalizedCoord(xy, z); };
 
     var _GetGmapsMapStyled_Dark = function()
     {
@@ -447,15 +584,25 @@ var BasemapHelper = (function()
         var stam_z = window.devicePixelRatio > 1.5 ?    18 : 19;
         var stam_subs = ["a", "b", "c", "d"];
         var osm_subs  = ["a", "b", "c"];
+        var o = { }, stam_pre, osm_pre;
         
-        var o = { };
+        if (_use_https)
+        {
+            stam_pre = "https://stamen-tiles-{s}.a.ssl.fastly.net";
+            osm_pre  = "https://";
+        }//if
+        else
+        {
+            stam_pre = "http://{s}.tile.stamen.com";
+            osm_pre  = "http://";
+        }//else
         
-        o.b0 = _NewGmapsBasemap(0, stam_z, 256, "http://{s}.tile.stamen.com/terrain/{z}/{x}/{y}{r}.png", "Stamen Terrain", stam_r, stam_subs);
-        o.b1 = _NewGmapsBasemap(0, stam_z, 256, "http://{s}.tile.stamen.com/toner/{z}/{x}/{y}{r}.png", "Stamen Toner", stam_r, stam_subs);
-        o.b2 = _NewGmapsBasemap(0, stam_z, 256, "http://{s}.tile.stamen.com/toner-lite/{z}/{x}/{y}{r}.png", "Stamen Toner Lite", stam_r, stam_subs);
+        o.b0 = _NewGmapsBasemap(0, stam_z, 256, stam_pre + "/terrain/{z}/{x}/{y}{r}.png", "Stamen Terrain", stam_r, stam_subs);
+        o.b1 = _NewGmapsBasemap(0, stam_z, 256, stam_pre + "/toner/{z}/{x}/{y}{r}.png", "Stamen Toner", stam_r, stam_subs);
+        o.b2 = _NewGmapsBasemap(0, stam_z, 256, stam_pre + "/toner-lite/{z}/{x}/{y}{r}.png", "Stamen Toner Lite", stam_r, stam_subs);
         
-        o.b3 = _NewGmapsBasemap(0, 19, 256, "http://{s}.tile.stamen.com/watercolor/{z}/{x}/{y}.jpg", "Stamen Watercolor", null, stam_subs);
-        o.b4 = _NewGmapsBasemap(0, 19, 256, "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap", null, osm_subs);
+        o.b3 = _NewGmapsBasemap(0, 19, 256, stam_pre + "/watercolor/{z}/{x}/{y}.jpg", "Stamen Watercolor", null, stam_subs);
+        o.b4 = _NewGmapsBasemap(0, 19, 256, osm_pre + "{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap", null, osm_subs);
         
         o.b9 = _NewGmapsBasemap(0, 18, 256, "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", "GSI Japan", null, null);
 
@@ -488,525 +635,6 @@ var BasemapHelper = (function()
 
 
 
-
-
-
-
-
-
-
-
-
-
-function InitAboutMenu()
-{
-    document.getElementById("show").addEventListener("click", togglePopup, false);
-    document.getElementById("popup").addEventListener("click", togglePopup, false);
-}//InitAboutMenu
-
-function InitLogIdsFromQuerystring()
-{
-    var logIds = getParam("logids");
-    
-    if (logIds != null && logIds.length > 0)
-    {
-        _bvProxy.AddLogsCSV(logIds, false);
-    }//if
-}//InitLogIdsFromQuerystring
-
-function GetDefaultBasemapOrOverrideFromQuerystring()
-{
-    var midx = QueryString_GetParamAsInt("m");
-    if (midx == -1) midx = QueryString_GetParamAsInt("midx");
-    if (midx == -1) midx = PrefHelper.GetBasemapUiIndexPref();
-
-    return BasemapHelper.GetMapTypeIdForBasemapIdx(midx);
-}//GetDefaultBasemapOrOverrideFromQuerystring
-
-
-
-function InitDefaultRasterLayerOrOverrideFromQuerystring()
-{
-    var lidx = QueryString_GetParamAsInt("l");
-    if (lidx == -1) lidx = QueryString_GetParamAsInt("lidx");
-    
-    if (lidx == -1)
-    {
-        lidx = PrefHelper.GetLayerUiIndexPref();
-        
-        // 2016-11-21 ND: Fix for proxy value being stored as pref
-        if (lidx == 12) lidx = 13;
-    }//if    
-    
-    LayersHelper.SetSelectedIdxAndSync(lidx);
-    
-    if (LayersHelper.IsIdxTimeSlice(lidx))
-    {
-        TimeSliceUI.SetPanelHidden(false);
-    }//if    
-}//InitDefaultRasterLayerOrOverrideFromQuerystring
-
-function GetUserLocationFromQuerystring()
-{
-    var y = getParam("y");
-    var x = getParam("x");
-    var z = QueryString_GetParamAsInt("z");
-    
-    if (y == null) y = getParam("lat");
-    if (x == null) x = getParam("lon");
-
-    var yx = y != null && x != null && y.length > 0 && x.length > 0 ? new google.maps.LatLng(y, x) : null;
-    
-    return { yx:yx, z:z }
-}//GetUserLocationFromQuerystring
-
-function InitMapExtent_OnChange()
-{
-    if (!IsBrowserOldIE())
-    {
-        var events = [ "dragend", "zoom_changed", "maptypeid_changed" ];
-        var cb0 = function(e) { MapExtent_OnChange(0); };        
-        var cb1 = function(e) { MapExtent_OnChange(1); };
-        var cb2 = function(e) 
-        { 
-            MapExtent_OnChange(2);
-            var idx = BasemapHelper.GetCurrentInstanceBasemapIdx();
-            PrefHelper.SetBasemapUiIndexPref(idx); 
-        };
-        var cbs = [ cb0, cb1, cb2 ];
-        
-        for (var i=0; i<events.length; i++)
-        {
-            google.maps.event.addListener(map, events[i], cbs[i]);
-        }//for
-    }//if
-}//InitMapExtent_OnChange
-
-/*
-function InitFont_CrimsonText() // free Optimus Princeps clone
-{
-    if (_did_init_font_crimson_text) return;
-    
-    var el = document.createElement("link");
-    el.href = "http://fonts.googleapis.com/css?family=Crimson+Text";
-    el.rel = "stylesheet";
-    el.type = "text/css";
-    var head = document.getElementsByTagName("head")[0];
-    head.appendChild(el);
-    
-    _did_init_font_crimson_text = true;
-}//InitFont_CrimsonText
-*/
-
-// nb: This only checks if the location is set in the querystring.
-//     The implication is that at launch time, if this is present, it
-//     means a link with the lat/lon in the querystring is set.
-//     This does not hold true later, as when the user does anything,
-//     it will be overridden.
-//     This has two use cases:
-//     1. If a link was followed, don't display the location text.
-//     2. If a link was followed with logids, don't autozoom.
-function IsDefaultLocation()
-{
-    var yxz = GetUserLocationFromQuerystring();
-    
-    return yxz.yx == null;
-}//IsDefaultLocation
-
-// The more complete version of IsDefaultLocation().
-// This accomodates the location preference.  Previously, it could be
-// safely assumed that if a link with the location wasn't followed,
-// it was the default location and the text should be displayed.
-// However, this should not be used for the case of determining whether
-// or not to autozoom to logids in the querystring.  Rather, the
-// old IsDefaultLocation() should be checked for that.
-function IsDefaultLocationOrPrefLocation()
-{
-    var d = IsDefaultLocation();
-
-    if (d)
-    {
-        var yx = GetNormalizedMapCentroid();
-        var z  = map.getZoom();
-        
-        d = z == 9 && Math.abs(yx.x - 140.515516) < 0.000001
-                   && Math.abs(yx.y -  37.316113) < 0.000001;
-    }//if
-    
-    return d;
-}//IsDefaultLocationOrPrefLocation
-
-function InitShowLocationIfDefault()
-{
-    if (IsDefaultLocationOrPrefLocation() && getParam("logids").length == 0 && "requestAnimationFrame" in window)
-    {
-        _flyToExtentProxy.ShowLocationText("Honshu, Japan");
-    }//if
-}//InitShowLocationIfDefault
-
-
-function SetStyleFromCSS(sel, t, css)
-{
-    var d = false;
-        
-    for (var i=0; i<document.styleSheets.length; i++)
-    {
-        var r = document.styleSheets[i].href == null ? (document.styleSheets[i].cssRules || document.styleSheets[i].rules || new Array()) : new Array();
-
-        for (var n in r)
-        {
-            if (r[n].type == t && r[n].selectorText == sel)
-            {
-                r[n].style.cssText = css;
-                d = true;
-                break;
-            }//if
-        }//for
-        
-        if (d) break;
-    }//for
-}//GetStyleFromCSS
-
-
-function GetCssForScaler(s)
-{
-    var ir = "image-rendering:";
-    var a = new Array();
-
-    a.push([1, ir+"optimizeSpeed;"]);
-    a.push([1, ir+"-moz-crisp-edges;"]);
-    a.push([1, ir+"-o-crisp-edges;"]);
-    a.push([1, ir+"-webkit-optimize-contrast;"]);
-    a.push([1, ir+"optimize-contrast;"]);
-    a.push([1, ir+"crisp-edges;"]);
-    a.push([1, ir+"pixelated;"]);
-    a.push([1, "-ms-interpolation-mode:nearest-neighbor;"]);
-
-    var d = "";
-        
-    for (var i=0; i<a.length; i++)
-    {
-        if (a[i][0] <= s) d += a[i][1] + " \n ";
-    }//for
-
-    return d;
-}//GetCssForScaler
-    
-
-    
-function ToggleScaler()
-{
-    _img_scaler_idx = _img_scaler_idx == 1 ? 0 : _img_scaler_idx + 1;
-        
-    var css = GetCssForScaler(_img_scaler_idx);
-    SetStyleFromCSS(".noblur img", 1, css);
-}//ToggleScaler
-
-
-
-function ToggleTileShadow()
-{
-    var n;
-    
-    if (window.devicePixelRatio > 1.5)
-    {
-        n = "#map_canvas img[src^=\"http://te\"], #map_canvas img[src^=\"http://nnsa\"]";
-    }
-    else
-    {
-        n = "#map_canvas > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child > div:nth-last-of-type(1)";
-    }
-    
-    if (_img_tile_shadow_idx == -1)
-    {
-        var s = document.createElement("style");
-        s.type = "text/css";
-        s.innerHTML =   n + "\n"
-                    + "{" + "\n"
-                    + "}" + "\n";
-        document.head.appendChild(s);
-        _img_tile_shadow_idx = 0;
-        LayersHelper.SyncSelectedWithMap(); // hack to force layers to match known heirarchy, only seems to be needed once(?)
-    }//if
-
-    _img_tile_shadow_idx = _img_tile_shadow_idx == 1 ? 0 : _img_tile_shadow_idx + 1;
-
-    var css;
-    
-    if (_img_tile_shadow_idx == 1)
-    {
-        css = "    " + "-webkit-filter: drop-shadow(2px 2px 2px #000);" + " \n "
-            + "    " + "filter: drop-shadow(2px 2px 2px #000);"         + " \n ";        
-    }//if
-    else
-    {
-        css = "";
-    }//else
-    
-    SetStyleFromCSS(n, 1, css);
-}
-
-
-
-
-// ======== INIT: CONTEXT MENU ==========
-
-function InitContextMenu() 
-{
-    if (IsBrowserOldIE() || map == null) return;
-    
-    if (navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)) return;
-
-    // Original from http://justgizzmo.com/2010/12/07/google-maps-api-v3-context-menu/
-    
-    var cm = document.createElement("ul");
-    cm.id = "contextMenu";
-    cm.style.display = "none";
-    cm.innerHTML = '<li><a href="#apiQuery" class="FuturaFont">Query Safecast API Here</a></li>'
-                       + '<li class="separator"></li>'
-                       + '<li><a href="#zoomIn" class="FuturaFont">Zoom In</a></li>'
-                       + '<li><a href="#zoomOut" class="FuturaFont">Zoom Out</a></li>'
-                       + '<li><a href="#centerHere" class="FuturaFont">Center Map Here</a></li>';
-    document.getElementById("map_canvas").appendChild(cm);
-
-    var clickLL;
-    
-    var fxClickRight = function(e)
-    {
-        _cm_hidden = false;
-        AnimateElementFadeIn(cm, -1.0, 0.166666666667);
-        var mapDiv = document.getElementById("map_canvas");
-        var x      = e.pixel.x;
-        var y      = e.pixel.y;
-        clickLL    = e.latLng;
-        if (x > mapDiv.offsetWidth  - cm.offsetWidth)  x -= cm.offsetWidth;
-        if (y > mapDiv.offsetHeight - cm.offsetHeight) y -= cm.offsetHeight;
-        
-        cm.style.top  = ""+y+"px";
-        cm.style.left = ""+x+"px";        
-    };
-
-    google.maps.event.addListener(map, "rightclick", fxClickRight);
-
-    var fxClickLeft = function(e)
-    {
-        var action = this.getAttribute("href").substr(1);
-        
-        var retVal = false;                        
-        switch (action) 
-        {
-                case "zoomIn":
-                    map.setZoom(map.getZoom() + 3);
-                    map.panTo(clickLL);
-                    break;
-                case "zoomOut":
-                    map.setZoom(map.getZoom() - 3);
-                    map.panTo(clickLL);
-                    break;
-                case "centerHere":
-                    map.panTo(clickLL);
-                    break;
-                case "null":
-                    break;
-                case "showIndices1":
-                    ShowBitmapIndexVisualization(true, 4);
-                    break;
-                case "showIndices2":
-                    ShowBitmapIndexVisualization(false, 4);
-                    break;
-                case "apiQuery":
-                    QuerySafecastApiAsync(clickLL.lat(), clickLL.lng(), map.getZoom());
-                    break;
-                default:
-                    retVal = true;
-                    break;
-        }//switch
-
-        _cm_hidden = true; 
-        cm.style.display = "none";
-
-        return retVal;
-    };
-
-    var as = cm.getElementsByTagName("a");
-    
-    for (var i=0; i<as.length; i++)
-    {
-        as[i].addEventListener("click", fxClickLeft, false);
-        as[i].addEventListener("mouseover", function() { this.parentNode.className = "hover"; }.bind(as[i]), false);
-        as[i].addEventListener("mouseout",  function() { this.parentNode.className = null;    }.bind(as[i]), false);
-    }
-
-    var events = [ "click" ]; //"dragstart", "zoom_changed", "maptypeid_changed"
-
-    var hide_cb = function(e)
-    {
-        if (!_cm_hidden)
-        { 
-            _cm_hidden       = true; 
-            cm.style.display = "none";
-        }//if
-    };
-
-    for (var i=0; i<events.length; i++)
-    {
-        google.maps.event.addListener(map, events[i], hide_cb);
-    }//for
-}//contextMenuInitialize
-
-function GetFormattedSafecastApiQuerystring(lat, lon, dist, start_date_iso, end_date_iso)
-{
-    var url = "https://api.safecast.org/en-US/measurements?utf8=%E2%9C%93"
-            + "&latitude=" + lat.toFixed(6)
-            + "&longitude="+ lon.toFixed(6)
-            + "&distance=" + Math.ceil(dist)
-            + "&captured_after="  + encodeURIComponent(start_date_iso)
-            + "&captured_before=" + encodeURIComponent(end_date_iso)
-            + "&since=&until=&commit=Filter";
-
-    return url;
-}//GetFormattedSafecastApiQuerystring
-
-function QuerySafecastApiAsync(lat, lon, z)
-{
-    var start_date_iso, end_date_iso;
-    var dist = M_LatPxZ(lat, 1+1<<Math.max(z-13.0,0.0), z);
-    var idx  = LayersHelper.GetSelectedIdx();
-    
-    if (LayersHelper.IsIdxTimeSlice(idx))
-    {
-        var ds = SafecastDateHelper.GetTimeSliceLayerDateRangeInclusiveForIdxUTC(idx);
-        
-        start_date_iso = ds.s;
-          end_date_iso = ds.e;
-    }//if
-    else
-    {
-        start_date_iso = "2011-03-10T00:00:00Z";
-        
-        var d1 = new Date();
-        var t1 = d1.getTime();
-        t1 += 24.0 * 60.0 * 60.0 * 1000.0; // pad by one day
-        d1.setTime(t1);
-        
-        end_date_iso = d1.toISOString();
-    }//else
-    
-    var url = GetFormattedSafecastApiQuerystring(lat, lon, dist, start_date_iso, end_date_iso);
-
-    window.open(url);
-}//QuerySafecastApiAsync
-
-// returns meters per pixel for a given EPSG:3857 Web Mercator zoom level, for the
-// given latitude and number of pixels.
-function M_LatPxZ(lat, px, z) 
-{
-    return (Math.cos(lat*Math.PI/180.0)*2.0*Math.PI*6378137.0/(256.0*Math.pow(2.0,z)))*px; 
-}//M_LatPxZ
-
-
-
-
-
-
-// ===============================================================================================
-// ======================================= EVENT HANDLERS ========================================
-// ===============================================================================================
-function togglePopup() // "about" dialog
-{
-    var popup  = document.getElementById("popup");
-    var mapdiv = document.getElementById("map_canvas");
-    var bmul   = 3.0;
-    
-    if (popup.style != null && popup.style.display == "none")
-    {
-        GetAboutContentAsync();
-        AnimateElementBlur(mapdiv, 0.0, 0.1333333333*bmul, 0.0, 4.0*bmul);
-        AnimateElementFadeIn(document.getElementById("popup"), -1.0, 0.033333333333);
-    }//if
-    else
-    {
-        setTimeout(function() { popup.innerHTML = ""; }, 500);
-        AnimateElementBlur(mapdiv, 4.0*bmul, -0.1333333333*bmul, 0.0, 4.0*bmul);
-        AnimateElementFadeOut(document.getElementById("popup"), 1.0, -0.033333333333);
-    }//else
-}//togglePopup
-
-function GetAboutContentAsync()
-{
-    var el = document.getElementById("popup");
-    if (el.innerHTML != null && el.innerHTML.length > 0) return;
-    LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
-
-    var url = GetContentBaseUrl() + "about_inline.html";
-    var req = new XMLHttpRequest();
-    req.open("GET", url, true);
-    req.onreadystatechange = function()
-    {   
-        if (req.readyState === 4 && req.status == 200) el.innerHTML = req.response || req.responseText;
-    };
-    req.send(null);
-}//GetAboutContentAsync
-
-
-
-
-//  -1: ???
-//   0: dragend event
-//   1: zoom_changed event
-//   2: maptypeid_changed event (update midx)
-// 100: layers were changed by user. (update lidx)
-// 200: remove logs was clicked. (update logids)
-// 300: cooldown end
-
-function MapExtent_SetUpdatePanCooldown()
-{
-    var q = _cached_ext;
-    q.cd   = true;
-    q.cd_y = map.getCenter().lat();
-    q.cd_x = map.getCenter().lng();
-    q.cd_z = map.getZoom();
-    var end_cooldown = function()
-    {
-        q.cd = false;
-
-        if (   q.cd_y == map.getCenter().lat()
-            && q.cd_x == map.getCenter().lng() // no more updates?
-            && q.cd_z == map.getZoom())
-        {
-            MapExtent_OnChange(300);
-        }//if
-        else if (q.cd_z == map.getZoom()) // abort if z changed, will force ll refresh anyway.
-        {
-            MapExtent_SetUpdatePanCooldown();
-        }//else
-    };
-    setTimeout(end_cooldown, 250);
-}//MapExtent_SetUpdatePanCooldown
-
-
-function GetMapQueryStringUrl(isFull)
-{
-    var logs = _bvProxy._bvm == null ? null 
-             : isFull ? _bvProxy.GetAllLogIdsEncoded() 
-             : _bvProxy.GetLogIdsEncoded();
-    
-    var q = _cached_ext;
-    
-    var url = q.urlyxz;
-    
-    // 2016-11-21 ND: Fix for issue with user prefs where the default layer
-    //                could not be specified to users who had changed their
-    //                default.
-    url += "&l=" + q.lidx;
-    url += "&m=" + q.midx;
-    
-    //if (q.lidx > 0)        url += "&l=" + q.lidx;
-    //if (q.midx > 0)        url += "&m=" + q.midx;
-    if (logs != null && logs.length > 0) url += "&logids=" + logs;
-    
-    return url;
-}//GetMapQueryStringUrl
 
 
 
@@ -1184,9 +812,9 @@ var ClientZoomHelper = (function()
     {
     }
 
-    var _fxGetNormalizedCoord  = function(xy, z)   { return GetNormalizedCoord(xy, z); }; // static
+    var _fxGetNormalizedCoord  = function(xy, z)   { return SafemapUtil.GetNormalizedCoord(xy, z); }; // static
     var _fxShouldLoadTile      = function(l,x,y,z) { return _bitsProxy.ShouldLoadTile(l, x, y, z); };
-    var _fxGetIsRetina         = function()        { return GetIsRetina(); };
+    var _fxGetIsRetina         = function()        { return SafemapUI.GetIsRetina(); };
     var _fxGetSelectedLayerIdx = function()        { return LayersHelper.GetSelectedIdx(); };
     var _fxClearMapLayers      = function()        { map.overlayMapTypes.clear(); };
     var _fxSyncMapLayers       = function()        { LayersHelper.SyncSelectedWithMap(); };
@@ -1194,6 +822,7 @@ var ClientZoomHelper = (function()
     var _fxSetLayers           = function(o)       { overlayMaps = o; };
     var _fxGetTimeSliceDates   = function()        { return SafecastDateHelper.GetTimeSliceDateRangesFilenames(); }
     var _fxGetUseJpRegion      = function()        { return _use_jp_region; };
+    var _fxGetUseHttps         = function()        { return _use_https; };
     
     var _GetUrlForTile512 = function(xy, z, layerId, normal_max_z, base_url, idx)
     {
@@ -1324,14 +953,41 @@ var ClientZoomHelper = (function()
     };
     
 
-    
+    var _GetUrlTemplateForS3Bucket = function(isJ, isS, us_bucket)
+    {
+        var pre    = isS ? "https://" : "http://";
+        var bucket = us_bucket + (isJ ? "jp" : "") + ".safecast.org";
+        var sub    = !isS ? bucket + "." : "";
+        var domain = isJ ? "s3-ap-northeast-1.amazonaws.com"
+                   :       "s3.amazonaws.com";
+        var path   = isS ? "/" + bucket : "";
+        var url    = pre + sub + domain + path + "/{z}/{x}/{y}.png";
+
+        return url;
+    };
 
     var _InitGmapsLayers_CreateAll = function()
     {
         var x = new Array();
         
         var isJ = _fxGetUseJpRegion();
+        var isS = _fxGetUseHttps();
         
+        // https://s3-ap-northeast-1.amazonaws.com/te512jp.safecast.org                                /{z}/{x}/{y}.png
+        // http ://                                te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png
+        // https://               s3.amazonaws.com/te512  .safecast.org                                /{z}/{x}/{y}.png
+        // http ://                                te512  .safecast.org.s3               .amazonaws.com/{z}/{x}/{y}.png
+        
+        var te512url = _GetUrlTemplateForS3Bucket(isJ, isS, "te512");
+        var tg512url = _GetUrlTemplateForS3Bucket(isJ, isS, "tg512");
+        var nnsa_url = _GetUrlTemplateForS3Bucket(isJ, isS, "nnsa");
+        var nure_url = _GetUrlTemplateForS3Bucket(isJ, isS, "nure");
+        var au_url   = _GetUrlTemplateForS3Bucket(isJ, isS, "au");
+        var aist_url = _GetUrlTemplateForS3Bucket(isJ, isS, "aist");
+        var te13_url = _GetUrlTemplateForS3Bucket(isJ, isS, "te20130415");
+        var te14_url = _GetUrlTemplateForS3Bucket(isJ, isS, "te20140311");
+                           
+        /*        
         var te512url = isJ ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                            : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
         
@@ -1355,6 +1011,7 @@ var ClientZoomHelper = (function()
 
         var te14_url = isJ ? "http://te20140311jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
                            : "http://te20140311.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        */
         
         var ts = _fxGetTimeSliceDates();
 
@@ -1398,9 +1055,11 @@ var ClientZoomHelper = (function()
         
         for (var i=0; i<ts.length; i++)
         {
-            var u = "http://te" + ts[i].d + (isJ ? "jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                                                 : ".safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png");
-                                                            
+            //var u = "http://te" + ts[i].d + (isJ ? "jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+            //                                     : ".safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png");
+
+            var u = _GetUrlTemplateForS3Bucket(isJ, isS, "te" + ts[i].d);
+
             x.push( _InitGmapsLayers_Create(ts[i].i, 2, true, 17, 1.0, 512, u) );
         }//for
 
@@ -1442,240 +1101,229 @@ var ClientZoomHelper = (function()
 
 
 
-function MapExtent_OnChange(eventId)
+
+
+
+
+
+
+
+
+
+
+
+var SafemapExtent = (function()
 {
-    var q = _cached_ext;
-    
-    var initLoad = q.mt == null;
-    
-    // if just panning, use a cooldown to prevent too frequent of updates.
-    if (!initLoad && eventId == 0)
+    function SafemapExtent() 
     {
-        if (q.cd) { return; }
+    }
 
-        MapExtent_SetUpdatePanCooldown();
-        return;
-    }//if
 
-    var updateBasemap = initLoad || eventId == 2;
-    var updateLatLon  = initLoad || eventId  < 2 || eventId == 300;
-    var updateZ       = initLoad || eventId == 1;
-    var updateLayers  = initLoad || eventId == 100;
-    var c             = null;
-    
-    if (updateLayers)
+    SafemapExtent.InitEvents = function()
     {
-        q.lidx = LayersHelper.GetSelectedIdx();
-    }//if
+        if (SafemapUI.IsBrowserOldIE()) return;
 
-    if (q.midx == -1) q.midx = BasemapHelper.GetCurrentInstanceBasemapIdx();
+        var events = [ "dragend", "zoom_changed", "maptypeid_changed" ];
+        var cb0 = function(e) { SafemapExtent.OnChange(SafemapExtent.Event.DragEnd);     };        
+        var cb1 = function(e) { SafemapExtent.OnChange(SafemapExtent.Event.ZoomChanged); };
+        var cb2 = function(e) 
+        { 
+            SafemapExtent.OnChange(SafemapExtent.Event.MapTypeIdChanged);
+            var idx = BasemapHelper.GetCurrentInstanceBasemapIdx();
+            PrefHelper.SetBasemapUiIndexPref(idx); 
+        };
+        var cbs = [ cb0, cb1, cb2 ];
 
-    if (updateBasemap) // either init load, or basemap was changed
-    {
-        q.midx = BasemapHelper.GetCurrentInstanceBasemapIdx();
-        q.mt   = BasemapHelper.GetMapTypeIdForBasemapIdx(q.midx);
-        _disable_alpha = q.midx == 10 || q.midx == 11; // pure black / white
-    
-        // sync the raster tile overlay alpha with the determination made above
-             if ( _disable_alpha && overlayMaps[4].opacity != 1.0) LayersHelper.SetAlphaDisabled(true);
-        else if (!_disable_alpha && overlayMaps[4].opacity == 1.0) LayersHelper.SetAlphaDisabled(false);
-        
-        if (!initLoad && map.overlayMapTypes.getLength() > 0) LayersHelper.SyncSelectedWithMap(); // reload overlay if basemap changes
-    }//if
-    
-    
-    
-    if (updateZ || updateLayers || updateBasemap) // zoom_changed
-    {
-        c = GetMapInstanceYXZ();
-        ClientZoomHelper.SynchronizeLayersToZoomLevel(c.z);
-    }//if
-    
-    
-    
-    // *** HACK *** For pure black/white tiles (eg, no base "map"), there is an exception
-    //              to setting the alpha of certain layers.
-    //
-    //              For the interpolated layer (id=2), the alpha should be set to 0.5 if 
-    //              viewing a combination of the data and interpolated layers. (id=0)
-    //
-    //              Unfortunately, the layer constructor will not accept a lambda function
-    //              for this, or any pointer equivalent, and thus must be set directly.
-    //
-    if (updateBasemap || updateLayers) // not sure if right
-    {
-        if (q.lidx == 0 && overlayMaps[2].opacity == 1.0)
+        for (var i=0; i<events.length; i++)
         {
-            overlayMaps[2].opacity = 0.5;
-            LayersHelper.SyncSelectedWithMap();
-        }//if
-        else if (q.lidx == 2 && _disable_alpha && overlayMaps[2].opacity != 1.0)
-        {
-            overlayMaps[2].opacity = 1.0;
-            LayersHelper.SyncSelectedWithMap();
-        }//if
-    }//if
-        
-    if (updateLatLon || updateZ)
-    {
-        if (c == null) c = GetMapInstanceYXZ();
-        q.urlyxz = q.baseurl + ("?y=" + c.y) + ("&x=" + c.x) + ("&z=" + c.z);
-    }//if
-    
-    var url = GetMapQueryStringUrl(true); // 2015-03-30 ND: false -> true so all logids are present, must test performance
-
-    if (!initLoad) MapExtent_DispatchHistoryPushState(url);
-    //history.pushState(null, null, url);
-}//MapExtent_OnChange
-
-function MapExtent_DispatchHistoryPushState(url)
-{
-    var ms = Date.now();
-    _last_history_push_ms = ms;
-    
-    setTimeout(function() 
-    {
-        if (ms == _last_history_push_ms)
-        {
-            history.pushState(null, null, url);
-            var c = GetNormalizedMapCentroid();
-            PrefHelper.SetVisibleExtentXPref(c.x);
-            PrefHelper.SetVisibleExtentYPref(c.y);
-            PrefHelper.SetVisibleExtentZPref(map.getZoom());
-        }//if
-    }, _system_os_ios ? 1000 : 250);
-}
-
-
-
-
-
-function codeAddress() 
-{
-    if (geocoder == null) geocoder = new google.maps.Geocoder();
-
-    var cb = function (results, status) 
-    {
-        if (status == google.maps.GeocoderStatus.OK) 
-        {
-            map.setCenter(results[0].geometry.location);
-            var marker = new google.maps.Marker({ map: map, position: results[0].geometry.location });
-        }//if
+            google.maps.event.addListener(map, events[i], cbs[i]);
+        }//for
     };
 
-    geocoder.geocode({ "address": document.getElementById("address").value, "region": "jp" }, cb);
-}//codeAddress
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ===============================================================================================
-// ===================================== GOOGLE MAPS UTILITY =====================================
-// ===============================================================================================
-
-// Google function.  Handles 180th meridian spans which result in invalid tile references otherwise.
-// Despite the name, xy is EPSG:3857 tile x/y.
-function GetNormalizedCoord(xy, z) 
-{
-    var w = 1 << z;
-    var x = xy.x < 0 || xy.x >= w ? (xy.x % w + w) % w : xy.x;
-    return { x:x, y:xy.y };
-}//GetNormalizedCoord
-
-// Returns lat/lon centroid of visible extent, correcting for Google's invalid coordinate system refs on 180th meridian spans.
-function GetNormalizedMapCentroid()
-{
-    var c = map.getCenter();
-    var y = c.lat();
-    var x = c.lng();
+    SafemapExtent.OnChange = function(eventId)
+    {
+        var q = _cached_ext;
     
-    if (x > 180.0 || x < -180.0) x = x % 360.0 == x % 180.0 ? x % 180.0 : (x > 0.0 ? -1.0 : 1.0) * 180.0 + (x % 180.0); // thanks Google
+        var initLoad = q.mt == null;
     
-    return { y:y, x:x };
-}
+        // if just panning, use a cooldown to prevent too frequent of updates.
+        if (!initLoad && eventId == SafemapExtent.Event.DragEnd)
+        {
+            if (q.cd) { return; }
 
+            _SetUpdatePanCooldown();
+            return;
+        }//if
 
-// Gets the map centroid lat/lon/z.  Truncates to max rez of pixel for shortest string length possible.
-// Slightly errors on the side of being too precise as it does not handle lat-dependent changes or lon diffs.
-function GetMapInstanceYXZ()
-{
-    var c = GetNormalizedMapCentroid();
-    var y = c.y;
-    var x = c.x;
-    var z = map.getZoom();
-    var rm; // truncate using round/fdiv. toFixed also does this but zero pads, which is bad here.
+        var updateBasemap = initLoad || eventId == SafemapExtent.Event.MapTypeIdChanged;
+        var updateLatLon  = initLoad || eventId  < 2 || eventId == SafemapExtent.Event.CooldownEnd;
+        var updateZ       = initLoad || eventId == SafemapExtent.Event.ZoomChanged;
+        var updateLayers  = initLoad || eventId == SafemapExtent.Event.LayersChanged;
+        var c             = null;
     
-         if (z >= 19) { rm = 1000000.0; } // 6 fractional digits
-    else if (z >= 16) { rm = 100000.0; }  // 5 ... etc
-    else if (z >= 13) { rm = 10000.0; }
-    else if (z >=  9) { rm = 1000.0; }
-    else if (z >=  6) { rm = 100.0; }
-    else if (z >=  3) { rm = 10.0; }
-    else              { rm = 1.0; }
+        if (updateLayers)
+        {
+            q.lidx = LayersHelper.GetSelectedIdx();
+        }//if
 
-    y *= rm;
-    x *= rm;
-    y = Math.round(y);
-    x = Math.round(x);
-    y /= rm;
-    x /= rm;
+        if (q.midx == -1) q.midx = BasemapHelper.GetCurrentInstanceBasemapIdx();
 
-    // i just can't bring myself to delete this.
+        if (updateBasemap) // either init load, or basemap was changed
+        {
+            q.midx = BasemapHelper.GetCurrentInstanceBasemapIdx();
+            q.mt   = BasemapHelper.GetMapTypeIdForBasemapIdx(q.midx);
+            _disable_alpha = q.midx == 10 || q.midx == 11; // pure black / white
     
-    //  z   m/px @ lat0  lonDD@lat45       latDD
-    //  0  156,543.0340     1.0             1.0
-    //  1   78,271.5170                     0.1
-    //  2   39,135.7585     0.1
-    //  3   19,567.8792
-    //  4    9,783.9396     
-    //  5    4,891.9698     0.01
-    //  6    2,445.9849
-    //  7    1,222.9925
-    //  8      611.4962     0.001
-    //  9      305.7481
-    // 10      152.8741
-    // 11       76.4370
-    // 12       38.2185     0.0001
-    // 13       19.1093
-    // 14        9.5546
-    // 15        4.7773     0.00001
-    // 16        2.3887
-    // 17        1.1943
-    // 18        0.5972     0.000001
-    // 19        0.2986
-    // 20        0.1493
-    // 21        0.0746
-
-    // 1.0      =111,320.0    m
-    // 0.1      = 11,132.0    m
-    // 0.01     =  1,113.2    m
-    // 0.001    =    111.32   m
-    // 0.0001   =     11.132  m
-    // 0.00001  =      1.1132 m
-    // 0.000001 =      0.1132 m
-
-    // 1.0      = 78,710.0     m
-    // 0.1      =  7,871.0     m
-    // 0.01     =    787.1     m
-    // 0.001    =     78.71    m
-    // 0.0001   =      7.871   m
-    // 0.00001  =      0.7871  m
-    // 0.000001 =      0.07871 m
+            // sync the raster tile overlay alpha with the determination made above
+                 if ( _disable_alpha && overlayMaps[4].opacity != 1.0) LayersHelper.SetAlphaDisabled(true);
+            else if (!_disable_alpha && overlayMaps[4].opacity == 1.0) LayersHelper.SetAlphaDisabled(false);
+        
+            if (!initLoad && map.overlayMapTypes.getLength() > 0) LayersHelper.SyncSelectedWithMap(); // reload overlay if basemap changes
+        }//if
     
-    return { y:y, x:x, z:z };
-}//GetMapInstanceYXZ
+    
+        if (updateZ || updateLayers || updateBasemap) // zoom_changed
+        {
+            c = SafemapUtil.GetMapInstanceYXZ();
+            ClientZoomHelper.SynchronizeLayersToZoomLevel(c.z);
+        }//if
+    
+    
+        // *** HACK *** For pure black/white tiles (eg, no base "map"), there is an exception
+        //              to setting the alpha of certain layers.
+        //
+        //              For the interpolated layer (id=2), the alpha should be set to 0.5 if 
+        //              viewing a combination of the data and interpolated layers. (id=0)
+        //
+        //              Unfortunately, the layer constructor will not accept a lambda function
+        //              for this, or any pointer equivalent, and thus must be set directly.
+        //
+        if (updateBasemap || updateLayers) // not sure if right
+        {
+            if (q.lidx == 0 && overlayMaps[2].opacity == 1.0)
+            {
+                overlayMaps[2].opacity = 0.5;
+                LayersHelper.SyncSelectedWithMap();
+            }//if
+            else if (q.lidx == 2 && _disable_alpha && overlayMaps[2].opacity != 1.0)
+            {
+                overlayMaps[2].opacity = 1.0;
+                LayersHelper.SyncSelectedWithMap();
+            }//if
+        }//if
+        
+        if (updateLatLon || updateZ)
+        {
+            if (c == null) c = SafemapUtil.GetMapInstanceYXZ();
+            q.urlyxz = q.baseurl + ("?y=" + c.y) + ("&x=" + c.x) + ("&z=" + c.z);
+        }//if
+    
+        var url = _GetMapQueryStringUrl(true); // 2015-03-30 ND: false -> true so all logids are present, must test performance
+
+        if (!initLoad) _DispatchHistoryPushState(url);
+        //history.pushState(null, null, url);
+    };
+
+
+    var _DispatchHistoryPushState = function(url)
+    {
+        var ms = Date.now();
+        _last_history_push_ms = ms;
+    
+        setTimeout(function() 
+        {
+            if (ms == _last_history_push_ms)
+            {
+                history.pushState(null, null, url);
+                var c = SafemapUtil.GetNormalizedMapCentroid();
+                PrefHelper.SetVisibleExtentXPref(c.x);
+                PrefHelper.SetVisibleExtentYPref(c.y);
+                PrefHelper.SetVisibleExtentZPref(map.getZoom());
+            }//if
+        }.bind(this), _system_os_ios ? 1000 : 250);
+    };
+
+
+    var _SetUpdatePanCooldown = function()
+    {
+        var q  = _cached_ext;
+        q.cd   = true;
+        q.cd_y = map.getCenter().lat();
+        q.cd_x = map.getCenter().lng();
+        q.cd_z = map.getZoom();
+
+        var end_cooldown = function()
+        {
+            q.cd = false;
+
+            if (   q.cd_y == map.getCenter().lat()
+                && q.cd_x == map.getCenter().lng() // no more updates?
+                && q.cd_z == map.getZoom())
+            {
+                SafemapExtent.OnChange(SafemapExtent.Event.CooldownEnd);
+            }//if
+            else if (q.cd_z == map.getZoom()) // abort if z changed, will force ll refresh anyway.
+            {
+                _SetUpdatePanCooldown();
+            }//else
+        }.bind(this);
+
+        setTimeout(end_cooldown, 250);
+    };
+
+
+    var _GetMapQueryStringUrl = function(isFull)
+    {
+        var logs = _bvProxy._bvm == null ? null 
+                 : isFull ? _bvProxy.GetAllLogIdsEncoded() 
+                 : _bvProxy.GetLogIdsEncoded();
+        var q    = _cached_ext;
+        var url  = q.urlyxz;
+
+        // 2016-11-21 ND: Fix for issue with user prefs where the default layer
+        //                could not be specified to users who had changed their
+        //                default.
+        url += "&l=" + q.lidx;
+        url += "&m=" + q.midx;
+
+        //if (q.lidx > 0)        url += "&l=" + q.lidx;
+        //if (q.midx > 0)        url += "&m=" + q.midx;
+        if (logs != null && logs.length > 0) url += "&logids=" + logs;
+
+        return url;
+    };
+
+
+    //  -1: ???
+    //   0: dragend event
+    //   1: zoom_changed event
+    //   2: maptypeid_changed event (update midx)
+    // 100: layers were changed by user. (update lidx)
+    // 200: remove logs was clicked. (update logids)
+    // 300: cooldown end
+    SafemapExtent.Event =
+    {
+                 DragEnd: 0,
+             ZoomChanged: 1,
+        MapTypeIdChanged: 2,
+           LayersChanged: 100,
+         RemoveLogsClick: 200,
+             CooldownEnd: 300
+    };
+
+
+    return SafemapExtent;
+})();
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1709,11 +1357,10 @@ var LayersHelper = (function()
     LayersHelper.AddLogsCosmic    = function()    { _bvProxy.AddLogsCSV("cosmic", true); };
     var _AddLogsSurface   = function()    { _bvProxy.AddLogsCSV("surface", true); };
     var _InitBitsLegacy   = function()    { _bitsProxy.LegacyInitForSelection(); };
-    var _MapExtentChanged = function(i)   { MapExtent_OnChange(i); };
+    var _MapExtentChanged = function(i)   { SafemapExtent.OnChange(i); };
     var _FlyToExtentByIdx = function(idx) { _flyToExtentProxy.GoToPresetLocationIdIfNeeded(idx); };
     var _GetTsSliderIdx   = function()    { return TimeSliceUI.GetSliderIdx();    };
     var _SetTsSliderIdx   = function(idx) { return TimeSliceUI.SetSliderIdx(idx); };
-    var _GetShowLastSlice = function()    { return _show_last_slice; };
     var _GetIsLayerIdxTS  = function(idx) { return SafecastDateHelper.IsLayerIdxTimeSliceLayerDateRangeIdx(idx) };
     
     var _GetUiLayerIdx    = function()    { return _ui_layer_idx; };
@@ -1858,6 +1505,7 @@ var LayersHelper = (function()
             {
                 LayersHelper.AddToMapByIdxs([2, 0]); // standard hack for points + interpolation default layer
             }//if
+            /*
             else if (LayersHelper.IsIdxTimeSlice(idx) && _GetShowLastSlice())
             {
                 var last_idx = idx - 1; // potentially bad
@@ -1871,6 +1519,7 @@ var LayersHelper = (function()
                     LayersHelper.AddToMapByIdx(idx);
                 }//else
             }//else if
+            */
             else 
             {
                 LayersHelper.AddToMapByIdx(idx);
@@ -2031,7 +1680,7 @@ var MapPolysProxy = (function()
             this._mapPolys.Init();
         }.bind(this);
     
-        RequireJS(MapPolysProxy.src, true, cb, null);
+        SafemapUI.RequireJS(MapPolysProxy.src, true, cb, null);
     };
 
     MapPolysProxy.prototype.Add = function(poly_id)
@@ -2102,7 +1751,7 @@ var FlyToExtentProxy = (function()
             this._flyToExtent = new FlyToExtent(mapref, fxUpdateMapExtent);
         }.bind(this);
     
-        RequireJS(FlyToExtentProxy.src, true, cb, null);
+        SafemapUI.RequireJS(FlyToExtentProxy.src, true, cb, null);
     };
 
     FlyToExtentProxy.prototype.GoToPresetLocationIdIfNeeded = function(locId)
@@ -2133,180 +1782,462 @@ var FlyToExtentProxy = (function()
 
 
 
-//function GetDogeTileForXY(x, y)
-//{
-//    return GetContentBaseUrl() + (x % 2 == 0 || y % 2 == 0 ? "dogetile2.png" : "dogetile_cyanhalo.png");
-//}
+// ===============================================================================================
+// ========================================= SAFEMAP UI ==========================================
+// ===============================================================================================
 
-// supports showing the bitmap indices, which is contained in legacy code
-// with nasty deps that i haven't had time to rewrite.
-function ShowBitmapIndexVisualization(isShowAll, rendererId)
+
+
+var SafemapUI = (function()
 {
-    if (!_bitsProxy.GetIsReady()) // bad way of handling deps... but this is just a legacy hack anyway.
+    function SafemapUI()
     {
-        setTimeout(function() { ShowBitmapIndexVisualization(isShowAll, rendererId); }, 500);
-        return;
-    }//if
-    
-    _cached_baseURL = _cached_ext.baseurl;  // 2015-08-22 ND: fix for legacy bitmap viewer support
-    _layerBitstores = new Array();    
-    _bitsProxy.InitLayerIds([2,3,6,8,9,16]);
-    for (var i=0; i<_bitsProxy._layerBitstores.length; i++)
-    {
-        _layerBitstores.push(_bitsProxy._layerBitstores[i]);
     }
-    if (_rtvm != null) _rtvm.RemoveAllMarkersFromMapAndPurgeData();
-    RequireJS("bmp_lib_min.js", false, null, null);  // ugly bad legacy feature hack, but not worth rewriting this at the moment
-    RequireJS("png_zlib_min.js", false, null, null);
-    RequireJS("gbGIS_min.js", false, null, null);
-    TestDump(isShowAll, rendererId);
-}//ShowBitmapIndexVisualization
 
 
-
-
-
-// ===============================================================================================
-// =========================================== UTILITY ===========================================
-// ===============================================================================================
-
-// 2015-02-25 ND: New function for async script loads.
-function NewRequireJS(url, fxCallback, userData)
-{
-    url     += "?t=" + Date.now();
-    var el   = document.createElement("script");
-    el.async = true;
-    el.type  = "text/javascript";
-    
-    var cb = function (e)
+    var _SetStyleFromCSS = function(sel, t, css)
     {
-        if (fxCallback!=null) fxCallback(userData);
-        el.removeEventListener("load", cb);
-    }.bind(this);
-    
-    el.addEventListener("load", cb, false);
-    el.src   = url;
-    var head = document.getElementsByTagName("head")[0];
-    head.appendChild(el);
-}
+        var d = false;
 
-// Note: This is now mainly just a wrapper for NewRequireJS and RequireJS_LocalOnly.
-//       It is only actually used for sync script loads which are deprecated in modern browsers.
-//       Sync loads are only used by ShowBitmapIndexVisualization() and this can be cleaned up
-//       when that code gets refactored.
-// http://stackoverflow.com/questions/950087/how-to-include-a-javascript-file-in-another-javascript-file
-function RequireJS(url, isAsync, fxCallback, userData)
-{
-    if (LOCAL_TEST_MODE) return RequireJS_LocalOnly(url, fxCallback, userData);
-    else if (isAsync)    return NewRequireJS(url, fxCallback, userData);
-
-    var ajax = new XMLHttpRequest();    
-    ajax.open( 'GET', url, isAsync ); // <-- false = synchronous on main thread
-    ajax.onreadystatechange = function ()
-    {   
-        if (ajax.readyState === 4) 
+        for (var i=0; i<document.styleSheets.length; i++)
         {
-            switch( ajax.status) 
+            var r = document.styleSheets[i].href == null ? (document.styleSheets[i].cssRules || document.styleSheets[i].rules || new Array()) : new Array();
+
+            for (var n in r)
             {
-                case 200:
-                    var script = ajax.response || ajax.responseText;
-                    var el = document.createElement('script');
-                    el.innerHTML = script;
-                    el.async = false;
-                    document.head.appendChild(el);
-                    if (fxCallback != null) fxCallback(userData);
+                if (r[n].type == t && r[n].selectorText == sel)
+                {
+                    r[n].style.cssText = css;
+                    d = true;
                     break;
-                default:
-                    console.log("ERROR: script not loaded: ", url);
-                    break;
-            }//switch
-        }//if
-    };//.bind(this);
-    ajax.send(null);
-}//RequireJS
+                }//if
+            }//for
 
-function RequireJS_LocalOnly(url, fxCallback, userData) // not sure if this works anymore
-{
-    document.write('<script src="' + url + '" type="text/javascript"></script>');
-    if (fxCallback != null) fxCallback(userData);
-}//RequireJS_LocalOnly
+            if (d) break;
+        }//for
+    };
 
-// this is actually not a very good way to toggle visibility/display, and
-// anything using it should eventually be updated to not do so.
-function SwapClassToHideElId(elementid, classHidden, classVisible, isHidden)
-{
-    var el = document.getElementById(elementid);
-    if       (el != null &&  isHidden && el.className == classVisible) el.className = classHidden;
-    else if  (el != null && !isHidden && el.className == classHidden)  el.className = classVisible;
-}
-
-function QueryString_GetParamAsInt(paramName) // -1 if string was null
-{
-    var sp = getParam(paramName);
-    return sp != null && sp.length > 0 ? parseInt(sp) : -1;
-}
-
-function QueryString_IsParamEqual(paramName, compareValue)
-{
-    var retVal = false;
-    
-    if (paramName != null)
+    var _GetCssForScaler = function(s)
     {
-        var p  = getParam(paramName);
-        retVal = p != null && p.length > 0 && p == compareValue;
-    }//if
-    
-    return retVal;
-}//QueryString_IsParamEqual
+        var ir = "image-rendering:";
+        var a = new Array();
 
-function getParam(name) 
-{
-    name        = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
-    var regexS  = "[\\?&]" + name + "=([^&#]*)";
-    var regex   = new RegExp(regexS);
-    var results = regex.exec(window.location.href);
-    
-    return results == null ? "" : results[1];
-}//getParam
+        a.push([1, ir+"optimizeSpeed;"]);
+        a.push([1, ir+"-moz-crisp-edges;"]);
+        a.push([1, ir+"-o-crisp-edges;"]);
+        a.push([1, ir+"-webkit-optimize-contrast;"]);
+        a.push([1, ir+"optimize-contrast;"]);
+        a.push([1, ir+"crisp-edges;"]);
+        a.push([1, ir+"pixelated;"]);
+        a.push([1, "-ms-interpolation-mode:nearest-neighbor;"]);
 
-function IsBrowserOldIE() 
-{
-    var ua   = window.navigator.userAgent;
-    var msie = ua.indexOf("MSIE"); // IE11: "Trident/"
-    return msie <= 0 ? false : parseInt(ua.substring(msie + 5, ua.indexOf(".", msie)), 10) < 10;
-}//IsBrowserOldIE()
-                                 
-function GetBaseWindowURL()
-{
-    return window.location.href.indexOf("?") > -1 ? window.location.href.substr(0, window.location.href.indexOf("?")) : window.location.href;
-}//GetBaseWindowURL
-                                 
-function GetURLWithRemovedTrailingPathIfNeededFromURL(url)
-{
-    return url.indexOf("/") == url.length - 1 ? url.substr(0, url.length) : url;
-}//GetURLWithRemovedTrailingPathIfNeededFromURL
+        var d = "";
 
+        for (var i=0; i<a.length; i++)
+        {
+            if (a[i][0] <= s) d += a[i][1] + " \n ";
+        }//for
 
+        return d;
+    };
 
-
-
-
-
-// ===============================================================================================
-// ======================================= RT SENSOR VIEWER ======================================
-// ===============================================================================================
-
-function RtViewer_Init()
-{
-    if (_rtvm == null && !IsBrowserOldIE() && "ArrayBuffer" in window)
+    SafemapUI.ToggleScaler = function()
     {
-        var cb = function() {
-            _rtvm = new RTVM(map, null);
-        };
+        _img_scaler_idx = _img_scaler_idx == 1 ? 0 : _img_scaler_idx + 1;
         
-        RequireJS(GetContentBaseUrl() + "rt_viewer_min.js", true, cb, null);
-    }//if
-}//RtViewer_Init
+        var css = _GetCssForScaler(_img_scaler_idx);
+        _SetStyleFromCSS(".noblur img", 1, css);
+    };
+
+    SafemapUI.ToggleTileShadow = function()
+    {
+        var n;
+    
+        if (window.devicePixelRatio > 1.5)
+        {
+            var pre = window.location.href.substring(0,5) != "https" ? "http://"
+                    : !_use_jp_region ? "https://s3.amazonaws.com/"
+                    : "https://s3-ap-northeast-1.amazonaws.com/";
+                
+            n = "#map_canvas img[src^=\"" + pre + "te\"], #map_canvas img[src^=\"" + pre + "nnsa\"]";
+        }//if
+        else
+        {
+            n = "#map_canvas > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child > div:nth-last-of-type(1)";
+        }//else
+
+        if (_img_tile_shadow_idx == -1)
+        {
+            var s = document.createElement("style");
+            s.type = "text/css";
+            s.innerHTML =   n + "\n"
+                        + "{" + "\n"
+                        + "}" + "\n";
+            document.head.appendChild(s);
+            _img_tile_shadow_idx = 0;
+            LayersHelper.SyncSelectedWithMap(); // hack to force layers to match known heirarchy, only seems to be needed once(?)
+        }//if
+
+        _img_tile_shadow_idx = _img_tile_shadow_idx == 1 ? 0 : _img_tile_shadow_idx + 1;
+
+        var css;
+
+        if (_img_tile_shadow_idx == 1)
+        {
+            css = "    " + "-webkit-filter: drop-shadow(2px 2px 2px #000);" + " \n "
+                + "    " + "filter: drop-shadow(2px 2px 2px #000);"         + " \n ";        
+        }//if
+        else
+        {
+            css = "";
+        }//else
+
+        _SetStyleFromCSS(n, 1, css);
+    };
+
+
+    SafemapUI.GetIsRetina = function() 
+    { 
+        return !_no_hdpi_tiles && window.devicePixelRatio > 1.5; 
+    };
+
+
+    SafemapUI.GetContentBaseUrl = function()
+    {
+        //return "http://tilemap" + (_use_jp_region ? "jp" : "") + ".safecast.org.s3.amazonaws.com/";
+        return "";
+    };
+
+
+    // nb: This only checks if the location is set in the querystring.
+    //     The implication is that at launch time, if this is present, it
+    //     means a link with the lat/lon in the querystring is set.
+    //     This does not hold true later, as when the user does anything,
+    //     it will be overridden.
+    //     This has two use cases:
+    //     1. If a link was followed, don't display the location text.
+    //     2. If a link was followed with logids, don't autozoom.
+    SafemapUI.IsDefaultLocation = function()
+    {
+        var yxz = SafemapUI.GetUserLocationFromQuerystring();
+        return yxz.yx == null;
+    };
+
+
+    SafemapUI.GetUserLocationFromQuerystring = function()
+    {
+        var y = SafemapUI.GetParam("y");
+        var x = SafemapUI.GetParam("x");
+        var z = SafemapUI.QueryString_GetParamAsInt("z");
+
+        if (y == null) y = SafemapUI.GetParam("lat");
+        if (x == null) x = SafemapUI.GetParam("lon");
+
+        var yx = y != null && x != null && y.length > 0 && x.length > 0 ? new google.maps.LatLng(y, x) : null;
+
+        return { yx:yx, z:z }
+    };
+
+
+    // returns meters per pixel for a given EPSG:3857 Web Mercator zoom level, for the
+    // given latitude and number of pixels.
+    var _M_LatPxZ = function(lat, px, z) 
+    {
+        return (Math.cos(lat*Math.PI/180.0)*2.0*Math.PI*6378137.0/(256.0*Math.pow(2.0,z)))*px; 
+    };
+
+
+    var _GetFormattedSafecastApiQuerystring = function(lat, lon, dist, start_date_iso, end_date_iso)
+    {
+        var url = "https://api.safecast.org/en-US/measurements?utf8=%E2%9C%93"
+                + "&latitude=" + lat.toFixed(6)
+                + "&longitude="+ lon.toFixed(6)
+                + "&distance=" + Math.ceil(dist)
+                + "&captured_after="  + encodeURIComponent(start_date_iso)
+                + "&captured_before=" + encodeURIComponent(end_date_iso)
+                + "&since=&until=&commit=Filter";
+        return url;
+    };
+
+
+    SafemapUI.QuerySafecastApiAsync = function(lat, lon, z)
+    {
+        var start_date_iso, end_date_iso;
+        var dist = _M_LatPxZ(lat, 1+1<<Math.max(z-13.0,0.0), z);
+        var idx  = LayersHelper.GetSelectedIdx();
+
+        if (LayersHelper.IsIdxTimeSlice(idx))
+        {
+            var ds = SafecastDateHelper.GetTimeSliceLayerDateRangeInclusiveForIdxUTC(idx);
+        
+            start_date_iso = ds.s;
+              end_date_iso = ds.e;
+        }//if
+        else
+        {
+            start_date_iso = "2011-03-10T00:00:00Z";
+
+            var d1 = new Date();
+            var t1 = d1.getTime();
+            t1 += 24.0 * 60.0 * 60.0 * 1000.0; // pad by one day
+            d1.setTime(t1);
+
+            end_date_iso = d1.toISOString();
+        }//else
+
+        var url = _GetFormattedSafecastApiQuerystring(lat, lon, dist, start_date_iso, end_date_iso);
+
+        window.open(url);
+    };
+
+
+    SafemapUI.GeocodeAddress = function() 
+    {
+        if (geocoder == null) geocoder = new google.maps.Geocoder();
+
+        var cb = function (results, status) 
+        {
+            if (status == google.maps.GeocoderStatus.OK) 
+            {
+                map.setCenter(results[0].geometry.location);
+                var marker = new google.maps.Marker({ map: map, position: results[0].geometry.location });
+            }//if
+        };
+
+        geocoder.geocode({ "address": document.getElementById("address").value, "region": "jp" }, cb);
+    };
+
+
+
+    // 2015-02-25 ND: New function for async script loads.
+    var _RequireJS_New = function(url, fxCallback, userData)
+    {
+        url     += "?t=" + Date.now();
+        var el   = document.createElement("script");
+        el.async = true;
+        el.type  = "text/javascript";
+
+        var cb = function (e)
+        {
+            if (fxCallback!=null) fxCallback(userData);
+            el.removeEventListener("load", cb);
+        }.bind(this);
+
+        el.addEventListener("load", cb, false);
+        el.src   = url;
+        var head = document.getElementsByTagName("head")[0];
+        head.appendChild(el);
+    };
+
+    var _RequireJS_LocalOnly = function(url, fxCallback, userData) // not sure if this works anymore
+    {
+        document.write('<script src="' + url + '" type="text/javascript"></script>');
+        if (fxCallback != null) fxCallback(userData);
+    };
+
+    // Note: This is now mainly just a wrapper for RequireJS_New and RequireJS_LocalOnly.
+    //       It is only actually used for sync script loads which are deprecated in modern browsers.
+    //       Sync loads are only used by ShowBitmapIndexVisualization() and this can be cleaned up
+    //       when that code gets refactored.
+    // http://stackoverflow.com/questions/950087/how-to-include-a-javascript-file-in-another-javascript-file
+    SafemapUI.RequireJS = function(url, isAsync, fxCallback, userData)
+    {
+        if (LOCAL_TEST_MODE) return _RequireJS_LocalOnly(url, fxCallback, userData);
+        else if (isAsync)    return _RequireJS_New(url, fxCallback, userData);
+
+        var ajax = new XMLHttpRequest();    
+        ajax.open("GET", url, isAsync); // <-- false = synchronous on main thread
+        ajax.onreadystatechange = function()
+        {   
+            if (ajax.readyState === 4) 
+            {
+                switch( ajax.status) 
+                {
+                    case 200:
+                        var script = ajax.response || ajax.responseText;
+                        var el = document.createElement("script");
+                        el.innerHTML = script;
+                        el.async = false;
+                        document.head.appendChild(el);
+                        if (fxCallback != null) fxCallback(userData);
+                        break;
+                    default:
+                        console.log("ERROR: script not loaded: ", url);
+                        break;
+                }//switch
+            }//if
+        }.bind(this);
+        ajax.send(null);
+    };
+
+
+    SafemapUI.QueryString_GetParamAsInt = function(paramName) // -1 if string was null
+    {
+        var sp = SafemapUI.GetParam(paramName);
+        return sp != null && sp.length > 0 ? parseInt(sp) : -1;
+    };
+
+    SafemapUI.QueryString_IsParamEqual = function(paramName, compareValue)
+    {
+        var retVal = false;
+    
+        if (paramName != null)
+        {
+            var p  = SafemapUI.GetParam(paramName);
+            retVal = p != null && p.length > 0 && p == compareValue;
+        }//if
+    
+        return retVal;
+    };
+
+    SafemapUI.GetParam = function(name) 
+    {
+        name        = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+        var regexS  = "[\\?&]" + name + "=([^&#]*)";
+        var regex   = new RegExp(regexS);
+        var results = regex.exec(window.location.href);
+    
+        return results == null ? "" : results[1];
+    };
+
+    SafemapUI.IsBrowserOldIE = function() 
+    {
+        var ua   = window.navigator.userAgent;
+        var msie = ua.indexOf("MSIE"); // IE11: "Trident/"
+        return msie <= 0 ? false : parseInt(ua.substring(msie + 5, ua.indexOf(".", msie)), 10) < 10;
+    };
+
+    SafemapUI.GetBaseWindowURL = function()
+    {
+        return window.location.href.indexOf("?") > -1 ? window.location.href.substr(0, window.location.href.indexOf("?")) : window.location.href;
+    };
+
+    return SafemapUI;
+})();
+
+
+
+// ===============================================================================================
+// ===================================== GOOGLE MAPS UTILITY =====================================
+// ===============================================================================================
+
+
+var SafemapUtil = (function()
+{
+    function SafemapUtil()
+    {
+    }
+
+    // Google function.  Handles 180th meridian spans which result in invalid tile references otherwise.
+    // Despite the name, xy is EPSG:3857 tile x/y.
+    SafemapUtil.GetNormalizedCoord = function(xy, z) 
+    {
+        var w = 1 << z;
+        var x = xy.x < 0 || xy.x >= w ? (xy.x % w + w) % w : xy.x;
+        return { x:x, y:xy.y };
+    };
+
+
+    // Returns lat/lon centroid of visible extent, correcting for Google's invalid coordinate system refs on 180th meridian spans.
+    SafemapUtil.GetNormalizedMapCentroid = function()
+    {
+        var c = map.getCenter();
+        var y = c.lat();
+        var x = c.lng();
+    
+        if (x > 180.0 || x < -180.0) x = x % 360.0 == x % 180.0 ? x % 180.0 : (x > 0.0 ? -1.0 : 1.0) * 180.0 + (x % 180.0); // thanks Google
+    
+        return { y:y, x:x };
+    };
+    
+    // Gets the map centroid lat/lon/z.  Truncates to max rez of pixel for shortest string length possible.
+    // Slightly errors on the side of being too precise as it does not handle lat-dependent changes or lon diffs.
+    SafemapUtil.GetMapInstanceYXZ = function()
+    {
+        var c = SafemapUtil.GetNormalizedMapCentroid();
+        var y = c.y;
+        var x = c.x;
+        var z = map.getZoom();
+        var rm; // truncate using round/fdiv. toFixed also does this but zero pads, which is bad here.
+    
+             if (z >= 19) { rm = 1000000.0; } // 6 fractional digits
+        else if (z >= 16) { rm = 100000.0; }  // 5 ... etc
+        else if (z >= 13) { rm = 10000.0; }
+        else if (z >=  9) { rm = 1000.0; }
+        else if (z >=  6) { rm = 100.0; }
+        else if (z >=  3) { rm = 10.0; }
+        else              { rm = 1.0; }
+
+        y *= rm;
+        x *= rm;
+        y = Math.round(y);
+        x = Math.round(x);
+        y /= rm;
+        x /= rm;
+
+        // i just can't bring myself to delete this.
+    
+        //  z   m/px @ lat0  lonDD@lat45       latDD
+        //  0  156,543.0340     1.0             1.0
+        //  1   78,271.5170                     0.1
+        //  2   39,135.7585     0.1
+        //  3   19,567.8792
+        //  4    9,783.9396     
+        //  5    4,891.9698     0.01
+        //  6    2,445.9849
+        //  7    1,222.9925
+        //  8      611.4962     0.001
+        //  9      305.7481
+        // 10      152.8741
+        // 11       76.4370
+        // 12       38.2185     0.0001
+        // 13       19.1093
+        // 14        9.5546
+        // 15        4.7773     0.00001
+        // 16        2.3887
+        // 17        1.1943
+        // 18        0.5972     0.000001
+        // 19        0.2986
+        // 20        0.1493
+        // 21        0.0746
+
+        // 1.0      =111,320.0    m
+        // 0.1      = 11,132.0    m
+        // 0.01     =  1,113.2    m
+        // 0.001    =    111.32   m
+        // 0.0001   =     11.132  m
+        // 0.00001  =      1.1132 m
+        // 0.000001 =      0.1132 m
+
+        // 1.0      = 78,710.0     m
+        // 0.1      =  7,871.0     m
+        // 0.01     =    787.1     m
+        // 0.001    =     78.71    m
+        // 0.0001   =      7.871   m
+        // 0.00001  =      0.7871  m
+        // 0.000001 =      0.07871 m
+    
+        return { y:y, x:x, z:z };
+    };
+    
+    return SafemapUtil;
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // ===============================================================================================
@@ -2334,7 +2265,24 @@ var BitsProxy = (function()
     }
     
     BitsProxy.prototype.fxGetLayerForIdx = function(idx) { return ClientZoomHelper.GetLayerForIdx(idx, overlayMaps); };
-    
+
+    var _GetUrlTemplateForLayerId = function(layer_id)
+    {
+        var d = null;
+
+        for (var i=0; i<overlayMaps.length; i++)
+        {
+            if (    overlayMaps[i].ext_layer_id == layer_id
+                && !overlayMaps[i].ext_is_layer_id_proxy)
+            {
+                d = overlayMaps[i].ext_url_template;
+                break;
+            }//if
+        }//for
+
+        return d;
+    };
+
     // 2015-08-31 ND: reduce function call and enum overhead when loading tiles
     BitsProxy.prototype.CacheAddTileWHZ = function(layerId, px, z)
     {
@@ -2354,7 +2302,7 @@ var BitsProxy = (function()
     BitsProxy.prototype.LoadAsync = function()
     {
         var cb = function() { this.Init(); }.bind(this);
-        RequireJS(BitsProxy.relsrc, true, cb, null);
+        SafemapUI.RequireJS(BitsProxy.relsrc, true, cb, null);
     };
     
     BitsProxy.prototype.GetUseBitstores = function()
@@ -2434,9 +2382,11 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId02 = function()
     {
-        var isJ = _GetUseJpRegion();
-        var url = isJ ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                      : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
+        //var isJ = _GetUseJpRegion();
+        //var url = isJ ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+        //              : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
+        var url = _GetUrlTemplateForLayerId(2);
 
         var opts2 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, maxz:3, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb2  = function(dstr)
@@ -2450,9 +2400,11 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId08 = function()
     {
-        var isJ = _GetUseJpRegion();
-        var url = isJ ? "http://tg512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                      : "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";        
+        //var isJ = _GetUseJpRegion();
+        //var url = isJ ? "http://tg512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+        //              : "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
+        var url = _GetUrlTemplateForLayerId(8);
 
         var opts8 = new LBITSOptions({ lldim:1, ll:1, multi:1, maxz:5, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb8  = function(dstr)
@@ -2465,9 +2417,11 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId03 = function()
     {
-        var isJ = _GetUseJpRegion();
-        var url = isJ ? "http://nnsajp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                      : "http://nnsa.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        //var isJ = _GetUseJpRegion();
+        //var url = isJ ? "http://nnsajp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+        //              : "http://nnsa.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
+        var url = _GetUrlTemplateForLayerId(3);
 
         var opts3 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(3, 5, 15, url, 28, 12, opts3, null));
@@ -2475,9 +2429,11 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId06 = function()
     {
-        var isJ = _GetUseJpRegion();
-        var url = isJ ? "http://nurejp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                      : "http://nure.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        //var isJ = _GetUseJpRegion();
+        //var url = isJ ? "http://nurejp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+        //              : "http://nure.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
+        var url = _GetUrlTemplateForLayerId(6);
         
         var opts6 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(6, 1, 11, url, 0, 0, opts6, null));
@@ -2485,9 +2441,11 @@ var BitsProxy = (function()
     
     BitsProxy.prototype.Init_LayerId09 = function()
     {
-        var isJ = _GetUseJpRegion();
-        var url = isJ ? "http://aistjp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                      : "http://aist.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        //var isJ = _GetUseJpRegion();
+        //var url = isJ ? "http://aistjp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+        //              : "http://aist.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
+        var url = _GetUrlTemplateForLayerId(9);
 
         var opts9 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(9, 2, 11, url, 3, 1, opts9, null));
@@ -2495,9 +2453,11 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId16 = function()
     {
-        var isJ = _GetUseJpRegion();
-        var url = isJ ? "http://aujp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                      : "http://au.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        //var isJ = _GetUseJpRegion();
+        //var url = isJ ? "http://aujp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
+        //              : "http://au.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
+        
+        var url = _GetUrlTemplateForLayerId(16);
         
         var opts16 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(16, 2, 11, url, 3, 2, opts16, null));
@@ -2687,16 +2647,17 @@ var BitsProxy = (function()
         return dest;
     };
     
-    var _GetIsRetina                 = function()     { return GetIsRetina(); };
-    var _GetQueryString_IsParamEqual = function(p, v) { return QueryString_IsParamEqual(p, v); };
-    var _GetIsBrowserOldIE           = function()     { return IsBrowserOldIE(); };
+    var _GetIsRetina                 = function()     { return SafemapUI.GetIsRetina(); };
+    var _GetQueryString_IsParamEqual = function(p, v) { return SafemapUI.QueryString_IsParamEqual(p, v); };
+    var _GetIsBrowserOldIE           = function()     { return SafemapUI.IsBrowserOldIE(); };
     var _GetSelectedLayerIdx         = function()     { return LayersHelper.GetSelectedIdx(); };
     var _GetUseJpRegion              = function()     { return _use_jp_region; };
-    var _GetContentBaseUrl           = function()     { return GetContentBaseUrl(); };
+    var _GetContentBaseUrl           = function()     { return SafemapUI.GetContentBaseUrl(); };
+    var _GetUseHttps                 = function()     { return _use_https; };
     
     BitsProxy.relsrc = _GetContentBaseUrl() + "bitstore_min.js";
-    BitsProxy.bitsrc = "http://safecast.org/tilemap/bitstore_min.js";
-    BitsProxy.pngsrc = "http://safecast.org/tilemap/png_zlib_worker_min.js";
+    BitsProxy.bitsrc = (_GetUseHttps() ? "https://" : "http://") + "safecast.org/tilemap/bitstore_min.js";
+    BitsProxy.pngsrc = (_GetUseHttps() ? "https://" : "http://") + "safecast.org/tilemap/png_zlib_worker_min.js";
     
     var _CheckRequirements = function()
     {
@@ -2772,7 +2733,7 @@ var HudProxy = (function()
                 fxCallback(userData);
             }.bind(this);
 
-            RequireJS(GetContentBaseUrl() + "hud_min.js", true, cb, null);
+            SafemapUI.RequireJS(SafemapUI.GetContentBaseUrl() + "hud_min.js", true, cb, null);
         }//else
     };
     
@@ -2836,11 +2797,18 @@ var BvProxy = (function()
         this._bvm = null;
         this._noreqs = !_CheckRequirements();
         
-        this.fxSwapClassToHideElId  = function(elementid, classHidden, classVisible, isHidden) { SwapClassToHideElId(elementid, classHidden, classVisible, isHidden); }.bind(this);
-        this.fxRequireJS            = function(url, isAsync, fxCallback, userData) { RequireJS(url, isAsync, fxCallback, userData); }.bind(this);
+        this.fxSwapClassToHideElId  = function(elementid, classHidden, classVisible, isHidden) 
+        { 
+            // this is actually not a very good way to toggle visibility/display, and
+            // anything using it should eventually be updated to not do so.
+            var el = document.getElementById(elementid);
+            if       (el != null &&  isHidden && el.className == classVisible) el.className = classHidden;
+            else if  (el != null && !isHidden && el.className == classHidden)  el.className = classVisible;
+        }.bind(this);
+        this.fxRequireJS            = function(url, isAsync, fxCallback, userData) { SafemapUI.RequireJS(url, isAsync, fxCallback, userData); }.bind(this);
         this.fxInjectLoadingSpinner = function(el, color, str_w, size_px) { LoadingSpinnerHelper.InjectLoadingSpinner(el, color, str_w, size_px); }.bind(this);
-        this.fxUpdateMapExtent      = function() { MapExtent_OnChange(200); }.bind(this);
-        this.fxIsDefaultLocation    = function() { return IsDefaultLocation(); }.bind(this);
+        this.fxUpdateMapExtent      = function() { SafemapExtent.OnChange(SafemapExtent.Event.RemoveLogsClick); }.bind(this);
+        this.fxIsDefaultLocation    = function() { return SafemapUI.IsDefaultLocation();  }.bind(this);
     }
     
     BvProxy.prototype.ExecuteWithAsyncLoadIfNeeded = function(fxCallback, userData)
@@ -2861,7 +2829,7 @@ var BvProxy = (function()
                 this.GetUiContentStylesAsync(fxCallback, userData);
             }.bind(this);
         
-            this.fxRequireJS(GetContentBaseUrl() + "bgeigie_viewer_min.js", true, cb, null);
+            this.fxRequireJS(SafemapUI.GetContentBaseUrl() + "bgeigie_viewer_min.js", true, cb, null);
         }//else
     };
     
@@ -2871,7 +2839,7 @@ var BvProxy = (function()
         if (this._noreqs) return;
         
         var i = document.getElementById("bv_bvImgPreview");
-        if (i.src == null || i.src.length == 0) i.src = GetContentBaseUrl() + "bgpreview_118x211.png";
+        if (i.src == null || i.src.length == 0) i.src = SafemapUI.GetContentBaseUrl() + "bgpreview_118x211.png";
     
         _aListId("bv_btnDoneX", "click", function() { this.btnDoneOnClick(); }.bind(this) );
         _aListId("bv_btnOptions", "click", function() { this.UI_ShowAdvPanel(); }.bind(this) );
@@ -3122,7 +3090,7 @@ var BvProxy = (function()
             return; 
         }//if
         
-        var url = GetContentBaseUrl() + "bgeigie_viewer_inline.html";
+        var url = SafemapUI.GetContentBaseUrl() + "bgeigie_viewer_inline.html";
         var req = new XMLHttpRequest();
         req.open("GET", url, true);
         req.onreadystatechange = function()
@@ -3159,7 +3127,7 @@ var BvProxy = (function()
         this.fxInjectLoadingSpinner(e2, "#FFF", 2, 144);
         document.body.appendChild(e2);
 
-        var url = GetContentBaseUrl() + "bgeigie_viewer_inline.css";
+        var url = SafemapUI.GetContentBaseUrl() + "bgeigie_viewer_inline.css";
         var req = new XMLHttpRequest();
         req.open("GET", url, true);
         req.onreadystatechange = function()
@@ -3235,44 +3203,182 @@ var BvProxy = (function()
 
 
 // ===============================================================================================
-// ================================= TEMPORARY UI TEXT / IMAGES ==================================
+// ===================================== SAFEMAP POPUP HELPER ====================================
 // ===============================================================================================
 
-// The "animate" functions use requestAnimationFrame, so timing is not
-// guaranteed.  Ideally, it's 60 FPS, or 16.666667ms.
-function AnimateElementBlur(el, blur, stride, min_blur, max_blur)
-{  
-    blur = stride >= 0.0 && blur + stride > max_blur ? max_blur 
-         : stride  < 0.0 && blur + stride < min_blur ? min_blur 
-         : blur + stride;
-    
-    var b = blur == 0.0 ? null : "blur(" + blur.toFixed(2) + "px)";
-    el.style["-webkit-filter"] = b;
-    el.style["-moz-filter"] = b;
-    el.style["-o-filter"] = b;
-    el.style["-ms-filter"] = b;
-    el.style.filter = b;
-    
-    if ((stride >= 0 && blur < max_blur) || (stride < 0.0 && blur > min_blur)) 
-        requestAnimationFrame(function() { AnimateElementBlur(el, blur, stride, min_blur, max_blur) });
-}
 
-function AnimateElementFadeIn(el, opacity, stride, fxCallback)
-{  
-    opacity = opacity < 0.0 ? 0.0 : opacity + stride > 1.0 ? 1.0 : opacity + stride;  
-    el.style.opacity = opacity;
-    if (opacity == 0.0) { if (el.style.display != null && el.style.display == "none") el.style.display = null; if (el.style.visibility != null && el.style.visibility == "hidden") el.style.visibility = "visible"; }
-    if (opacity  < 1.0) requestAnimationFrame(function() { AnimateElementFadeIn(el, opacity, stride, fxCallback) });
-    else if (opacity == 1.0 && fxCallback != null) fxCallback();
-}
 
-function AnimateElementFadeOut(el, opacity, stride)
-{  
-    opacity = opacity + stride < 0.0 ? 0.0 : opacity + stride > 1.0 ? 1.0 : opacity + stride;  
-    el.style.opacity = opacity;
-    if (opacity == 0.0) { el.style.display = "none"; }
-    if (opacity  > 0.0) requestAnimationFrame(function() { AnimateElementFadeOut(el, opacity, stride) });
-}
+
+
+
+
+// 2015-04-03 ND: "What's New" popup that fires once.  May also be called
+//                from the about window.
+var SafemapPopupHelper = (function()
+{
+    function SafemapPopupHelper()
+    {
+    }
+    
+    // The "animate" functions use requestAnimationFrame, so timing is not
+    // guaranteed.  Ideally, it's 60 FPS, or 16.666667ms.
+    var _AnimateElementBlur = function(el, blur, stride, min_blur, max_blur)
+    {  
+        blur = stride >= 0.0 && blur + stride > max_blur ? max_blur 
+             : stride  < 0.0 && blur + stride < min_blur ? min_blur 
+             : blur + stride;
+    
+        var b = blur == 0.0 ? null : "blur(" + blur.toFixed(2) + "px)";
+        el.style["-webkit-filter"] = b;
+        el.style["-moz-filter"] = b;
+        el.style["-o-filter"] = b;
+        el.style["-ms-filter"] = b;
+        el.style.filter = b;
+    
+        if ((stride >= 0 && blur < max_blur) || (stride < 0.0 && blur > min_blur)) 
+            requestAnimationFrame(function() { _AnimateElementBlur(el, blur, stride, min_blur, max_blur) }.bind(this));
+    };
+
+    SafemapUI.AnimateElementFadeIn = function(el, opacity, stride, fxCallback)
+    {  
+        opacity = opacity < 0.0 ? 0.0 : opacity + stride > 1.0 ? 1.0 : opacity + stride;  
+        el.style.opacity = opacity;
+        if (opacity == 0.0) { if (el.style.display != null && el.style.display == "none") el.style.display = null; if (el.style.visibility != null && el.style.visibility == "hidden") el.style.visibility = "visible"; }
+        if (opacity  < 1.0) requestAnimationFrame(function() { SafemapUI.AnimateElementFadeIn(el, opacity, stride, fxCallback) }.bind(this));
+        else if (opacity == 1.0 && fxCallback != null) fxCallback();
+    };
+
+    var _AnimateElementFadeOut = function(el, opacity, stride)
+    {  
+        opacity = opacity + stride < 0.0 ? 0.0 : opacity + stride > 1.0 ? 1.0 : opacity + stride;  
+        el.style.opacity = opacity;
+        if (opacity == 0.0) { el.style.display = "none"; }
+        if (opacity  > 0.0) requestAnimationFrame(function() { _AnimateElementFadeOut(el, opacity, stride) }.bind(this));
+    };
+
+    var _GetAboutContentAsync = function()
+    {
+        var el = document.getElementById("about_content");
+        if (el.innerHTML != null && el.innerHTML.length > 0) return;
+        LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
+
+        var url = SafemapUI.GetContentBaseUrl() + "about_inline.html";
+        var req = new XMLHttpRequest();
+        req.open("GET", url, true);
+        req.onreadystatechange = function()
+        {   
+            if (req.readyState === 4 && req.status == 200) el.innerHTML = req.response || req.responseText;
+        };
+        req.send(null);
+    };
+    
+    SafemapPopupHelper.ToggleAboutPopup = function() // "about" dialog
+    {
+        var popup  = document.getElementById("about_content");
+        var mapdiv = document.getElementById("map_canvas");
+        var bmul   = 3.0;
+    
+        if (popup.style != null && popup.style.display == "none")
+        {
+            _GetAboutContentAsync();
+            _AnimateElementBlur(mapdiv, 0.0, 0.1333333333*bmul, 0.0, 4.0*bmul);
+            SafemapUI.AnimateElementFadeIn(document.getElementById("popup"), -1.0, 0.033333333333);
+        }//if
+        else
+        {
+            setTimeout(function() { popup.innerHTML = ""; }, 500);
+            _AnimateElementBlur(mapdiv, 4.0*bmul, -0.1333333333*bmul, 0.0, 4.0*bmul);
+            _AnimateElementFadeOut(document.getElementById("popup"), 1.0, -0.033333333333);
+        }//else
+    };
+    
+    var _GetClientViewSize = function()
+    {
+        var _w = window,
+            _d = document,
+            _e = _d.documentElement,
+            _g = _d.getElementsByTagName("body")[0],
+            vw = _w.innerWidth || _e.clientWidth || _g.clientWidth,
+            vh = _w.innerHeight|| _e.clientHeight|| _g.clientHeight;
+
+        return [vw, vh];
+    };
+
+    var _WhatsNewGetShouldShow = function() // 2015-08-22 ND: fix for non-Chrome date parsing
+    {
+        if (Date.now() > Date.parse("2015-04-30T00:00:00Z")) return false;
+    
+        var sval = localStorage.getItem("WHATSNEW_2_0");
+        var vwh  = _GetClientViewSize();
+        if ((sval != null && sval == "1") || vwh[0] < 424 || vwh[1] < 424) return false;
+    
+        localStorage.setItem("WHATSNEW_2_0", "1");
+        return true;
+    };
+
+    SafemapPopupHelper.WhatsNewClose = function()
+    {
+        var el = document.getElementById("whatsnew");
+        el.innerHTML = "";
+        el.style.display = "none";
+    };
+
+    SafemapPopupHelper.WhatsNewShow = function(language)
+    {
+        var el = document.getElementById("whatsnew");
+    
+        el.style.display = "block";
+    
+        if (el.innerHTML != null && el.innerHTML.length > 0) 
+        {
+            el.innerHTML = "";
+        }//if
+    
+        LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
+
+        var url = SafemapUI.GetContentBaseUrl() + "whatsnew_" + language + "_inline.html";
+        var req = new XMLHttpRequest();
+        req.open("GET", url, true);
+        req.onreadystatechange = function()
+        {   
+            if (req.readyState === 4 && req.status == 200) el.innerHTML = req.response || req.responseText;
+        };
+        req.send(null);
+    };
+
+    SafemapPopupHelper.WhatsNewShowIfNeeded = function()
+    {
+        if (_WhatsNewGetShouldShow()) SafemapPopupHelper.WhatsNewShow("en");
+    };
+
+    var _WarningShowIfNeeded = function()
+    {
+        if (Date.now() < Date.parse("2015-09-23T13:00:00Z")) 
+        {
+            var el = document.getElementById("warning_message");
+        
+            el.style.display = "block";
+        
+            if (el.innerHTML != null && el.innerHTML.length > 0) 
+            {
+                el.innerHTML = "";
+            }//if
+    
+            LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
+
+            var url = SafemapUI.GetContentBaseUrl() + "warning_inline.html";
+            var req = new XMLHttpRequest();
+            req.open("GET", url, true);
+            req.onreadystatechange = function()
+            {   
+                if (req.readyState === 4 && req.status == 200) el.innerHTML = req.response || req.responseText;
+            };
+            req.send(null);
+        }//if
+    };
+    
+    return SafemapPopupHelper;
+})();
 
 
 
@@ -3419,7 +3525,7 @@ var TimeSliceUI = (function()
     var _SetLayerAndSync   = function(idx) { LayersHelper.SetSelectedIdxAndSync(idx); };
     var _BitsLegacyInit    = function()    { _bitsProxy.LegacyInitForSelection(); };
     var _SyncLayerWithMap  = function()    { LayersHelper.SyncSelectedWithMap(); };
-    var _MapExtentOnChange = function(i)   { MapExtent_OnChange(i); };
+    var _MapExtentOnChange = function(i)   { SafemapExtent.OnChange(i); };
     /*TimeSliceUI.EnableHud         = function()    { _hudProxy.Enable(); };*/ // unused
     var _UpdateHud         = function()    { _hudProxy.Update(); };
     var _GetLabelsForIdx   = function(idx) { return SafecastDateHelper.GetTimeSliceDateRangeLabelsForIdxJST(idx); };
@@ -4541,7 +4647,7 @@ var MenuHelper = (function()
             overlayMaps = null;
             ClientZoomHelper.InitGmapsLayers();
             LayersHelper.SyncSelectedWithMap();
-            ClientZoomHelper.SynchronizeLayersToZoomLevel(GetMapInstanceYXZ().z);
+            ClientZoomHelper.SynchronizeLayersToZoomLevel(SafemapUtil.GetMapInstanceYXZ().z);
         }//else
         ElGet("chkMenuHdpi").checked = !_no_hdpi_tiles;
         ElGet("menu_hdpi").addEventListener("click", function()
@@ -4550,7 +4656,7 @@ var MenuHelper = (function()
             overlayMaps = null;
             ClientZoomHelper.InitGmapsLayers();
             LayersHelper.SyncSelectedWithMap();
-            ClientZoomHelper.SynchronizeLayersToZoomLevel(GetMapInstanceYXZ().z);
+            ClientZoomHelper.SynchronizeLayersToZoomLevel(SafemapUtil.GetMapInstanceYXZ().z);
             ElGet("chkMenuHdpi").checked = !_no_hdpi_tiles;
             PrefHelper.SetHdpiEnabledPref(!_no_hdpi_tiles);
         }, false);
@@ -4588,12 +4694,12 @@ var MenuHelper = (function()
         if (   (!PrefHelper.GetNnScalerEnabledPref() && _img_scaler_idx  > 0)
             || ( PrefHelper.GetNnScalerEnabledPref() && _img_scaler_idx == 0))
         {
-            ToggleScaler();
+            SafemapUI.ToggleScaler();
         }//if
         ElGet("chkMenuNnScaler").checked = _img_scaler_idx > 0;
         ElGet("menu_nnscaler").addEventListener("click", function()
         {
-            ToggleScaler();
+            SafemapUI.ToggleScaler();
             ElGet("chkMenuNnScaler").checked = _img_scaler_idx > 0;
             PrefHelper.SetNnScalerEnabledPref(_img_scaler_idx > 0);
         }, false);
@@ -4653,12 +4759,12 @@ var MenuHelper = (function()
 
         if (PrefHelper.GetTileShadowEnabledPref())
         {
-            ToggleTileShadow();
+            SafemapUI.ToggleTileShadow();
         }//if
         ElGet("chkMenuTileShadow").checked = _img_tile_shadow_idx > 0;
         ElGet("menu_tile_shadow").addEventListener("click", function()
         {
-            ToggleTileShadow();
+            SafemapUI.ToggleTileShadow();
             ElGet("chkMenuTileShadow").checked = _img_tile_shadow_idx > 0;
             PrefHelper.SetTileShadowEnabledPref(_img_tile_shadow_idx > 0);
         }, false);
@@ -4693,8 +4799,8 @@ var MenuHelper = (function()
 
         ElGet("menu_apiquery").addEventListener("click", function()
         {
-            var yx = GetNormalizedMapCentroid();
-            QuerySafecastApiAsync(yx.y, yx.x, map.getZoom());
+            var yx = SafemapUtil.GetNormalizedMapCentroid();
+            SafemapUI.QuerySafecastApiAsync(yx.y, yx.x, map.getZoom());
         }, false);
     };
 
@@ -4709,7 +4815,7 @@ var MenuHelper = (function()
         ElGet("lblMenuLogsTitle").innerHTML      = s.MENU_LOGS_TITLE;
         ElGet("aMenuDonate").innerHTML           = s.MENU_DONATE_LABEL;
         ElGet("aMenuBlog").innerHTML             = s.MENU_BLOG_LABEL;
-        ElGet("show").innerHTML                  = s.MENU_ABOUT_LABEL;
+        ElGet("aMenuAbout").innerHTML            = s.MENU_ABOUT_LABEL;
         ElGet("lblMenuBasemapTitle").innerHTML   = s.MENU_BASEMAP_TITLE;
         ElGet("lblMenuAdvancedTitle").innerHTML  = s.MENU_ADVANCED_TITLE;
         ElGet("lblMenuHdpi").innerHTML           = s.MENU_HDPI_LABEL;

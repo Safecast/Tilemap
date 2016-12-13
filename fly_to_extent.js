@@ -469,26 +469,25 @@ var LocationText = (function()
     function LocationText() 
     {
         this._did_init_font_crimson_text = false;
-        
         this.InitFont_CrimsonText();
     }
-    
+
     LocationText.prototype.InitFont_CrimsonText = function() // free Optimus Princeps clone
     {
         if (this._did_init_font_crimson_text) return;
-    
+
         var el = document.createElement("link");
-        el.href = "http://fonts.googleapis.com/css?family=Crimson+Text";
+        var pre = window.location.href.substring(0,5) == "https" ? "https://" : "http://";
+        el.href = pre + "fonts.googleapis.com/css?family=Crimson+Text";
         el.rel = "stylesheet";
         el.type = "text/css";
         var head = document.getElementsByTagName("head")[0];
         head.appendChild(el);
-    
+
         this._did_init_font_crimson_text = true;
     }//InitFont_CrimsonText
 
-    
-    
+
     var _GetText_Container = function(w_px, h_px)
     {
         var e           = document.createElement("div");
