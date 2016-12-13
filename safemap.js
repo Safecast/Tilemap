@@ -584,25 +584,16 @@ var BasemapHelper = (function()
         var stam_z = window.devicePixelRatio > 1.5 ?    18 : 19;
         var stam_subs = ["a", "b", "c", "d"];
         var osm_subs  = ["a", "b", "c"];
-        var o = { }, stam_pre, osm_pre;
-        
-        if (_use_https)
-        {
-            stam_pre = "https://stamen-tiles-{s}.a.ssl.fastly.net";
-            osm_pre  = "https://";
-        }//if
-        else
-        {
-            stam_pre = "http://{s}.tile.stamen.com";
-            osm_pre  = "http://";
-        }//else
-        
+        var stam_pre  = !_use_https ? "http://{s}.tile.stamen.com" : "https://stamen-tiles-{s}.a.ssl.fastly.net";
+        var o = { };
+
+
         o.b0 = _NewGmapsBasemap(0, stam_z, 256, stam_pre + "/terrain/{z}/{x}/{y}{r}.png", "Stamen Terrain", stam_r, stam_subs);
         o.b1 = _NewGmapsBasemap(0, stam_z, 256, stam_pre + "/toner/{z}/{x}/{y}{r}.png", "Stamen Toner", stam_r, stam_subs);
         o.b2 = _NewGmapsBasemap(0, stam_z, 256, stam_pre + "/toner-lite/{z}/{x}/{y}{r}.png", "Stamen Toner Lite", stam_r, stam_subs);
         
         o.b3 = _NewGmapsBasemap(0, 19, 256, stam_pre + "/watercolor/{z}/{x}/{y}.jpg", "Stamen Watercolor", null, stam_subs);
-        o.b4 = _NewGmapsBasemap(0, 19, 256, osm_pre + "{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap", null, osm_subs);
+        o.b4 = _NewGmapsBasemap(0, 19, 256, "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap", null, osm_subs);
         
         o.b9 = _NewGmapsBasemap(0, 18, 256, "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", "GSI Japan", null, null);
 
