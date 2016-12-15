@@ -1784,6 +1784,22 @@ var SafemapUI = (function()
     function SafemapUI()
     {
     }
+    
+    SafemapUI.InjectLoadingSpinner = function(el, color, size)
+    {
+        var div = document.createElement("div");
+        
+        div.className = "loading-spinner" 
+                      + (color != null && color == SafemapUI.LoadingSpinnerColor.White ? " white"      : "") 
+                      + (size  != null && size  == SafemapUI.LoadingSpinnerSize.Large  ? " bigspinner" : "");
+
+        while (el.firstChild) 
+        {
+            el.removeChild(el.firstChild);
+        }//while
+
+        el.appendChild(div); // don't contaminate styles of parent element
+    };
 
 
     var _SetStyleFromCSS = function(sel, t, css)
@@ -2101,6 +2117,18 @@ var SafemapUI = (function()
     SafemapUI.GetBaseWindowURL = function()
     {
         return window.location.href.indexOf("?") > -1 ? window.location.href.substr(0, window.location.href.indexOf("?")) : window.location.href;
+    };
+    
+    SafemapUI.LoadingSpinnerColor = 
+    {
+        Black:0,
+        White:1
+    };
+    
+    SafemapUI.LoadingSpinnerSize = 
+    {
+        Medium:0,
+        Large:1
     };
 
     return SafemapUI;
@@ -2709,7 +2737,7 @@ var HudProxy = (function()
         {
             var el = document.getElementById("hud_canvas");
             el.style.cssText = "position:absolute;display:block;top:0;bottom:0;left:0;right:0;width:144px;height:144px;margin:auto;";
-            LoadingSpinnerHelper.InjectLoadingSpinner(el, "#FFF", 2, 144);
+            SafemapUI.InjectLoadingSpinner(el, SafemapUI.LoadingSpinnerColor.White, SafemapUI.LoadingSpinnerSize.Large);
         
             var cb = function()
             {
@@ -2797,7 +2825,8 @@ var BvProxy = (function()
             else if  (el != null && !isHidden && el.className == classHidden)  el.className = classVisible;
         }.bind(this);
         this.fxRequireJS            = function(url, isAsync, fxCallback, userData) { SafemapUI.RequireJS(url, isAsync, fxCallback, userData); }.bind(this);
-        this.fxInjectLoadingSpinner = function(el, color, str_w, size_px) { LoadingSpinnerHelper.InjectLoadingSpinner(el, color, str_w, size_px); }.bind(this);
+        //this.fxInjectLoadingSpinner = function(el, color, str_w, size_px) { LoadingSpinnerHelper.InjectLoadingSpinner(el, color, str_w, size_px); }.bind(this);
+        this.fxInjectLoadingSpinner = function(el) { SafemapUI.InjectLoadingSpinner(el, SafemapUI.LoadingSpinnerColor.White, SafemapUI.LoadingSpinnerSize.Large); }.bind(this);
         this.fxUpdateMapExtent      = function() { SafemapExtent.OnChange(SafemapExtent.Event.RemoveLogsClick); }.bind(this);
         this.fxIsDefaultLocation    = function() { return SafemapUI.IsDefaultLocation();  }.bind(this);
     }
@@ -3115,7 +3144,7 @@ var BvProxy = (function()
         var e2 = document.createElement("div");
         e2.id = "bv_loading";
         e2.style.cssText = "position:absolute;display:block;top:0;bottom:0;left:0;right:0;width:144px;height:144px;margin:auto;";
-        this.fxInjectLoadingSpinner(e2, "#FFF", 2, 144);
+        this.fxInjectLoadingSpinner(e2);//, "#FFF", 2, 144);
         document.body.appendChild(e2);
 
         var url = SafemapUI.GetContentBaseUrl() + "bgeigie_viewer_inline.css";
@@ -3251,7 +3280,8 @@ var SafemapPopupHelper = (function()
     {
         var el = document.getElementById("about_content");
         if (el.innerHTML != null && el.innerHTML.length > 0) return;
-        LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
+        //LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
+        SafemapUI.InjectLoadingSpinner(el, SafemapUI.LoadingSpinnerColor.Black, SafemapUI.LoadingSpinnerSize.Medium);
 
         var url = SafemapUI.GetContentBaseUrl() + "about_inline.html";
         var req = new XMLHttpRequest();
@@ -3273,13 +3303,13 @@ var SafemapPopupHelper = (function()
         {
             _GetAboutContentAsync();
             _AnimateElementBlur(mapdiv, 0.0, 0.1333333333*bmul, 0.0, 4.0*bmul);
-            SafemapUI.AnimateElementFadeIn(document.getElementById("popup"), -1.0, 0.033333333333);
+            SafemapUI.AnimateElementFadeIn(document.getElementById("about_content"), -1.0, 0.033333333333);
         }//if
         else
         {
             setTimeout(function() { popup.innerHTML = ""; }, 500);
             _AnimateElementBlur(mapdiv, 4.0*bmul, -0.1333333333*bmul, 0.0, 4.0*bmul);
-            _AnimateElementFadeOut(document.getElementById("popup"), 1.0, -0.033333333333);
+            _AnimateElementFadeOut(document.getElementById("about_content"), 1.0, -0.033333333333);
         }//else
     };
     
@@ -3325,7 +3355,8 @@ var SafemapPopupHelper = (function()
             el.innerHTML = "";
         }//if
     
-        LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
+        //LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
+        SafemapUI.InjectLoadingSpinner(el, SafemapUI.LoadingSpinnerColor.Black, SafemapUI.LoadingSpinnerSize.Medium);
 
         var url = SafemapUI.GetContentBaseUrl() + "whatsnew_" + language + "_inline.html";
         var req = new XMLHttpRequest();
@@ -3355,7 +3386,8 @@ var SafemapPopupHelper = (function()
                 el.innerHTML = "";
             }//if
     
-            LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
+            //LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
+            SafemapUI.InjectLoadingSpinner(el, SafemapUI.LoadingSpinnerColor.Black, SafemapUI.LoadingSpinnerSize.Medium);
 
             var url = SafemapUI.GetContentBaseUrl() + "warning_inline.html";
             var req = new XMLHttpRequest();
@@ -3369,126 +3401,6 @@ var SafemapPopupHelper = (function()
     };
     
     return SafemapPopupHelper;
-})();
-
-
-
-
-
-
-
-// ===============================================================================================
-// ==================================== LOADING SPINNER HELPER ===================================
-// ===============================================================================================
-//
-// LoadingSpinnerHelper: Uses CSS3 animation to show a fullscreen loading spinner to the user.
-// nb: Does not work with Firefox because Mozilla unironically believes CSS styles are a security risk.
-//     Firefox users get a spinning square instead.
-//
-//
-var LoadingSpinnerHelper = (function()
-{
-    function LoadingSpinnerHelper() 
-    {
-    }
-
-    var _DoesStyleExist = function(src, t)
-    {
-        var d = false;
-
-        if ("MozAppearance" in document.documentElement.style) return d; // 2016-02-01 ND: workaround for Firefox bug
-
-        for (var i=0; i<document.styleSheets.length; i++)
-        {
-            var r = document.styleSheets[i].cssRules || document.styleSheets[i].rules || new Array();
-
-            for (var n in r)
-            {
-                if (r[n].type == t && r[n].name == src)
-                {
-                    d = true;
-                    break;
-                }//if
-            }//for
-
-            if (d) break;
-        }//for
-    
-        return d;
-    };
-
-    var _InjectLoadingSpinnerStyleIfNeeded = function()
-    {
-        if (_DoesStyleExist("animation-ls-rotate", window.CSSRule.KEYFRAMES_RULE)) return;
-    
-        var kfn = "keyframes animation-ls-rotate { 100% { ";
-        var trr = "transform: rotate(360deg); } }" + " \n ";
-    
-        var css = "@-webkit-" + kfn + "-webkit-" + trr
-                + "@-moz-"    + kfn + "-moz-"    + trr
-                + "@-o-"      + kfn + "-o-"      + trr
-                + "@"         + kfn              + trr;
-    
-        var els       = document.createElement("style");
-        els.type      = "text/css";
-        els.innerHTML = css;
-        document.getElementsByTagName("head")[0].appendChild(els);
-    };
-
-    var _GetHexC = function(s,i)
-    {
-        return parseInt("0x" + (s!=null&&s.length==4 ? s.substring(i+1,i+2)+s.substring(i+1,i+2) : s!=null&&s.length==7?s.substring(i*2+1,i*2+3) : "0") );
-    };
-
-    var _HexColorToRGBA = function(src, a)
-    {
-        return "rgba(" + _GetHexC(src,0) + ", " + _GetHexC(src,1) + ", " + _GetHexC(src,2) + ", " + a + ")";
-    };
-    
-    LoadingSpinnerHelper.InjectLoadingSpinner = function(el, color, str_w, px_size)
-    {
-        if (color == null) color = "#000";
-        if (str_w == null) str_w = "2";
-        var wh = px_size == null ? 38 : parseInt(px_size);
-    
-        if (px_size > 18) px_size -= 16; // correct for CSS-SVG diffs
-        str_w += 6;                      // correct for CSS-SVG diffs
-
-        var c0 = _HexColorToRGBA(color, 0.5);
-        var c1 = _HexColorToRGBA(color, 1.0);
-
-        _InjectLoadingSpinnerStyleIfNeeded();
-
-        var anim = "animation: animation-ls-rotate 1000ms linear infinite;";
-        var bdr  = "border-radius: 999px;";
-
-        var css =  "position:absolute;top:0;bottom:0;left:0;right:0;display:block;margin:auto;"
-                     + "vertical-align:middle;text-align:center;pointer-events:none;"
-                     + "width:" + wh + "px;"
-                     + "height:"+ wh + "px;"
-                     + "border: " + str_w + "px"
-                     + " solid "  + c0 + ";"
-                     + "border-left-color: " + c1 + ";"
-                     + "-webkit-" + bdr
-                     +    "-moz-" + bdr
-                     +            + bdr
-                     + "-webkit-" + anim
-                     +    "-moz-" + anim
-                     +      "-o-" + anim
-                     +              anim;
-        
-        var div = document.createElement("div");
-        div.style.cssText = css;
-
-        while (el.firstChild) 
-        {
-            el.removeChild(el.firstChild);
-        }//while
-
-        el.appendChild(div); // don't contaminate styles of parent element
-    };
-    
-    return LoadingSpinnerHelper;
 })();
 
 
@@ -4185,95 +4097,6 @@ var MenuHelper = (function()
         _RegisterGroups(gs);
         _RegisterPolys(eps);
     };
-
-    /*
-    MenuHelper.RegisterPolys = function(eps)
-    {
-        var ul = ElGet("ul_menu_areas");
-        
-        for (var i=0; i<eps.length; i++)
-        {
-            var li   = ElCr("li");
-            var div0 = ElCr("div");
-            var span0 = ElCr("span");
-            var div1 = ElCr("div");
-            var chk = ElCr("input");
-            var div2 = ElCr("div");
-            var div3 = ElCr("div");
-
-            div0.id = "menu_areas_" + eps[i].poly_id;
-            div0.className = "menu-prefs-chk-item";
-            span0.id = "menu_areas_" + eps[i].poly_id + "_label";
-            span0.innerHTML = _mapPolysProxy.GetLocalizedPolyValue(eps[i], "desc")[0];
-            chk.id = "chkMenuAreas" + eps[i].poly_id;
-            chk.type = "checkbox";
-            chk.className = "ios-switch scgreen bigswitch";
-            
-            li.appendChild(div0);
-            div0.appendChild(span0);
-            div0.appendChild(div1);
-            div1.appendChild(chk);
-            div1.appendChild(div2);
-            div2.appendChild(div3);
-            
-            ul.appendChild(li);
-            
-            chk.checked = PrefHelper.GetAreaXEnabledPref(eps[i].poly_id);
-            
-            if (PrefHelper.GetAreaXEnabledPref(eps[i].poly_id))
-            {
-                _mapPolysProxy.Add(eps[i].poly_id);
-            }//if
-            
-            chk.checked = _mapPolysProxy.Exists(eps[i].poly_id);
-            
-            div0.setAttribute("value", "" + eps[i].poly_id);
-
-            div0.addEventListener("click", function()
-            {
-                var pid = parseInt(this.getAttribute("value"));
-                var s = _mapPolysProxy.Exists(pid);
-                
-                if (s)
-                {
-                    _mapPolysProxy.Remove(pid);
-                }//if
-                else
-                {
-                    _mapPolysProxy.Add(pid);
-                }//else
-                
-                ElGet("chkMenuAreas" + pid).checked = !s;
-                
-                PrefHelper.SetAreaXEnabledPref(pid, !s);
-                
-                var ps = _mapPolysProxy._mapPolys.polygons;
-                var ex = null;
-                var txt = null;
-                
-                for (var i=0; i<ps.length; i++)
-                {
-                    if (ps[i].ext_poly_id == pid)
-                    {
-                        txt = _mapPolysProxy.GetLocalizedPolyValue(ps[i], "ext_poly_desc")[0];
-                        ex = ps[i].ext_poly_extent != null ? ps[i].ext_poly_extent 
-                                                           : { x0:ps[i].getPosition().lng() - 0.01, 
-                                                               y0:ps[i].getPosition().lat() - 0.01,
-                                                               x1:ps[i].getPosition().lng() + 0.01, 
-                                                               y1:ps[i].getPosition().lat() + 0.01 };
-                        break;
-                    }
-
-                }//for
-                
-                if (ex != null)
-                {
-                    _flyToExtentProxy.GoToLocationWithTextIfNeeded(ex.x0, ex.y0, ex.x1, ex.y1, 10, 21, txt);
-                }//if
-            }.bind(div0), false);
-        }//for
-    };
-    */
     
     // should only be called after safemap.js is loaded
     //MenuHelper.InitLoadAsync = function()

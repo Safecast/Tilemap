@@ -822,48 +822,6 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
  100% { opacity:0; } }
 
 
-/* Animation for menu tooltip image swaps */
-
-.tooltip:hover .tooltiptext-on {
- -webkit-animation: tooltipani 2s linear infinite;
-    -moz-animation: tooltipani 2s linear infinite;
-     -ms-animation: tooltipani 2s linear infinite;
-      -o-animation: tooltipani 2s linear infinite;
-         animation: tooltipani 2s linear infinite;
-}
-
-@keyframes tooltipani {
-   0% { opacity:0; }
-  11% { opacity:1; }
-  55% { opacity:1; } 
-  66% { opacity:0; } 
- 100% { opacity:0; } }
-@-moz-keyframes tooltipani {
-   0% { opacity:0; }
-  11% { opacity:1; }
-  55% { opacity:1; } 
-  66% { opacity:0; } 
- 100% { opacity:0; } }
-@-webkit-keyframes "tooltipani" {
-   0% { opacity:0; }
-  11% { opacity:1; }
-  55% { opacity:1; } 
-  66% { opacity:0; } 
- 100% { opacity:0; } }
-@-ms-keyframes tooltipani {
-   0% { opacity:0; }
-  11% { opacity:1; }
-  55% { opacity:1; } 
-  66% { opacity:0; } 
- 100% { opacity:0; } }
-@-o-keyframes "tooltipani" {
-   0% { opacity:0; }
-  11% { opacity:1; }
-  55% { opacity:1; } 
-  66% { opacity:0; } 
- 100% { opacity:0; } }
-
-
 
 
 /* Animation for location text pop-ups */
@@ -901,3 +859,81 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
   10% { opacity:1; }
   90% { opacity:1; } 
  100% { opacity:0; } }
+ 
+
+
+/* Styles for loading spinner */
+/* "loading-spinner white" */
+/* "loading-spinner bigspinner" */
+/* "loading-spinner white bigspinner" */
+
+
+.loading-spinner {
+    position:absolute;
+    top:0;
+    bottom:0;
+    left:0;
+    right:0;
+    display:block;
+    margin:auto;
+    vertical-align:middle;
+    text-align:center;
+    pointer-events:none;
+    width:38px;
+    height:38px;
+    border-width:8px;
+    border-style:solid;
+    -webkit-border-radius:999px;
+       -moz-border-radius:999px;
+         -o-border-radius:999px;
+            border-radius:999px;
+    border-color:rgba(0,0,0,0.25) rgba(0,0,0,0.25) rgba(0,0,0,0.25) rgba(0,0,0,1.0);
+}
+
+.white.loading-spinner {
+    border-color:rgba(255,255,255,0.5) rgba(255,255,255,0.5) rgba(255,255,255,0.5) rgba(255,255,255,1.0);
+}
+
+.bigspinner.loading-spinner {
+    width:144px;
+    height:144px;
+}
+
+/* Animation for loading spinner */
+.loading-spinner {
+ -webkit-animation: loading-spinner-ani 1.0s linear infinite;
+    -moz-animation: loading-spinner-ani 1.0s linear infinite;
+     -ms-animation: loading-spinner-ani 1.0s linear infinite;
+      -o-animation: loading-spinner-ani 1.0s linear infinite;
+         animation: loading-spinner-ani 1.0s linear infinite;
+}
+
+@keyframes loading-spinner-ani { 
+   0% { transform: rotate(  0deg); }
+ 100% { transform: rotate(360deg); } }
+@-moz-keyframes loading-spinner-ani { 
+   0% { transform: rotate(  0deg); }
+ 100% { transform: rotate(360deg); } }
+@-webkit-keyframes "loading-spinner-ani" { 
+   0% { -webkit-transform: rotate(  0deg); }
+ 100% { -webkit-transform: rotate(360deg); } }
+@-ms-keyframes loading-spinner-ani {
+   0% { transform: rotate(  0deg); }
+ 100% { transform: rotate(360deg); } }
+@-o-keyframes "loading-spinner-ani" { 
+   0% { transform: rotate(  0deg); }
+ 100% { transform: rotate(360deg); } }
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
