@@ -15,10 +15,33 @@
 <title>Safecast Tile Map</title>
 
 <script type="text/javascript">
+var _ls = { gmaps:false, safemaps:false, ui:false, css:false, init:false };
+
+function FinishLoadIfPossible()
+{
+    if (!_ls.gmaps || !_ls.safemaps || !_ls.css || !_ls.ui || _ls.init) return;
+    _ls.init = true;
+    document.getElementById("tsPanel").style.removeProperty("display");
+    SafemapInit.Init();
+    var a, f = function() {
+        document.body.removeChild(document.getElementById("div_sc_ls_wb")); 
+        google.maps.event.removeListener(a); 
+    };
+    a = google.maps.event.addListener(map, "tilesloaded", f);
+}
+
+function InitGmaps()
+{
+    _ls.gmaps = true;
+    FinishLoadIfPossible();
+}
+</script>
+
+<script type="text/javascript">
 if(1){
-var p = localStorage.getItem("PREF_LANGUAGE");
-var j = (p != null && p == "ja") || (p == null && (new Date()).getTimezoneOffset() == -540);
-var l = j ? "&language=ja&region=JP" : p != null && p == "es" ? "&language=es&region=MX" : p != null && p == "br" ? "&language=pt&region=BR" : "";
+var p = localStorage.getItem("PREF_LANGUAGE") || "";
+var j = p == "ja" || (p == "" && (new Date()).getTimezoneOffset() == -540);
+var l = j ? "&language=ja&region=JP" : p == "es" ? "&language=es&region=MX" : p == "br" ? "&language=pt&region=BR" : "";
 var s = document.createElement("script");
 s.async = true;
 s.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyAC5-_YqoGgLWli64OHZ1HUL2XHgMJel_g&v=3.exp&libraries=geometry&callback=InitGmaps" + l;
@@ -28,13 +51,13 @@ document.head.appendChild(s);
 
 <script type="text/javascript">
 if(1){
-var s   = document.createElement("script");
+var f,s = document.createElement("script");
 s.async = true;
 s.type  = "text/javascript";
-var f   = function(e) {
+f = function(e) { 
+    s.removeEventListener("load", f); 
     _ls.safemaps = true;
     FinishLoadIfPossible();
-    s.removeEventListener("load", f); 
 };
 s.addEventListener("load", f, false);
 s.src = "safemap_min.js?" + Date.now();
@@ -46,50 +69,34 @@ document.getElementsByTagName("head")[0].appendChild(s);
 if(1){
 var r = new XMLHttpRequest();
 r.open("GET", "safemap_min.css", true);
-r.onreadystatechange = function() {   
-if (r.readyState === 4 && r.status == 200) {
-    s = document.createElement("style");
+r.onreadystatechange = function() { 
+    if (r.readyState != 4 || r.status != 200) return;
+    var s = document.createElement("style");
     s.type = "text/css";
     s.innerHTML = r.response || r.responseText;
     document.getElementsByTagName("head")[0].appendChild(s);
+    var d = document.createElement("div");
+    d.id = "div_sc_ls_wb";
+    d.className = "loading-spinner white bigspinner";
+    document.body.appendChild(d);
     _ls.css = true;
-    ElGet("tsPanel").style.removeProperty("display");
     FinishLoadIfPossible();
-    }
-}
+};
 r.send(null);
 }
 </script>
 
 <script type="text/javascript">
-
-var _ls = { gmaps:false, safemaps:false, ui:false, css:false, init:false };
-
 function _nua(s)           { return navigator.userAgent.indexOf(s) > -1; }
 function ElCr(n)           { return document.createElement(n); }
 function ElGet(id)         { return document.getElementById(id); }
 function AList(el,ev,fx)   { return el.addEventListener(ev, fx, false); }
 function AListId(id,ev,fx) { return AList(ElGet(id), ev, fx); }
 
-function FinishLoadIfPossible()
-{
-    if (_ls.gmaps && _ls.safemaps && _ls.css && _ls.ui && !_ls.init)
-    {
-        _ls.init = true;
-        SafemapInit.Init();
-    }
-}
-
-function InitGmaps()
-{
-    _ls.gmaps = true;
-    FinishLoadIfPossible();
-}
-
 function ShowBrowserWarningWindowIfNeeded()
 {
     var ua   = window.navigator.userAgent;
-    var msie = ua.indexOf('MSIE ');
+    var msie = ua.indexOf("MSIE ");
     var old_ie = msie <= 0 ? false : parseInt(ua.substring(msie + 5, ua.indexOf('.', msie)), 10) < 10;
     if (!old_ie && "ArrayBuffer" in window && "bind" in Function.prototype && ("EventTarget" in window || "addEventListener" in window)) return false;
     document.write("<b>Error:</b> Your browser is not supported by this webpage or the Google Maps API.<br/>");
@@ -113,19 +120,6 @@ function InitGMapsStyleHack()
     setTimeout(fr("div"), 500);
 }
 
-function Init() 
-{
-    if (ShowBrowserWarningWindowIfNeeded()) return;
-
-    _ls.ui = true;
-    FinishLoadIfPossible();
-
-    InjectSafariPerfFix();
-    ApplyFirefoxNoDragHack();
-    setTimeout(InitGMapsStyleHack, 500);
-}
-
-
 function InjectSafariPerfFix() 
 {
     if (   navigator.platform != null && navigator.platform == "MacIntel" 
@@ -146,6 +140,18 @@ function ApplyFirefoxNoDragHack()
     var a = ["imgMenuSafecastIcon", "imgMenuReticle"];
     var f = function(e) { e.preventDefault(); return false; };
     for (var i=0; i<a.length; i++) { AListId(a[i],"dragstart",f); }
+}
+
+function Init() 
+{
+    if (ShowBrowserWarningWindowIfNeeded()) return;
+
+    _ls.ui = true;
+    FinishLoadIfPossible();
+
+    InjectSafariPerfFix();
+    ApplyFirefoxNoDragHack();
+    setTimeout(InitGMapsStyleHack, 500);
 }
 
 if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)) 
@@ -262,15 +268,6 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
         </div>
     </section>
 
-    <!--
-    <section class="menu-section" id="sectionMenuAreas">
-        <h3 class="menu-section-title"><span id="lblMenuAreasTitle" class="btn_accordion">Areas</span></h3>
-        <div class="div_accordion">
-        <ul class="menu-section-list" id="ul_menu_areas"></ul>
-        </div>
-    </section>
-    /-->
-    
     <hr id="muh_insert_before_menu_layers_node" />
 
     <section class="menu-section">
@@ -280,7 +277,7 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                     <option value="ja">日本語</option>
                     <option value="en" selected>English</option>
                     <option value="es">Español</option>
-                    <option value="pt">Português</option>
+                    <!--<option value="pt">Português</option>/-->
                 </select>
             </div></li>
             <li><div id="aMenuAbout" onclick="MenuHelper.CloseAnimationHack(); slideout.close();">About this project...</div></li>
