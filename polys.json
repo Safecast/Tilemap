@@ -7,7 +7,7 @@
             "desc": [ { "k":"en", "v":"Areas" },
                       { "k":"ja", "v":"区域"   },
                       { "k":"es", "v":"Áreas" },
-                      { "k":"pt", "v":"Areas" } ]
+                      { "k":"pt", "v":"Áreas" } ]
     },
     {
         "group_id":1,
@@ -15,7 +15,7 @@
             "desc": [ { "k":"en", "v":"Interest"   },
                       { "k":"ja", "v":"興味がある点" },
                       { "k":"es", "v":"Interés"    },
-                      { "k":"pt", "v":"Interest"   } ]
+                      { "k":"pt", "v":"Interesse"   } ]
     },
     {
         "group_id":2,
@@ -31,7 +31,7 @@
             "desc": [ { "k":"en", "v":"Photos" },
                       { "k":"ja", "v":"写真"    },
                       { "k":"es", "v":"Fotos"  },
-                      { "k":"pt", "v":"Photos" } ]
+                      { "k":"pt", "v":"Fotos" } ]
     },
     {
         "group_id":4,
@@ -39,7 +39,7 @@
             "desc": [ { "k":"en", "v":"Anomalies" },
                       { "k":"ja", "v":"異常"       },
                       { "k":"es", "v":"Anomalías" },
-                      { "k":"pt", "v":"Anomalies" } ]
+                      { "k":"pt", "v":"Anomalias" } ]
     }
 ],
 "polys":
@@ -53,11 +53,11 @@
            "desc": [ { "k":"en", "v":"Fukushima Zone"    },
                      { "k":"ja", "v":"福島の帰還困難区域"   },
                      { "k":"es", "v":"Zona de Fukushima" },
-                     { "k":"pt", "v":"Fukushima Zone"    } ],
+                     { "k":"pt", "v":"Região de Fukushima"    } ],
            "info": [ { "k":"en", "v":"As of 2013-05-28, Fukushima's 帰還困難区域 (Kikan Konnan Kuiki), or &quot;Difficult to Return Area&quot;, is defined as having an annual cumulative radiation dose of 50+ mSv, and 20+ mSv after five years." },
                      { "k":"ja", "v":"2013年5月28日 - 5年を経過してもなお、年間積算放射線量が20 mSvを下回らないおそれのある、現時点で年間積算放射線量が50 mSvを超える区域。" },
                      { "k":"es", "v":"As of 2013-05-28, Fukushima's 帰還困難区域 (Kikan Konnan Kuiki), or &quot;Difficult to Return Area&quot;, is defined as having an annual cumulative radiation dose of 50+ mSv, and 20+ mSv after five years." },
-                     { "k":"pt", "v":"As of 2013-05-28, Fukushima's 帰還困難区域 (Kikan Konnan Kuiki), or &quot;Difficult to Return Area&quot;, is defined as having an annual cumulative radiation dose of 50+ mSv, and 20+ mSv after five years." } ],
+                     { "k":"pt", "v":"Em 28/05/2013, 帰還困難区域 (Kikan Konnan Kuiki), ou &quot;Área de Difícil Retorno&quot; de Fukushima, é definida como uma área que apresenta uma dose cumulativa de radiação anual de 50+ mSv, e 20+ mSv após cinco anos." } ],
            "imgs": [ { "k":"en", "v":["", "https://maps.googleapis.com/maps/api/streetview?size=640x300&location=37.4534048,141.0090188&heading=283.99&fov=48&pitch=8&key=AIzaSyAC5-_YqoGgLWli64OHZ1HUL2XHgMJel_g", "filter:brightness(1.25);"] } ],
            "atts": [ { "k":"en", "v":["Wikipedia",   "http://ja.wikipedia.org/wiki/帰還困難区域"] },
                      { "k":"ja", "v":["ウィキペディア", "http://ja.wikipedia.org/wiki/帰還困難区域"] } ],
