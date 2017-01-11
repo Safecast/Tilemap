@@ -629,7 +629,7 @@ var MapPolys = (function()
         
         return d;
     };
-    
+
     MapPolys.prototype._ShowHideClutter = function(z, scale)
     {
         var padding_px = 1.0 * scale;
@@ -649,9 +649,23 @@ var MapPolys = (function()
                     this.polygons[i].setMap(this.mapref);
                 }//else if
             }//if
+            else if (this.polygons[i].ext_poly_min_z != null)
+            {
+                var c = z < this.polygons[i].ext_poly_min_z
+                     || z > this.polygons[i].ext_poly_max_z;
+
+                if (c && this.polygons[i].getMap() != null)
+                {
+                    this.polygons[i].setMap(null);
+                }//if
+                else if (!c && this.polygons[i].getMap() == null)
+                {
+                    this.polygons[i].setMap(this.mapref);
+                }//else if
+            }//else if
         }//for
     };
-    
+
     MapPolys.prototype._GetJSONAsync = function(url)
     {
         var cb = function(response, userData)
@@ -851,6 +865,8 @@ var MapPolys = (function()
                                              fillColor:s.fc,
                                            fillOpacity:s.fo,
                                                 zIndex:s.zi,
+                                        ext_poly_min_z:s.min_z,
+                                        ext_poly_max_z:s.max_z,
                                            ext_poly_id:ep.poly_id,
                                      ext_poly_group_id:ep.group_id,
                                     ext_poly_style_idx:sidx,
