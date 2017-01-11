@@ -91,6 +91,8 @@ var RTVM = (function()
         var rs = this.rt_type == RTVM.RtType.SafecastRad ? RTICO.RenderStyle.Dot
                                                          : RTICO.RenderStyle.Chevron;
 
+        rs = RTICO.RenderStyle.DoubleTriangle;
+
         var pf = this.rt_type == RTVM.RtType.SafecastRad ? RTMKS.ParseFormat.SafecastRtRad
                                                          : RTMKS.ParseFormat.SafecastRtAir;
 
@@ -318,8 +320,8 @@ var RTVM = (function()
     
             if (!check) check = navigator.userAgent.match(/iPad/i);
             if (!check) check = navigator.userAgent.match(/Android/i);
-            if (!check) check = window.navigator.userAgent.indexOf("iPad") > 0;
-            if (!check) check = window.navigator.userAgent.indexOf("Android") > 0;
+            if (!check) check = navigator.userAgent.indexOf("iPad") > 0;
+            if (!check) check = navigator.userAgent.indexOf("Android") > 0;
         }//else
     
         return check;
@@ -504,28 +506,108 @@ var RTLUT = (function()
 
 var RTICO = (function()
 {
-    function RTICO(width, height, deg, showBearingTick, lutidx, red0, green0, blue0, red1, green1, blue1, alpha_fill, alpha_stroke, shadow_radius, render_style)
+    function RTICO(width, height, deg, lutidx, lutidx2, red0, green0, blue0, red1, green1, blue1, red2, green2, blue2, alpha_fill, alpha_stroke, shadow_radius, render_style)
     {
-        this.width  = width;
-        this.height = height;
-        this.deg    = deg;
-        this.btick  = showBearingTick;
-        this.lutidx = lutidx;
-        this.red0   = red0;
-        this.green0 = green0;
-        this.blue0  = blue0;
-        this.alpha0 = alpha_fill;
-        this.alpha1 = alpha_stroke;
-        this.shd_r  = shadow_radius;
-        this.red1   = red1;
-        this.green1 = green1;
-        this.blue1  = blue1;
-        this.rstyle = render_style;
+        this.width   = width;
+        this.height  = height;
+        this.deg     = deg;
+        this.lutidx  = lutidx;
+        this.lutidx2 = lutidx2;
+        this.red0    = red0;
+        this.green0  = green0;
+        this.blue0   = blue0;
+        this.alpha0  = alpha_fill;
+        this.alpha1  = alpha_stroke;
+        this.shd_r   = shadow_radius;
+        this.red1    = red1;
+        this.green1  = green1;
+        this.blue1   = blue1;
+        this.red2    = red2;
+        this.green2  = green2;
+        this.blue2   = blue2;
+        this.rstyle  = render_style;
         
         this.url    = null;
         
         this.Render();
     }//RTICO
+
+
+    var _RenderStatusCircle = function(ctx, ox, oy, outer_r, r, g, b, a, scale, is_online)
+    {
+        var c_green = "rgba(" + r + ", " + g + ", " + b + ", " + a + ")";
+
+        if (!is_online)
+        {
+            var min_angle = 0.0;
+            var max_angle = 2.0 * Math.PI;
+            var steps     = 6.0;
+            var step_size = (max_angle - min_angle) / steps;
+            
+            for (var i=0; i<steps; i++)
+            {
+                var start_angle = parseFloat(i) * step_size;
+                var   end_angle = start_angle   + step_size * 0.75;
+                
+                ctx.beginPath(); // stroke thick black outline
+                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
+                    ctx.strokeStyle = "rgba(0,0,0," + a + ")";
+                    ctx.lineWidth   = Math.max(3.5 * scale, 3.5);
+                ctx.stroke();
+        
+                ctx.beginPath(); // stroke thinner green inner arc
+                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
+                    ctx.strokeStyle = c_green;
+                    ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
+                ctx.stroke();
+        
+                // By default, looks a bit dark due to antialiasing with black,
+                // so stroke green 2x more at decreasing widths.
+        
+                ctx.beginPath(); // repeat green stroke
+                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
+                    ctx.strokeStyle = c_green;
+                    ctx.lineWidth   = Math.max(1.0 * scale, 1.0);
+                ctx.stroke();
+                
+                ctx.beginPath(); // repeat green stroke
+                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
+                    ctx.strokeStyle = c_green;
+                    ctx.lineWidth   = Math.max(0.5 * scale, 0.5);
+                ctx.stroke();
+            }//for
+        }//if
+        else
+        {
+            // ------------------------ outer ring -------------------------------
+            ctx.beginPath(); // stroke thick black outline
+                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
+                ctx.strokeStyle = "rgba(0,0,0," + a + ")";
+                ctx.lineWidth   = Math.max(3.5 * scale, 3.5);
+            ctx.stroke();
+        
+            ctx.beginPath(); // stroke thinner green inner arc
+                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
+                ctx.strokeStyle = c_green;
+                ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
+            ctx.stroke();
+        
+            // By default, looks a bit dark due to antialiasing with black,
+            // so stroke green 2x more at decreasing widths.
+        
+            ctx.beginPath(); // repeat green stroke
+                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
+                ctx.strokeStyle = c_green;
+                ctx.lineWidth   = Math.max(1.0 * scale, 1.0);
+            ctx.stroke();
+        
+            ctx.beginPath(); // repeat green stroke
+                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
+                ctx.strokeStyle = c_green;
+                ctx.lineWidth   = Math.max(0.5 * scale, 0.5);
+            ctx.stroke();
+        }//else
+    };
 
 
     RTICO.prototype.Render = function()
@@ -534,9 +616,13 @@ var RTICO = (function()
         {
             this.RenderDot();
         }//if
-        else
+        else if (this.rstyle == RTICO.RenderStyle.Chevron)
         {
             this.RenderChevron();
+        }//else if
+        else
+        {
+            this.RenderDoubleTriangle();
         }//else
     };
 
@@ -567,14 +653,9 @@ var RTICO = (function()
         if (w_px <= 12) inner_r = outer_r - 3.0 * scale;
         
         var c_fill  = "rgba(" + this.red0 + ", " + this.green0 + ", " + this.blue0 + ", " + this.alpha0 + ")";
-        var c_green = "rgba(" + this.red1 + ", " + this.green1 + ", " + this.blue1 + ", " + this.alpha1 + ")";
-        
-        var a1 = this.alpha1;
         
         // ------------------------ inner dot -------------------------------
-        
-        //if (w_px > 12)
-        //{
+
         ctx.beginPath(); // fill with variable color
             ctx.arc(ox, oy, inner_r, 0, 2 * Math.PI);
             ctx.fillStyle = c_fill;
@@ -585,79 +666,8 @@ var RTICO = (function()
             ctx.strokeStyle = "rgba(0,0,0," + this.alpha0 + ")";
             ctx.lineWidth   = w_px > 12 ? 1.5 * scale : 0.75 * scale;
         ctx.stroke();
-
-        if (this.red1 > 0)
-        {
-            var min_angle = 0.0;
-            var max_angle = 2.0 * Math.PI;
-            var steps     = 6.0;
-            var step_size = (max_angle - min_angle) / steps;
-            
-            for (var i=0; i<steps; i++)
-            {
-                var start_angle = parseFloat(i) * step_size;
-                var end_angle   = start_angle + step_size * 0.75;
-                
-                ctx.beginPath(); // stroke thick black outline
-                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
-                    ctx.strokeStyle = "rgba(0,0,0," + a1 + ")";
-                    ctx.lineWidth   = Math.max(3.5 * scale, 3.5);
-                ctx.stroke();
         
-                ctx.beginPath(); // stroke thinner green inner arc
-                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
-                    ctx.strokeStyle = c_green;
-                    ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
-                ctx.stroke();
-        
-                // By default, looks a bit dark due to antialiasing with black,
-                // so stroke green 2x more at decreasing widths.
-        
-                ctx.beginPath(); // repeat green stroke
-                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
-                    ctx.strokeStyle = c_green;
-                    ctx.lineWidth   = Math.max(1.0 * scale, 1.0);
-                ctx.stroke();
-        
-                
-                ctx.beginPath(); // repeat green stroke
-                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
-                    ctx.strokeStyle = c_green;
-                    ctx.lineWidth   = Math.max(0.5 * scale, 0.5);
-                ctx.stroke();
-            }//for
-        }//if
-        else
-        {
-            // ------------------------ outer ring -------------------------------
-            ctx.beginPath(); // stroke thick black outline
-                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-                ctx.strokeStyle = "rgba(0,0,0," + a1 + ")";
-                ctx.lineWidth   = Math.max(3.5 * scale, 3.5);
-            ctx.stroke();
-        
-            ctx.beginPath(); // stroke thinner green inner arc
-                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-                ctx.strokeStyle = c_green;
-                ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
-            ctx.stroke();
-        
-            // By default, looks a bit dark due to antialiasing with black,
-            // so stroke green 2x more at decreasing widths.
-        
-            ctx.beginPath(); // repeat green stroke
-                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-                ctx.strokeStyle = c_green;
-                ctx.lineWidth   = Math.max(1.0 * scale, 1.0);
-            ctx.stroke();
-        
-
-            ctx.beginPath(); // repeat green stroke
-                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-                ctx.strokeStyle = c_green;
-                ctx.lineWidth   = Math.max(0.5 * scale, 0.5);
-            ctx.stroke();
-        }//else
+        _RenderStatusCircle(ctx, ox, oy, outer_r, this.red1, this.green1, this.blue1, this.alpha1, scale, this.red1 == 0);
         
         this.url = c.toDataURL("image/png");
     };
@@ -689,116 +699,39 @@ var RTICO = (function()
         if (w_px <= 12) inner_r = outer_r - 3.0 * scale;
         
         var c_fill  = "rgba(" + this.red0 + ", " + this.green0 + ", " + this.blue0 + ", " + this.alpha0 + ")";
-        var c_green = "rgba(" + this.red1 + ", " + this.green1 + ", " + this.blue1 + ", " + this.alpha1 + ")";
         
-        var a1 = this.alpha1;      
+        _RenderStatusCircle(ctx, ox, oy, outer_r, this.red1, this.green1, this.blue1, this.alpha1, scale, this.red1 == 0);
+        
 
-        if (this.red1 > 0)
-        {
-            var min_angle = 0.0;
-            var max_angle = 2.0 * Math.PI;
-            var steps     = 6.0;
-            var step_size = (max_angle - min_angle) / steps;
-            
-            for (var i=0; i<steps; i++)
-            {
-                var start_angle = parseFloat(i) * step_size;
-                var   end_angle = start_angle   + step_size * 0.75;
-                
-                ctx.beginPath(); // stroke thick black outline
-                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
-                    ctx.strokeStyle = "rgba(0,0,0," + a1 + ")";
-                    ctx.lineWidth   = Math.max(3.5 * scale, 3.5);
-                ctx.stroke();
-        
-                ctx.beginPath(); // stroke thinner green inner arc
-                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
-                    ctx.strokeStyle = c_green;
-                    ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
-                ctx.stroke();
-        
-                // By default, looks a bit dark due to antialiasing with black,
-                // so stroke green 2x more at decreasing widths.
-        
-                ctx.beginPath(); // repeat green stroke
-                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
-                    ctx.strokeStyle = c_green;
-                    ctx.lineWidth   = Math.max(1.0 * scale, 1.0);
-                ctx.stroke();
-                
-                ctx.beginPath(); // repeat green stroke
-                    ctx.arc(ox, oy, outer_r, start_angle, end_angle);
-                    ctx.strokeStyle = c_green;
-                    ctx.lineWidth   = Math.max(0.5 * scale, 0.5);
-                ctx.stroke();
-            }//for
-        }//if
-        else
-        {
-            // ------------------------ outer ring -------------------------------
-            ctx.beginPath(); // stroke thick black outline
-                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-                ctx.strokeStyle = "rgba(0,0,0," + a1 + ")";
-                ctx.lineWidth   = Math.max(3.5 * scale, 3.5);
-            ctx.stroke();
-        
-            ctx.beginPath(); // stroke thinner green inner arc
-                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-                ctx.strokeStyle = c_green;
-                ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
-            ctx.stroke();
-        
-            // By default, looks a bit dark due to antialiasing with black,
-            // so stroke green 2x more at decreasing widths.
-        
-            ctx.beginPath(); // repeat green stroke
-                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-                ctx.strokeStyle = c_green;
-                ctx.lineWidth   = Math.max(1.0 * scale, 1.0);
-            ctx.stroke();
-        
-            ctx.beginPath(); // repeat green stroke
-                ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-                ctx.strokeStyle = c_green;
-                ctx.lineWidth   = Math.max(0.5 * scale, 0.5);
-            ctx.stroke();
-        
-        }//else
-        
-        
-        
         // ---------------------- chevron ----------------------------
         
         oy  = Math.max(0, h_add) >> 1;
-        //oy += outer_r - inner_r + 1.0;
         oy += 4.0 * scale;
         
-        //var length        = w_px - (outer_r - inner_r) * 2.0;//inner_r * 2.0;//w_px;
-        var length = w_px - 4.0 * scale * 2.0;
-        var length_factor = 1.0;
-        var degrees0      = 180.0 - 30.0;
-        var degrees1      = 180.0 + 30.0;
+        var length   = w_px - 4.0 * scale * 2.0;
+        var degrees0 = 180.0 - 30.0;
+        var degrees1 = 180.0 + 30.0;
         var dx,dy,x0,y0,x1,y1;
     
         // not sure why deg - 90 is needed...
         degrees0 = (degrees0 - 90.0) * 0.01745329251994329576923690768489; // ->rad
         degrees1 = (degrees1 - 90.0) * 0.01745329251994329576923690768489; // ->rad
 
-        dx = Math.cos(degrees0) * length * length_factor;
-        dy = Math.sin(degrees0) * length * length_factor;
+        dx = Math.cos(degrees0) * length;
+        dy = Math.sin(degrees0) * length;
         x0 = ox + dx;
         y0 = oy + dy;
-        dx = Math.cos(degrees1) * length * length_factor;
-        dy = Math.sin(degrees1) * length * length_factor;
+        dx = Math.cos(degrees1) * length;
+        dy = Math.sin(degrees1) * length;
         x1 = ox + dx;
         y1 = oy + dy;
         
         ctx.beginPath();
             ctx.strokeStyle = "rgba(0,0,0," + this.alpha0 + ")";
             ctx.lineWidth   = scale * 8.0 * 0.75;
-            ctx.moveTo(x0, y0);
-            ctx.lineTo(ox, oy + scale * 4.0 * 0.5);
-            ctx.lineTo(x1, y1);
+            ctx.moveTo(x0, y0);                     // bottom-right corner
+            ctx.lineTo(ox, oy + scale * 4.0 * 0.5); // top-center
+            ctx.lineTo(x1, y1);                     // bottom-left corner
         ctx.stroke();
 
         var linediff = ((scale * 8.0 * 0.75) - (scale * 8.0 * 0.5)) * 0.5;
@@ -807,22 +740,141 @@ var RTICO = (function()
         ctx.beginPath();
             ctx.strokeStyle = c_fill;
             ctx.lineWidth   = scale * 8.0 * 0.5;
-            //ctx.moveTo(x0, y0); // bottom-right corner
-            //ctx.lineTo(ox, oy + scale * 4.0 * 0.5); // top-center
-            //ctx.lineTo(x1, y1); // bottom-left corner
             ctx.moveTo(x0 - linediff, y0 - linediff); // bottom-right corner
-            ctx.lineTo(ox, oy + scale * 4.0 * 0.5);
-            ctx.lineTo(x1 + linediff, y1 - linediff);
+            ctx.lineTo(ox, oy + scale * 4.0 * 0.5);   // top-center
+            ctx.lineTo(x1 + linediff, y1 - linediff); // bottom-left corner
         ctx.stroke();
-
 
         this.url = c.toDataURL("image/png");
     };
 
+
+    RTICO.prototype.RenderDoubleTriangle = function()
+    {
+        var c     = document.createElement("canvas");
+        var w_add = (this.shd_r - (this.width  >> 1)) * 2;
+        var h_add = (this.shd_r - (this.height >> 1)) * 2;
+        var w_px  = this.width  + Math.max(0, w_add);
+        var h_px  = this.height + Math.max(0, h_add); // ignore, shd_r is always 0 here.
+        c.width   = w_px;
+        c.height  = h_px;
+        var ctx   = c.getContext("2d");
+        var r     = ((this.width < this.height ? this.width : this.height) >> 1) - 1; // radius
+        var ox    = w_px >> 1; // offset to center
+        var oy    = h_px >> 1;
+        
+        if (r <= 0) r = 1;
+
+        var scale = w_px / 20.0;
+
+        var outer_r = r - 1.0 * scale;        // buffer for antialiasing
+        if (scale > 1.0) outer_r -= scale; // wtf
+        
+        var inner_r = outer_r - 4.0 * scale;  // 4px diff is ultimately about 1 visual pixel spacing
+        
+        if (w_px <= 12) inner_r = outer_r - 3.0 * scale;
+        
+        var c_fill  = "rgba(" + this.red0 + ", " + this.green0 + ", " + this.blue0 + ", " + this.alpha0 + ")";
+        var c_fill2 = "rgba(" + this.red2 + ", " + this.green2 + ", " + this.blue2 + ", " + this.alpha0 + ")";
+        
+        _RenderStatusCircle(ctx, ox, oy, outer_r, this.red1, this.green1, this.blue1, this.alpha1, scale, this.red1 == 0);
+        
+        // ---------------------- triangles ----------------------------
+        
+        oy  = Math.max(0, h_add) >> 1;
+        oy += 4.0 * scale;
+        
+        var length   = w_px - 4.0 * scale * 1.5;
+        var degrees0 = 180.0 - 30.0;
+        var degrees1 = 180.0 + 30.0;
+        var dx,dy,x0,y0,x1,y1;
+    
+        degrees0 = (degrees0 - 90.0) * 0.01745329251994329576923690768489; // ->rad
+        degrees1 = (degrees1 - 90.0) * 0.01745329251994329576923690768489; // ->rad
+    
+        var linediff = ((scale * 8.0 * 0.75) - (scale * 8.0 * 0.5)) * 0.5;
+    
+        dx = Math.cos(degrees0) * length;
+        dy = Math.sin(degrees0) * length;
+        x0 = ox + dx;
+        y0 = oy + dy;
+        dx = Math.cos(degrees1) * length;
+        dy = Math.sin(degrees1) * length;
+        x1 = ox + dx;
+        y1 = oy + dy;
+        
+        var y0_2 = y0 + 1.0 * scale; // asymmetric offset of bottom triangle, moving it down a bit
+        var y1_2 = y1 + 1.0 * scale;
+        var oy_2 = oy + 1.0 * scale;
+        
+        var tri_h = y0 - (oy + scale * 4.0 * 0.5);
+        
+        oy -= tri_h * 0.5; // draw the top triangle first for layering purposes
+        y0 -= tri_h * 0.5;
+        y1 -= tri_h * 0.5;
+
+        ctx.beginPath();
+            ctx.strokeStyle = "rgba(0,0,0," + this.alpha0 + ")";
+            ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
+            ctx.moveTo(x0, y0);                     // bottom-right corner
+            ctx.lineTo(ox, oy + scale * 4.0 * 0.5); // top-center
+            ctx.lineTo(x1, y1);                     // bottom-left corner
+            ctx.closePath();
+        ctx.stroke();
+
+        // inner filled color chevron
+        ctx.beginPath();
+            ctx.fillStyle = c_fill;
+            ctx.moveTo(x0, y0);                      // bottom-right corner
+            ctx.lineTo(ox, oy + scale * 4.0 * 0.5);  // top-center
+            ctx.lineTo(x1, y1);                      // bottom-left corner
+        ctx.fill();
+
+        ctx.beginPath();
+            ctx.strokeStyle = "rgba(0,0,0," + this.alpha0 + ")";
+            ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
+            ctx.moveTo(x0, y0_2);                     // bottom-right corner
+            ctx.lineTo(ox, oy_2 + scale * 4.0 * 0.5); // top-center
+            ctx.lineTo(x1, y1_2);                     // bottom-left corner
+            ctx.closePath();
+        ctx.stroke();
+
+        // inner filled color chevron
+        ctx.beginPath();
+            ctx.fillStyle = c_fill2;
+            ctx.moveTo(x0, y0_2);                     // bottom-right corner
+            ctx.lineTo(ox, oy_2 + scale * 4.0 * 0.5); // top-center
+            ctx.lineTo(x1, y1_2);                     // bottom-left corner
+        ctx.fill();
+
+        this.url = c.toDataURL("image/png");
+        
+        var img = document.createElement("img");
+        
+        this.deg = Math.random() * 180.0;
+        
+        img.onload = function()
+        {
+            ctx.clearRect(0,0,c.width,c.height);
+            ctx.save();
+            ctx.translate(c.width/2, c.height/2);
+            ctx.rotate(this.deg*Math.PI/180);
+            ctx.drawImage(img,-img.width/2,-img.width/2);
+            
+            this.url = c.toDataURL("image/png");
+            
+            ctx.restore();
+        }.bind(this);
+        
+        img.src = this.url;
+    };
+
+
     RTICO.RenderStyle =
     {
         Dot: 0,
-        Chevron: 1
+        Chevron: 1,
+        DoubleTriangle: 2
     };
 
     return RTICO;
@@ -865,10 +917,11 @@ var RTMKS = (function()
         
         this.lut_rsn  = 2;                       // 256 >> 128 >> 64 colors
                                                  // The LUT gets the RGB values for a value.
-        this.lut      = new RTLUT(this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? 0.03 : 0.0, 
+        this.lut      = new RTLUT(this.parse_format == RTMKS.ParseFormat.SafecastRtRad ?  0.030 :  0.0, 
                                   this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? 65.535 : 80.0, 
-                                  this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? 30 : 32,
-                                  this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? RTLUT.ScaleType.LOG10 : RTLUT.ScaleType.LN); 
+                                  this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? 30     : 32,
+                                  this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? RTLUT.ScaleType.LOG10 
+                                                                                       : RTLUT.ScaleType.LN); 
 
         this.mapref  = mapRef;
         this.inforef = null;
@@ -1198,7 +1251,14 @@ var RTMKS = (function()
             var g0 = this.lut.g[lutidx];
             var b0 = this.lut.b[lutidx];
             
-            var ico = new RTICO(w_px, h_px, -1, false, lutidx, r0, g0, b0, r1, g1, b1, a0, a1, this.shd_r, this.render_style);
+            var lutidx2 = lutidx >>> 1;
+            var r2 = this.lut.r[lutidx2];
+            var g2 = this.lut.g[lutidx2];
+            var b2 = this.lut.b[lutidx2];
+            var deg = -1;
+            
+            var ico = new RTICO(w_px, h_px, deg, lutidx, lutidx2, r0, g0, b0, r1, g1, b1, r2, g2, b2, a0, a1, this.shd_r, this.render_style);
+            //var ico = new RTICO(w_px, h_px, -1, false, lutidx, r0, g0, b0, r1, g1, b1, a0, a1, this.shd_r, this.render_style);
             this.icons.push(ico);
             url = ico.url;
         }//if

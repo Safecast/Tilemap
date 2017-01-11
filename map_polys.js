@@ -137,7 +137,7 @@ var MapPolys = (function()
     {
         var d = false;
 
-        if (src != null && (typeof src == 'string' || src instanceof String))
+        if (src != null && (typeof src == "string" || src instanceof String))
         {
             d = true;
         }//if
@@ -167,7 +167,7 @@ var MapPolys = (function()
     {
         var d = new Array();
 
-        if (src != null && (typeof src == 'string' || src instanceof String))
+        if (src != null && (typeof src == "string" || src instanceof String))
         {
             d.push(src);
         }//if
@@ -223,7 +223,7 @@ var MapPolys = (function()
         {
             return "";
         }//if
-        else if (typeof s == 'string' || s instanceof String)
+        else if (typeof s == "string" || s instanceof String)
         {
             return s;
         }//else if
@@ -427,7 +427,16 @@ var MapPolys = (function()
     
     var _GetTzAbbrStringForDate = function(d)
     {
-        return d.toLocaleString("en", {timeZoneName:"short"}).split(" ").pop();
+        var tz = d.toLocaleString("en", {timeZoneName:"short"}).split(" ").pop();
+
+        // fix for JST resolving to "GMT-9" with the short tz specification.
+        if (tz.length > 3 && tz.indexOf("GMT") > -1)
+        {
+            var tzl = d.toString().split("(")[1].slice(0, -1);
+            if (tzl.length < tz.length) tz = tzl;
+        }//if
+
+        return tz;
     };
 
     var _GetDateTimeHtmlForIsoString = function(s)
@@ -541,6 +550,7 @@ var MapPolys = (function()
         var z = this.mapref.getZoom();
         var e = this._GetCurrentVisibleExtent();
         
+        /*
         if (   (e.z >  7 && this.last_z >  7)
             && (e.z < 13 && this.last_z < 13)
             &&  e.z > this.last_z)
@@ -548,7 +558,7 @@ var MapPolys = (function()
             this.last_z = e.z;
             return;
         }//if
-        
+        */
         
         var scale = _GetIconScaleFactorForZ(e.z);
 
@@ -570,7 +580,76 @@ var MapPolys = (function()
             }//if
         }//for
         
+        this._ShowHideClutter(e.z, scale);
+        
         this.last_z = e.z;
+    };
+    
+    var _LatLonToXYZ_EPSG3857 = function(lat, lon, z)
+    {
+        var x  = (lon + 180.0) * 0.002777778;
+        var s  = Math.sin(lat * 0.0174532925199);
+        var y  = 0.5 - Math.log((1.0 + s) / (1.0 - s)) * 0.0795774715459;
+        var w  = 256 << z;
+        var px = parseInt(x * w + 0.5);
+        var py = parseInt(y * w + 0.5);
+        return { x:px, y:py };
+    };
+    
+    var _IsPointCluttered = function(poly, idx, polys, z, scale, padding_px)
+    {
+        var d = false;
+        var zi_max = poly.getZIndex();
+    
+        var mxy0 = _LatLonToXYZ_EPSG3857(poly.getPosition().lat(), poly.getPosition().lng(), z);
+        var ex0  = { x0:mxy0.x - (poly.ext_poly_icon_w * scale) * 0.5 - padding_px * 2.0, 
+                     y0:mxy0.y - (poly.ext_poly_icon_h * scale) * 0.5 - padding_px * 2.0, 
+                     x1:mxy0.x + (poly.ext_poly_icon_w * scale) * 0.5 + padding_px * 2.0, 
+                     y1:mxy0.y + (poly.ext_poly_icon_h * scale) * 0.5 + padding_px * 2.0 };
+    
+        for (var i=0; i<polys.length; i++)
+        {
+            if (i != idx 
+                && polys[i].ext_poly_icon_w != null 
+                && polys[i].getZIndex() > zi_max)
+            {
+                var mxy1 = _LatLonToXYZ_EPSG3857(polys[i].getPosition().lat(), polys[i].getPosition().lng(), z);
+                var ex1  = { x0:mxy1.x - (polys[i].ext_poly_icon_w * scale) * 0.5, 
+                             y0:mxy1.y - (polys[i].ext_poly_icon_h * scale) * 0.5, 
+                             x1:mxy1.x + (polys[i].ext_poly_icon_w * scale) * 0.5, 
+                             y1:mxy1.y + (polys[i].ext_poly_icon_h * scale) * 0.5 };
+                             
+                if (_IsIntersectingExtents(ex0, ex1))
+                {
+                    d = true;
+                    break;
+                }//if
+            }//if
+        }//for
+        
+        return d;
+    };
+    
+    MapPolys.prototype._ShowHideClutter = function(z, scale)
+    {
+        var padding_px = 1.0 * scale;
+    
+        for (var i=0; i<this.polygons.length; i++)
+        {
+            if (this.polygons[i].ext_poly_icon_w != null)
+            {
+                var c = z < 13 && _IsPointCluttered(this.polygons[i], i, this.polygons, z, scale, padding_px);
+                
+                if (c && this.polygons[i].getMap() != null)
+                {
+                    this.polygons[i].setMap(null);
+                }//if
+                else if (!c && this.polygons[i].getMap() == null)
+                {
+                    this.polygons[i].setMap(this.mapref);
+                }//else if
+            }//if
+        }//for
     };
     
     MapPolys.prototype._GetJSONAsync = function(url)

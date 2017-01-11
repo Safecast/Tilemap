@@ -36,8 +36,6 @@ var _cached_ext       = { baseurl:null, urlyxz:null, lidx:-1, cd:false, cd_y:0.0
 var _lastLayerIdx     = 0;
 var _disable_alpha    = false;           // hack for media request regarding layer opacity
 var _cm_hidden        = true;            // state of menu visibility - cached to reduce CPU hit on map pans
-var _mainMenu_hidden  = true;            // state of menu visibility - cached to reduce CPU hit on map pans
-//var _did_init_font_crimson_text = false; // cached init state
 var _ui_layer_idx     = 0;
 var _ui_menu_layers_more_visible = false;
 var _ui_menu_basemap_more_visible = false;
@@ -96,8 +94,8 @@ var SafemapInit = (function()
 
     var _InitAboutMenu = function()
     {
-        document.getElementById("aMenuAbout").addEventListener("click", SafemapPopupHelper.ToggleAboutPopup, false);
-        document.getElementById("about_content").addEventListener("click", SafemapPopupHelper.ToggleAboutPopup, false);
+        AListId("aMenuAbout", "click", SafemapPopupHelper.ToggleAboutPopup);
+        AListId("about_content", "click", SafemapPopupHelper.ToggleAboutPopup);
     };
 
 
@@ -302,6 +300,44 @@ var SafemapInit = (function()
         TestDump(isShowAll, rendererId);
     };
 
+    var _InitGMapsStyleHack = function()
+    {
+        var ff = "Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic',Roboto,'Segoe UI',Helvetica,Arial,sans-serif";
+        var fr = function(el_name) {
+            var ds = ElGet("map_canvas").getElementsByTagName(el_name);
+            if (ds == null) return;
+            for (var i=0; i<ds.length; i++) 
+            {
+                var s = ds[i].style;
+                if (s != null && s.fontFamily != null && s.fontFamily.indexOf("Roboto") > -1 && s.fontFamily.indexOf("Futura") == -1) {
+                    ds[i].style.fontFamily = ff;
+                }
+            }
+        };
+        setTimeout(fr("div"), 500);
+    };
+
+    var _InjectSafariPerfFix = function() 
+    {
+        if (   navigator.platform != null && navigator.platform == "MacIntel" 
+            && navigator.vendor   != null && navigator.vendor   == "Apple Computer, Inc."
+            && (_nua("Version/8.") || _nua("Version/9.") || _nua("Version/1"))
+            && !_nua("Mobile")) 
+        {
+            var s = ElCr("style");
+            s.type = "text/css";
+            s.innerHTML = "#map_canvas div { -webkit-transform:translateZ(0px); -webkit-backface-visibility:hidden; }";
+            document.head.appendChild(s);
+        }
+    };
+
+    var _ApplyFirefoxNoDragHack = function() 
+    {
+        if (!("MozUserSelect" in document.body.style)) return;
+        var a = ["imgMenuSafecastIcon", "imgMenuReticle"];
+        var f = function(e) { e.preventDefault(); return false; };
+        for (var i=0; i<a.length; i++) { AListId(a[i],"dragstart",f); }
+    };
 
     var _InitRtViewer = function()
     {
@@ -392,22 +428,26 @@ var SafemapInit = (function()
         // arbitrarily space out some loads / init that don't need to happen right now, so as not to block on the main thread here.
 
         setTimeout(function() {
-            //_InitMapExtent_OnChange();
             SafemapExtent.InitEvents();
+            _locStringsProxy.Init();
         }, 250);
 
         setTimeout(function() {
             _InitLogIdsFromQuerystring();
+            _InitGMapsStyleHack;
+            
+            var cb = function() { SafemapExtent.OnChange(SafemapExtent.Event.DragEnd); SafemapExtent.OnChange(SafemapExtent.Event.ZoomChanged); };
+            _flyToExtentProxy.Init(map, cb);
         }, 500);
 
         setTimeout(function() {
             _InitRtViewer();
-        }, 1000);
 
-        setTimeout(function() {
-            var cb = function() { SafemapExtent.OnChange(SafemapExtent.Event.DragEnd); SafemapExtent.OnChange(SafemapExtent.Event.ZoomChanged); };
-            _flyToExtentProxy.Init(map, cb);
-        }, 500);
+            var rp = function(gs,eps) { MenuHelper.RegisterGroupsAndPolys(gs,eps);    };
+            var gl = function()       { return PrefHelper.GetEffectiveLanguagePref(); };
+            var gs = function(s,cb)   { _locStringsProxy.GetMenuStrings(s, cb);       };
+            _mapPolysProxy.Init(map, rp, gl, gs);
+        }, 1000);
 
         setTimeout(function() {
             _InitShowLocationIfDefault();
@@ -423,19 +463,9 @@ var SafemapInit = (function()
         //    SafemapPopupHelper.WhatsNewShowIfNeeded();
         //}, 3000);
 
-        setTimeout(function() {
-            _locStringsProxy.Init();
-        }, 250);
-
         MenuHelper.Init(); // contains its own delayed loads; should be at end of initialize()
-
-        setTimeout(function() {
-            //var rp = function(eps) { MenuHelper.RegisterPolys(eps); };
-            var rp = function(gs,eps) { MenuHelper.RegisterGroupsAndPolys(gs,eps);    };
-            var gl = function()       { return PrefHelper.GetEffectiveLanguagePref(); };
-            var gs = function(s,cb)   { _locStringsProxy.GetMenuStrings(s, cb);       };
-            _mapPolysProxy.Init(map, rp, gl, gs); // must occur after "map" ivar is set
-        }, 1000);
+        _InjectSafariPerfFix();
+        _ApplyFirefoxNoDragHack();
     };
 
     
@@ -797,6 +827,67 @@ var SafecastDateHelper = (function()
 //                   also does some tricks to scale layers on the client past their maximum zoom
 //                   level.
 //
+// The Google Maps API accepts tiles of any size.  To facilitate client zoom, the following is done:
+//
+// 1. Is the zoom level past the layer's max?
+// 2. If no: function normally.
+// 3. If yes:
+//  1. Remove the layer from the map.
+//  2. Change the tile size to: NORMAL_SIZE << (CURRENT_ZOOM_LEVEL - LAYER_MAX_ZOOM_LEVEL)
+//  3. Add the layer back to the map.
+//  4. When constructing the URL for a tile added in this manner, make sure to set the zoom level
+//     to the layer's max.
+//
+// Example: Normally, this is how things work for a Web Mercator tile system:
+//
+//              World Width or Height
+// Zoom Level |   Tiles   |  Pixels   | Tile Size, px |
+// -----------|-----------|-----------|---------------|
+//          0 |         1 |       256 |           256 |
+//          1 |         2 |       512 |           256 |
+//          2 |         4 |      1024 |           256 |
+//          3 |         8 |      2048 |           256 |
+//          4 |        16 |      4096 |           256 |
+// ... etc ...
+//
+// So, for a tile set with a maximum zoom level of 2, the following could be reported to Google Maps:
+//
+//              World Width or Height
+// Zoom Level |   Tiles   |  Pixels   | Tile Size, px |
+// -----------|-----------|-----------|---------------|
+//          0 |         1 |       256 |           256 |
+//          1 |         2 |       512 |           256 |
+//    (MAX) 2 |         4 |      1024 |           256 |
+//          3 |         4 |      2048 |           512 |
+//          4 |         4 |      4096 |          1024 |
+//
+// In the Google Maps API, all tiles are HTML <img> elements wrapped in <divs>.  So regardless of
+// the tile's actual size, it is scaled by the browser to the indicated size.
+//
+// This is of course, quite lucrative.  The native resolution for Safecast tiles is zoom level 13.
+// Everything at a higher zoom level is an interpolation of that.
+//
+// Potentially, it is a tremendous logistical advantage to scale tiles on the client past zoom 
+// level 13 rather than the server.  However, in practice it is somewhat more problematic; the
+// scaling of the final RGBA output image is inferior for a number of reasons, and worse still,
+// can cause crashing on relatively common iOS devices with 1GB of RAM.
+//
+// Thus, as partial workarounds, some scaling is still performed by the server, and CSS styles to
+// force nearest neighbor scaling for the tiles on the client are used.
+//
+// Things that could be done to improve this in the future:
+// 1. Eventually, drop support for 1GB RAM devices.
+// 2. Do not discretize the LUT on the server; use full-color RGBA tiles.  Smooth RGB contours
+//    scale better with bilinear/bicubic than a limited color palette.
+// 3. For "points"-style tiles, do not render the shadow effect on the server.  Instead, use
+//    CSS styles.  Unfortunately, this is problematic; it requires a top-tier GPU (as of 2016)
+//    to not be janky, and uses a lot of additional energy to do so.  Further, recent changes to
+//    Gmaps squash all layers for a tile x/y/z within a single <div>, meaning a CSS solution
+//    now produces lots of artifacts.
+// 4. Instead of PNGs, load the raw floating point data from the server as the native apps do,
+//    and render the tile locally.  Unfortunately, the last time this was attempted, it was
+//    quite slow.
+//
 var ClientZoomHelper = (function()
 {
     function ClientZoomHelper() 
@@ -944,10 +1035,39 @@ var ClientZoomHelper = (function()
     };
     
 
-    var _GetUrlTemplateForS3Bucket = function(isJ, isS, us_bucket)
+    // ==========================
+    // _GetUrlTemplateForS3Bucket
+    // ==========================
+    //
+    // _GetUrlTemplateForS3Bucket assumes all S3 buckets have the following naming convention:
+    //
+    // |-------------------|-----------------------------|
+    // | S3 Region         | Bucket Name                 |
+    // |-------------------|-----------------------------|
+    // | us-east-1         | {LAYER_NAME}.safecast.org   |
+    // | s3-ap-northeast-1 | {LAYER_NAME}jp.safecast.org |
+    // |-------------------|-----------------------------|
+    //
+    // Further, each bucket should use the OSM path convention, eg: /{z}/{x}/{y}.png
+    //
+    // From this convention, the following URLs are constructed:
+    //
+    // |----------|-------------------|-----------------------------------------------------------------------------|
+    // | Protocol | S3 Region         | URL Template                                                                |
+    // |----------|-------------------|-----------------------------------------------------------------------------|
+    // | http://  | us-east-1         | {LAYER_NAME}.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png                  |
+    // | http://  | s3-ap-northeast-1 | {LAYER_NAME}jp.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png              |
+    // | https:// | us-east-1         | s3.amazonaws.com/{LAYER_NAME}.safecast.org/{z}/{x}/{y}.png                  |
+    // | https:// | s3-ap-northeast-1 | s3-ap-northeast-1.amazonaws.com/{LAYER_NAME}jp.safecast.org/{z}/{x}/{y}.png |
+    // |----------|-------------------|-----------------------------------------------------------------------------|
+    //
+    // Note: Once Amazon supports HTTP/2 for S3, all URLs should become HTTPS-only.
+    //       However, as of 2016-12-21, S3 is still using HTTP/1.1 with no ETA for HTTP/2.
+    // 
+    var _GetUrlTemplateForS3Bucket = function(isJ, isS, us_bucket_prefix)
     {
         var pre    = isS ? "https://" : "http://";
-        var bucket = us_bucket + (isJ ? "jp" : "") + ".safecast.org";
+        var bucket = us_bucket_prefix + (isJ ? "jp" : "") + ".safecast.org";
         var sub    = !isS ? bucket + "." : "";
         var domain = isJ ? "s3-ap-northeast-1.amazonaws.com"
                    :       "s3.amazonaws.com";
@@ -959,16 +1079,9 @@ var ClientZoomHelper = (function()
 
     var _InitGmapsLayers_CreateAll = function()
     {
-        var x = new Array();
-        
-        var isJ = _fxGetUseJpRegion();
-        var isS = _fxGetUseHttps();
-        
-        // https://s3-ap-northeast-1.amazonaws.com/te512jp.safecast.org                                /{z}/{x}/{y}.png
-        // http ://                                te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png
-        // https://               s3.amazonaws.com/te512  .safecast.org                                /{z}/{x}/{y}.png
-        // http ://                                te512  .safecast.org.s3               .amazonaws.com/{z}/{x}/{y}.png
-        
+        var x        = new Array();
+        var isJ      = _fxGetUseJpRegion();
+        var isS      = _fxGetUseHttps();        
         var te512url = _GetUrlTemplateForS3Bucket(isJ, isS, "te512");
         var tg512url = _GetUrlTemplateForS3Bucket(isJ, isS, "tg512");
         var nnsa_url = _GetUrlTemplateForS3Bucket(isJ, isS, "nnsa");
@@ -977,39 +1090,12 @@ var ClientZoomHelper = (function()
         var aist_url = _GetUrlTemplateForS3Bucket(isJ, isS, "aist");
         var te13_url = _GetUrlTemplateForS3Bucket(isJ, isS, "te20130415");
         var te14_url = _GetUrlTemplateForS3Bucket(isJ, isS, "te20140311");
-                           
-        /*        
-        var te512url = isJ ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                           : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-        
-        var tg512url = isJ ? "http://tg512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                           : "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-
-        var nnsa_url = isJ ? "http://nnsajp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                           : "http://nnsa.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-
-        var nure_url = isJ ? "http://nurejp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                           : "http://nure.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-
-        var au_url   = isJ ? "http://aujp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                           : "http://au.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-
-        var aist_url = isJ ? "http://aistjp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                           : "http://aist.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-
-        var te13_url = isJ ? "http://te20130415jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                           : "http://te20130415.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-
-        var te14_url = isJ ? "http://te20140311jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-                           : "http://te20140311.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-        */
-        
-        var ts = _fxGetTimeSliceDates();
+        var ts       = _fxGetTimeSliceDates();
 
         x.push( _InitGmapsLayers_Create( 0, 2,  false, 17, 1.0, 512, te512url) );
         x.push( _InitGmapsLayers_Create( 1, 2,  false, 17, 1.0, 512, te512url) );
         x.push( _InitGmapsLayers_Create( 2, 8,  false, 15, 0.5, 512, tg512url) );
-        
+
         x.push( _InitGmapsLayers_Create( 3, 3,  false, 16, 1.0, 512, nnsa_url) );
         x.push( _InitGmapsLayers_Create( 4, 6,  false, 12, 0.7, 512, nure_url) );
         x.push( _InitGmapsLayers_Create( 5, 16, false, 12, 0.7, 512, au_url) );
@@ -1017,7 +1103,7 @@ var ClientZoomHelper = (function()
         x.push( _InitGmapsLayers_Create( 7, 9,  true,  15, 1.0, 256, "http://safecast.media.mit.edu/tilemap/TestIDW/{z}/{x}/{y}.png") );
         x.push( _InitGmapsLayers_Create( 8, 2,  true,  17, 1.0, 512, te13_url) );
         x.push( _InitGmapsLayers_Create( 9, 2,  true,  17, 1.0, 512, te14_url) );
-        
+
         //   idx | Description
         // ------|-------------------
         //    10 | Add bGeigie Log...
@@ -1036,21 +1122,17 @@ var ClientZoomHelper = (function()
         //    23 | Time Slice: 2016-03-10 - 2016-09-10  // not implemented
         // ...
         //    30 | Time Slice: 2019-09-10 - 2020-03-10  // not implemented
-        
+
         // 10001 | Add Cosmic Logs
         // 10002 | Add Surface Logs
-        
-        x.push(null);
-        x.push(null);
-        x.push(null);
-        
+
+        x.push(null); // 10 (Add bGeigie Log...)
+        x.push(null); // 11 (None (No Layer))
+        x.push(null); // 12 (Time Slice Slider UI Toggle)
+
         for (var i=0; i<ts.length; i++)
         {
-            //var u = "http://te" + ts[i].d + (isJ ? "jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-            //                                     : ".safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png");
-
             var u = _GetUrlTemplateForS3Bucket(isJ, isS, "te" + ts[i].d);
-
             x.push( _InitGmapsLayers_Create(ts[i].i, 2, true, 17, 1.0, 512, u) );
         }//for
 
@@ -1332,8 +1414,7 @@ var LayersHelper = (function()
     function LayersHelper() 
     {
     }
-    
-    //LayersHelper.GetLayerDdl      = function ()   { return document.getElementById("layers"); };
+
     var _SetLastLayerIdx  = function(idx) { _lastLayerIdx = idx;  };
     var _GetLastLayerIdx  = function()    { return _lastLayerIdx; };
     var _GetRenderTest    = function()    { return _test_client_render; };
@@ -1353,7 +1434,6 @@ var LayersHelper = (function()
     var _GetTsSliderIdx   = function()    { return TimeSliceUI.GetSliderIdx();    };
     var _SetTsSliderIdx   = function(idx) { return TimeSliceUI.SetSliderIdx(idx); };
     var _GetIsLayerIdxTS  = function(idx) { return SafecastDateHelper.IsLayerIdxTimeSliceLayerDateRangeIdx(idx) };
-    
     var _GetUiLayerIdx    = function()    { return _ui_layer_idx; };
     var _SetUiLayerIdx    = function(idx) { _ui_layer_idx = idx;  };
     var _SetMenuIdxPref   = function(idx) { PrefHelper.SetLayerUiIndexPref(idx); };
@@ -1366,66 +1446,49 @@ var LayersHelper = (function()
     LayersHelper.LAYER_IDX_TS_UI_PROXY     = 12;
     LayersHelper.LAYER_IDX_ADD_LOG_COSMIC  = 10001;
     LayersHelper.LAYER_IDX_ADD_LOG_SURFACE = 10002;
-    
+
     LayersHelper.IsIdxNull = function(idx)
     {
         return idx == LayersHelper.LAYER_IDX_NULL;
     };
-    
+
     LayersHelper.IsIdxAddLogOrPreset = function(idx)
     {
         return idx == LayersHelper.LAYER_IDX_ADD_LOG
             || idx == LayersHelper.LAYER_IDX_ADD_LOG_COSMIC
             || idx == LayersHelper.LAYER_IDX_ADD_LOG_SURFACE;
     };
-    
+
     LayersHelper.IsIdxAddLogCosmic = function(idx)
     {
         return idx == LayersHelper.LAYER_IDX_ADD_LOG_COSMIC;
     };
-    
+
     LayersHelper.IsIdxAddLogSurface = function(idx)
     {
         return idx == LayersHelper.LAYER_IDX_ADD_LOG_SURFACE;
     };
-    
+
     LayersHelper.IsIdxAddLog = function(idx)
     {
         return idx == LayersHelper.LAYER_IDX_ADD_LOG;
     };
-    
+
     LayersHelper.IsIdxTimeSliceUiProxy = function(idx)
     {
         return idx == LayersHelper.LAYER_IDX_TS_UI_PROXY;
     };
-    
+
     LayersHelper.IsIdxTimeSlice = function (idx)
     {
         return _GetIsLayerIdxTS(idx);
     };
-    
-    /*
-    LayersHelper.GetMaxIdx = function() // unused
-    {
-        var el = LayersHelper.GetLayerDdl();
-        return el.length > 1 ? el.length - 1 : 0;
-    };
-    */
-    
+
     LayersHelper.GetSelectedDdlIdx = function()
     {
-        /*
-        var el  = LayersHelper.GetLayerDdl();
-        var idx = parseInt(el.options[el.selectedIndex].value);
-        */
-        //var idx = MenuOptionsGetSelectedValue("ul_menu_layers");
-        
-        //var idx = _ui_layer_idx;
-        var idx = _GetUiLayerIdx();
-        
-        return idx;
+        return _GetUiLayerIdx();
     };
-    
+
     LayersHelper.GetSelectedIdx = function()
     {
         var idx = LayersHelper.GetSelectedDdlIdx();
@@ -1437,7 +1500,7 @@ var LayersHelper = (function()
         
         return idx;
     };
-    
+
     LayersHelper.SetSelectedIdx = function(idx)
     {
         if (LayersHelper.IsIdxTimeSlice(idx))
@@ -1456,36 +1519,29 @@ var LayersHelper = (function()
                 return;
             }//else
         }//if
-    
+
         if (idx != null)
         {
-            //_ui_layer_idx = idx;
-            
-            //MenuHelper.SetLayerUiIndexPref(idx);
-            //MenuHelper.OptionsClearSelection("ul_menu_layers");
-            //MenuHelper.OptionsSetSelection("ul_menu_layers", idx);
             _SetUiLayerIdx(idx);
-            
-            // 2016-11-21 ND: Don't store idx as a pref, it is wrong for the TS layers.
-            
+            // 2016-11-21 ND: Don't store idx as a pref, it is wrong for the TS layers.            
             _SetMenuIdxPref(LayersHelper.GetSelectedIdx());
             _MenuClearSelect(_MenuGetListId());
             _MenuSetSelect(_MenuGetListId(), idx);
         }//if
     };
-    
+
     LayersHelper.SetSelectedIdxAndSync = function(idx)
     {
         LayersHelper.SetSelectedIdx(idx);
         LayersHelper.SyncSelectedWithMap();
     };
-    
+
     LayersHelper.SyncSelectedWithMap = function()
     {
         var idx = LayersHelper.GetSelectedIdx();
         LayersHelper.ClearAndAddToMapByIdx(idx);
     };
-    
+
     LayersHelper.ClearAndAddToMapByIdx = function(idx)
     {
         LayersHelper.RemoveAllFromMap();
@@ -1496,35 +1552,20 @@ var LayersHelper = (function()
             {
                 LayersHelper.AddToMapByIdxs([2, 0]); // standard hack for points + interpolation default layer
             }//if
-            /*
-            else if (LayersHelper.IsIdxTimeSlice(idx) && _GetShowLastSlice())
-            {
-                var last_idx = idx - 1; // potentially bad
-                
-                if (LayersHelper.IsIdxTimeSlice(last_idx))
-                {
-                    LayersHelper.AddToMapByIdxs([last_idx, idx]);
-                }//if
-                else
-                {
-                    LayersHelper.AddToMapByIdx(idx);
-                }//else
-            }//else if
-            */
             else 
             {
                 LayersHelper.AddToMapByIdx(idx);
             }//else
         }//if
-    
+
         _SetLastLayerIdx(idx);
     };
-    
+
     LayersHelper.AddToMapByIdx = function(idx)
     {
         LayersHelper.AddToMapByIdxs([idx]);
     };
-    
+
     LayersHelper.AddToMapByIdxs = function(idxs)
     {
         var hud_layers = new Array();
@@ -1533,15 +1574,13 @@ var LayersHelper = (function()
         for (var i=0; i<idxs.length; i++)
         {
             var gmaps_layer = _GmapsNewLayer(omaps[idxs[i]]);
-            
-            //console.log("LayersHelper.AddToMapByIdxs: Added idx=%d to map", idxs[i]);
-            
+
             _GmapsSetAt(i, gmaps_layer);
-        
+
             hud_layers.push({     urlTemplate: omaps[idxs[i]].ext_url_template, 
                               bitstoreLayerId: omaps[idxs[i]].ext_layer_id });
         }//for
-    
+
         _HudSetLayers(hud_layers);
     };
     
@@ -1559,15 +1598,15 @@ var LayersHelper = (function()
         overlayMaps[5].opacity = isDisabled ? 1.0 : 0.7;
         overlayMaps[6].opacity = isDisabled ? 1.0 : 0.7;
     };
-    
+
     LayersHelper.UiLayers_OnChange = function()
     {
         var  newIdx = LayersHelper.GetSelectedIdx();
         var lastIdx = _GetLastLayerIdx();
         var  isDone = false;
-        
+
         if (newIdx == lastIdx) return;
-    
+
         if (LayersHelper.IsIdxAddLog(newIdx))
         {
             LayersHelper.SetSelectedIdx(lastIdx);
@@ -1586,7 +1625,7 @@ var LayersHelper = (function()
             LayersHelper.SetSelectedIdx(newIdx);
             _AddLogsSurface();
         }//else if
-        
+
         if (!isDone)
         {
             if (   !LayersHelper.IsIdxTimeSliceUiProxy(newIdx)
@@ -1598,7 +1637,7 @@ var LayersHelper = (function()
             {
                 _SetTsPanelHidden(false);
             }//else
-        
+
             // 2015-02-12 ND: don't init bitstores for other layers until needed.
             _InitBitsLegacy();
         
@@ -1613,7 +1652,7 @@ var LayersHelper = (function()
             }//if
         }//if
     };
-    
+
     return LayersHelper;
 })();
 
@@ -1635,7 +1674,7 @@ var MapPolysProxy = (function()
     {
         this._mapPolys = null;
     }
-    
+
     MapPolysProxy.prototype._IsReady = function()
     {
         return this._mapPolys != null;
@@ -1657,7 +1696,7 @@ var MapPolysProxy = (function()
     {
         return this._IsReady() ? this._mapPolys.GetGroups() : new Array();
     };
-    
+
     MapPolysProxy.prototype.GetPolygons = function()
     {
         return this._IsReady() ? this._mapPolys.GetPolygons() : new Array();
@@ -1670,7 +1709,7 @@ var MapPolysProxy = (function()
             this._mapPolys = new MapPolys(mapref, fxMenuInit, fxGetLangPref, fxGetLangStrings);
             this._mapPolys.Init();
         }.bind(this);
-    
+
         SafemapUI.RequireJS(MapPolysProxy.src, true, cb, null);
     };
 
@@ -1693,7 +1732,7 @@ var MapPolysProxy = (function()
     {
         return this._IsReady() ? this._mapPolys._GetLocalizedPolyValue(poly, prop) : new Array();
     };
-    
+
     MapPolysProxy.prototype.GetLocalizedPolyString = function(poly, prop)
     {
         return this._IsReady() ? this._mapPolys._GetLocalizedPolyString(poly, prop) : "";
@@ -1722,7 +1761,7 @@ var FlyToExtentProxy = (function()
     {
         this._flyToExtent = null;
     }
-    
+
     FlyToExtentProxy.prototype._IsReady = function()
     {
         return this._flyToExtent != null;
@@ -1731,17 +1770,17 @@ var FlyToExtentProxy = (function()
     FlyToExtentProxy.prototype.Init = function(mapref, fxUpdateMapExtent)
     {
         if (this._IsReady()) return;
-    
+
         this._LoadAsync(mapref, fxUpdateMapExtent);
     };
-    
+
     FlyToExtentProxy.prototype._LoadAsync = function(mapref, fxUpdateMapExtent)
     {
         var cb = function()
         {
             this._flyToExtent = new FlyToExtent(mapref, fxUpdateMapExtent);
         }.bind(this);
-    
+
         SafemapUI.RequireJS(FlyToExtentProxy.src, true, cb, null);
     };
 
@@ -1749,7 +1788,7 @@ var FlyToExtentProxy = (function()
     {
         if (this._IsReady()) this._flyToExtent.GoToPresetLocationIdIfNeeded(locId);
     };
-    
+
     FlyToExtentProxy.prototype.GoToLocationWithTextIfNeeded = function(x0, y0, x1, y1, z_min, z_max, loc_text)
     {
         if (this._IsReady()) this._flyToExtent.GoToLocationWithTextIfNeeded(x0, y0, x1, y1, z_min, z_max, loc_text);
@@ -1784,7 +1823,16 @@ var SafemapUI = (function()
     function SafemapUI()
     {
     }
-    
+
+    SafemapUI.AnimateElementFadeIn = function(el, opacity, stride, fxCallback)
+    {  
+        opacity = opacity < 0.0 ? 0.0 : opacity + stride > 1.0 ? 1.0 : opacity + stride;  
+        el.style.opacity = opacity;
+        if (opacity == 0.0) { if (el.style.display != null && el.style.display == "none") el.style.display = null; if (el.style.visibility != null && el.style.visibility == "hidden") el.style.visibility = "visible"; }
+        if (opacity  < 1.0) requestAnimationFrame(function() { SafemapUI.AnimateElementFadeIn(el, opacity, stride, fxCallback) }.bind(this));
+        else if (opacity == 1.0 && fxCallback != null) fxCallback();
+    };
+
     SafemapUI.InjectLoadingSpinner = function(el, color, size)
     {
         var div = document.createElement("div");
@@ -2401,12 +2449,7 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId02 = function()
     {
-        //var isJ = _GetUseJpRegion();
-        //var url = isJ ? "http://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-        //              : "http://te512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-        
-        var url = _GetUrlTemplateForLayerId(2);
-
+        var url   = _GetUrlTemplateForLayerId(2);
         var opts2 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, maxz:3, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb2  = function(dstr)
         {
@@ -2419,12 +2462,7 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId08 = function()
     {
-        //var isJ = _GetUseJpRegion();
-        //var url = isJ ? "http://tg512jp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-        //              : "http://tg512.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-        
-        var url = _GetUrlTemplateForLayerId(8);
-
+        var url   = _GetUrlTemplateForLayerId(8);
         var opts8 = new LBITSOptions({ lldim:1, ll:1, multi:1, maxz:5, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         var dcb8  = function(dstr)
         {
@@ -2436,48 +2474,28 @@ var BitsProxy = (function()
 
     BitsProxy.prototype.Init_LayerId03 = function()
     {
-        //var isJ = _GetUseJpRegion();
-        //var url = isJ ? "http://nnsajp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-        //              : "http://nnsa.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-        
-        var url = _GetUrlTemplateForLayerId(3);
-
+        var url   = _GetUrlTemplateForLayerId(3);
         var opts3 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(3, 5, 15, url, 28, 12, opts3, null));
     };
 
     BitsProxy.prototype.Init_LayerId06 = function()
     {
-        //var isJ = _GetUseJpRegion();
-        //var url = isJ ? "http://nurejp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-        //              : "http://nure.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-        
-        var url = _GetUrlTemplateForLayerId(6);
-        
+        var url   = _GetUrlTemplateForLayerId(6);        
         var opts6 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(6, 1, 11, url, 0, 0, opts6, null));
     };
     
     BitsProxy.prototype.Init_LayerId09 = function()
     {
-        //var isJ = _GetUseJpRegion();
-        //var url = isJ ? "http://aistjp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-        //              : "http://aist.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-        
-        var url = _GetUrlTemplateForLayerId(9);
-
+        var url   = _GetUrlTemplateForLayerId(9);
         var opts9 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(9, 2, 11, url, 3, 1, opts9, null));
     };
 
     BitsProxy.prototype.Init_LayerId16 = function()
     {
-        //var isJ = _GetUseJpRegion();
-        //var url = isJ ? "http://aujp.safecast.org.s3-ap-northeast-1.amazonaws.com/{z}/{x}/{y}.png"
-        //              : "http://au.safecast.org.s3.amazonaws.com/{z}/{x}/{y}.png";
-        
-        var url = _GetUrlTemplateForLayerId(16);
-        
+        var url    = _GetUrlTemplateForLayerId(16);        
         var opts16 = new LBITSOptions({ lldim:1, ll:1, multi:0, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
         this._layerBitstores.push(new LBITS(16, 2, 11, url, 3, 2, opts16, null));
     };
@@ -2825,7 +2843,6 @@ var BvProxy = (function()
             else if  (el != null && !isHidden && el.className == classHidden)  el.className = classVisible;
         }.bind(this);
         this.fxRequireJS            = function(url, isAsync, fxCallback, userData) { SafemapUI.RequireJS(url, isAsync, fxCallback, userData); }.bind(this);
-        //this.fxInjectLoadingSpinner = function(el, color, str_w, size_px) { LoadingSpinnerHelper.InjectLoadingSpinner(el, color, str_w, size_px); }.bind(this);
         this.fxInjectLoadingSpinner = function(el) { SafemapUI.InjectLoadingSpinner(el, SafemapUI.LoadingSpinnerColor.White, SafemapUI.LoadingSpinnerSize.Large); }.bind(this);
         this.fxUpdateMapExtent      = function() { SafemapExtent.OnChange(SafemapExtent.Event.RemoveLogsClick); }.bind(this);
         this.fxIsDefaultLocation    = function() { return SafemapUI.IsDefaultLocation();  }.bind(this);
@@ -3207,13 +3224,9 @@ var BvProxy = (function()
     var _elVal    = function(id)         { return _elGet(id).value; };
     var _elSetVal = function(id,v)       { _elGet(id).value = v; };
     var _ddlIdx   = function(id)         { return _elGet(id).selectedIndex; };
-    var _ddlVal   = function(id)         { var a=_elGet(id); return a.options[a.selectedIndex].value; };
-    /* BvProxy.classGet = function(c)          { return document.getElementsByClassName(c); }; */ // unused
-    /* BvProxy.tagGet   = function(t)          { return document.getElementsByTagName(t); };   */ // unused
-    
-    var _aList    = function(el,ev,fx) { el.addEventListener(ev, fx, false); };
-    var _aListId  = function(id,ev,fx) { _aList(_elGet(id), ev, fx); }
-
+    var _ddlVal   = function(id)         { var a=_elGet(id); return a.options[a.selectedIndex].value; };    
+    var _aList    = function(el,ev,fx)   { el.addEventListener(ev, fx, false); };
+    var _aListId  = function(id,ev,fx)   { _aList(_elGet(id), ev, fx); }
 
     return BvProxy;
 })();
@@ -3259,15 +3272,6 @@ var SafemapPopupHelper = (function()
             requestAnimationFrame(function() { _AnimateElementBlur(el, blur, stride, min_blur, max_blur) }.bind(this));
     };
 
-    SafemapUI.AnimateElementFadeIn = function(el, opacity, stride, fxCallback)
-    {  
-        opacity = opacity < 0.0 ? 0.0 : opacity + stride > 1.0 ? 1.0 : opacity + stride;  
-        el.style.opacity = opacity;
-        if (opacity == 0.0) { if (el.style.display != null && el.style.display == "none") el.style.display = null; if (el.style.visibility != null && el.style.visibility == "hidden") el.style.visibility = "visible"; }
-        if (opacity  < 1.0) requestAnimationFrame(function() { SafemapUI.AnimateElementFadeIn(el, opacity, stride, fxCallback) }.bind(this));
-        else if (opacity == 1.0 && fxCallback != null) fxCallback();
-    };
-
     var _AnimateElementFadeOut = function(el, opacity, stride)
     {  
         opacity = opacity + stride < 0.0 ? 0.0 : opacity + stride > 1.0 ? 1.0 : opacity + stride;  
@@ -3280,7 +3284,6 @@ var SafemapPopupHelper = (function()
     {
         var el = document.getElementById("about_content");
         if (el.innerHTML != null && el.innerHTML.length > 0) return;
-        //LoadingSpinnerHelper.InjectLoadingSpinner(el, "#000", 2, 38);
         SafemapUI.InjectLoadingSpinner(el, SafemapUI.LoadingSpinnerColor.Black, SafemapUI.LoadingSpinnerSize.Medium);
 
         var url = SafemapUI.GetContentBaseUrl() + "about_inline.html";
@@ -3429,7 +3432,6 @@ var TimeSliceUI = (function()
     var _BitsLegacyInit    = function()    { _bitsProxy.LegacyInitForSelection(); };
     var _SyncLayerWithMap  = function()    { LayersHelper.SyncSelectedWithMap(); };
     var _MapExtentOnChange = function(i)   { SafemapExtent.OnChange(i); };
-    /*TimeSliceUI.EnableHud         = function()    { _hudProxy.Enable(); };*/ // unused
     var _UpdateHud         = function()    { _hudProxy.Update(); };
     var _GetLabelsForIdx   = function(idx) { return SafecastDateHelper.GetTimeSliceDateRangeLabelsForIdxJST(idx); };
     var _GetTimeSliceIdxs  = function()    { return SafecastDateHelper.GetTimeSliceLayerDateRangesUTC() };
@@ -3526,7 +3528,15 @@ var TimeSliceUI = (function()
 
 
 
-
+// ================================================================================================
+// ==================================== LOCALIZED STRINGS PROXY ===================================
+// ================================================================================================
+//
+// nb: For the MENU_LAYERS_*_DATE_LABEL, null and the empty string ("") indicate two different things.
+//     * null indicates there is no date label at all for the layer
+//     * ""   indicates a dynamic label, set elsewhere.  This is used for the dynamic date display in
+//            the Safecast layers.
+//
 var LocalizedStringsProxy = (function()
 {
     function LocalizedStringsProxy() 
@@ -3602,26 +3612,130 @@ var LocalizedStringsProxy = (function()
 
 
 
-// ===============================================================================================
-// ==================================== LOCALIZED MENU STRINGS ===================================
-// ===============================================================================================
-//
-// GetMenuStringsEn(), GetMenuStringsJa() contain the translations for the menu items, and in a sane
-// world, they would be in their own file.  But HTTP/1.1.
-//
-// nb: For the MENU_LAYERS_*_DATE_LABEL, null and the empty string ("") indicate two different things.
-//     * null indicates there is no date label at all for the layer
-//     * ""   indicates a dynamic label, set elsewhere.  This is used for the dynamic date display in
-//            the Safecast layers.
-//
 
-/* // dump strings
-var en = GetMenuStringsEn();
-var ja = GetMenuStringsJa();
-var d = "\n";
-for (var k in en) { d += k + "|" + en[k] + "|" + ja[k] + "\n"; }
-console.log(d);
-*/
+
+
+
+
+// ===============================================================================================
+// ========================================= PREF HELPER =========================================
+// ===============================================================================================
+//
+var PrefHelper = (function()
+{
+    function PrefHelper()
+    {
+    }
+
+    var _GetPrefStr = function(key, def)
+    {
+        var s = localStorage.getItem(key);
+        return s == null ? def : s;
+    };
+
+    var _SetPrefStr = function(key, val)
+    {
+        localStorage.setItem(key, val);
+    };
+
+    var _GetPrefBln = function(key, def)
+    {
+        var s = localStorage.getItem(key);
+        return s == null ? def : s == "1";
+    };
+
+    var _SetPrefBln = function(key, val)
+    {
+        localStorage.setItem(key, val ? "1" : "0");
+    };
+
+    var _GetPrefInt = function(key, def)
+    {
+        var s = localStorage.getItem(key);
+        return s == null ? def : parseInt(s);
+    };
+
+    var _SetPrefInt = function(key, val)
+    {
+        localStorage.setItem(key, ""+val);
+    };
+
+    var _GetPrefF64 = function(key, def)
+    {
+        var s = localStorage.getItem(key);
+        return s == null ? def : parseFloat(s);
+    };
+
+    var _SetPrefF64 = function(key, val)
+    {
+        localStorage.setItem(key, ""+val);
+    };
+
+    PrefHelper.UnderscoresToCamelCase = function(src)
+    {
+        var d = "";
+        var p = src.split("_");
+
+        for (var i=0; i<p.length; i++)
+        {
+            d += p[i].substring(0,1).toUpperCase() + p[i].substring(1, p[i].length).toLowerCase();
+        }//for
+
+        return d;
+    };
+
+    PrefHelper.MakeFx = function()
+    {
+        var  d = !_nua("mobile") && !_nua("iPhone") && !_nua("iPad") && !_nua("Android");
+        var gp = function(t,k,d) { return t == 0 ? function() { return _GetPrefBln(k, d); }
+                                        : t == 1 ? function() { return _GetPrefInt(k, d); }
+                                        : t == 2 ? function() { return _GetPrefF64(k, d); }
+                                        :          function() { return _GetPrefStr(k, d); }; };
+        var sp = function(t,k) { return t == 0 ? function(s) { return _SetPrefBln(k, s); }
+                                      : t == 1 ? function(s) { return _SetPrefInt(k, s); }
+                                      : t == 2 ? function(s) { return _SetPrefF64(k, s); }
+                                      :          function(s) { return _SetPrefStr(k, s); }; };
+        var o = [["RETICLE_ENABLED",  0,0], ["ZOOM_BUTTONS_ENABLED",0,1], ["SCALE_ENABLED",   0,1], ["HDPI_ENABLED",     0,1], 
+                 ["NN_SCALER_ENABLED",0,1], ["TILE_SHADOW_ENABLED", 0,0], ["EXPANDED_LAYERS", 0,1], ["EXPANDED_LOGS",    0,1], 
+                 ["EXPANDED_REALTIME",0,1], ["EXPANDED_AREAS",      0,1], ["EXPANDED_BASEMAP",0,0], ["EXPANDED_ADVANCED",0,0],
+                 ["LAYER_UI_INDEX",   1,0], ["BASEMAP_UI_INDEX",    1,0], ["LAYERS_MORE",     0,0], ["BASEMAP_MORE",     0,0], 
+                 ["MENU_OPEN",        0,0], ["TOOLTIPS_ENABLED",    0,d], 
+                 ["LANGUAGE",         3,null],
+                 ["VISIBLE_EXTENT_X",2,140.515516], ["VISIBLE_EXTENT_Y",2,37.316113], ["VISIBLE_EXTENT_Z",1,9]];
+        for (var i=0; i<o.length; i++)
+        {
+            var fn0 = PrefHelper.UnderscoresToCamelCase(o[i][0]);
+            PrefHelper["Get" + fn0 + "Pref"] = gp(o[i][1], "PREF_" + o[i][0], o[i][1] != 0 ? o[i][2] : o[i][2] != 0);
+            PrefHelper["Set" + fn0 + "Pref"] = sp(o[i][1], "PREF_" + o[i][0]);
+        }//for
+    };
+
+    PrefHelper.GetAreaGroupXEnabledPref = function(x)   { return _GetPrefBln("PREF_AREA_GROUP_"+x+"_ENABLED",    true); };
+    PrefHelper.SetAreaGroupXEnabledPref = function(x,s) {        _SetPrefBln("PREF_AREA_GROUP_"+x+"_ENABLED",    s);    };
+    PrefHelper.GetAreaXEnabledPref      = function(x)   { return _GetPrefBln("PREF_AREA_"      +x+"_ENABLED",    true); };
+    PrefHelper.SetAreaXEnabledPref      = function(x,s) {        _SetPrefBln("PREF_AREA_"      +x+"_ENABLED",    s);    };
+    PrefHelper.GetExpandedXPref         = function(x)   { return _GetPrefBln("PREF_EXPANDED_"  +x.toUpperCase(), true); };
+    PrefHelper.SetExpandedXPref         = function(x,s) {        _SetPrefBln("PREF_EXPANDED_"  +x.toUpperCase(), s);    };
+
+    PrefHelper.GetEffectiveLanguagePref = function()
+    {
+        var s = PrefHelper.GetLanguagePref();
+
+        if (s == null)
+        {
+            s = (new Date()).getTimezoneOffset() == -540 ? "ja" : "en"; // JST
+            PrefHelper.SetLanguagePref(s); // 2016-09-20 ND: Fix for travelling issue
+        }//if
+
+        return s;
+    };
+
+    return PrefHelper;
+})();
+
+
+
+
 
 
 // ===============================================================================================
@@ -4246,28 +4360,15 @@ var MenuHelper = (function()
 
     var _GetTooltipsParentRefs = function()
     {
-        // now, set the style for the element that should trigger the "event"
-
-        var sp = ["hud_btnToggle", "menu_realtime_0", "menu_scale", "menu_zoom_buttons", "menu_hdpi", "menu_nnscaler", "menu_tile_shadow", "menu_logs_0", "menu_logs_1", "menu_logs_2", "menu_logs_3", "menu_apiquery"];
-        // "menu_areas_0"
-
-        return sp;
+        // static index.html-defined elements that should have event listeners added for the tooltips
+        return ["hud_btnToggle", "menu_realtime_0", "menu_scale", "menu_zoom_buttons", "menu_hdpi", "menu_nnscaler", "menu_tile_shadow", "menu_logs_0", "menu_logs_1", "menu_logs_2", "menu_logs_3", "menu_apiquery"];
     };
 
 
     var _InitTooltips = function()
     {
-        /*
-        if (_nua("mobile") || _nua("iPhone") || _nua("iPad") || _nua("Android"))
-        {
-            return; // no tooltips on mobile.
-        }//if
-        */
-        
-        var s = _GetTooltipsRefs();
-
+        var s  = _GetTooltipsRefs();
         var sp = _GetTooltipsParentRefs();
-
 
         for (var i=0; i<sp.length; i++)
         {
@@ -4394,15 +4495,14 @@ var MenuHelper = (function()
             {
                 MenuHelper.CloseAnimationHack();
                 slideout.toggle();
-            }
+            }//if
             else
             {
                 _OpenAnimationHack();
                 setTimeout(function() {
                     slideout.toggle();
                 }, 17);
-            }
-            
+            }//else
         }, false);
 
         // document.querySelector(".menu").addEventListener("click", function(e) { if (e.target.nodeName === "A") { MenuHelper.CloseAnimationHack(); slideout.close(); } }, false);
@@ -4430,7 +4530,6 @@ var MenuHelper = (function()
         _InitExpand("lblMenuLayersTitle",   PrefHelper.GetExpandedLayersPref,   PrefHelper.SetExpandedLayersPref);
         _InitExpand("lblMenuLogsTitle",     PrefHelper.GetExpandedLogsPref,     PrefHelper.SetExpandedLogsPref);
         _InitExpand("lblMenuRealtimeTitle", PrefHelper.GetExpandedRealtimePref, PrefHelper.SetExpandedRealtimePref);
-        //_InitExpand("lblMenuAreasTitle",    PrefHelper.GetExpandedAreasPref,    PrefHelper.SetExpandedAreasPref);
         _InitExpand("lblMenuBasemapTitle",  PrefHelper.GetExpandedBasemapPref,  PrefHelper.SetExpandedBasemapPref);
         _InitExpand("lblMenuAdvancedTitle", PrefHelper.GetExpandedAdvancedPref, PrefHelper.SetExpandedAdvancedPref);
 
@@ -4539,27 +4638,6 @@ var MenuHelper = (function()
             ElGet("chkMenuRealtime0").checked = e;
         }, false);
 
-        /*
-        if (MenuHelper.GetArea0EnabledPref())
-        {
-            _mapPolys.Add(0);
-        }//if
-        ElGet("chkMenuAreas0").checked = _mapPolys.Exists(0);
-        ElGet("menu_areas_0").addEventListener("click", function()
-        {
-            var s = _mapPolys.Exists(0);
-            if (s)
-            {
-                _mapPolys.Remove(0);
-            }//if
-            else
-            {
-                _mapPolys.Add(0);
-            }//else
-            ElGet("chkMenuAreas0").checked = !s;
-            MenuHelper.SetArea0EnabledPref(!s);
-        }, false);
-        */
 
         ElGet("chkMenuZoomButtons").checked = map.zoomControl;
         ElGet("menu_zoom_buttons").addEventListener("click", function()
@@ -4588,27 +4666,30 @@ var MenuHelper = (function()
         {
             ElGet("menu_tooltips").parentElement.style.display = "none";
         }//if
-        if (PrefHelper.GetTooltipsEnabledPref())
+        else
         {
-            _InitTooltips();
-        }//if
-        ElGet("chkMenuTooltips").checked = PrefHelper.GetTooltipsEnabledPref();
-        ElGet("menu_tooltips").addEventListener("click", function()
-        {
-            var te = PrefHelper.GetTooltipsEnabledPref();
-            
-            if (te)
-            {
-                _DisableTooltips();
-            }//if
-            else
+            if (PrefHelper.GetTooltipsEnabledPref())
             {
                 _InitTooltips();
-            }//else
-            
-            ElGet("chkMenuTooltips").checked = !te;
-            PrefHelper.SetTooltipsEnabledPref(!te);
-        }, false);
+            }//if
+            ElGet("chkMenuTooltips").checked = PrefHelper.GetTooltipsEnabledPref();
+            ElGet("menu_tooltips").addEventListener("click", function()
+            {
+                var te = PrefHelper.GetTooltipsEnabledPref();
+
+                if (te)
+                {
+                    _DisableTooltips();
+                }//if
+                else
+                {
+                    _InitTooltips();
+                }//else
+
+                ElGet("chkMenuTooltips").checked = !te;
+                PrefHelper.SetTooltipsEnabledPref(!te);
+            }, false);
+        }//else
 
 
         ElGet("menu_apiquery").addEventListener("click", function()
@@ -5028,129 +5109,7 @@ var MenuHelper = (function()
 
 
 
-var PrefHelper = (function()
-{
-    function PrefHelper()
-    {
-    }
 
-    var _GetPrefStr = function(key, def)
-    {
-        var s = localStorage.getItem(key);
-        return s == null ? def : s;
-    };
-
-    var _SetPrefStr = function(key, val)
-    {
-        localStorage.setItem(key, val);
-    };
-
-    var _GetPrefBln = function(key, def)
-    {
-        var s = localStorage.getItem(key);
-        return s == null ? def : s == "1";
-    };
-    
-    var _SetPrefBln = function(key, val)
-    {
-        localStorage.setItem(key, val ? "1" : "0");
-    };
-    
-    var _GetPrefInt = function(key, def)
-    {
-        var s = localStorage.getItem(key);
-        return s == null ? def : parseInt(s);
-    };
-    
-    var _SetPrefInt = function(key, val)
-    {
-        localStorage.setItem(key, ""+val);
-    };
-    
-    var _GetPrefF64 = function(key, def)
-    {
-        var s = localStorage.getItem(key);
-        return s == null ? def : parseFloat(s);
-    };
-
-    var _SetPrefF64 = function(key, val)
-    {
-        localStorage.setItem(key, ""+val);
-    };
-
-    PrefHelper.UnderscoresToCamelCase = function(src)
-    {
-        var d = "";
-        var p = src.split("_");
-
-        for (var i=0; i<p.length; i++)
-        {
-            d += p[i].substring(0,1).toUpperCase() + p[i].substring(1, p[i].length).toLowerCase();
-        }//for
-
-        return d;
-    };
-
-    PrefHelper.MakeFx = function()
-    {
-        var  d = !_nua("mobile") && !_nua("iPhone") && !_nua("iPad") && !_nua("Android");
-        var gp = function(t,k,d) { return t == 0 ? function() { return _GetPrefBln(k, d); }
-                                        : t == 1 ? function() { return _GetPrefInt(k, d); }
-                                        : t == 2 ? function() { return _GetPrefF64(k, d); }
-                                        :          function() { return _GetPrefStr(k, d); }; };
-        var sp = function(t,k) { return t == 0 ? function(s) { return _SetPrefBln(k, s); }
-                                      : t == 1 ? function(s) { return _SetPrefInt(k, s); }
-                                      : t == 2 ? function(s) { return _SetPrefF64(k, s); }
-                                      :          function(s) { return _SetPrefStr(k, s); }; };
-        var o = [["RETICLE_ENABLED",  0,0], ["ZOOM_BUTTONS_ENABLED",0,1], ["SCALE_ENABLED",   0,1], ["HDPI_ENABLED",     0,1], 
-                 ["NN_SCALER_ENABLED",0,1], ["TILE_SHADOW_ENABLED", 0,0], ["EXPANDED_LAYERS", 0,1], ["EXPANDED_LOGS",    0,1], 
-                 ["EXPANDED_REALTIME",0,1], ["EXPANDED_AREAS",      0,1], ["EXPANDED_BASEMAP",0,0], ["EXPANDED_ADVANCED",0,0],
-                 ["LAYER_UI_INDEX",   1,0], ["BASEMAP_UI_INDEX",    1,0], ["LAYERS_MORE",     0,0], ["BASEMAP_MORE",     0,0], 
-                 ["MENU_OPEN",        0,0], ["TOOLTIPS_ENABLED",    0,d], 
-                 ["LANGUAGE",         3,null],
-                 ["VISIBLE_EXTENT_X",2,140.515516], ["VISIBLE_EXTENT_Y",2,37.316113], ["VISIBLE_EXTENT_Z",1,9]];
-        for (var i=0; i<o.length; i++)
-        {
-            //var fn0 = "";
-            //var ps  = o[i][0].split("_");
-            //for (var j=0; j<ps.length; j++)
-            //{
-            //    fn0 += ps[j].substring(0,1) + ps[j].substring(1, ps[j].length).toLowerCase();
-            //}
-            var fn0 = PrefHelper.UnderscoresToCamelCase(o[i][0]);
-            PrefHelper["Get" + fn0 + "Pref"] = gp(o[i][1], "PREF_" + o[i][0], o[i][1] != 0 ? o[i][2] : o[i][2] != 0);
-            PrefHelper["Set" + fn0 + "Pref"] = sp(o[i][1], "PREF_" + o[i][0]);
-        }//for
-    };
-
-    PrefHelper.GetAreaGroupXEnabledPref = function(x)   { return _GetPrefBln("PREF_AREA_GROUP_"+x+"_ENABLED", true);  };
-    PrefHelper.SetAreaGroupXEnabledPref = function(x,s) {        _SetPrefBln("PREF_AREA_GROUP_"+x+"_ENABLED", s);     };
-
-    PrefHelper.GetAreaXEnabledPref = function(x)   { return _GetPrefBln("PREF_AREA_"+x+"_ENABLED", true);  };
-    PrefHelper.SetAreaXEnabledPref = function(x,s) {        _SetPrefBln("PREF_AREA_"+x+"_ENABLED", s);     };
-    
-    PrefHelper.GetExpandedXPref = function(x)   { return _GetPrefBln("PREF_EXPANDED_"+x.toUpperCase(), true); };
-    PrefHelper.SetExpandedXPref = function(x,s) {        _SetPrefBln("PREF_EXPANDED_"+x.toUpperCase(), s);    };
-
-    //PrefHelper.GetLanguagePref = function()  { return localStorage.getItem("PREF_LANGUAGE");    };
-    //PrefHelper.SetLanguagePref = function(s) {        localStorage.setItem("PREF_LANGUAGE", s); };
-    
-    PrefHelper.GetEffectiveLanguagePref = function()
-    {
-        var s = PrefHelper.GetLanguagePref();
-
-        if (s == null)
-        {
-            s = (new Date()).getTimezoneOffset() == -540 ? "ja" : "en"; // JST
-            // 2016-09-20 ND: Fix for travelling issue
-            PrefHelper.SetLanguagePref(s);
-        }//if
-
-        return s;
-    };
-    
-    return PrefHelper;
-})();
 
 
 // ===============================================================================================
@@ -5278,25 +5237,6 @@ var MenuHelperStub = (function()
     };
 
 
-    // todo: move to MenuHelper
-    /*
-    var _InitExpand = function(el_id, fxGet, fxSet)
-    {
-        var el = ElGet(el_id);
-
-        el.addEventListener("click", function()
-        {
-            fxSet(!el.classList.contains("active")); // this event is wired before the one that toggles the state onclick
-        }, false);
-
-        if (fxGet())
-        {
-            el.classList.toggle("active");
-            el.parentElement.nextElementSibling.classList.toggle("show");
-        }//if
-    };
-    */
-
     var _InitLayers_BindLayers = function()
     {
         _ui_menu_layers_more_visible  = PrefHelper.GetLayersMorePref();
@@ -5318,15 +5258,6 @@ var MenuHelperStub = (function()
 
         _BindOptions("ul_menu_layers", "menu_layers_", ids, cb);
         _BindOptionLabelsToDivs("menu_layers_", ids);
-
-        /*
-        _InitExpand("lblMenuLayersTitle",   PrefHelper.GetExpandedLayersPref,   PrefHelper.SetExpandedLayersPref);
-        _InitExpand("lblMenuLogsTitle",     PrefHelper.GetExpandedLogsPref,     PrefHelper.SetExpandedLogsPref);
-        _InitExpand("lblMenuRealtimeTitle", PrefHelper.GetExpandedRealtimePref, PrefHelper.SetExpandedRealtimePref);
-        _InitExpand("lblMenuAreasTitle",    PrefHelper.GetExpandedAreasPref,    PrefHelper.SetExpandedAreasPref);
-        _InitExpand("lblMenuBasemapTitle",  PrefHelper.GetExpandedBasemapPref,  PrefHelper.SetExpandedBasemapPref);
-        _InitExpand("lblMenuAdvancedTitle", PrefHelper.GetExpandedAdvancedPref, PrefHelper.SetExpandedAdvancedPref);
-        */
     };
 
 
