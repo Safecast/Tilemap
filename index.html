@@ -59,7 +59,7 @@ function LoadGmaps()
     var l = j ? "&language=ja&region=JP" : p == "es" ? "&language=es&region=MX" : p == "br" ? "&language=pt&region=BR" : "";
     var s = ElCr("script");
     s.async = true;
-    s.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyAC5-_YqoGgLWli64OHZ1HUL2XHgMJel_g&v=3.exp&libraries=geometry&callback=InitGmaps" + l;
+    s.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyAC5-_YqoGgLWli64OHZ1HUL2XHgMJel_g&v=3.exp&libraries=geometry&callback=InitGmaps&signed_in=true" + l;
     document.head.appendChild(s);
 }
 

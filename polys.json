@@ -62,8 +62,10 @@
            "atts": [ { "k":"en", "v":["Wikipedia",   "http://ja.wikipedia.org/wiki/帰還困難区域"] },
                      { "k":"ja", "v":["ウィキペディア", "http://ja.wikipedia.org/wiki/帰還困難区域"] } ],
            "path":"gtwcFezl{YdbAmc@|a@xcBm{@d_@u@xsAoo@`@wWzKlBqd@}a@pGuh@_z@kN`@cOvu@s]dQoMj_A|JvdAkrAbvBohBvXg}C`dCcf@ppAizE`yAwdAflAdDr}B|OrV`r@bA`hA|aCub@veAt@vIeZjE{cAdm@oz@zKkSxlDrWbPjHrnBry@qd@xx@_k@hNf`@jBl`Arh@{i@lj@vI~sAf~@eOvdAfIxYvoAeArFvWnhBj`At@mjChNse@@g}@dk@ewBZuu@}PiDya@~MyKio@j_@am@_Ei}@zPmaAzVa]ni@d_@dOe|@za@~Llj@eoEjY_z@dhAgBx~@mE~cAaOx\\wIrn@b^zVst@hNuH|a@nFpo@`@lSqe@lxAqF`Vqe@yKqUtLoc@uLse@gq@yh@`DsVyVi~@j~A_@aJwWlp@yKb[jb@rX{Zza@ePy\\c{@ri@wJsLor@hk@pU_Vw~Bsi@saB|J{v@h|@os@hw@uHzVchBjsAePpAiRzy@e_@nSg`@sRyY[soBgf@iR?e^iZ_NgC`NozF`Ow{CoF_dAcAo^uHcJoFuWbAgT?w@toBeIwIaa@eAcl@nE{\\~k@dDbOcJzKhCfQyKrVhC|x@sRkDiTbOfIzx@aP|[zKxX",
-             "ss": [ { "sc":"#0F0", "sw":2, "so":1, "fc":"#0F0", "fo":0.0, "zi":-32767, "min_z":8, "max_z":23 },
-                     { "sc":"#000", "sw":6, "so":1, "fc":"#000", "fo":0.2, "zi":-32768, "min_z":8, "max_z":23 } ]
+             "ss": [ { "line":1, "events":1, "sc":"#0F0", "sw":2, "so":1, "fc":"#0F0", "fo":0.0, "zi":-32767, "min_z":9, "max_z":23 },
+                     { "line":0, "events":0, "sc":"#000", "sw":6, "so":1, "fc":"#000", "fo":0.2, "zi":-32768, "min_z":9, "max_z":23 },
+                     { "line":1, "events":1, "sc":"#0F0", "sw":1, "so":1, "fc":"#0F0", "fo":0.0, "zi":-32767, "min_z":8, "max_z":8  },
+                     { "line":1, "events":0, "sc":"#000", "sw":3, "so":1, "fc":"#000", "fo":0.0, "zi":-32768, "min_z":8, "max_z":8  } ]
     },
     {
         "poly_id":1,
@@ -190,7 +192,7 @@
            "imgs": [ { "k":"en", "v":["Safecasters Joe Moross and THE STIG in action in downtown Tokyo", "http://i1.wp.com/blog.safecast.org/wp-content/uploads/2012/02/Photo-23-1-12-10-55-06-PM-e1328344041992-768x1024.jpg?zoom=2&resize=695%2C926"] } ],
            "more": [ { "k":"en", "v":["{FULL_ARTICLE}", "http://blog.safecast.org/2012/02/measuring-radiation-in-snow/"] },
                      { "k":"ja", "v":["{FULL_ARTICLE}", "http://safecast.jp/2012/02/measuring-radiation-in-snow/"]       } ],
-          "point": { "x":139.695576, "y":35.656452 },
+          "point": { "x":139.7120156, "y":35.6683215 },
            "icon": { "url":"sc-icon-atom_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     },
     {

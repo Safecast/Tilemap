@@ -91,7 +91,7 @@ var RTVM = (function()
         var rs = this.rt_type == RTVM.RtType.SafecastRad ? RTICO.RenderStyle.Dot
                                                          : RTICO.RenderStyle.Chevron;
 
-        rs = RTICO.RenderStyle.DoubleTriangle;
+        //rs = RTICO.RenderStyle.DoubleTriangle;
 
         var pf = this.rt_type == RTVM.RtType.SafecastRad ? RTMKS.ParseFormat.SafecastRtRad
                                                          : RTMKS.ParseFormat.SafecastRtAir;
@@ -784,7 +784,7 @@ var RTICO = (function()
         oy  = Math.max(0, h_add) >> 1;
         oy += 4.0 * scale;
         
-        var length   = w_px - 4.0 * scale * 1.5;
+        var length   = w_px - 4.0 * scale * 2.0; // scale * 1.5 = best for double triangle, scale * 2.0 = best for triple
         var degrees0 = 180.0 - 30.0;
         var degrees1 = 180.0 + 30.0;
         var dx,dy,x0,y0,x1,y1;
@@ -829,6 +829,34 @@ var RTICO = (function()
             ctx.lineTo(ox, oy + scale * 4.0 * 0.5);  // top-center
             ctx.lineTo(x1, y1);                      // bottom-left corner
         ctx.fill();
+        
+        
+        
+        
+        oy += tri_h * 1.0;
+        y0 += tri_h * 1.0;
+        y1 += tri_h * 1.0;
+        
+        ctx.beginPath();
+            ctx.strokeStyle = "rgba(0,0,0," + this.alpha0 + ")";
+            ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
+            ctx.moveTo(x0, y0);                     // bottom-right corner
+            ctx.lineTo(ox, oy + scale * 4.0 * 0.5); // top-center
+            ctx.lineTo(x1, y1);                     // bottom-left corner
+            ctx.closePath();
+        ctx.stroke();
+
+        // inner filled color chevron
+        ctx.beginPath();
+            ctx.fillStyle = c_fill2;
+            ctx.moveTo(x0, y0);                      // bottom-right corner
+            ctx.lineTo(ox, oy + scale * 4.0 * 0.5);  // top-center
+            ctx.lineTo(x1, y1);                      // bottom-left corner
+        ctx.fill();
+        
+        
+        
+        
 
         ctx.beginPath();
             ctx.strokeStyle = "rgba(0,0,0," + this.alpha0 + ")";
@@ -841,7 +869,7 @@ var RTICO = (function()
 
         // inner filled color chevron
         ctx.beginPath();
-            ctx.fillStyle = c_fill2;
+            ctx.fillStyle = c_fill;
             ctx.moveTo(x0, y0_2);                     // bottom-right corner
             ctx.lineTo(ox, oy_2 + scale * 4.0 * 0.5); // top-center
             ctx.lineTo(x1, y1_2);                     // bottom-left corner
@@ -1094,6 +1122,7 @@ var RTMKS = (function()
     {
         var e     = this._GetCurrentVisibleExtent();
         var scale = _GetIconScaleFactorForZ(e.z);
+        var rw    = _roundx(this.width * scale, 1);
 
         for (var i=0; i<this.markers.length; i++)
         {
@@ -1113,12 +1142,12 @@ var RTMKS = (function()
                 var offline = this.IsSensorOffline(this.markers[i].ext_id);
                 var lutidx  = this.lut.GetIdxForValue(val, this.lut_rsn);
 
-                if (ico.scaledSize.width != this.width * scale
+                if (ico.scaledSize.width != rw
                     || offline != this.markers[i].ext_offline
                     ||  lutidx != this.markers[i].ext_lut_idx)
                 {
-                    ico.size       = new google.maps.Size(this.width * scale, this.height * scale);
-                    ico.scaledSize = new google.maps.Size(this.width * scale, this.height * scale);
+                    ico.size       = new google.maps.Size(_roundx(this.width * scale, 1), _roundx(this.height * scale, 1));
+                    ico.scaledSize = new google.maps.Size(_roundx(this.width * scale, 1), _roundx(this.height * scale, 1));
                     ico.anchor     = new google.maps.Point(this.width * scale * 0.5, this.height * scale * 0.5);
                     ico.url        = this.GetIconCached(lutidx, offline, this.width, this.height, this.pxScale * scale);
                 
@@ -1138,7 +1167,8 @@ var RTMKS = (function()
         
         var z = this.mapref.getZoom();
         
-        if (z > 7 && this.last_z > 7
+        if (   7 < z && z < 13
+            && 7 < this.last_z && this.last_z < 13
             && z > this.last_z) // 2016-12-01 ND: for lazy extent-based updates
         {
             this.last_z = z;
@@ -1188,13 +1218,13 @@ var RTMKS = (function()
     RTMKS.prototype.AddMarker = function(marker_id, lat, lon, lutidx, offline)
     {    
         var icon_url = this.GetIconCached(lutidx, offline, this.width, this.height, this.pxScale);
-        var w_add    = (this.shd_r - (this.width  >> 1)) * 2;
-        var h_add    = (this.shd_r - (this.height >> 1)) * 2;
+        var w_add    = (this.shd_r - (this.width  * 0.5)) * 2;
+        var h_add    = (this.shd_r - (this.height * 0.5)) * 2;
         var w_pt     = this.width  + Math.max(0, w_add);
         var h_pt     = this.height + Math.max(0, h_add);
 
         var size = new google.maps.Size(w_pt, h_pt);
-        var anch = new google.maps.Point(w_pt >> 1, h_pt >> 1);
+        var anch = new google.maps.Point(w_pt * 0.5, h_pt * 0.5);
         var icon = { url:icon_url, size:size, anchor:anch };
                    
         icon.scaledSize = new google.maps.Size(w_pt, h_pt);
@@ -1218,8 +1248,8 @@ var RTMKS = (function()
     RTMKS.prototype.GetIconCached = function(lutidx, offline, width, height, pxScale)
     {
         var url  = null;       
-        var w_px = width  * pxScale;
-        var h_px = height * pxScale;
+        var w_px = _roundx(width  * pxScale, 1);
+        var h_px = _roundx(height * pxScale, 1);
         
         var r1 = offline ? 220 :   0;
         var g1 = offline ? 220 : 255;
@@ -1551,12 +1581,14 @@ var RTMKS = (function()
     
     var _GetIconScaleFactorForZ = function(z)
     {
-        // For zoom levels > 7, the scale is always 100%.
+        // For zoom levels > 7 and < 15, the scale is always 100%.
         // Otherwise, it's:
         //   10% base
         // + 90% scaled value of [0% - 87.5%], linear, based on zoom level.
         
-        return z > 7 ? 1.0 : 0.1 + (1.0 - (8 - z) * 0.125) * 0.9;
+        return   z > 13 ? 1.0 + (1.0 - (21 - z - 7) * 0.14285714) * 0.5
+               : z >  7 ? 1.0 
+               : 0.1 + (1.0 - (8 - z) * 0.125) * 0.9;
     };
     
     var _GetElapsedTimeText = function(unixSS)
@@ -1784,7 +1816,9 @@ var RTMKS = (function()
     var _vcombine_u08 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Uint8Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
     var _acombine_any = function(d,s) { if(d==null)return s;if(s==null)return d;for(var i=0;i<s.length;i++)d.push(s[i]);return d; }
 
-    var _vfill    = function(x,d,o,n) { var i,m=(o+n)-((o+n)%4);for(i=o;i<m;i+=4){d[i]=x;d[i+1]=x;d[i+2]=x;d[i+3]=x;}for(i=m;i<m+n%4;i++)d[i]=x; };
+    var _vfill  = function(x,d,o,n) { var i,m=(o+n)-((o+n)%4);for(i=o;i<m;i+=4){d[i]=x;d[i+1]=x;d[i+2]=x;d[i+3]=x;}for(i=m;i<m+n%4;i++)d[i]=x; };
+    var _roundx = function(x,d)     { var p=Math.pow(10,d);return Math.round(x*p)/p; }
+
 
     RTMKS.ParseFormat =
     {

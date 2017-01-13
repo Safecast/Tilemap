@@ -858,29 +858,47 @@ var MapPolys = (function()
 
     var _GmapsCreatePolyFromPath = function(gmaps_path, ep, s, sidx)
     {
-        return new google.maps.Polygon({         paths:gmaps_path,
-                                           strokeColor:s.sc,
-                                          strokeWeight:s.sw,
-                                         strokeOpacity:s.so,
-                                             fillColor:s.fc,
-                                           fillOpacity:s.fo,
-                                                zIndex:s.zi,
-                                        ext_poly_min_z:s.min_z,
-                                        ext_poly_max_z:s.max_z,
-                                           ext_poly_id:ep.poly_id,
-                                     ext_poly_group_id:ep.group_id,
-                                    ext_poly_style_idx:sidx,
-                                         ext_poly_desc:ep.desc,
-                                         ext_poly_info:ep.info,
-                                         ext_poly_atts:ep.atts,
-                                         ext_poly_more:ep.more,
-                                       ext_poly_author:ep.author,
-                                     ext_poly_coauthor:ep.coauthor,
-                                           ext_poly_tl:ep.tl,
-                                         ext_poly_date:ep.date,
-                                         ext_poly_imgs:ep.imgs,
-                                       ext_poly_extent:_GetExtentForPath(gmaps_path)
-                                      });
+        var d = null;
+        var o = 
+        {
+                      clickable:(s.events == null || s.events == 1),
+                    strokeColor:s.sc,
+                   strokeWeight:s.sw,
+                  strokeOpacity:s.so,
+                      fillColor:s.fc,
+                    fillOpacity:s.fo,
+                         zIndex:s.zi,
+                 ext_poly_min_z:s.min_z,
+                 ext_poly_max_z:s.max_z,
+                  ext_poly_line:s.line,
+                ext_poly_events:s.events,
+                    ext_poly_id:ep.poly_id,
+              ext_poly_group_id:ep.group_id,
+             ext_poly_style_idx:sidx,
+                  ext_poly_desc:ep.desc,
+                  ext_poly_info:ep.info,
+                  ext_poly_atts:ep.atts,
+                  ext_poly_more:ep.more,
+                ext_poly_author:ep.author,
+              ext_poly_coauthor:ep.coauthor,
+                    ext_poly_tl:ep.tl,
+                  ext_poly_date:ep.date,
+                  ext_poly_imgs:ep.imgs,
+                ext_poly_extent:_GetExtentForPath(gmaps_path)
+        };
+
+        if (s.line != null && s.line == 1)
+        {
+            o.path  = gmaps_path;
+            d = new google.maps.Polyline(o);
+        }//if
+        else
+        {
+            o.paths = gmaps_path;
+            d = new google.maps.Polygon(o);
+        }//else
+
+        return d;
     };
 
 
@@ -921,7 +939,13 @@ var MapPolys = (function()
             for (var i = 0; i < nps.length; i++)
             {
                 nps[i].setMap(mapref);
-                fxAttachInfoWindow(nps[i]);
+
+                if (   nps[i].ext_poly_events == null
+                    || nps[i].ext_poly_events == 1)
+                {
+                    fxAttachInfoWindow(nps[i]);
+                }//if
+
                 d.push(nps[i]);
             }//for
         }//if
