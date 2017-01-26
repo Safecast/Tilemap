@@ -43,7 +43,7 @@ body
     font-family:Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif !important;
 }
 
-#logo2, #imgMenuReticle, .slideout-menu, #imgMenuSafecastIcon /*.hud_btnW, #imgScale, */
+#logo2, #imgMenuReticle, #imgMenuUserLoc, .slideout-menu, #imgMenuSafecastIcon /*.hud_btnW, #imgScale, */
 { 
     user-drag:none; 
     user-select:none;
@@ -316,7 +316,6 @@ body
 }
 
 
-
 /* CSS3 animated iOS6-style switches */
 /* https://codepen.io/BandarRaffah/pen/ibwje (+bugfixes) */
 
@@ -527,7 +526,7 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 .menu {
     color:#737373;
     background-color:#FFF;
-    background-image:linear-gradient(145deg, #EEE, #FFF);
+    background-image:linear-gradient(145deg, #DDD, #FFF);
 }
 
 .menu a {
@@ -596,20 +595,26 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 .menu-section-title div:hover,
 .menu-section-title span:hover,
 #ddlLanguage:focus,
-#ddlLanguage:hover
+#ddlLanguage:hover,
+#ddlMenuTheme:focus,
+#ddlMenuTheme:hover
 {
     color:#6ca6bd;
     text-decoration:none;
+}
+
+.menu-section-list > li > a:hover,
+.menu-section-list > li > div:hover,
+.menu-section-title:hover
+{
+    border-left:4px solid #6ca6bd;
+    padding-left:16px;
 }
 
 .menu_option_selected
 {
     background-color:rgba(108,166,189,0.4);
 }
-
-
-
-
 
 .menu-section-list a[href^="http"]:after {
      content: " " url(data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%20standalone%3D%22no%22%3F%3E%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%3E%3Cpath%20fill%3D%22%23fff%22%20stroke%3D%22%23000%22%20d%3D%22M1.5%204.518h5.982V10.5H1.5z%22%2F%3E%3Cpath%20d%3D%22M5.765%201H11v5.39L9.427%207.937l-1.31-1.31L5.393%209.35l-2.69-2.688%202.81-2.808L4.2%202.544z%22%20fill%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M9.995%202.004l.022%204.885L8.2%205.07%205.32%207.95%204.09%206.723l2.882-2.88-1.85-1.852z%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E);
@@ -618,6 +623,11 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 #imgMenuReticle {
     opacity:0.55;
     padding-right:5px;
+}
+
+#imgMenuUserLoc {
+    opacity:0.55;
+    padding-right:14px;
 }
 
 .menu-section-list-tag {
@@ -651,7 +661,8 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 */
 
 
-#ddlLanguage
+#ddlLanguage,
+#ddlMenuTheme
 {
     width:191px;
     margin-top:5px;
@@ -662,8 +673,15 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
     border-radius:3px;
 }
 
+#ddlMenuTheme
+{
+    height:32px;
+}
+
 #ddlLanguage:focus,
-#ddlLanguage:hover
+#ddlLanguage:hover,
+#ddlMenuTheme:focus,
+#ddlMenuTheme:hover
 {
     border-color:#000;
 }
@@ -928,12 +946,132 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
  
  
  
- 
- 
- 
- 
- 
- 
- 
- 
- 
+/* Custom color themes */
+/* Currently, two themes: */
+/* 1. Light - DEFAULT - Nothing additional should be set. */
+/* 2. Dark (Kuro) - Requires additional CSS class on some elements.  Note changing the default colors may affect this theme. */
+/*    Use: add "kuro" to classlist of: #menu, #panel, #map_canvas */
+
+#menu.kuro input[type="checkbox"].ios-switch + div
+{
+	border:1px solid rgba(255,255,255,0.4);
+	box-shadow:inset 0 0 0 0px rgba(255,255,255,0.4);
+	background-color:rgba(255,255,255,0.1);
+}
+
+#menu.kuro input[type="checkbox"].scgreen.ios-switch:checked + div
+{
+	background-color:#6ca6bd;
+}
+
+#menu.kuro
+{
+    background-image:linear-gradient(145deg, #333, #000);
+}
+
+#menu.kuro,
+#menu.kuro #ddlLanguage,
+#menu.kuro #ddlMenuTheme
+{
+    background-color:#000;
+}
+
+#menu.kuro .menu-header,
+#menu.kuro #imgMenuReticle,
+#menu.kuro #imgMenuUserLoc,
+#menu.kuro #address
+{
+    filter:invert(100%);
+}
+
+/*#menu.kuro #address:focus,
+#menu.kuro #address:hover
+{
+    background-color:#000;
+    color:#FFF;
+    border-color:#FFF;
+}
+*/
+
+#menu.kuro .tooltip .tooltiptext-top,
+#menu.kuro .tooltip .tooltiptext-bottom {
+    background-color:#FFF;
+}
+
+#menu.kuro .tooltip .tooltiptext-bottom::after {
+    border-bottom-color:white;
+}
+
+#menu.kuro .tooltip .tooltiptext-top::after {
+    border-top-color:white;
+}
+
+#menu.kuro #ddlLanguage:focus,
+#menu.kuro #ddlLanguage:hover,
+#menu.kuro #ddlMenuTheme:focus,
+#menu.kuro #ddlMenuTheme:hover,
+#menu.kuro .tooltip .tooltiptext-on,
+#menu.kuro .tooltip .tooltiptext-off
+{
+    border-color:#FFF;
+}
+
+#panel.kuro
+{
+    color:#FFF;
+    background-color:#000;
+    border:1px solid #FFF;
+}
+
+/* These extend the style to map infowindows, but are relatively expensive selectors. */
+/* They may also break as Google shuffles elements around in Gmaps. */
+  
+#map_canvas.kuro .gm-style > div:first-child > div:last-child > div:last-child > div > div > div:nth-last-of-type(1)
+{
+    color:#FFF !important;
+    background-color:#000 !important;
+}
+
+#map_canvas.kuro .gm-style > div:first-child > div:last-child > div:last-child > div > div:first-child > div:nth-last-of-type(1)
+{
+	box-shadow:0px 0px 2px 2px rgba(255,255,255,0.4);
+}
+
+#map_canvas.kuro .gm-style > div:first-child > div:last-child > div:last-child > div div img[src^="https://maps.gstatic"],
+#map_canvas.kuro .gm-style > div:first-child > div:last-child > div:last-child > div div img[src^="http://realtime"]
+{
+	filter:invert(100%);
+}
+
+
+
+/* This is a hack to target Chrome 29+ only. */
+/* http://stackoverflow.com/questions/16348489/is-there-a-css-hack-for-safari-only-not-chrome/ */
+/* The infowindow scrollbars never appear in Safari at all because Google's styling specifically removes them in Safari only. */
+/* Safari 10.0.2 also has two bugs relating to the menu scrollbars; 1: they require toggling the visibility of the element to take effect,*/
+/* and 2: there is bad clipping on the menu item backgrounds at a rasterization level. It seems unlikely Apple will fix these anytime soon. */
+@supports (-webkit-appearance:none) and (not (overflow:-webkit-marquee)) and (not (-ms-ime-align:auto)) and (not (-moz-appearance:none))
+{
+              #menu.kuro::-webkit-scrollbar,
+    #map_canvas.kuro div::-webkit-scrollbar 
+    {
+        background-color:#404040;
+    }
+
+              #menu.kuro::-webkit-scrollbar-thumb,
+    #map_canvas.kuro div::-webkit-scrollbar-thumb 
+    {
+        background-color:#BBB;
+        outline:1px solid #FFF;
+    }
+}
+
+
+
+
+
+
+
+
+
+

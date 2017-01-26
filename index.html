@@ -80,8 +80,10 @@ function LoadSafemap()
 
 function LoadCSS()
 {
+    var p = parseInt(localStorage.getItem("CSS_LAST_GET") || 0);
+    var u = Date.now() - p > 86400*1000 ? "?" + Date.now() : "";
     var r = new XMLHttpRequest();
-    r.open("GET", "safemap_min.css", true);
+    r.open("GET", "safemap_min.css" + u, true);
     r.onreadystatechange = function() { 
         if (r.readyState != 4 || r.status != 200) return;
         var s = ElCr("style");
@@ -90,6 +92,7 @@ function LoadCSS()
         document.head.appendChild(s);
         _ls.css = true;
         FinishLoadIfPossible();
+        if (u.length > 0) localStorage.setItem("CSS_LAST_GET", Date.now());
     };
     r.send(null);
 }
@@ -151,6 +154,19 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                         <div style="position:relative;">
                             <span id="menu_tooltip_reticle_off" class="tooltiptext-off"></span>
                             <span id="menu_tooltip_reticle_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li>
+                <div id="menu_userloc" class="menu-prefs-chk-item">
+                    <img id="imgMenuUserLoc" draggable="false" width="25" height="25" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAD4AAAA+BAMAAACB77V3AAAAMFBMVEX/AP8BAQEXFxcnJyc3NzdHR0dYWFhqamp5eXmKioqYmJimpqa3t7fIyMjY2Njo6OidJuT4AAAAAXRSTlMAQObYZgAAAXJJREFUOMullT9OAkEUh6n8E3Q3D40hWm2vxV6AZDmACXsBAl5AAxcw8QDEiL2NNTbaGhsoiZXQ2rkNBVQuxh2YYXZ23vwS49d+gdn55mWmVPoP6SvUk7gHrPcYVsZu/d0hOnJafxQR0YlL7/eDTNO5Q3+1acUl/98v4VpX2O2lNyQ5nDE/nsRKU5XbdLDRdGbppEM5muymNYW6y35g6AOz7rRNJkZd7zksaKNu2iWLmtYfdVvrul7hwySqbnLBWVXXH0aslnX9O3JwKg+z7vCq7vI+ZL2uO+0y35+v641iy5uzm1qLHBfOtrhIzRodcxFmdo2dDLjZTRpodjPewOwK5mZdi23X7ErKjtndbDJkZ1fT4urmeGDrat4ddRULdDNk7IC6gr0A1BXnHIG6gitQV/AE6go+QV3BlrjYwL27i+qKqzUAdcUGG6Cu4BrUlSM4QH4O6q5HsApfpTKquxrBJn71Wj3sb8fYD2fY//zhBf4FwsJtiRYOig0AAAAASUVORK5CYII=" />
+                    <span id="lblMenuUserLoc">Location</span>
+                    <div><input type=checkbox id="chkMenuUserLoc" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-top">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_tooltips_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_tooltips_on"  class="tooltiptext-on"></span>
                         </div>
                     </span>
                 </div>
@@ -337,6 +353,15 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                 </div>
             </li>
             <li>
+                <div id="menu_theme">
+                    <span id="lblMenuTheme">Theme</span><br/>
+                    <select id="ddlMenuTheme" onchange="MenuHelper.ddlMenuTheme_OnChange();">
+                        <option value="0" selected>⬜️ 銀 Gin</option>
+                        <option value="1">⬛️ 黒 Kuro</option>
+                    </select>
+                </div>
+            </li>
+            <li>
                 <div id="menu_apiquery">
                     <span id="lblMenuApiQuery">Query API @ Center</span>
                     <span class="tooltiptext-top">
@@ -390,7 +415,8 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
             <tr>
                 <td colspan="2" class="tsSliderTd">
                     <div id="tsSliderContainer">
-                        <img id="tsTickImage" width="200" height="4" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAABCAMAAADHLAisAAAABlBMVEVfMDCamppiRWYmAAAAAXRSTlMAQObYZgAAABdJREFUeNpjYEABjIwMRAFi1Y2aSKpKABFLABVQjyGWAAAAAElFTkSuQmCC" />
+                        <!--<img id="tsTickImage" width="200" height="4" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAABCAQAAABa+zAVAAAAHUlEQVQoz2NgwANm/Z/1n4EKgFrmjLpp1E30dhMAHuojJ3Z1BQQAAAAASUVORK5CYII=" />/-->
+                        <img id="tsTickImage" width="200" height="4" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAABCAMAAADHLAisAAAABlBMVEVfMDCamppiRWYmAAAAAXRSTlMAQObYZgAAABdJREFUeNpjYEABjIwMRAFi1Y2aSKpKABFLABVQjyGWAAAAAElFTkSuQmCC" /> 
                         <div id="tsSliderSubcontainer">
                             <input type="range" id="tsSlider" value="13" min="13" max="22" step="1" onChange="TimeSliceUI.tsSlider_OnChange();">
                         </div>

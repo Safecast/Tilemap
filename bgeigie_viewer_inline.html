@@ -54,15 +54,17 @@
                 <td colspan="2" style="height:1px; padding: 5px 0px 5px 0px; text-align:center;"><hr style="border-style: none none solid; height:1px;" /></td>
             </tr>
             <tr>
-                <td style="vertical-align:middle; width:75px; padding:0px 4px 5px 5px;">
-                    <select id="bv_ddlQueryType" style="width:75px;" class="bv_FuturaFont">
+                <td style="vertical-align:middle; width:80px; padding:0px 4px 5px 5px;">
+                    <select id="bv_ddlQueryType" style="width:80px;" class="bv_FuturaFont">
                         <option value="0">Log IDs</option>
                         <option value="1">User ID</option>
                         <option value="2">Text</option>
+                        <option value="3">Local File</option>
                     </select>
                 </td>
                 <td style="vertical-align:middle; padding: 0px 5px 5px 0px;">
-                    <input id="bv_tbLogIDs" style="width:242px;" type="text" placeholder="Enter bGeigie Log ID(s)" class="bv_FuturaFont">
+                    <input id="bv_tbLogIDs" style="width:237px;" type="text" placeholder="Enter bGeigie Log ID(s)" class="bv_FuturaFont">
+                    <input type="file" id="bv_InputFile" multiple accept=".LOG" style="display:none;">
                 </td>
             </tr>
             <tr>
@@ -94,41 +96,6 @@
                         <option value="&subtype=Surface">&nbsp;Surface</option>
                     </select>
                 </td>
-                <!--
-                <td style="vertical-align:middle; padding:5px;">
-                    <select id="bv_ddlMaxPages" style="width:153px" disabled class="bv_FuturaFont">
-                        <option value="1">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;25</option>
-                        <option value="2">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;50</option>
-                        <option value="3">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;75</option>
-                        <option value="4">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;100</option>
-                        <option value="6">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;150</option>
-                        <option value="8">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;200</option>
-                        <option value="12">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;300</option>
-                        <option value="20">&nbsp;Max Logs:&nbsp;&nbsp;&nbsp;500</option>
-                        <option selected value="40">&nbsp;Max Logs:&nbsp;1000</option>
-                        <option value="80">&nbsp;Max Logs:&nbsp;2000</option>
-                        <option value="160">&nbsp;Max Logs:&nbsp;4000</option>
-                        <option value="320">&nbsp;Max Logs:&nbsp;8000</option>
-                    </select>
-                </td>
-                /-->
-                <!--
-            </tr>
-            <tr>
-                <td style="vertical-align:middle; padding:5px;">
-                    <select id="bv_ddlSubtype" style="width:153px" disabled class="bv_FuturaFont">
-                        <option value="">&nbsp;All Subtypes</option>
-                        <option value="&subtype=None,Drive">&nbsp;Drive</option>
-                        <option value="&subtype=Cosmic">&nbsp;Cosmic</option>
-                        <option value="&subtype=Surface">&nbsp;Surface</option>
-                    </select>
-                </td>
-                <td>&nbsp;</td>
-            </tr>
-            <tr>
-                <td colspan="2" style="text-align: center; height:1px; padding: 0px;"><hr style="border-style: none none solid; height:1px;" /></td>
-            </tr>
-            /-->
             <tr>
                 <td style="vertical-align:middle; text-align: center; padding:5px;">
                     <button id="bv_btnOptions" class="bv_btnW" style="width:100px;">Options...</button>

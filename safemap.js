@@ -30,6 +30,7 @@ var _mapPolysProxy    = null;    // retained proxy instance for map polygons
 var _flyToExtentProxy = null;    // retained proxy instance for map pans/zooms/stylized text display
 var _locStringsProxy  = null;    // retained proxy instance for localized UI strings
 var slideout          = null;    // retained slideout menu
+var _userloc          = null;    // retained user location marker / loc callback
 
 // ========== INTERNAL STATES =============
 var _cached_ext       = { baseurl:null, urlyxz:null, lidx:-1, cd:false, cd_y:0.0, cd_x:0.0, cd_z:0, midx:-1, mt:null };
@@ -66,11 +67,168 @@ var _test_client_render = false; // should be off here by default
 var LOCAL_TEST_MODE     = false; // likely does *not* work anymore.
 
 
+var UserLoc = (function()
+{
+    function UserLoc(map_ref, CallbackLoc, CallbackErr)
+    {
+        this.w_ref   = null;
+        this.map_ref = map_ref;
+        this.marker  = null;
+        this.err_cb  = CallbackErr;
+        this.loc_cb  = CallbackLoc;
+        
+        this.err     = !navigator.geolocation;// || (!_use_https && !("MozAppearance" in document.documentElement.style));
+        this.ecode   = -1;
+        
+        this.lat     = 0;
+        this.lon     = 0;
+        this.xyacc   = 0;       // meters
+        this.zacc    = null;    // meters, nullable
+        this.speed   = null;    // m/s, nullable
+        this.alt     = null;    // meters, nullsable
+        this.deg     = null;    // degrees, nullable, NaN if speed is 0
+        
+        this.lastlat = 0;
+        this.lastlon = 0;
+        
+        this.last    = 0;
+    }
+    
+    UserLoc.GmapsIconW   = 24;
+    UserLoc.GmapsIconH   = 24;
+    UserLoc.GmapsIconURL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABHNCSVQICAgIfAhkiAAAAF96VFh0UmF3IHByb2ZpbGUgdHlwZSBBUFAxAABo3uNKT81LLcpMVigoyk/LzEnlUgADYxMuE0sTS6NEAwMDCwMIMDQwMDYEkkZAtjlUKNEABZgamFmaGZsZmgMxiM8FAEi2FMnxHlGkAAADqElEQVRo3t1aTWgTQRQOiuDPQfHs38GDogc1BwVtQxM9xIMexIN4EWw9iAehuQdq0zb+IYhglFovClXQU+uhIuqh3hQll3iwpyjG38Zkt5uffc4XnHaSbpLZ3dnEZOBB2H3z3jeZN+9vx+fzYPgTtCoQpdVHrtA6EH7jme+/HFFawQBu6BnWNwdGjB2BWH5P32jeb0V4B54KL5uDuW3D7Y/S2uCwvrUR4GaEuZABWS0FHhhd2O4UdN3FMJneLoRtN7Y+GMvvUw2eE2RDh3LTOnCd1vQN5XZ5BXwZMV3QqQT84TFa3zuU39sy8P8IOqHb3T8fpY1emoyMSQGDI/Bwc+0ELy6i4nLtepp2mE0jc5L3UAhMsdxut0rPJfRDN2eMY1enF8Inbmj7XbtZhunkI1rZFD/cmFMlr1PFi1/nzSdGkT5RzcAzvAOPU/kVF9s0ujqw+9mP5QgDmCbJAV7McXIeGpqS3Qg7OVs4lTfMD1Yg9QLR518mZbImFcvWC8FcyLAbsev++3YETb0tn2XAvouAvjGwd14YdCahUTCWW6QQIzzDO/CIAzKm3pf77ei23AUkVbICHr8pnDZNynMQJfYPT7wyKBzPVQG3IvCAtyTsCmRBprQpMawWnkc+q2Rbn+TK/+gmRR7qTYHXEuZkdVM0p6SdLLYqX0LItnFgBxe3v0R04b5mGzwnzIUMPiBbFkdVmhGIa5tkJ4reZvyl4Rg8p3tMBh+FEqUduVRUSTKTnieL58UDG76cc70AyMgIBxs6pMyIYV5agKT9f/ltTnJFOIhuwXOCLD6gQ/oc8AJcdtuYb09xRQN3NWULgCwhfqSk3SkaBZViRTK3EYNUSBF4Hic0Y8mM+if0HhlMlaIHbQ8Z5lszxnGuIP2zrAw8J8jkA7pkMAG79AKuPTOOcgWZeVP5AsSDjAxWegGyJoSUWAj/FBpRa0JiviSbfldMqOMPcce7UVeBLK4gkMVVBLI2phLjKlIJm8lcxMNkLuIomXOTTmc1kwYf2E+nMQdzlaTTKgoaZJWyBQ141RY0DkrK6XflAQbih1geZnhJeXu5WeEZ3mVqSkrIgCzXJaXqoh65TUuLerdtFXgQ2bYKeD1pq6hobLE86SlztXMWvaA5vPO0sYWB9p2K1iJS4ra0Fju/udsN7fWu+MDRFZ+YuuIjX1d8Zu2OD92WC9G3ub1qABktBV7vssfBMX1L7yVjZ7PLHuABb9svezS7boNDyK/b4LdX123+Au+jOmNxrkG0AAAAAElFTkSuQmCC";
+    
+    var _GmapsCreateMarker = function(map_ref, url, w, h, lat, lon)
+    {
+        var size = new google.maps.Size(w, h);
+        var anch = new google.maps.Point(w >>> 1, h >>> 1);
+        var icon = { url:url, size:size, anchor:anch };
 
+        icon.scaledSize = new google.maps.Size(w, h);
 
+        var yx = new google.maps.LatLng(lat, lon);
+        var m  = new google.maps.Marker();
 
+        m.setPosition(yx);
+        m.setIcon(icon);
+        m.setZIndex(1<<16);
+        m.setMap(map_ref);
 
+        return m;
+    };
+    
+    UserLoc.prototype.IsEnabled  = function()
+    {
+        return this.w_ref != null && !this.err;
+    };
 
+    UserLoc.prototype._InitMarker = function()
+    {
+        this.marker  = _GmapsCreateMarker(this.map_ref, UserLoc.GmapsIconURL, UserLoc.GmapsIconW, UserLoc.GmapsIconH, this.lat, this.lon);
+        this.lastlat = this.lat;
+        this.lastlon = this.lon;
+    };
+    
+    UserLoc.prototype._RemoveMarker = function()
+    {
+        if (this.marker == null) return;
+        
+        this.marker.setMap(null);
+        this.marker = null;
+    };
+
+    UserLoc.prototype._UpdateMarker = function()
+    {
+        if (this.marker == null)
+        {
+            this._InitMarker();
+        }//if
+        else if (   _LatToY_z21(this.lastlat) != _LatToY_z21(this.lat) 
+                 || _LonToY_z21(this.lastlon) != _LonToY_z21(this.lon))
+        {
+            this.marker.setPosition(new google.maps.LatLng(this.lat, this.lon));
+            
+            this.lastlat = this.lat;
+            this.lastlon = this.lon;
+        }//if
+    };
+
+    UserLoc.prototype._LocCallback = function(p)
+    {
+        this.lat   = p.coords.latitude;
+        this.lon   = p.coords.longitude;
+        this.xyacc = p.coords.accuracy;
+        this.zacc  = p.coords.altitudeAccuracy;
+        this.speed = p.coords.speed;
+        this.alt   = p.coords.altitude;
+        this.last  = p.timestamp;
+        this.err   = false;
+        this.ecode = -1;
+        
+        this._UpdateMarker();
+        
+        if (this.loc_cb != null)
+        {
+            this.loc_cb(p);
+        }//if
+    };
+    
+    UserLoc.prototype._ErrCallback = function(e)
+    {
+        // 0=unknown, 1=access denied by user (or non-HTTPS), 2=position unavailable, 3=timeout
+        console.warn("safemap.js: UserLoc: ERROR(" + e.code + "): " + e.message);
+        this.err   = true;
+        this.ecode = e.code;
+        
+        if (this.err_cb != null)
+        {
+            this.err_cb(e);
+        }//if
+    };
+    
+    UserLoc.prototype.Enable = function()
+    {
+        if (this.w_ref != null || !navigator.geolocation) return;
+        
+        var fxLoc = function(p) { this._LocCallback(p); }.bind(this);
+        var fxErr = function(e) { this._ErrCallback(e); }.bind(this);
+        
+        var opts = 
+        {
+            enableHighAccuracy:true,
+                       timeout:3600*1000,
+                    maximumAge:86400*1000
+        };
+
+        this.w_ref = navigator.geolocation.watchPosition(fxLoc, fxErr, opts);
+    };
+    
+    UserLoc.prototype.Disable = function()
+    {
+        if (this.w_ref != null)
+        {
+            navigator.geolocation.clearWatch(this.w_ref);
+            this.w_ref = null;
+            this.err   = false;
+            this.ecode = -1;
+            this._RemoveMarker();
+        }//if
+    };
+    
+    var _LatToY_z21 = function(lat)
+    {
+        var s = Math.sin(lat * 0.0174532925199);
+        var y = 0.5 - Math.log((1.0 + s) / (1.0 - s)) * 0.0795774715459;
+        return parseInt(y * 536870912.0 + 0.5);
+    };
+    
+    var _LonToX_z21 = function(lon)
+    {
+        return parseInt((lon + 180.0) * 0.002777778 * 536870912.0 + 0.5);
+    };
+    
+    return UserLoc;
+})();
 
 // ===============================================================================================
 // ============================================= INIT ============================================
@@ -413,6 +571,11 @@ var SafemapInit = (function()
                                       },
                            mapTypeId: _GetDefaultBasemapOrOverrideFromQuerystring()
         };
+
+        if (PrefHelper.GetMenuThemePref() == 1)
+        {
+            map_options.backgroundColor = "#444";
+        }//if
 
         map = new google.maps.Map(document.getElementById("map_canvas"), map_options);
 
@@ -1033,7 +1196,7 @@ var ClientZoomHelper = (function()
             
         return url;
     };
-    
+
 
     // ==========================
     // _GetUrlTemplateForS3Bucket
@@ -2896,8 +3059,14 @@ var BvProxy = (function()
         _aListId("bv_chkMarkerBearing", "change", mcb);
         _aListId("bv_tbMarkerSize", "change", mcb);
         _aListId("bv_tbParallelism", "change", function() { this.UI_ParallelismOnChange(); }.bind(this) );
+        
+        _aListId("bv_tbLogIDs", "click", function(e) { this.UI_tbLogIDsOnClick(e); }.bind(this) );
+        
+        _aListId("bv_InputFile", "change", function() { this.UI_inputFileOnChange(_elGet("bv_InputFile").files); }.bind(this) );
+        
+        //onchange="handleFiles(this.files)";
     };
-    
+
     // === codebehind pasta ===
         
     BvProxy.prototype.GetLogIdsEncoded = function()
@@ -2996,6 +3165,38 @@ var BvProxy = (function()
         this.ExecuteWithAsyncLoadIfNeeded(cb, [csv, queryTypeId, params, pageLimit]);
     };
 
+    BvProxy.prototype.UI_inputFileOnChange = function(files)
+    {
+        if (files.length == 0) return;
+
+        this.fxSwapClassToHideElId("bv_bvPanel", "bv_bvPanelHidden", "bv_bvPanelVisible", true);
+        this._bvm.SetZoomToLogExtent(true);
+
+        for (var i = 0; i < files.length; i++) 
+        {
+            var src = window.URL.createObjectURL(files[i]);
+            var log_id = _LogFilenameToAutoId(files[i].name);
+            var cb = function() { window.URL.revokeObjectURL(src); }.bind(this);
+            this._bvm.GetLogFileDirectFromUrlAsync(src, log_id, cb);
+        }//for
+    };
+
+
+    BvProxy.prototype.UI_tbLogIDsOnClick = function(e)
+    {
+        if (this.UI_GetQueryType() == 3)
+        {
+            var el = _elGet("bv_InputFile");
+            
+            if (el)
+            {
+                el.click();
+            }//if
+        }//if
+        
+        e.preventDefault();
+
+    };
 
     // *** UI Binds ****
     
@@ -3049,7 +3250,10 @@ var BvProxy = (function()
     {
         var tb = _elGet("bv_tbLogIDs");
         var qt = this.UI_GetQueryType();
-        tb.placeholder = qt == 0 ? "Enter bGeigie Log ID(s)" : qt == 1 ? "Enter User ID" : "Enter Search Text";
+        tb.placeholder = qt == 0 ? "Enter bGeigie Log ID(s)" 
+                       : qt == 1 ? "Enter User ID" 
+                       : qt == 2 ? "Enter Search Text"
+                       :           "Click to Select File(s)";
     };
 
 
@@ -3069,12 +3273,15 @@ var BvProxy = (function()
 
     BvProxy.prototype.UI_ddlQueryType_OnSelectedIndexChanged = function()
     {
-        var d = this.UI_GetQueryType() == 0;
+        var d = this.UI_GetQueryType() == 0 || this.UI_GetQueryType() == 3;
         _elDis("bv_tbStartDate", d);
         _elDis("bv_tbEndDate", d);
         _elDis("bv_ddlStatusType", d);
         //_elDis("bv_ddlMaxPages", d);
         _elDis("bv_ddlSubtype", d);
+        
+        if (this.UI_GetQueryType() == 3) _elGet("bv_tbLogIDs").value = "";
+        
         this.UI_UpdateTbPlaceholderText();
     };
 
@@ -3183,7 +3390,28 @@ var BvProxy = (function()
     };
     
     // === static/class ===
-    
+
+    var _IsStrCharInt = function(s) { return s == "0" || s == "1" || s == "2" || s == "3" || s == "4" || s == "5" || s == "6" || s == "7" || s == "8" || s == "9"; };
+
+    var _LogFilenameToAutoId = function(filename)
+    {
+        var log_id = -1;
+
+        if (filename.indexOf(".") > -1)
+        {
+            var sid = "", fns = filename.split(".")[0];
+
+            for (var j=0; j<fns.length; j++)
+            {
+                if (_IsStrCharInt(fns.substring(j,j+1))) sid += fns.substring(j,j+1);
+            }//for
+
+            if (sid.length > 0) log_id = parseInt(sid);
+        }//if
+
+        return log_id > 0 ? log_id : ((Math.random() * 65535) >>> 0) + 999000000;
+    };
+
     var _GetApiDateTimeParam = function(rfc_date, isStartDate) 
     {
         if (rfc_date == null || rfc_date.length == 0) return "";
@@ -3699,7 +3927,7 @@ var PrefHelper = (function()
                  ["NN_SCALER_ENABLED",0,1], ["TILE_SHADOW_ENABLED", 0,0], ["EXPANDED_LAYERS", 0,1], ["EXPANDED_LOGS",    0,1], 
                  ["EXPANDED_REALTIME",0,1], ["EXPANDED_AREAS",      0,1], ["EXPANDED_BASEMAP",0,0], ["EXPANDED_ADVANCED",0,0],
                  ["LAYER_UI_INDEX",   1,0], ["BASEMAP_UI_INDEX",    1,0], ["LAYERS_MORE",     0,0], ["BASEMAP_MORE",     0,0], 
-                 ["MENU_OPEN",        0,0], ["TOOLTIPS_ENABLED",    0,d], 
+                 ["MENU_OPEN",        0,0], ["TOOLTIPS_ENABLED",    0,d], ["MENU_THEME",      1,0], ["USER_LOC_ENABLED", 0,0],
                  ["LANGUAGE",         3,null],
                  ["VISIBLE_EXTENT_X",2,140.515516], ["VISIBLE_EXTENT_Y",2,37.316113], ["VISIBLE_EXTENT_Z",1,9]];
         for (var i=0; i<o.length; i++)
@@ -4514,12 +4742,28 @@ var MenuHelper = (function()
                 var s = ElGet("imgMenuReticle").style;
                 s.opacity           = "1.0";
                 s.filter            = "url(#sc_colorize)"; 
-                s["-webkit-filter"] = "url(#sc_colorize)"; 
+                s["-webkit-filter"] = "url(#sc_colorize)";
+            });
+
+            AListId("menu_userloc", "mouseover", function() 
+            {
+                var s = ElGet("imgMenuUserLoc").style;
+                s.opacity           = "1.0";
+                s.filter            = "url(#sc_colorize)"; 
+                s["-webkit-filter"] = "url(#sc_colorize)";
             });
 
             AListId("hud_btnToggle", "mouseout",  function() 
             {
                 var s = ElGet("imgMenuReticle").style;
+                s.removeProperty("opacity");
+                s.removeProperty("filter");
+                s.removeProperty("-webkit-filter");
+            });
+
+            AListId("menu_userloc", "mouseout",  function() 
+            {
+                var s = ElGet("imgMenuUserLoc").style;
                 s.removeProperty("opacity");
                 s.removeProperty("filter");
                 s.removeProperty("-webkit-filter");
@@ -4548,7 +4792,39 @@ var MenuHelper = (function()
 
     // requires safemap.js load
     var _InitAdvancedSection = function()
-    {            
+    {
+        var err_cb = function(e)
+        {
+            if (ElGet("chkMenuUserLoc").checked)
+            {
+                ElGet("chkMenuUserLoc").checked = false;
+                PrefHelper.SetUserLocEnabledPref(false);
+            }//if
+        }.bind(this);
+
+        _userloc = new UserLoc(map, null, err_cb);
+
+        if (PrefHelper.GetUserLocEnabledPref())
+        {
+            _userloc.Enable();
+        }//if
+        ElGet("chkMenuUserLoc").checked = _userloc != null && _userloc.IsEnabled();
+        ElGet("menu_userloc").addEventListener("click", function()
+        {
+            if (_userloc.IsEnabled())
+            {
+                _userloc.Disable();
+            }//else if
+            else if (!_userloc.err)
+            {
+                _userloc.Enable();
+            }//else if
+
+            ElGet("chkMenuUserLoc").checked = _userloc.IsEnabled();
+            PrefHelper.SetUserLocEnabledPref(_userloc.IsEnabled());
+        }, false);
+
+
         if (window.devicePixelRatio < 1.5) 
         {
             ElGet("menu_hdpi").parentElement.style.display = "none";
@@ -4691,6 +4967,7 @@ var MenuHelper = (function()
             }, false);
         }//else
 
+        _InitMenuTheme();
 
         ElGet("menu_apiquery").addEventListener("click", function()
         {
@@ -4704,6 +4981,7 @@ var MenuHelper = (function()
     {
         ElGet("address").placeholder             = s.MENU_ADDRESS_PLACEHOLDER;
         ElGet("lblMenuToggleReticle").innerHTML  = s.MENU_TOGGLE_RETICLE_LABEL;
+        ElGet("lblMenuUserLoc").innerHTML        = s.MENU_USER_LOCATION_LABEL;
         ElGet("lblMenuLayersTitle").innerHTML    = s.MENU_LAYERS_TITLE;
         ElGet("lblMenuLayersMore").innerHTML     = s.MENU_LAYERS_MORE_LABEL;
         ElGet("lblMenuBasemapMore").innerHTML    = s.MENU_LAYERS_MORE_LABEL;
@@ -4719,6 +4997,7 @@ var MenuHelper = (function()
         ElGet("lblMenuZoomButtons").innerHTML    = s.MENU_ZOOM_BUTTONS_LABEL;
         ElGet("lblMenuTileShadow").innerHTML     = s.MENU_TILE_SHADOW_LABEL;
         ElGet("lblMenuTooltips").innerHTML       = s.MENU_TOOLTIPS_LABEL;
+        ElGet("lblMenuTheme").innerHTML          = s.MENU_THEME_LABEL;
         ElGet("lblMenuApiQuery").innerHTML       = s.MENU_API_QUERY_CENTER_LABEL;
         ElGet("lblMenuRealtimeTitle").innerHTML  = s.MENU_REALTIME_TITLE;
         ElGet("menu_realtime_0_label").innerHTML = s.MENU_REALTIME_0_LABEL;
@@ -4981,6 +5260,52 @@ var MenuHelper = (function()
     };
 
 
+    MenuHelper.ddlMenuTheme_OnChange = function()
+    {
+        var d = ElGet("ddlMenuTheme");
+        var s = parseInt(d.options[d.selectedIndex].value);
+        PrefHelper.SetMenuThemePref(s);
+        _SetMenuTheme(s);
+    };
+
+    var _InitMenuTheme = function()
+    {
+        var d = ElGet("ddlMenuTheme");
+        var s = PrefHelper.GetMenuThemePref();
+        _SetMenuTheme(s);
+        var t = "" + s;
+
+        for (var i=0; i<d.options.length; i++)
+        {
+            if (d.options[i].value == t)
+            {
+                d.selectedIndex = i;
+                break;
+            }//if
+        }//for
+    };
+
+    var _SetMenuTheme = function(s)
+    {
+        var me = ElGet("menu");
+        var ce = ElGet("map_canvas");
+        var pe = ElGet("panel");
+        
+        if (s == 0)
+        {
+            me.className = me.className.replace(/kuro/, "");
+            ce.className = ce.className.replace(/kuro/, "");
+            pe.className = pe.className.replace(/kuro/, "");
+        }//if
+        else
+        {
+            me.className += " kuro";
+            ce.className += " kuro";
+            pe.className += " kuro";
+        }//else
+    };
+
+
     MenuHelper.ddlLanguage_OnChange = function()
     {
         var d = ElGet("ddlLanguage");
@@ -5140,7 +5465,13 @@ var MenuHelperStub = (function()
         if (!_nua("mobile") && !_nua("iPhone") && !_nua("iPad") && !_nua("Android")) return;
         var s = ElCr("style");
         s.type = "text/css";
-        s.innerHTML = ".menu-section-list a:hover,.menu-section-list div:hover,.menu-section-list span:hover,.menu-section-title a:hover,.menu-section-title div:hover,.menu-section-title span:hover,#ddlLanguage:focus,#ddlLanguage:hover { color:#737373; }";
+        s.innerHTML = ".menu-section-list a:hover,.menu-section-list div:hover,.menu-section-list span:hover,.menu-section-title a:hover,"
+                    + ".menu-section-title div:hover,.menu-section-title span:hover,#ddlLanguage:focus,#ddlLanguage:hover," 
+                    + "#ddlMenuTheme:focus,#ddlMenuTheme:hover"
+                    + " { color:#737373; }"
+                    + "\n\n"
+                    + ".menu-section-list > li > a:hover,.menu-section-list > li > div:hover,.menu-section-title:hover"
+                    + " { border-left:4px solid transparent; }";
         document.head.appendChild(s);
     };
 

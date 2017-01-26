@@ -385,10 +385,10 @@ var BVM = (function()
     };
     
     
-    BVM.prototype.GetLogFileDirectFromUrlAsync = function(url, logId)
+    BVM.prototype.GetLogFileDirectFromUrlAsync = function(url, logId, cb)
     {
         var responseType = window.TextDecoder != null ? "arraybuffer" : null;
-        this.xfm.AddTask(url, responseType, function(response, userData) { this.wwm.DispatchLogParseToVec(response, logId, userData); }.bind(this), [logId], "bGeigie Log", XF.TypeLog, logId);
+        this.xfm.AddTask(url, responseType, function(response, userData) { if (userData.length > 0 && userData[1] != null) { userData[1](); userData = [userData[0]]; } this.wwm.DispatchLogParseToVec(response, logId, userData); }.bind(this), [logId, cb], "bGeigie Log", XF.TypeLog, logId);
     };
 
 
@@ -413,12 +413,14 @@ var BVM = (function()
     
         if (txt != null && txt.length > 0 && txt.substring(0,1) == "u")
         {
+            page_limit = 250;
             var url = _ParseUserInput_UserID(txt);
             this.GetJSONAsyncByQuery_AllPages(url, XF.TypeLogQueryByUser, 1, page_limit, extra_params);
         }//if
     
         if (txt != null && txt.length > 0 && txt.substring(0,1) == "q")
         {
+            page_limit = 250;
             var url = _ParseUserInput_QueryText(txt);
             this.GetJSONAsyncByQuery_AllPages(url, XF.TypeLogQueryByText, 1, page_limit, extra_params);
         }//if
