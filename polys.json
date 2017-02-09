@@ -676,6 +676,18 @@
            "more": [ { "k":"en", "v":["{FULL_ARTICLE}", "http://blog.safecast.org/2015/11/bgeigie-at-the-international-aero-gammaspectrometry-campaign-2015/"] } ],
           "point": { "x":12.6322, "y":50.5914 },
            "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
+    },
+    {
+        "poly_id":43,
+       "group_id":2,
+         "author":"Azby Brown",
+           "date":"2017-02-04T11:02:05Z",
+           "desc": [ { "k":"en", "v":"No, radiation levels at Fukushima Daiichi are not rising" } ],
+           "info": [ { "k":"en", "v":"{TL_NA}<ul><li>Yes, TEPCO has measured very high radiation inside Daichi Unit 2.</li><li>No, it does’t mean radiation levels there are rising.</li></ul><p>In response to visual investigation results and high radiation measurements recently taken by TEPCO inside Fukushima Daiichi Unit 2, many news outlets have published stories with headlines like &quot;Fukushima nuclear reactor radiation at highest level since 2011 meltdown.&quot;</p><p>This has led to a number of alarming stories claiming that radiation at Daiichi has “spiked” to unprecedented levels. That’s not what the findings indicate, however. In addition, Safecast’s own measurements, including our Pointcast realtime detector system have shown radiation levels near Daiichi to be steadily declining.</p>" } ],
+           "imgs":"https://i0.wp.com/blog.safecast.org/wp-content/uploads/2017/02/Unit2MeltedGrating01.jpg?zoom=2&fit=1000%2C378",
+           "more": [ { "k":"en", "v":["{FULL_ARTICLE}", "http://blog.safecast.org/2017/02/no-radiation-levels-at-fukushima-daiichi-are-not-rising/"] } ],
+          "point": { "x":141.0335, "y":37.42213 },
+           "icon": { "url":"sc-icon-atom_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     }
 ]
 }

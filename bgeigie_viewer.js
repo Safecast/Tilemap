@@ -1250,7 +1250,10 @@ var XFM = (function()
         
         for (var i=0; i<max_i; i++)
         {
-            s += "" + this.logIds[i] + (i < this.logIds.length - 1 ? "," : "");
+            if (this.logIds[i] > 0)
+            {
+                s += "" + this.logIds[i] + (i < this.logIds.length - 1 ? "," : "");
+            }//if
         }//for
         
         //return s == "" ? s : encodeURIComponent(s); // if the googs doesn't urlencode commas, why bother?
@@ -1381,7 +1384,7 @@ var XFM = (function()
     
     XFM.prototype.UpdateLogIdsFromXF = function(xf)
     {
-        if (xf != null && xf.callbackDone && !xf.error && xf.xfType == XF.TypeLog && xf.tagId > 0)
+        if (xf != null && xf.callbackDone && !xf.error && xf.xfType == XF.TypeLog && xf.tagId != 0)
         {
             var alreadyExists = false;
                 
@@ -2893,7 +2896,9 @@ var MKS = (function()
                + "<tr><td align=right>" + deg + "</td><td nowrap>" + "\u00B0" + " heading" + "</td></tr>"
                + "<tr><td align=right nowrap>" + date + "<br/>" + time + "</td><td>UTC"    + "</td></tr>"
                + "</table>"
-               + "<div class='"+fontCssClass+"' style='position:absolute;top:0;left:0;font-size:70%;color:#999999;'>" + logId + "</div>";
+               + "<div class='"+fontCssClass+"' style='position:absolute;top:0;left:0;font-size:70%;color:#999999;'>" 
+               + Math.abs(logId)
+               + "</div>";
     };
     
     // based on the client's screen size and extent, find the center and zoom level

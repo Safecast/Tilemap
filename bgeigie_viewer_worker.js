@@ -9,7 +9,7 @@ self.onmessage = function(e)
 {
     if (e.data.op == "PARSE_LOG_TO_VEC")
     {
-        self.ParseLogFileToVectors(e.data.log, e.data.logbuffer, e.data.userData, e.data.deci, e.data.logId, e.data.worker_id);
+        self.ParseLogFileToVectors(e.data.log, e.data.logbuffer, e.data.userData, e.data.logId, e.data.worker_id);
     }//if
     else if (e.data.op == "PREFILTER_VECS")
     {
@@ -19,6 +19,10 @@ self.onmessage = function(e)
     {
         self.SortByQuadKey(e.data.mxs, e.data.mys, e.data.minzs, e.data.cpms, e.data.times, e.data.alts, e.data.degs, e.data.logids, e.data.userData, e.data.isMobile, e.data.worker_id);
     }
+    else if (e.data.op == "PARSE_LOG_TO_LOG")
+    {
+        self.ParseLogFileToLog(e.data.log, e.data.logbuffer, e.data.userData, e.data.logId, e.data.worker_id);
+    }//if
 };
 
 function ShellSort(list) 
@@ -167,12 +171,265 @@ self.SortByQuadKey = function (bmxs, bmys, bminzs, bcpms, btimes, balts, bdegs, 
 };
 
 
+// ParseLogFileToLog is a variant of ParseLogFileToVectors, which also outputs into
+// a log file as a string.  It is an ancilliary function to help fix corrupted log files.
+//
+self.ParseLogFileToLog = function(log, logbuffer, userData, logId, worker_id)
+{
+    self.postMessage({op:"MSG_START_PARSING", userData:userData});
+
+    if (log == null && logbuffer != null) log = self.GetStringForArrayBuffer(logbuffer);
+
+    var dest = new Array();
+    var isMobile = userData[2];
+    
+    var tile_u08 = new Uint8Array(65536);
+    var prefilter_n = 0;
+    var min_z = 0;
+    var i, j, lines, data;
+    
+    var destminzs   = null;
+    var destcpms    = null;
+    var destalts    = null;
+    var destdegs    = null;
+    var destlogids  = null;
+    var desttimes   = null;
+    var destmxs     = null;
+    var destmys     = null;
+    var idx         = 0;
+    var destlog     = "";
+
+    var s_header, s_id, s_time, s_cpm, s_cp5s, s_totc, s_rnStatus, s_latitude, s_northsouthindicator, 
+        s_longitude, s_eastwestindicator, s_altitude, s_gpsStatus, s_dop, s_quality;
+    var blat, blon, bcpm, spatialMatch, comp_cpm, bcpm5s;
+    
+    var x_min =  9000.0; // extent
+    var y_min =  9000.0;
+    var x_max = -9000.0;
+    var y_max = -9000.0;
+    
+    var x,s,y,w,px,py;
+    w = parseFloat(256 << 21);
+
+    lines = log.split("\n");
+    log   = null;    
+
+    destcpms    = new Float32Array(lines.length);
+    destalts    = new Int16Array(lines.length);
+    destdegs    = new Int8Array(lines.length);
+    desttimes   = new Uint32Array(lines.length);
+    destmxs     = new Uint32Array(lines.length);
+    destmys     = new Uint32Array(lines.length);
+    destminzs   = new Int8Array(lines.length);
+
+    var last_lat = -9000.0;
+    var last_lon = -9000.0;
+    var last_i   = -1;
+    var high_n   = 0;
+    var high_thr = 330.0;
+
+    // summary stats
+    var ss = { n:0, dist_meters:0.0, time_ss:0.0, sum_usvh:0.0, mean_usvh:0.0, de_usv:0.0, min_usvh:9000.0, max_usvh:-9000.0, min_alt_meters:9000.0, max_alt_meters:-9000.0, min_kph:9000.0, max_kph:-9000.0, logId:logId };
+    
+    for (i=0; i<lines.length; i++)
+    {
+        data = lines[i] != null && lines[i].length > 0 ? lines[i].split(",") : null;
+        
+        // passthrough clean header rows
+        if (data != null && data.length == 1 && data[0] != null && data[0].length > 0 && data[0].substring(0,1) == "#")
+        {
+            destlog += lines[i];
+        }//if
+        
+        if (data != null && data.length == 15)// && data[0] != "$BMRDD" && data[0] != "$BGRDD" && data[0] != "$BNRDD")
+        {
+            s_time                = data[2];
+            s_cpm                 = data[3];
+            s_cp5s                = data[4];
+            s_latitude            = data[7];
+            s_northsouthindicator = data[8];
+            s_longitude           = data[9];
+            s_eastwestindicator   = data[10];
+            s_altitude            = data[11];
+            s_gpsStatus           = data[12];
+            s_dop                 = data[13];
+            s_quality             = data[14];
+
+            if (   s_latitude  != null && s_latitude.length  > 0
+                && s_longitude != null && s_longitude.length > 0)
+            {
+                blat = parseFloat(s_latitude);
+                blon = parseFloat(s_longitude);
+                bcpm = parseFloat(s_cpm);
+                
+                high_n = bcpm > high_thr ? 0 : high_n + 1; // samples since last high range measurement
+
+                if (s_cp5s != null && s_cp5s.length > 0) // was: 750.0
+                {
+                    bcpm5s = parseFloat(s_cp5s) * 12.0; // CPS for 5s -> CPM
+
+                    if (bcpm5s > 0.0 
+                        && (   (bcpm > high_thr && bcpm5s > bcpm * 0.1 && bcpm5s < bcpm * 10.0)
+                            || (high_n < 13)))
+                    {
+                        bcpm = bcpm5s / (1.0 - bcpm5s * 0.0000018833); // replace if at a high CPM and seems valid with deadtime correction
+                    }//if
+                }//if
+                else
+                {
+                    bcpm5s = -9000.0; // indicate nodata
+                }//else
+
+                blat = Math.abs(blat) * 0.01;
+                blon = Math.abs(blon) * 0.01;
+                blat = ((blat - parseInt(blat)) * 0.01666666666666666666666666666667) * 100.0 + parseInt(blat);
+                blon = ((blon - parseInt(blon)) * 0.01666666666666666666666666666667) * 100.0 + parseInt(blon);
+
+                if (s_northsouthindicator.toUpperCase() == "S") blat *= -1.0;
+                if (s_eastwestindicator.toUpperCase()   == "W") blon *= -1.0;
+
+                if (blat >= -90.0 && blat <= 90.0 && blon >= -180.0 && blon <= 180.0 
+                    && blat != null && !isNan(blat)
+                    && blon != null && !isNan(blon)
+                    && blat !=  0.0 && blon != 0.0
+                    && bcpm != null && !isNan(bcpm) && bcpm > 0.0)
+                {
+                    var unixMS = s_time != null ? Date.parse(s_time) : 0.0;
+
+                    // note: any further checks should happen here for row being valid/clean
+
+                    if (unixMS != null && !isNan(unixMS) 
+                        && unixMS > 1299801600000.0 // 2011
+                        && unixMS < 3792873600000.0 // 2090
+                        )
+                    {
+                        if (blat > y_max) y_max = blat;
+                        if (blat < y_min) y_min = blat;
+                        if (blon > x_max) x_max = blon;
+                        if (blon < x_min) x_min = blon;
+                    
+                        desttimes[idx] = unixMS == null ? 0.0 : parseInt(unixMS * 0.001);                    
+                        destcpms[idx] = bcpm;
+                        destalts[idx] = parseInt(s_altitude);
+
+                        x = (blon + 180.0) * 0.00277777777777777777777777777778;
+                        s = Math.sin(blat * 0.01745329251994329576923690768489);            
+                        y = 0.5 - Math.log((1.0 + s) / (1.0 - s)) * 0.07957747154594766788444188168626;
+
+                        destmxs[idx] = x * w + 0.5;
+                        destmys[idx] = y * w + 0.5;
+
+                        tile_u08[((destmys[idx] >>> 21) << 8) + (destmxs[idx]>>>21)] = 255;
+
+                        if (idx > 0) destdegs[idx-1] = parseInt(self.GetHeading_EPSG4326(last_lat, last_lon, blat, blon) * 0.35277777777777777777777777777778);
+
+                    
+                        // *** summary stats ****
+                    
+                        var dist     = PointDistanceMeters_EPSG4326(last_lat, last_lon, blat, blon);
+                        var alt      = destalts[idx];
+                        var kph      = dist * 0.072;
+                        ss.n++;
+                        ss.sum_usvh += bcpm;
+                        ss.de_usv   += (bcpm5s != -9000.0 ? bcpm5s : bcpm) * 0.000039682539683; // -> uSv/h, for 5 seconds
+
+                        if (bcpm > ss.max_usvh)       ss.max_usvh       = bcpm;
+                        if (bcpm < ss.min_usvh)       ss.min_usvh       = bcpm;
+                        if (alt  > ss.max_alt_meters) ss.max_alt_meters = alt;
+                        if (alt  < ss.min_alt_meters) ss.min_alt_meters = alt;
+
+                        if (kph < 1225.0) // speed of sound in air -- sanity limit
+                        {
+                            if (kph > ss.max_kph) ss.max_kph = kph;
+                            if (kph < ss.min_kph) ss.min_kph = kph;
+                            ss.dist_meters += dist;
+                        }//if
+                        
+                        // this line seems ok, so copy to output log
+                        destlog += lines[i].toUpperCase();
+                        
+                        last_lat = blat;
+                        last_lon = blon;
+
+                        idx++;
+                    }//if
+                }//if
+            }//if
+        }//if
+    }//for
+    
+    data  = null;
+    
+    
+    // summary stats
+    if (ss.n > 0)
+    {
+        ss.time_ss    = ss.n * 5.0;
+        ss.sum_usvh  *= 0.0029940119760479;
+        ss.mean_usvh  = ss.sum_usvh / ss.n;
+        ss.min_usvh  *= 0.0029940119760479;
+        ss.max_usvh  *= 0.0029940119760479;
+    
+        self.postMessage( {op:"SUMMARY_STATS", summary_stats:ss, worker_id:worker_id } );
+    }//if
+    
+    for (i=0; i<idx; i++) destminzs[i] = -1;
+    
+    var unassigned_n = 0;
+    
+    if (idx > 0)
+    {
+        self.postMessage({op:"TILE_CALLBACK", userData:userData, worker_id:worker_id, buffer:tile_u08.buffer}, [tile_u08.buffer]);
+    
+        self.AssignScaleVisibilityToVecs(destmxs, destmys, destminzs, destcpms, idx, worker_id);
+        
+        unassigned_n = vscount_s08(destminzs, -1, idx);
+    }//if
+    
+    var ex = [x_min, y_min, x_max, y_max];
+    
+    if (lines.length != idx && unassigned_n == 0)
+    {
+        destmxs   = vtrunc_u32(destmxs,   idx);
+        destmys   = vtrunc_u32(destmys,   idx);
+        desttimes = vtrunc_u32(desttimes, idx);
+        destcpms  = vtrunc_f32(destcpms,  idx);
+        destalts  = vtrunc_s16(destalts,  idx);
+        destdegs  = vtrunc_s08(destdegs,  idx);
+        destminzs = vtrunc_s08(destminzs, idx);
+    }//if
+    else if (lines.length != idx && unassigned_n > 0)
+    {
+        var nn    = idx - unassigned_n;        
+        destmxs   = vcmprs_u32(destmxs,   -1, destminzs, nn, idx);
+        destmys   = vcmprs_u32(destmys,   -1, destminzs, nn, idx);
+        desttimes = vcmprs_u32(desttimes, -1, destminzs, nn, idx);
+        destcpms  = vcmprs_f32(destcpms,  -1, destminzs, nn, idx);
+        destalts  = vcmprs_s16(destalts,  -1, destminzs, nn, idx);
+        destdegs  = vcmprs_s08(destdegs,  -1, destminzs, nn, idx);
+        destminzs = vcmprs_s08(destminzs, -1, destminzs, nn, idx);
+        
+        //var txt = "Log->Vec: Found "+unassigned_n+" unassigned rows.  Initial rows: "+idx+".  Final rows: "+destmxs.length+".";
+        //self.postMessage( {op:"DEBUG_MSG", txt:txt, worker_id:worker_id } );
+    }//else if
+
+    lines = null;
+    
+    self.postMessage({op:"PARSE_LOG_TO_LOG", ex:ex, userData:userData, worker_id:worker_id, log:destlog, 
+                      mxs:destmxs.buffer, mys:destmys.buffer, minzs:destminzs.buffer, times:desttimes.buffer, cpms:destcpms.buffer, alts:destalts.buffer, degs:destdegs.buffer },
+                      [   destmxs.buffer,     destmys.buffer,       destminzs.buffer,       desttimes.buffer,      destcpms.buffer,      destalts.buffer,      destdegs.buffer ]);
+};
+
+
+
+
+
 
 // note that both a string (log) and arraybuffer (logbuffer) must be accepted as input for now
 // until the TextDeccoder is part of the offical W3C spec.  The function will polyfill, but
 // probably not very efficiently.
 //
-self.ParseLogFileToVectors = function(log, logbuffer, userData, deci, logId, worker_id)
+self.ParseLogFileToVectors = function(log, logbuffer, userData, logId, worker_id)
 {
     self.postMessage({op:"MSG_START_PARSING", userData:userData});
 
@@ -206,16 +463,12 @@ self.ParseLogFileToVectors = function(log, logbuffer, userData, deci, logId, wor
     var x_max = -9000.0;
     var y_max = -9000.0;
     
-    var useDecimation = false;
-    
     var x,s,y,w,px,py;
     w = parseFloat(256 << 21);
-    
-    if (deci != -1)   useDecimation      = deci == 1;
-        
+
     lines = log.split("\n");
     log   = null;    
-    
+
     destcpms    = new Float32Array(lines.length);
     destalts    = new Int16Array(lines.length);
     destdegs    = new Int8Array(lines.length);
@@ -223,13 +476,13 @@ self.ParseLogFileToVectors = function(log, logbuffer, userData, deci, logId, wor
     destmxs     = new Uint32Array(lines.length);
     destmys     = new Uint32Array(lines.length);
     destminzs   = new Int8Array(lines.length);
-    
+
     var last_lat = -9000.0;
     var last_lon = -9000.0;
     var last_i   = -1;
     var high_n   = 0;
     var high_thr = 330.0;
-    
+
     // summary stats
     var ss = { n:0, dist_meters:0.0, time_ss:0.0, sum_usvh:0.0, mean_usvh:0.0, de_usv:0.0, min_usvh:9000.0, max_usvh:-9000.0, min_alt_meters:9000.0, max_alt_meters:-9000.0, min_kph:9000.0, max_kph:-9000.0, logId:logId };
     
@@ -247,7 +500,7 @@ self.ParseLogFileToVectors = function(log, logbuffer, userData, deci, logId, wor
                     data[j] = data[j+1];
                 }//for
             }//if
-            
+
             s_time                = data[2];
             s_cpm                 = data[3];
             s_cp5s                = data[4];
@@ -256,25 +509,24 @@ self.ParseLogFileToVectors = function(log, logbuffer, userData, deci, logId, wor
             s_longitude           = data[9];
             s_eastwestindicator   = data[10];
             s_altitude            = data[11];
-                       
+
             if (   s_latitude  != null && s_latitude.length  > 0
-                && s_longitude != null && s_longitude.length > 0
-                && (!useDecimation || (i & 1)))
+                && s_longitude != null && s_longitude.length > 0)
             {
                 blat = parseFloat(s_latitude);
                 blon = parseFloat(s_longitude);
                 bcpm = parseFloat(s_cpm);
-                
+
                 high_n = bcpm > high_thr ? 0 : high_n + 1; // samples since last high range measurement
-                
+
                 if (s_cp5s != null && s_cp5s.length > 0) // was: 750.0
                 {
                     bcpm5s = parseFloat(s_cp5s) * 12.0; // CPS for 5s -> CPM
-                    
+
                     if (bcpm5s > 0.0 
                         && (   (bcpm > high_thr && bcpm5s > bcpm * 0.1 && bcpm5s < bcpm * 10.0)
                             || (high_n < 13)))
-                    {                    
+                    {
                         bcpm = bcpm5s / (1.0 - bcpm5s * 0.0000018833); // replace if at a high CPM and seems valid with deadtime correction
                     }//if
                 }//if
@@ -282,40 +534,40 @@ self.ParseLogFileToVectors = function(log, logbuffer, userData, deci, logId, wor
                 {
                     bcpm5s = -9000.0; // indicate nodata
                 }//else
-                
+
                 blat = Math.abs(blat) * 0.01;
                 blon = Math.abs(blon) * 0.01;
                 blat = ((blat - parseInt(blat)) * 0.01666666666666666666666666666667) * 100.0 + parseInt(blat);
                 blon = ((blon - parseInt(blon)) * 0.01666666666666666666666666666667) * 100.0 + parseInt(blon);
-            
-                if (s_northsouthindicator == "S") blat = 0.0 - blat;
-                if (s_eastwestindicator   == "W") blon = 0.0 - blon;
-                
+
+                if (s_northsouthindicator.toUpperCase() == "S") blat *= -1.0;
+                if (s_eastwestindicator.toUpperCase()   == "W") blon *= -1.0;
+
                 if (blat > -85.05112878 && blat < 85.05112878 && blon >= -180.0 && blon <= 180.0)
                 {
                     if (blat > y_max) y_max = blat;
                     if (blat < y_min) y_min = blat;
                     if (blon > x_max) x_max = blon;
                     if (blon < x_min) x_min = blon;
-                        
+
                     var unixMS = s_time != null ? Date.parse(s_time) : 0.0;
                     desttimes[idx] = unixMS == null ? 0.0 : parseInt(unixMS * 0.001);                    
                     destcpms[idx] = bcpm;
                     destalts[idx] = parseInt(s_altitude);
-                    
+
                     x = (blon + 180.0) * 0.00277777777777777777777777777778;
                     s = Math.sin(blat * 0.01745329251994329576923690768489);            
                     y = 0.5 - Math.log((1.0 + s) / (1.0 - s)) * 0.07957747154594766788444188168626;
-            
+
                     destmxs[idx] = x * w + 0.5;
                     destmys[idx] = y * w + 0.5;
-                    
+
                     tile_u08[((destmys[idx] >>> 21) << 8) + (destmxs[idx]>>>21)] = 255;
-                    
-                    if (idx > 0) destdegs[idx-1] = parseInt(self.GetBearing_EPSG4326(last_lat, last_lon, blat, blon) * 0.35277777777777777777777777777778);
-                    
+
+                    if (idx > 0) destdegs[idx-1] = parseInt(self.GetHeading_EPSG4326(last_lat, last_lon, blat, blon) * 0.35277777777777777777777777777778);
+
                     // *** summary stats ****
-                    
+
                     var dist     = PointDistanceMeters_EPSG4326(last_lat, last_lon, blat, blon);
                     var alt      = destalts[idx];
                     var kph      = dist * 0.072;
@@ -932,7 +1184,7 @@ function PointDistanceMeters_EPSG4326(lat0, lon0, lat1, lon1)
     return d;
 }//PointDistanceMeters_EPSG4326
 
-function GetBearing_EPSG4326(lat0, lon0, lat1, lon1) 
+function GetHeading_EPSG4326(lat0, lon0, lat1, lon1) 
 {
     var dx = (lon1 - lon0) * 0.01745329251994329576923690768489;
     var r0 = (lat0)        * 0.01745329251994329576923690768489;

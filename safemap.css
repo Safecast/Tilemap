@@ -18,32 +18,19 @@ body
     height:100%;
 }
 
+/* nb: This is a hack to disable the alpha fade-in / fade-out effect that Google Maps defaults to.  It improves performance somewhat and makes tiles appear instantly. */
 #map_canvas div
 {
           transition:none !important; 
   -webkit-transition:none !important;
 }
 
-/*
-#map_canvas img[src^="http://te"], #map_canvas img[src^="http://nnsa"] {
-  -webkit-filter: drop-shadow(2px 2px 2px #000);
-  filter: drop-shadow(2px 2px 2px #000);
-}
-*/
-
-/*
-#map_canvas > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child > div:nth-last-of-type(1) {
-  -webkit-filter: drop-shadow(2px 2px 2px #000);
-  filter: drop-shadow(2px 2px 2px #000);
-}
-*/
-
 .FuturaFont, .gm-style, .poi-info-window div, .poi-info-window a, .menu
 {
     font-family:Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif !important;
 }
 
-#logo2, #imgMenuReticle, #imgMenuUserLoc, .slideout-menu, #imgMenuSafecastIcon /*.hud_btnW, #imgScale, */
+#logo2, #imgMenuReticle, #imgMenuUserLoc, .slideout-menu, #imgMenuSafecastIcon
 { 
     user-drag:none; 
     user-select:none;
@@ -121,9 +108,6 @@ body
     left:0;
     z-index:1;
     width:30px;
-    /*
-    background-image:url("scales64_240x854.png");
-    */
     background-size:120px 427px;
     padding:0;
     transition:0.3s;
@@ -226,6 +210,7 @@ body
        -moz-border-radius:3 3 0 0;
         border-radius:3px 3px 0 0;
     background-color:#FFF;
+    background-image:linear-gradient(145deg, #D9D9D9, #EBEBEB);
 }
 
 #tsPanelContent
@@ -234,6 +219,7 @@ body
        -moz-border-radius:0 3 3 3;
             border-radius:0 3px 3px 3px;
     background-color:rgba(255,255,255,0.85);
+    background-image:linear-gradient(145deg, #DDD, #FFF);
 }
 
 #tsPanelContentTitle
@@ -441,14 +427,12 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 
 .btn_accordion:after {
     content: " " url(data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22iso-8859-1%22%3F%3E%0A%3Csvg%20version%3D%221.1%22%20id%3D%22Capa_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20xmlns%3Axlink%3D%22http%3A//www.w3.org/1999/xlink%22%20x%3D%220px%22%20y%3D%220px%22%0A%09%20viewBox%3D%220%200%20405.456%20405.456%22%20style%3D%22enable-background%3Anew%200%200%20405.456%20405.456%3B%22%20xml%3Aspace%3D%22preserve%22%20width%3D%2223.406px%22%20height%3D%2216px%22%3E%0A%3Cg%3E%0A%09%3Cpath%20style%3D%22fill%3A%23737373%3B%22%20d%3D%22M74.134%2C64.147c-4.985%2C0.078-9.911%2C2.163-13.438%2C5.688l-55%2C55C2.096%2C128.432%2C0%2C133.492%2C0%2C138.583%0A%09%09s2.096%2C10.151%2C5.697%2C13.75l183.281%2C183.281c3.599%2C3.601%2C8.659%2C5.697%2C13.75%2C5.697s10.151-2.096%2C13.75-5.697l183.281-183.281%0A%09%09c3.601-3.599%2C5.697-8.659%2C5.697-13.75s-2.096-10.151-5.697-13.75l-55-55c-3.598-3.591-8.651-5.681-13.734-5.681%0A%09%09c-5.083%2C0-10.136%2C2.09-13.734%2C5.681L202.728%2C184.397L88.166%2C69.833C84.499%2C66.169%2C79.318%2C64.07%2C74.134%2C64.147L74.134%2C64.147z%22/%3E%0A%3C/g%3E%0A%3C/svg%3E%0A);
-    /*content: '\02795';*/
     float:right;
     margin-top:3px;
 }
 
 .btn_accordion.active:after {
     content: " " url(data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22iso-8859-1%22%3F%3E%0A%3Csvg%20version%3D%221.1%22%20id%3D%22Capa_1%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20xmlns%3Axlink%3D%22http%3A//www.w3.org/1999/xlink%22%20x%3D%220px%22%20y%3D%220px%22%0A%09%20viewBox%3D%220%200%20405.457%20405.457%22%20style%3D%22enable-background%3Anew%200%200%20405.457%20405.457%3B%22%20xml%3Aspace%3D%22preserve%22%20width%3D%2223.406px%22%20height%3D%2216px%22%3E%0A%3Cg%3E%0A%09%3Cpath%20style%3D%22fill%3A%23737373%3B%22%20d%3D%22M331.322%2C341.31c4.985-0.078%2C9.911-2.163%2C13.438-5.688l55-55c3.601-3.599%2C5.697-8.659%2C5.697-13.75%0A%09%09s-2.096-10.151-5.697-13.75L216.478%2C69.841c-3.599-3.601-8.659-5.697-13.75-5.697s-10.151%2C2.096-13.75%2C5.697L5.697%2C253.123%0A%09%09C2.096%2C256.722%2C0%2C261.782%2C0%2C266.873s2.096%2C10.151%2C5.697%2C13.75l55%2C55c3.598%2C3.591%2C8.651%2C5.681%2C13.734%2C5.681%0A%09%09s10.136-2.09%2C13.734-5.681l114.562-114.562L317.29%2C335.623C320.958%2C339.287%2C326.139%2C341.387%2C331.322%2C341.31z%22/%3E%0A%3C/g%3E%0A%3C/svg%3E);
-    /*content: "\2796";*/
 }
 
 .div_accordion {
@@ -513,7 +497,6 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 .js-slideout-toggle {
     border:0;
     outline:none;
-    /*margin:0 3px 3px 3px;*/
 }
 
 .js-slideout-toggle > div {
@@ -653,14 +636,6 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 .menu-prefs-chk-item > div > div > div { margin:1px 0 0 1px !important; }
 
 
-/* wat?
-#ul_menu_layers > li:not(:first-child) {
-    transition:0.6s ease-in-out;
-    overflow:hidden;
-}
-*/
-
-
 #ddlLanguage,
 #ddlMenuTheme
 {
@@ -736,7 +711,7 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 }
 
 .tooltip .tooltiptext-bottom {
-    top: 100%; /* 150 */
+    top: 100%;
 }
 
 .tooltip .tooltiptext-bottom::after {
@@ -745,7 +720,7 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 }
 
 .tooltip .tooltiptext-top {
-    bottom: 100%; /* 150 */
+    bottom: 100%;
 }
 
 .tooltip .tooltiptext-top::after,
@@ -950,7 +925,7 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 /* Currently, two themes: */
 /* 1. Light - DEFAULT - Nothing additional should be set. */
 /* 2. Dark (Kuro) - Requires additional CSS class on some elements.  Note changing the default colors may affect this theme. */
-/*    Use: add "kuro" to classlist of: #menu, #panel, #map_canvas */
+/*    Use: add "kuro" to classlist of: #menu, #panel, #map_canvas, #tsPanel */
 
 #menu.kuro input[type="checkbox"].ios-switch + div
 {
@@ -1037,6 +1012,30 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
     filter:invert(100%);
 }
 
+/* Time slider panel theme styling */
+
+#tsPanel.kuro
+{
+    color:#FFF;
+}
+
+#tsPanel.kuro #tsPanelTitle,
+#tsPanel.kuro #tsPanelContent,
+#tsPanel.kuro #tsStartDate,
+#tsPanel.kuro #tsEndDate
+{
+    background-color:#000;
+}
+
+#tsPanel.kuro #tsPanelTitle
+{
+    background-image:linear-gradient(145deg, #383838, #1E1E1E);
+}
+
+#tsPanel.kuro #tsPanelContent
+{
+    background-image:linear-gradient(145deg, #333, #000);
+}
 
 
 /* This is a hack to target Chrome 29+ only. */
@@ -1060,7 +1059,15 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
     }
 }
 
-
+/* Hack to target Safari Mobile only, which cannot style <select><option> DDLs like desktop Safari */
+@supports (-webkit-text-size-adjust:none) and (not (-ms-ime-align:auto)) and (not (-moz-appearance:none))
+{
+    #menu.kuro #ddlLanguage,
+    #menu.kuro #ddlMenuTheme
+    {
+        color:#000;
+    }
+}
 
 
 

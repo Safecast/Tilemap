@@ -67,168 +67,8 @@ var _test_client_render = false; // should be off here by default
 var LOCAL_TEST_MODE     = false; // likely does *not* work anymore.
 
 
-var UserLoc = (function()
-{
-    function UserLoc(map_ref, CallbackLoc, CallbackErr)
-    {
-        this.w_ref   = null;
-        this.map_ref = map_ref;
-        this.marker  = null;
-        this.err_cb  = CallbackErr;
-        this.loc_cb  = CallbackLoc;
-        
-        this.err     = !navigator.geolocation;// || (!_use_https && !("MozAppearance" in document.documentElement.style));
-        this.ecode   = -1;
-        
-        this.lat     = 0;
-        this.lon     = 0;
-        this.xyacc   = 0;       // meters
-        this.zacc    = null;    // meters, nullable
-        this.speed   = null;    // m/s, nullable
-        this.alt     = null;    // meters, nullsable
-        this.deg     = null;    // degrees, nullable, NaN if speed is 0
-        
-        this.lastlat = 0;
-        this.lastlon = 0;
-        
-        this.last    = 0;
-    }
-    
-    UserLoc.GmapsIconW   = 24;
-    UserLoc.GmapsIconH   = 24;
-    UserLoc.GmapsIconURL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABHNCSVQICAgIfAhkiAAAAF96VFh0UmF3IHByb2ZpbGUgdHlwZSBBUFAxAABo3uNKT81LLcpMVigoyk/LzEnlUgADYxMuE0sTS6NEAwMDCwMIMDQwMDYEkkZAtjlUKNEABZgamFmaGZsZmgMxiM8FAEi2FMnxHlGkAAADqElEQVRo3t1aTWgTQRQOiuDPQfHs38GDogc1BwVtQxM9xIMexIN4EWw9iAehuQdq0zb+IYhglFovClXQU+uhIuqh3hQll3iwpyjG38Zkt5uffc4XnHaSbpLZ3dnEZOBB2H3z3jeZN+9vx+fzYPgTtCoQpdVHrtA6EH7jme+/HFFawQBu6BnWNwdGjB2BWH5P32jeb0V4B54KL5uDuW3D7Y/S2uCwvrUR4GaEuZABWS0FHhhd2O4UdN3FMJneLoRtN7Y+GMvvUw2eE2RDh3LTOnCd1vQN5XZ5BXwZMV3QqQT84TFa3zuU39sy8P8IOqHb3T8fpY1emoyMSQGDI/Bwc+0ELy6i4nLtepp2mE0jc5L3UAhMsdxut0rPJfRDN2eMY1enF8Inbmj7XbtZhunkI1rZFD/cmFMlr1PFi1/nzSdGkT5RzcAzvAOPU/kVF9s0ujqw+9mP5QgDmCbJAV7McXIeGpqS3Qg7OVs4lTfMD1Yg9QLR518mZbImFcvWC8FcyLAbsev++3YETb0tn2XAvouAvjGwd14YdCahUTCWW6QQIzzDO/CIAzKm3pf77ei23AUkVbICHr8pnDZNynMQJfYPT7wyKBzPVQG3IvCAtyTsCmRBprQpMawWnkc+q2Rbn+TK/+gmRR7qTYHXEuZkdVM0p6SdLLYqX0LItnFgBxe3v0R04b5mGzwnzIUMPiBbFkdVmhGIa5tkJ4reZvyl4Rg8p3tMBh+FEqUduVRUSTKTnieL58UDG76cc70AyMgIBxs6pMyIYV5agKT9f/ltTnJFOIhuwXOCLD6gQ/oc8AJcdtuYb09xRQN3NWULgCwhfqSk3SkaBZViRTK3EYNUSBF4Hic0Y8mM+if0HhlMlaIHbQ8Z5lszxnGuIP2zrAw8J8jkA7pkMAG79AKuPTOOcgWZeVP5AsSDjAxWegGyJoSUWAj/FBpRa0JiviSbfldMqOMPcce7UVeBLK4gkMVVBLI2phLjKlIJm8lcxMNkLuIomXOTTmc1kwYf2E+nMQdzlaTTKgoaZJWyBQ141RY0DkrK6XflAQbih1geZnhJeXu5WeEZ3mVqSkrIgCzXJaXqoh65TUuLerdtFXgQ2bYKeD1pq6hobLE86SlztXMWvaA5vPO0sYWB9p2K1iJS4ra0Fju/udsN7fWu+MDRFZ+YuuIjX1d8Zu2OD92WC9G3ub1qABktBV7vssfBMX1L7yVjZ7PLHuABb9svezS7boNDyK/b4LdX123+Au+jOmNxrkG0AAAAAElFTkSuQmCC";
-    
-    var _GmapsCreateMarker = function(map_ref, url, w, h, lat, lon)
-    {
-        var size = new google.maps.Size(w, h);
-        var anch = new google.maps.Point(w >>> 1, h >>> 1);
-        var icon = { url:url, size:size, anchor:anch };
 
-        icon.scaledSize = new google.maps.Size(w, h);
 
-        var yx = new google.maps.LatLng(lat, lon);
-        var m  = new google.maps.Marker();
-
-        m.setPosition(yx);
-        m.setIcon(icon);
-        m.setZIndex(1<<16);
-        m.setMap(map_ref);
-
-        return m;
-    };
-    
-    UserLoc.prototype.IsEnabled  = function()
-    {
-        return this.w_ref != null && !this.err;
-    };
-
-    UserLoc.prototype._InitMarker = function()
-    {
-        this.marker  = _GmapsCreateMarker(this.map_ref, UserLoc.GmapsIconURL, UserLoc.GmapsIconW, UserLoc.GmapsIconH, this.lat, this.lon);
-        this.lastlat = this.lat;
-        this.lastlon = this.lon;
-    };
-    
-    UserLoc.prototype._RemoveMarker = function()
-    {
-        if (this.marker == null) return;
-        
-        this.marker.setMap(null);
-        this.marker = null;
-    };
-
-    UserLoc.prototype._UpdateMarker = function()
-    {
-        if (this.marker == null)
-        {
-            this._InitMarker();
-        }//if
-        else if (   _LatToY_z21(this.lastlat) != _LatToY_z21(this.lat) 
-                 || _LonToY_z21(this.lastlon) != _LonToY_z21(this.lon))
-        {
-            this.marker.setPosition(new google.maps.LatLng(this.lat, this.lon));
-            
-            this.lastlat = this.lat;
-            this.lastlon = this.lon;
-        }//if
-    };
-
-    UserLoc.prototype._LocCallback = function(p)
-    {
-        this.lat   = p.coords.latitude;
-        this.lon   = p.coords.longitude;
-        this.xyacc = p.coords.accuracy;
-        this.zacc  = p.coords.altitudeAccuracy;
-        this.speed = p.coords.speed;
-        this.alt   = p.coords.altitude;
-        this.last  = p.timestamp;
-        this.err   = false;
-        this.ecode = -1;
-        
-        this._UpdateMarker();
-        
-        if (this.loc_cb != null)
-        {
-            this.loc_cb(p);
-        }//if
-    };
-    
-    UserLoc.prototype._ErrCallback = function(e)
-    {
-        // 0=unknown, 1=access denied by user (or non-HTTPS), 2=position unavailable, 3=timeout
-        console.warn("safemap.js: UserLoc: ERROR(" + e.code + "): " + e.message);
-        this.err   = true;
-        this.ecode = e.code;
-        
-        if (this.err_cb != null)
-        {
-            this.err_cb(e);
-        }//if
-    };
-    
-    UserLoc.prototype.Enable = function()
-    {
-        if (this.w_ref != null || !navigator.geolocation) return;
-        
-        var fxLoc = function(p) { this._LocCallback(p); }.bind(this);
-        var fxErr = function(e) { this._ErrCallback(e); }.bind(this);
-        
-        var opts = 
-        {
-            enableHighAccuracy:true,
-                       timeout:3600*1000,
-                    maximumAge:86400*1000
-        };
-
-        this.w_ref = navigator.geolocation.watchPosition(fxLoc, fxErr, opts);
-    };
-    
-    UserLoc.prototype.Disable = function()
-    {
-        if (this.w_ref != null)
-        {
-            navigator.geolocation.clearWatch(this.w_ref);
-            this.w_ref = null;
-            this.err   = false;
-            this.ecode = -1;
-            this._RemoveMarker();
-        }//if
-    };
-    
-    var _LatToY_z21 = function(lat)
-    {
-        var s = Math.sin(lat * 0.0174532925199);
-        var y = 0.5 - Math.log((1.0 + s) / (1.0 - s)) * 0.0795774715459;
-        return parseInt(y * 536870912.0 + 0.5);
-    };
-    
-    var _LonToX_z21 = function(lon)
-    {
-        return parseInt((lon + 180.0) * 0.002777778 * 536870912.0 + 0.5);
-    };
-    
-    return UserLoc;
-})();
 
 // ===============================================================================================
 // ============================================= INIT ============================================
@@ -296,6 +136,7 @@ var SafemapInit = (function()
         if (LayersHelper.IsIdxTimeSlice(lidx))
         {
             TimeSliceUI.SetPanelHidden(false);
+            TimeSliceUI.UpdateLabelsForIdx(lidx);
         }//if    
     };
 
@@ -344,10 +185,10 @@ var SafemapInit = (function()
         cm.id = "contextMenu";
         cm.style.display = "none";
         cm.innerHTML = '<li><a href="#apiQuery" class="FuturaFont">Query Safecast API Here</a></li>'
-                           + '<li class="separator"></li>'
-                           + '<li><a href="#zoomIn" class="FuturaFont">Zoom In</a></li>'
-                           + '<li><a href="#zoomOut" class="FuturaFont">Zoom Out</a></li>'
-                           + '<li><a href="#centerHere" class="FuturaFont">Center Map Here</a></li>';
+                     + '<li class="separator"></li>'
+                     + '<li><a href="#zoomIn" class="FuturaFont">Zoom In</a></li>'
+                     + '<li><a href="#zoomOut" class="FuturaFont">Zoom Out</a></li>'
+                     + '<li><a href="#centerHere" class="FuturaFont">Center Map Here</a></li>';
         document.getElementById("map_canvas").appendChild(cm);
 
         var clickLL;
@@ -3409,7 +3250,7 @@ var BvProxy = (function()
             if (sid.length > 0) log_id = parseInt(sid);
         }//if
 
-        return log_id > 0 ? log_id : ((Math.random() * 65535) >>> 0) + 999000000;
+        return 0-(log_id > 0 ? log_id : ((Math.random() * 65535) >>> 0) + 999000000); // negate so it won't show up in querystring
     };
 
     var _GetApiDateTimeParam = function(rfc_date, isStartDate) 
@@ -3698,6 +3539,13 @@ var TimeSliceUI = (function()
         s.max = max;
     };
     */
+
+    TimeSliceUI.UpdateLabelsForIdx = function(idx)
+    {
+        var ds  = _GetLabelsForIdx(idx);
+        _GetStartDateEl().innerHTML = ds.s;
+        _GetEndDateEl().innerHTML   = ds.e;
+    };
     
     TimeSliceUI.SetSliderIdx = function(idx)
     {
@@ -3726,13 +3574,11 @@ var TimeSliceUI = (function()
     {    
         var s   = _GetSliderEl();
         var idx = parseInt(s.value);
-        var ds  = _GetLabelsForIdx(idx);
-        
-        _GetStartDateEl().innerHTML = ds.s;
-        _GetEndDateEl().innerHTML   = ds.e;
-                
+
+        TimeSliceUI.UpdateLabelsForIdx(idx);
+
         _SetLayerAndSync(idx);
-        
+
         _BitsLegacyInit();
         _SyncLayerWithMap();
         _MapExtentOnChange(100);     // force URL update
@@ -4804,7 +4650,11 @@ var MenuHelper = (function()
 
         _userloc = new UserLoc(map, null, err_cb);
 
-        if (PrefHelper.GetUserLocEnabledPref())
+        if (!UserLoc.CanUseLoc())
+        {
+            ElGet("menu_userloc").parentElement.style.display = "none";
+        }//if
+        else if (PrefHelper.GetUserLocEnabledPref())
         {
             _userloc.Enable();
         }//if
@@ -5290,18 +5140,21 @@ var MenuHelper = (function()
         var me = ElGet("menu");
         var ce = ElGet("map_canvas");
         var pe = ElGet("panel");
-        
+        var tp = ElGet("tsPanel");
+
         if (s == 0)
         {
             me.className = me.className.replace(/kuro/, "");
             ce.className = ce.className.replace(/kuro/, "");
             pe.className = pe.className.replace(/kuro/, "");
+            tp.className = tp.className.replace(/kuro/, "");
         }//if
         else
         {
             me.className += " kuro";
             ce.className += " kuro";
             pe.className += " kuro";
+            tp.className += " kuro";
         }//else
     };
 
@@ -5823,6 +5676,283 @@ var MenuHelperStub = (function()
 
 
 
+// ===============================================================================================
+// =========================================== USER LOC ==========================================
+// ===============================================================================================
+//
+// UserLoc: Creates a marker for the user location, a pop-up when clicked, and auto-updates the
+//          pop-up and marker with new location data.
+
+var UserLoc = (function()
+{
+    function UserLoc(map_ref, CallbackLoc, CallbackErr)
+    {
+        this.iw_ref  = null;
+        this.w_ref   = null;
+        this.map_ref = map_ref;
+        this.marker  = null;
+        this.err_cb  = CallbackErr;
+        this.loc_cb  = CallbackLoc;
+        
+        this.err     = !navigator.geolocation;// || (!_use_https && !("MozAppearance" in document.documentElement.style));
+        this.ecode   = -1;
+        
+        this.lat     = 0;
+        this.lon     = 0;
+        this.xyacc   = 0;       // meters
+        this.zacc    = null;    // meters, nullable
+        this.speed   = null;    // m/s, nullable
+        this.alt     = null;    // meters, nullsable
+        this.deg     = null;    // degrees, nullable, NaN if speed is 0
+        
+        this.lastlat = 0;
+        this.lastlon = 0;
+        
+        this.last    = 0;
+
+        this.update0 = 0;
+        this.update1 = 0;
+    }
+    
+    UserLoc.GmapsIconW   = 24;
+    UserLoc.GmapsIconH   = 24;
+    UserLoc.GmapsIconURL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAMAAABg3Am1AAAA+VBMVEUAAAAAf/9Vqv8zmf8/f/84jv8zf/9Fi/9EiP8/f/84f/8/ifY9hPc7iPdCh"
+                         + "Pc/h/c/h/g/hvk+g/lBgvQ/hfQ/hfU+gvVChfVBh/VTkPZmmfdkn/eMtviNt/mTu/mVu/mpxvqrx/q1zv210f22z/281PvC2fvG2v3G2v3n8P7p8f7q8f71+f71+f73+v/5+//5"
+                         + "+//5+//6/P/7/f/8/f/+/v9ChfRDhfRDhvRJifRJivRgmPZgmfZlm/ZsoPZzpfd0pveavvmdwPmewPmfwfnl7v3m7/7q8f7q8v7r8v7y9v7y9/7z9/72+f73+v/7/P/7/f/8/f/"
+                         + "////xL4EdAAAANnRSTlMAAgMFCAkKCw8QEhwdHh8gJCgpKywwMTIzNzw9SUpOT1lbY2RlanBzdKmur9LU2d7f5eXs7fVTD02LAAAB+0lEQVRIx5VW6VrCMBAsYiloAUGOIh54Ie"
+                         + "KNEMQbQcVb5/0fxlChOWnN/GqS2a+7m9nNWpYO8XnHmY9b/0Is5eaKno9izk3FIuiJzIQ8RTGTCKMveRoszTKJuWVPi7Krdcxe9mZi2Vb5yZIXglJS5i+UvVCUF0R+KoJPLVJCe"
+                         + "kpeJEpcsmIF+XRlfbUi7xXmAgNXPKk3T0Bx0qyL+27gkBBA4wwBzhpCGFOn+PutHfrMz6fRt/9xWOPvfPIDbmvrnJJe+teEkO51/4Uuzre5479fZNjGZgf4GfbIBL3hD9DZZOcZ"
+                         + "P0WcPo+A93vC4f4NOOK0OxZVkq33gK9bIuD2C9hjjLFCFtmS5ueBSBgALTGzuWC1S+O9lA0uR8BuQMlRAxbCPjAkCobAPguC1jv73zFwoxrcAMeME7dsph96X13VoPsBVAOSbTn"
+                         + "B9wbwSDR4BDYCksMZrAHPOgMa9SpnwFyqAN8XGpeoqCqcS8ZBG6dVuriezO8pFxchjQdFGpz4GnrxNUTxSfJ+veP5d6+qvJUCGrACGugKSCjRnTatylH/aky/6tN40d5RSlTXBD"
+                         + "7CmoDcZlqszbT0bUZpZAenY/bpwaxGZs0prbIa3iqNm7F5uzd/UMyfLPNH0fzZNX/YfZOsPDpkE5HDSTo/HU7y6cjhZDr+2I5j68efXwOH8WWEU73NAAAAAElFTkSuQmCC";
+
+    UserLoc.prototype._GetInfoWindowContentForMarker = function()
+    {
+        var _f   = "<div style='border:1px solid rgba(127,127,127,0.5); border-radius:10px; padding:4px; margin-bottom:4px;";
+        var grpb = _f + "'>";
+        var grpi = _f + "display:inline-block; margin-right:4px;'>";
+        var sdiv = "<div>";
+        var ediv = "</div>";
+        var txtu = "<div style='font-size:8px;'>";
+        var txt0 = "<div style='line-height:20px;'>";
+        var CrSp = function(a) { return "<span id='" + a + "'>&nbsp;</span>";  };
+        var p = "lblUserLoc";
+        var d = "<div style='user-select:text;-moz-user-select:text;-webkit-user-select:text;-ms-user-select:text;text-align:center;'>";
+        d += grpb;
+        d += txt0 + CrSp(p+"Lat") + ", " + CrSp(p+"Lon") + ediv;
+        d += txtu + "±" + CrSp(p+"XyAcc") + "m" + ediv;
+        d += ediv;
+
+        d += grpi;
+        d += txt0 + "⇅ " + CrSp(p+"Alt") + ediv;
+        d += txtu + "± " + CrSp(p+"ZAcc") + " m" + ediv;
+        d += ediv;
+
+        d += grpi;
+        d += txt0 + CrSp(p+"Speed") + ediv;
+        d += txtu + "km/h" + ediv;
+        d += ediv;
+
+        d += grpi;
+        d += txt0 + CrSp(p+"Deg") + "°" + ediv;
+        d += txtu + "&nbsp;" + ediv;
+        d += ediv;
+
+        d += ediv;
+
+        d += "<div style='margin-top:5px; font-size:8px; color:#555;'>"
+          +  "<div style='display:inline-block; transform:rotate(90deg);'>↻" + ediv
+          +  " " + CrSp(p+"Up1") + "/" + CrSp(p+"Up0")
+          +  ediv;
+
+        setTimeout(function() {
+            this._UpdateInfoWindowLabels();
+        }.bind(this), 17);
+
+        return d;
+    };
+    
+    var _SetLbl = function(eln, txt)
+    {
+        var el = document.getElementById(eln);
+        if (el != null) el.innerHTML = txt;
+    };
+    
+    UserLoc.prototype._UpdateInfoWindowLabels = function()
+    {
+        var p = "lblUserLoc";
+        if (document.getElementById(p+"Lat") == null) return;
+        _SetLbl(p+"Lat", this.lat.toFixed(6));
+        _SetLbl(p+"Lon", this.lon.toFixed(6));
+        _SetLbl(p+"XyAcc", this.xyacc.toFixed(0));
+        _SetLbl(p+"Alt", this.alt != null ? this.alt.toFixed(0) : "0");
+        _SetLbl(p+"ZAcc", this.zacc != null ? this.zacc.toFixed(0) : "0");
+        _SetLbl(p+"Speed", this.speed != null ? ((this.speed / 1000.0) / 360.0).toFixed(0) : "0");
+        _SetLbl(p+"Deg", this.deg != null && !isNan(this.deg) ? this.deg.toFixed(0) : "0");
+        _SetLbl(p+"Up1", ""+this.update1);
+        _SetLbl(p+"Up0", ""+this.update0);
+    };
+    
+    UserLoc.prototype._OpenRetainedInfoWindow = function(e, m)
+    {
+        if (this.iw_ref == null) this.iw_ref = new google.maps.InfoWindow({size: new google.maps.Size(60, 40)});
+        else this.iw_ref.close(); 
+        this.iw_ref.setContent(this._GetInfoWindowContentForMarker());
+        this.iw_ref.setPosition(e.latLng);
+        this.iw_ref.open(this.map_ref, m);
+    };
+    
+    UserLoc.prototype._GmapsAttachEventHandler = function()
+    {
+        google.maps.event.addListener(this.marker, "click", function(e) 
+        {
+            this._OpenRetainedInfoWindow(e, this.marker);
+        }.bind(this));
+    };
+    
+    var _GmapsCreateMarker = function(map_ref, url, w, h, lat, lon)
+    {
+        var size = new google.maps.Size(w, h);
+        var anch = new google.maps.Point(w >>> 1, h >>> 1);
+        var icon = { url:url, size:size, anchor:anch };
+
+        icon.scaledSize = new google.maps.Size(w, h);
+
+        var yx = new google.maps.LatLng(lat, lon);
+        var m  = new google.maps.Marker();
+
+        m.setPosition(yx);
+        m.setIcon(icon);
+        m.setZIndex(1<<16);
+        m.setMap(map_ref);
+
+        return m;
+    };
+    
+    UserLoc.prototype.IsEnabled  = function()
+    {
+        return this.w_ref != null && !this.err;
+    };
+
+    UserLoc.prototype._InitMarker = function()
+    {
+        this.marker  = _GmapsCreateMarker(this.map_ref, UserLoc.GmapsIconURL, UserLoc.GmapsIconW, UserLoc.GmapsIconH, this.lat, this.lon);
+        this._GmapsAttachEventHandler();
+        this.lastlat = this.lat;
+        this.lastlon = this.lon;
+    };
+    
+    UserLoc.prototype._RemoveMarker = function()
+    {
+        if (this.marker == null) return;
+
+        google.maps.event.clearInstanceListeners(this.marker);
+        this.marker.setMap(null);
+        this.marker = null;
+    };
+
+    UserLoc.prototype._UpdateMarker = function()
+    {
+        if (this.marker == null)
+        {
+            this._InitMarker();
+            this.update1++;
+        }//if
+        else if (   (_LatToY_z21(this.lastlat) >>> 2) != (_LatToY_z21(this.lat) >>> 2)
+                 || (_LonToX_z21(this.lastlon) >>> 2) != (_LonToX_z21(this.lon) >>> 2))
+        {
+            this.marker.setPosition(new google.maps.LatLng(this.lat, this.lon));
+            this.lastlat = this.lat;
+            this.lastlon = this.lon;            
+            this.update1++;
+        }//else if
+        
+        this.update0++;
+        
+        this._UpdateInfoWindowLabels();
+    };
+
+    UserLoc.prototype._LocCallback = function(p)
+    {
+        this.lat   = p.coords.latitude;
+        this.lon   = p.coords.longitude;
+        this.xyacc = p.coords.accuracy;
+        this.zacc  = p.coords.altitudeAccuracy;
+        this.speed = p.coords.speed;
+        this.alt   = p.coords.altitude;
+        this.last  = p.timestamp;
+        this.err   = false;
+        this.ecode = -1;
+        
+        this._UpdateMarker();
+        
+        if (this.loc_cb != null)
+        {
+            this.loc_cb(p);
+        }//if
+    };
+    
+    UserLoc.prototype._ErrCallback = function(e)
+    {
+        // 0=unknown, 1=access denied by user (or non-HTTPS), 2=position unavailable, 3=timeout
+        console.warn("safemap.js: UserLoc: ERROR(" + e.code + "): " + e.message);
+        this.err   = true;
+        this.ecode = e.code;
+        
+        if (this.err_cb != null)
+        {
+            this.err_cb(e);
+        }//if
+    };
+    
+    UserLoc.prototype.Enable = function()
+    {
+        if (this.w_ref != null || !navigator.geolocation) return;
+        
+        var fxLoc = function(p) { this._LocCallback(p); }.bind(this);
+        var fxErr = function(e) { this._ErrCallback(e); }.bind(this);
+        
+        var opts = 
+        {
+            enableHighAccuracy:true,
+                       timeout:3600*1000,
+                    maximumAge:86400*1000
+        };
+
+        this.w_ref = navigator.geolocation.watchPosition(fxLoc, fxErr, opts);
+    };
+    
+    UserLoc.prototype.Disable = function()
+    {
+        if (this.w_ref != null)
+        {
+            navigator.geolocation.clearWatch(this.w_ref);
+            this.w_ref = null;
+            this.err   = false;
+            this.ecode = -1;
+            this._RemoveMarker();
+        }//if
+    };
+
+    UserLoc.CanUseLoc = function()
+    {
+        return navigator.geolocation && (_use_https || ("MozAppearance" in document.documentElement.style));
+    };
+
+    var _LatToY_z21 = function(lat)
+    {
+        var s = Math.sin(lat * 0.0174532925199);
+        var y = 0.5 - Math.log((1.0 + s) / (1.0 - s)) * 0.0795774715459;
+        return parseInt(y * 536870912.0 + 0.5);
+    };
+
+    var _LonToX_z21 = function(lon)
+    {
+        return parseInt((lon + 180.0) * 0.002777778 * 536870912.0 + 0.5);
+    };
+
+    return UserLoc;
+})();
 
 
 
