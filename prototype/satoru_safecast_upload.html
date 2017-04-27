@@ -1,0 +1,430 @@
+<html>
+<head>
+<meta charset="UTF-8">
+
+<script type="text/javascript">
+
+var _dest_urls = null;
+var _dest_urls_n = 0;
+var _dest_urls_last_p = 0.0;
+var _hist_urls = new Array();
+
+function SetDisabledAllButtons(disabled)
+{
+    document.getElementById("btnApproveLog").disabled = disabled;
+    document.getElementById("btnParseLog").disabled = disabled;
+}
+
+function IsNewUrl(url)
+{
+    var exists = false;
+    
+    for (var i=0; i<_hist_urls.length; i++)
+    {
+        if (_hist_urls[i] == url)
+        {
+            exists = true;
+            break;
+        }//if
+    }//for
+    
+    return !exists;
+}//IsNewUrl
+
+
+function PostAsyncHTTP(url, fxCallback, userData)
+{
+    var req = new XMLHttpRequest();
+    req.open("POST", url, true);
+    req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        
+    var eCB = function(evt) 
+    {
+        document.getElementById("lblOutput").innerHTML += "[Done] " + url + "<br/>";
+        if (fxCallback != null) fxCallback(userData);
+    };
+    
+    req.addEventListener("loadend", eCB, false);    
+    req.send(null);
+}//PostAsyncHTTP
+
+
+
+function ProcessNextLogAfterTimer()
+{
+    if (_dest_urls == null || _dest_urls.length == 0)
+    {
+        document.getElementById("lblMsg").innerHTML += "[INFO] Submit measurements: DONE!<br/>";
+        document.getElementById("btnParseLog").disabled = false;
+    }//if
+    else
+    {
+        var url = _dest_urls.pop();
+        
+        setTimeout(function() {
+            if (_dest_urls_n != 0)
+            {
+                var p = parseFloat(_dest_urls_n - _dest_urls.length) / parseFloat(_dest_urls_n) * 100.0;
+                
+                if (p - _dest_urls_last_p > 1.0)
+                {
+                    document.getElementById("lblMsg").innerHTML += "[INFO] Progress: " 
+                                                                + p.toFixed(2) + "%"
+                                                                + " (" + (_dest_urls_n - _dest_urls.length) + "/" + _dest_urls_n + ")<br/>";
+                    _dest_urls_last_p = p;
+                }//if
+            }//if
+        
+            if (IsNewUrl(url))
+            {
+                _hist_urls.push(url);
+                var cb = function() { ProcessNextLogAfterTimer(); };
+                PostAsyncHTTP(url, cb, null);
+            }//if
+            else
+            {
+                document.getElementById("lblMsg").innerHTML += "[WARN] Not adding dupe URL: [" + url + "].<br/>";
+                ProcessNextLogAfterTimer();
+            }//else
+        }, 5);            
+    }//else
+}//ProcessNextLogAfterTimer
+
+
+function ApproveLog()
+{
+    document.getElementById("lblMsg").innerHTML    = "[INFO] Submitting measurements...<br/>";
+    document.getElementById("lblOutput").innerHTML = "";
+    SetDisabledAllButtons(true);
+
+    if (_dest_urls != null && _dest_urls.length > 0)
+    {
+        setTimeout(function() {
+            ProcessNextLogAfterTimer();
+        }, 100);
+    }//if
+}//ApproveLog
+
+
+    // http://api.safecast.org/measurements.json
+    // ?measurement[device_id]=5
+    // &measurement[unit]=usv
+    // &measurement[value]=0.10
+    // &measurement[latitude]=37.332333
+    // &measurement[longitude]=-122.031219
+    // &api_key=***********
+    // &measurement[captured_at]=2013-02-11T03:14:00Z
+    
+
+function GetFormattedQueryString(lat, lon, alt, dre, dt, api_key, device_id)
+{
+    var d = new Date();
+    d.setTime(dt);
+    
+    // 2015-02-26T19:18:57.000Z      <-- fails if milliseconds are included! not ISO/RFC compliant.
+    // 012345678901234567890123456789
+    
+    var timestr = d.toISOString().substring(0,19) + "Z";
+
+    var url = "http://api.safecast.org/measurements.json"
+            + "?measurement[device_id]=" + device_id
+            + "&measurement[unit]=usv"
+            + "&measurement[value]=" + dre.toFixed(3)
+            + "&measurement[latitude]=" + lat.toFixed(6)
+            + "&measurement[longitude]=" + lon.toFixed(6)
+            + "&measurement[captured_at]=" + timestr
+                        + "&api_key=" + api_key;
+    
+    return url;
+}//GetFormattedQueryString
+
+function ParseLog()
+{
+    var txtFile      = document.getElementById("txtFile");
+    var txtApiKey    = document.getElementById("txtApiKey");
+    var txtDeviceId  = document.getElementById("txtDeviceId");
+    var lblMsg       = document.getElementById("lblMsg");
+    var txtUtcOffset = document.getElementById("txtUtcOffset");
+    
+    lblMsg.innerHTML = "";
+    document.getElementById("lblOutput").innerHTML = "";
+
+    
+    var srclen       = txtFile.value.length;
+    var iDeviceId    = txtDeviceId.value != null && txtDeviceId.value.length > 0 ? parseFloat(txtDeviceId.value) : 0;    
+    var api_key      = txtApiKey.value;
+    var utc_offset   = txtUtcOffset.value != null && txtUtcOffset.value.length > 0 ? parseFloat(txtUtcOffset.value.replace("+","")) : 0.0;
+    
+    if (api_key == null || api_key.length == 0)
+    {
+        lblMsg.innerHTML = "[ERR] You must enter a valid API key.";
+        return;    
+    }//if
+    
+    if (iDeviceId < 1 || iDeviceId > 1000)
+    {
+        lblMsg.innerHTML = "[ERR] You must enter a valid device_id.";
+        return;    
+    }//if
+    
+    if (txtFile.value == null || txtFile.value.length == 0)
+    {
+        lblMsg.innerHTML = "[ERR] You must paste in a log file to continue.";
+        return;    
+    }//if
+    
+    if (utc_offset < -24.0 || utc_offset > 24.0)
+    {
+        lblMsg.innerHTML = "[ERR] Invalid UTC offset; valid range is -24 to 24.";
+        return;
+    }//if
+    
+    if (utc_offset == 0.0 && txtUtcOffset.value != null && txtUtcOffset.value.length > 0)
+    {
+        lblMsg.innerHTML = "[ERR] Possible parsing problem detected for UTC offset.  If you intended to use a value of 0, clear the textbox instead.";
+        return;
+    }
+    
+    utc_offset = 0.0 - utc_offset * 60.0 * 60.0 * 1000.0;
+
+    var SKIP_FIRST_LINE = false;
+    var NUM_COLS        = 4;
+    var ERR_TXT_EOL     = "<br/>";
+    var DEST_TXT_EOL    = "<br/>";
+    
+
+    
+    // Date/Time,Dose equivalent rate (uSv/h),Position,Altitude(m)
+    // 2012-09-04T00:41:07,0.047, ,
+    // 2012-09-04T00:41:17,0.049, ,
+    // 2012-09-04T00:41:27,0.053, ,
+    // 2012-09-04T00:41:37,0.055, ,
+    // 2012-09-04T00:41:47,0.056, ,
+    // 2012-09-04T00:41:57,0.058, ,
+    // 2012-09-04T00:42:07,0.054,36.3168432639511 139.618765423547,80
+        
+    var lines = txtFile.value.split("\n");
+    
+    var ln = lines.length;
+    
+    var lats = new Float64Array(ln);
+    var lons = new Float64Array(ln);
+    var dres = new Float64Array(ln);
+    var alts = new Float64Array(ln);
+    var dts  = new Float64Array(ln);
+    
+    var errtxt = "";
+    
+    var time0 = Date.parse("2011-03-11T00:00:00Z");
+    var     d = new Date();
+    var time1 = d.getTime() + 86400.0 * 1000.0;    
+    
+    var dest_idx = 0;
+    var line;
+    var i,j,empty;
+    var lc;
+    var dest = "";
+    var cols;
+    var sll, arll, slat, slon, sdre, salt, sdt;
+    var fdt, flat, flon, fdre, falt;
+    var badline_n = 0;
+    
+    for (i = (SKIP_FIRST_LINE ? 1 : 0); i < lines.length; i++)
+    {
+        line = lines[i];
+        
+        if (line != null && line.length > 0)
+        {
+            cols = line.split(",");
+            
+            if (cols != null && cols.length == NUM_COLS)
+            {
+                sdt  = cols[0] != null && cols[0].length > 0 ? cols[0] : null;
+                sdre = cols[1] != null && cols[1].length > 0 ? cols[1] : null;
+                sll  = cols[2] != null && cols[2].length > 0 ? cols[2] : null;
+                arll =     sll != null                ? sll.split(" ") : null;
+                slat = arll != null && arll.length == 2 && arll[0] != null && arll[0].length > 0 ? arll[0] : null;
+                slon = arll != null && arll.length == 2 && arll[1] != null && arll[1].length > 0 ? arll[1] : null;
+                salt = cols[3] != null && cols[3].length > 0 ? cols[3] : null;
+                
+                if (sdt != null && sdre != null && slat != null && slon != null && salt != null)
+                {
+                    fdt  = Date.parse(sdt) + utc_offset;
+                    fdre = parseFloat(sdre);
+                    flat = parseFloat(slat);
+                    flon = parseFloat(slon);
+                    falt = parseFloat(salt);
+                    
+                    if (    time0 <=  fdt && fdt  <=  time1
+                        && -500.0 <= falt && falt <= 2000.0
+                        &&  -90.0 <= flat && flat <=   90.0  && flat != 0.0
+                        && -180.0 <= flon && flon <=  180.0  && flon != 0.0
+                        &&   0.01 <= fdre && fdre <=  500.0)
+                    {
+                        lats[dest_idx] = flat;
+                        lons[dest_idx] = flon;
+                        dres[dest_idx] = fdre;
+                        alts[dest_idx] = falt;
+                         dts[dest_idx] = fdt;
+                         
+                        dest_idx++;
+                    }//if
+                    else
+                    {
+                        //if (!(time0 <=  fdt && fdt  <=  time1)) console.log("[%d] 0: %1.4f <= %1.4f && %1.4f <= %1.4f", i, time0, fdt, fdt, time1);
+                        //if (!(-500.0 <= falt && falt <= 2000.0)) console.log("[%d] 1: %1.4f <= %1.4f && %1.4f <= %1.4f", i, -500.0, falt, falt, 2000.0);
+                        //if (!(-90.0 <= flat && flat <=   90.0  && flat != 0.0)) console.log("[%d] 2: %1.4f <= %1.4f && %1.4f <= %1.4f && %1.4f != 0.0", i, -90.0, flat, flat, 90.0, flat);
+                        //if (!(-180.0 <= flon && flon <=  180.0  && flon != 0.0)) console.log("[%d] 3: %1.4f <= %1.4f && %1.4f <= %1.4f && %1.4f != 0.0", i, -180.0, flon, flon, 180.0, flon);
+                        //if (!(0.03 <= fdre && fdre <=  500.0)) console.log("[%d] 4: %1.4f <= %1.4f && %1.4f <= %1.4f", i, 0.03, fdre, fdre, 500.0);
+                    
+                        errtxt += "[WARN] Parser: Line " + i + ": outside of value range(s):"
+                               + (fdt  <  time0 || fdt  >  time1                ? "{ Time: [" + fdt  + "], Valid Range: [" + time0 + " - " + time1 + "] }" + ERR_TXT_EOL : "")
+                               + (falt < -500.0 || falt > 2000.0                ? "{ Alt:  [" + falt + "], Valid Range: [-500.0 - 2000.0] }"               + ERR_TXT_EOL : "")
+                               + (flat <  -90.0 || flat >   90.0 || flat == 0.0 ? "{ Lat:  [" + flat + "], Valid Range: [-90.0 - 90.0, != 0.0] }"          + ERR_TXT_EOL : "")
+                               + (flon < -180.0 || flon >  180.0 || flon == 0.0 ? "{ Lon:  [" + flon + "], Valid Range: [-180.0 - 180.0, != 0.0] }"        + ERR_TXT_EOL : "")
+                               + (fdre <   0.01 || fdre >  500.0                ? "{ DRE:  [" + fdre + "], Valid Range: [0.01 - 500.0] }"                  + ERR_TXT_EOL : "");
+
+                        badline_n++;
+                    }//else
+                }//if
+                else
+                {
+                    errtxt += "[WARN] Parser: Line " + i + ": parsing failed validation, text:[" + (line != null ? line : "<NULL>") + "]" + ERR_TXT_EOL;
+                    badline_n++;
+                }//else
+            }//if
+            else
+            {
+                errtxt += "[WARN] Parser: Line " + i + ": bad column count. Expected: " + NUM_COLS + ", actual: " + (cols == null ? 0 : cols.length) + ERR_TXT_EOL;
+                badline_n++;
+            }//else
+        }//if
+        else
+        {
+            errtxt += "[WARN] Parser: Line " + i + ": blank or null line." + ERR_TXT_EOL;
+            badline_n++;
+        }//else
+    }//for
+    
+    // parsing done
+    
+    if (badline_n > 0 || dest_idx == 0)
+    {
+        lblMsg.innerHTML = "[WARN] The following lines could not be parsed and/or validated.  They will not be included in the output." + ERR_TXT_EOL
+                         + errtxt;
+    }//if
+    
+    var dest_urls = null;
+    
+    if (dest_idx > 0)
+    {
+        dest_urls = new Array(dest_idx);
+    
+        for (i=0; i<dest_idx; i++)
+        {
+            var url = GetFormattedQueryString(lats[i], lons[i], alts[i], dres[i], dts[i], api_key, iDeviceId);
+
+            dest_urls[dest_idx-i-1] = url;
+            
+            dest += url + DEST_TXT_EOL;
+        }//for
+        
+        _dest_urls   = dest_urls;
+        _dest_urls_n = dest_urls.length;
+        
+        document.getElementById("btnApproveLog").disabled = false;
+        document.getElementById("lblOutput").innerHTML    = dest;
+    }//if
+    else
+    {
+        document.getElementById("btnApproveLog").disabled = true;
+        document.getElementById("lblOutput").innerHTML    = "(no output. parsing required.)";
+    }//else
+}
+
+
+</script>
+
+</head>
+
+<body style="width:100%;height:100%;font-family:Helvetica,Arial,sans-serif;font-size:14px;">
+
+<div style="display:block;width:1280;background-color:#EEEEFF;margin:20px 20px 20px 20px;padding:20px 20px 20px 20px;">
+    <span style="display:block;text-align:center;font-weight:bold;">Instructions</span><br/>
+    <ol>
+        <li>Parse Log File<br/>
+            <ol>
+                <li>Enter your API key into the text field labled "API Key".</li>
+                <li>Enter valid <a href="https://api.safecast.org/en-US/devices" target=_blank>device_id</a> that can help identify your sensor later into the field labeled "Device ID". (click on the link if you need to add one)</li>
+                <li>Paste a log file into into the text area below.</li>
+                <li>Click "Parse Log File"</li>
+            </ol>
+        </li>
+        <li>Verify Parsing Results<br/>
+            <ol>
+                <li>"Messages": Review any skipped lines or errors from parsing.  If necessary, fix them and re-parse.</li>
+                <li>"Parsing Results": Verify the planned API URL submissions here appear to be correct.</li>
+            </ol>
+        </li>
+        <li>Submit to Safecast<br/>
+            <ol>
+                <li>After verifying the parsing results, click "Submit to Safecast".</li>
+                <li>The script will then submit each measurement individually, which takes time.</li>
+                <li>Progress updates will be displayed under "Messages."</li>
+            </ol>
+        </li>
+    </ol>
+    <br/>
+    <fieldset>
+    <legend>Test Run (Recommended)</legend>
+    <ul><li>It is recommended to perform a test run with only one measurement first.</li>
+    <li>To see if the test run worked, view all measurements for your user_id, and sort them by ID descending.  (<a href="https://api.safecast.org/en-US/users/26/measurements?order=id+desc" target=_blank>example</a>)</li>
+    <li>You will need to refresh that page to view measurements submitted since it was last opened/refreshed.</li>
+    </ul>
+    </fieldset>
+    <br/>
+    This script will validate all input, and protects against duplicate submissions until the page is reloaded or closed/opened again.<br/>
+    If errors are encountered, it will attempt to recover and continue.<br/>
+    This won't work with old versions of Internet Explorer.  Chrome, Safari or Firefox are recommended.<br/>
+</div>
+<div style="display:block;width:1280;background-color:gainsboro;margin:20px 20px 20px 20px;padding:20px 20px 20px 20px;">
+    <span style="display:block;text-align:center;font-weight:bold;">Log File</span><br/>
+    <textarea id="txtFile" style="width:900;height:256;"></textarea>
+</div>
+<div style="display:block;width:1280;margin:20px 20px 20px 20px;padding:20px 20px 20px 20px;">
+<table border="1" style="border-collapse:collapse;display:block;font-family:Helvetica,Arial,sans-serif;font-size:14px;background-color:#EEFFEE;">
+    <tr>
+        <td align="right">API Key</td>
+        <td><input id="txtApiKey" type="text" placeholder="Enter API key"></td>
+    </tr>
+    <tr>
+        <td align="right">Device ID</td>
+        <td><input id="txtDeviceId" type="text" placeholder="Enter device ID"></td>
+    </tr>
+    <tr>
+        <td align="right">UTC Offset of Log</td>
+        <td><input id="txtUtcOffset" type="text" placeholder="(eg, 9 for JST)"></td>
+    </tr>
+    <td colspan=2 align=center><button id="btnParseLog" onclick="ParseLog(); return false;">Parse Log File</button></td>
+</table>
+</div>
+<div style="display:block;width:1280;height:128px;overflow-y:auto;background-color:#FFCC88;margin:20px 20px 20px 20px;padding:20px 20px 20px 20px;">
+    <span style="display:block;text-align:center;font-weight:bold;">Messages</span><br/>
+    <span id="lblMsg" style="font-size:10px;">(no messages)</span>
+</div>
+<div style="display:block;width:1280;height:128px;overflow-y:auto;overflow-x:auto;background-color:#DDEEFF;margin:20px 20px 20px 20px;padding:20px 20px 20px 20px;">
+    <span style="display:block;text-align:center;font-weight:bold;">Parsing Results</span><br/>
+    <span id="lblOutput" style="font-size:8px;">(Parsing required. You cannot submit measurements until they have been parsed.)</span><br/>
+</div>
+<div style="display:inline;padding:10px 10px 10px 10px;background-color:#FF0000;">
+<button id="btnApproveLog" onclick="ApproveLog(); return false;" disabled>I certify I have reviewed these measurements and they are valid. Submit to Safecast.</button>
+</div>
+<br/><br/><br/><br/><br/>
+<b>Note: Please DO NOT submit data from aircraft flights or measurements of test sources.</b>
+<br/><br/><br/><br/><br/><br/><br/><br/>
+</body>
+</html>
+
+
+
+

@@ -1,0 +1,4410 @@
+<html>
+<head>
+<title>bGeigie Log Parser (Test Version)</title>
+<style type="text/css">
+.bv_btnW
+{
+    font-family: Futura,Futura-Medium,'Futura Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif;
+    color: #000000;
+    font-size: 12px;
+    background: #FFFFFF;
+    padding: 2px 10px 2px 10px;
+    border: solid #000000 1px;
+    text-decoration: none;
+    -webkit-border-radius: 3;
+    -moz-border-radius: 3;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+.bv_btnW:hover
+{
+    background: #EFEFEF;
+    text-decoration: none;
+}
+
+
+
+.bv_hline 
+{
+    overflow: hidden;
+    text-align: center;
+}
+
+.bv_hline:before, .bv_hline:after
+{
+    background-color: #000;
+    content: "";
+    display: inline-block;
+    height: 1px;
+    position: relative;
+    vertical-align: middle;
+    width: 50%;
+}
+
+.bv_hline:before 
+{
+    right: 0.5em;
+    margin-left: -50%;
+}
+
+.bv_hline:after
+{
+    left: 0.5em;
+    margin-right: -50%;
+}
+
+
+
+.bv_FuturaFont
+{
+    font-size: 100%;
+    font-family: Futura,Futura-Medium,'Futura Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif;
+}
+ 
+#map_canvas 
+{
+    position:absolute;
+    top:0;
+    bottom:0;
+    left:0;
+    right:0;
+}
+
+#bv_bvPanel
+{
+    position: absolute;
+    
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    margin: auto;
+
+    padding: 0px 0px 0px 0px;
+    border: 0px solid #999;
+    /*opacity: 1.0;*/
+    font-size: 80%;
+}
+
+.bv_bvPanelVisible
+{
+    visibility: visible;
+    z-index: 5;
+    width: 320px;
+    height: 420px;
+    overflow: visible;
+}
+
+.bv_bvPanelHidden
+{
+    visibility: hidden;
+    z-index: -9000;
+    width: 0px;
+    height: 0px;
+    overflow: hidden;
+}
+
+#bv_transferBar
+{
+    position: absolute;
+    
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    
+    margin: auto;
+    padding:10px 0px 20px 20px;
+    /*padding: 0px 5px 0px 5px;*/
+    /*padding: 0px 0px 0px 0px;*/
+    border: 0px;
+    /*opacity: 1.0;*/
+    background-color: rgba(255, 255, 255, 0.75);
+    font-size: 80%;
+    /*vertical-align: top;*/
+    
+    /*overflow-y: auto;*/
+    /*overflow-x: hidden;*/
+}
+
+.bv_transferBarVisible
+{
+    visibility: visible;
+    z-index: 6;
+    width: 276px;
+    height: 286px;
+    overflow: visible;
+}
+
+.bv_transferBarHidden
+{
+    visibility: hidden;
+    z-index: -9000;
+    width: 0px;
+    height: 0px;
+    overflow: hidden;
+}
+
+#searchbar
+{
+    bottom: 3px;
+    position: absolute;
+    left: 80px;
+    z-index: 2;
+    background-color: rgba(0, 0, 0, 0.0);
+    padding: 1px 5px 0px 0px;
+    border: 0px solid #999;
+    opacity: 1.0;
+}
+</style>
+
+<script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
+
+
+
+<script language = "JavaScript">
+
+google.load("visualization", "1", {packages:["corechart"]});
+
+var _cached_is_mobile = false;
+
+// *************************************************************************************
+// ********************************** GLOBALS ******************************************
+// *************************************************************************************
+var map;
+var _bv_infowindow         = null;
+
+var _bv_map_markers        = new Array();
+//var _bv_map_markers_width  = 19 + (window.devicePixelRatio > 1.5 ? 1 : 0); // was: 19
+//var _bv_map_markers_height = 19 + (window.devicePixelRatio > 1.5 ? 1 : 0); // was: 19
+
+var _bv_map_markers_width  = window.devicePixelRatio > 1.5 ? 20 : 10; // PNG
+var _bv_map_markers_height = window.devicePixelRatio > 1.5 ? 20 : 10; // PNG
+
+
+var _bv_map_markers_output_cache = new Array(); // for blobs only
+
+var _bv_cached_GIF_pal_idx    = -1;
+var _bv_cached_GIF_width      = -1;
+var _bv_cached_GIF_height     = -1;
+var _bv_cached_GIF_header_str = null;
+var _bv_cached_GIF_footer_str = null;
+var _bv_cached_LUT_logidx_u16 = null;
+var _bv_cached_LUT_r_u08      = null;
+var _bv_cached_LUT_g_u08      = null;
+var _bv_cached_LUT_b_u08      = null;
+var _bv_cached_LUT_n          = 0;
+
+var _bv_cached_is_mobile      = bv_IsPlatformMobile();
+
+var _bv_extent_packed         = [9000.0, 9000.0, -9000.0, -9000.0];
+var _bv_extent_last           = [9000.0, 9000.0, -9000.0, -9000.0];
+
+var _bv_render_svg  = -1;
+var _bv_render_blob = -1;
+var _bv_render_png  = -1;
+var _bv_test_no_api = -1;
+var _bv_epsilon_d   = -1.0;
+var _bv_epsilon_m   = -1.0;
+var _bv_decimation  = -1;
+
+var _bv_xfm = null;
+
+
+
+// *************************************************************************************
+// ********************************* NUMERICS ******************************************
+// *************************************************************************************
+
+// returns a combined vector of src0 concatenated with src1, with rpad bytes of trailing padding.
+function bv_gbGIS_vcombinen_u08(src0, src1, rpad)
+{
+    var dest = new Uint8Array(src0.length + src1.length + rpad);
+    
+    dest.set(src0);
+    dest.set(src1, src0.length);
+
+    return dest;
+}//gbGIS_vcombine
+
+// vector shift right by constant
+function bv_gbGIS_vshr_n(dest, destOffset, x, n)
+{
+    var i;
+    var max_i = n - (n % 4);
+    
+    for (i = 0; i < max_i; i+= 4)
+    {
+        dest[i  ] >>>= x;
+        dest[i+1] >>>= x;
+        dest[i+2] >>>= x;
+        dest[i+3] >>>= x;
+    }//for
+    
+    for (i = max_i; i < max_i + n % 4; i++)
+    {
+        dest[i] >>>= x;
+    }//for
+}//gbGIS_vshr_n
+
+// vector shift right by constant
+function bv_gbGIS_vshl_n(dest, destOffset, x, n)
+{
+    var i;
+    var max_i = n - (n % 4);
+    
+    for (i = 0; i < max_i; i+= 4)
+    {
+        dest[i  ] <<= x;
+        dest[i+1] <<= x;
+        dest[i+2] <<= x;
+        dest[i+3] <<= x;
+    }//for
+    
+    for (i = max_i; i < max_i + n % 4; i++)
+    {
+        dest[i] <<= x;
+    }//for
+}//gbGIS_vshl_n
+
+// bitwise AND for two vectors
+function bv_gbGIS_vand(src0, src1, dest, n)
+{
+    var i;
+    var max_i = n - (n % 4);
+    
+    for (i = 0; i < max_i; i+= 4)
+    {
+        dest[i  ] = src0[i  ] & src1[i  ];
+        dest[i+1] = src0[i+1] & src1[i+1];
+        dest[i+2] = src0[i+2] & src1[i+2];
+        dest[i+3] = src0[i+3] & src1[i+3];
+    }//for
+    
+    for (i = max_i; i < max_i + n % 4; i++)
+    {
+        dest[i] = src0[i] & src1[i];
+    }//for
+}//gbGIS_vand
+
+// single-vector generation via linear ramp.
+function bv_gbGIS_vramp(seed, inc, dest, n)
+{
+    var i;
+    var max_i = n - (n % 4);
+    
+    for (i = 0; i < max_i; i+= 4)
+    {
+        dest[i  ] = seed + inc *  i;
+        dest[i+1] = seed + inc * (i + 1);
+        dest[i+2] = seed + inc * (i + 2);
+        dest[i+3] = seed + inc * (i + 3);
+    }//for
+    
+    for (i = max_i; i < max_i + n % 4; i++)
+    {
+        dest[i] = seed + inc * i;
+    }//for
+}//gbGIS_vramp
+
+// vector addition by constant
+function bv_gbGIS_vsadd(src, x, dest, n)
+{
+    var i;
+    var max_i = n - (n % 4);
+    
+    for (i = 0; i < max_i; i+= 4)
+    {
+        dest[i  ] = src[i  ] + x;
+        dest[i+1] = src[i+1] + x;
+        dest[i+2] = src[i+2] + x;
+        dest[i+3] = src[i+3] + x;
+    }//for
+    
+    for (i = max_i; i < max_i + n % 4; i++)
+    {
+        dest[i] = src[i] + x;
+    }//for
+}//gbGIS_vsadd
+
+// vector multiplication by constant
+function bv_gbGIS_vsmul(src, x, dest, n)
+{
+    var i;
+    var max_i = n - (n % 4);
+    
+    for (i = 0; i < max_i; i+= 4)
+    {
+        dest[i  ] = src[i  ] * x;
+        dest[i+1] = src[i+1] * x;
+        dest[i+2] = src[i+2] * x;
+        dest[i+3] = src[i+3] * x;
+    }//for
+    
+    for (i = max_i; i < max_i + n % 4; i++)
+    {
+        dest[i] = src[i] * x;
+    }//for
+}//gbGIS_vsmul
+
+// vector multiply-accumulate by constant
+function bv_gbGIS_vsmsa(src, x, y, dest, n)
+{
+    var i;
+    var max_i = n - (n % 4);
+    
+    for (i = 0; i < max_i; i+= 4)
+    {
+        dest[i  ] = src[i  ] * x + y;
+        dest[i+1] = src[i+1] * x + y;
+        dest[i+2] = src[i+2] * x + y;
+        dest[i+3] = src[i+3] * x + y;
+    }//for
+    
+    for (i = max_i; i < max_i + n % 4; i++)
+    {
+        dest[i] = src[i] * x + y;
+    }//for
+}//gbGIS_vsmsa
+
+// vector clip by constant
+function bv_gbGIS_vclip(src, min, max, dest, n)
+{
+    var i;
+    var max_i = n - (n % 4);
+    
+    for (i = 0; i < max_i; i+= 4)
+    {
+        dest[i  ] = src[i  ] > max ? max : src[i  ] < min ? min : src[i  ];
+        dest[i+1] = src[i+1] > max ? max : src[i+1] < min ? min : src[i+1];
+        dest[i+2] = src[i+2] > max ? max : src[i+2] < min ? min : src[i+2];
+        dest[i+3] = src[i+3] > max ? max : src[i+3] < min ? min : src[i+3];
+    }//for
+    
+    for (i = max_i; i < max_i + n % 4; i++)
+    {
+        dest[i] = src[i] > max ? max : src[i] < min ? min : src[i];
+    }//for
+}//gbGIS_vclip
+
+// vector logarithm, base 10
+function bv_gbGIS_vvlog10f(src, dest, n)
+{
+    if (Math.log10 == null)
+    {
+        bv_gbGIS_vvlog10f_IE_SUCKS(src, dest, n);
+        return;
+    }//if
+
+    var i;
+    var max_i = n - (n % 4);
+    
+    for (i = 0; i < max_i; i+= 4)
+    {
+        dest[i  ] = Math.log10(src[i  ]);
+        dest[i+1] = Math.log10(src[i+1]);
+        dest[i+2] = Math.log10(src[i+2]);
+        dest[i+3] = Math.log10(src[i+3]);
+    }//for
+    
+    for (i = max_i; i < max_i + n % 4; i++)
+    {
+        dest[i] = Math.log10(src[i]);
+    }//for
+}//bv_gbGIS_vvlog10f
+
+function bv_gbGIS_vvlog10f_IE_SUCKS(src, dest, n)
+{
+    //Math.log(val) / Math.LN10;
+    var r = 1.0 / Math.LN10;
+    var i;
+    var max_i = n - (n % 4);
+    
+    for (i = 0; i < max_i; i+= 4)
+    {
+        dest[i  ] = Math.log(src[i  ]) * r;
+        dest[i+1] = Math.log(src[i+1]) * r;
+        dest[i+2] = Math.log(src[i+2]) * r;
+        dest[i+3] = Math.log(src[i+3]) * r;
+    }//for
+    
+    for (i = max_i; i < max_i + n % 4; i++)
+    {
+        dest[i] = Math.log(src[i]) * r;
+    }//for
+}//bv_gbGIS_vvlog10f_IE_SUCKS
+
+// vector indexed table lookup.  idxs are used as indices into src and written to dest.
+function bv_gbGIS_vindex(src, idxs, dest, n)
+{
+    var i;
+    var max_i = n - (n % 4);
+    
+    for (i = 0; i < max_i; i+= 4)
+    {
+        dest[i  ] = src[ parseInt(idxs[i  ]) ];
+        dest[i+1] = src[ parseInt(idxs[i+1]) ];
+        dest[i+2] = src[ parseInt(idxs[i+2]) ];
+        dest[i+3] = src[ parseInt(idxs[i+3]) ];
+    }//for
+    
+    for (i = max_i; i < max_i + n % 4; i++)
+    {
+        dest[i] = src[ parseInt(idxs[i]) ];
+    }//for
+}//gbGIS_vindex
+
+// copies n elements from vector src+srcOffset to vector dest+destOffset, same type only.
+function bv_gbGIS_vcopy(dest, destOffset, src, srcOffset, n)
+{
+    dest.subarray(destOffset, destOffset + n).set( src.subarray(srcOffset, srcOffset + n) );
+}//gbGIS_vcopy
+
+// copies n elements from vector src+srcOffset to vector dest+destOffset, converts between types.
+function bv_gbGIS_vcopy_convert(dest, destOffset, src, srcOffset, n)
+{
+    for (var i = 0; i < n; i++)
+    {
+        dest[destOffset + i] = src[srcOffset + i];
+    }//for
+}//gbGIS_vcopy_convert
+
+// vector fill with constant
+function bv_gbGIS_vfill(x, dest, destOffset, n)
+{
+    var i;
+    var max_i = (destOffset + n) - ((destOffset + n) % 4);
+    
+    for (i = destOffset; i < max_i; i+= 4)
+    {
+        dest[i  ] = x;
+        dest[i+1] = x;
+        dest[i+2] = x;
+        dest[i+3] = x;
+    }//for
+    
+    for (i = max_i; i < max_i + n % 4; i++)
+    {
+        dest[i] = x;
+    }//for
+}//gbGIS_vfill
+
+// scalar mean of vector
+function bv_gbGIS_meanv(src, srcOffset, n)
+{
+    var mean = 0.0;
+    
+    for (var i= srcOffset; i < srcOffset+n; i++)
+    {
+        mean += src[i];    
+    }//for
+    
+    return mean / n;
+}//gbGIS_meanv
+
+// returns new "binary" string literal representation of uint8_t* vector
+//      - blocked to avoid stack overflows with string.fromcharcode.apply if needed
+function bv_gbGIS_GetBinaryString_ForTypedArray_u08(src)
+{
+    var dest = null;
+    
+    if (src.length > 65536)
+    {
+        var blockSize   = 8192;    // L1 cache blocking(?)
+        var block_n     = src.length / blockSize;
+        var dest        = '';
+        
+        for (var i=0; i<blockSize*block_n; i+=blockSize)
+        {
+            dest += String.fromCharCode.apply(null, src.subarray(i, i+blockSize));
+        }//for
+        
+        // last block (if present)
+        if (src.length % blockSize != 0)
+        {
+            dest += String.fromCharCode.apply(null, src.subarray(block_n*blockSize, src.length));
+        }//if
+    }//if
+    else
+    {
+        dest = String.fromCharCode.apply(null, src);
+    }//else
+    
+    return dest;
+}//gbGIS_GetBinaryString_ForTypedArray_u08
+
+function bv_gbGIS_GetTypedArray_ForBase64String_u08(src)
+{
+    return new Uint8Array(window.atob(src).split("").map(function(c) { return c.charCodeAt(0); }) );
+}//gbGIS_GetTypedArray_ForBase64String_u08
+
+
+function bv_gbGIS_RoundToD(x, d)
+{
+    return Math.round(x * Math.pow(10.0, d)) / Math.pow(10.0, d);
+}//gbGIS_RoundToD
+
+function bv_gbGIS_DEG2RAD(x)
+{
+    return x * Math.PI / 180.0;
+}//gbGIS_DEG2RAD
+
+function bv_gbGIS_RAD2DEG(x)
+{
+    return x * 180.0 / Math.PI;
+}//gbGIS_RAD2DEG
+
+function bv_gbGIS_GetBearing_EPSG4326(lat0, lon0, lat1, lon1) 
+{
+    var dx = bv_gbGIS_DEG2RAD(lon1 - lon0);
+    var r0 = bv_gbGIS_DEG2RAD(lat0);
+    var r1 = bv_gbGIS_DEG2RAD(lat1);
+    
+    var y = Math.sin(dx) * Math.cos(r1);
+    
+    var x = Math.cos(r0) * Math.sin(r1) 
+          - Math.sin(r0) * Math.cos(r1) * Math.cos(dx);
+          
+    var t = Math.atan2(y, x);
+    
+    return (bv_gbGIS_RAD2DEG(t) + 360.0) % 360;
+}//gbGIS_GetBearing_EPSG4326
+
+function bv_gbGIS_GetHexStringForRGB888(r, g, b)
+{
+    return "#" + (r < 0x10 ? "0" : "") + r.toString(16)
+               + (g < 0x10 ? "0" : "") + g.toString(16)
+               + (b < 0x10 ? "0" : "") + b.toString(16);
+}//gbGIS_GetHexStringForRGB888
+
+function bv_gbGIS_pythag(x0, y0, x1, y1)
+{
+    x0 = x0 - x1;
+    y0 = y0 - y1;
+    x0 = x0 * x0;
+    x0 = x0 + y0 * y0;  // do you even FMA, bro?
+    x0 = x0 * x0;
+    
+    return Math.sqrt(x0);
+}//gbGIS_pythag
+
+function bv_gbGIS_PointDistanceMeters_EPSG4326(lat0, lon0, lat1, lon1) 
+{
+    // not really, this is for a sphere, not an ellipsoid
+    
+    var r  = 6371.0; // earth
+    var p0 = bv_gbGIS_DEG2RAD(lat0);
+    var L0 = bv_gbGIS_DEG2RAD(lon0);
+    var p1 = bv_gbGIS_DEG2RAD(lat1);
+    var L1 = bv_gbGIS_DEG2RAD(lon1);
+    var dp = p1 - p0;
+    var dL = L1 - L0;
+    
+    var a = Math.sin(dp * 0.5) * Math.sin(dp * 0.5)
+          + Math.cos(p0)       * Math.cos(p1)
+          * Math.sin(dL * 0.5) * Math.sin(dL * 0.5);
+    var c = 2.0 * Math.atan2(Math.sqrt(a), Math.sqrt(1.0 - a));
+    var d = r * c;
+    
+    d = d * 1000.0; // km --> m
+    
+    return d;
+}//gbGIS_PointDistanceMeters_EPSG4326
+
+function bv_gbGIS_LatLonToXYZ_EPSG3857(lat, lon, z)
+{
+    //var x = (lon + 180.0) / 360.0;
+    var x = (lon + 180.0) * 0.002777778;
+    //var s = Math.sin(lat * Math.PI / 180.0);
+    //var s = Math.sin(lat * Math.PI * 0.005555556);
+    
+    var s = Math.sin(lat * 0.0174532925199);
+    
+    // 0.01745329251994329576923690768489
+    
+    //var y = 0.5 - Math.log((1.0 + s) / (1.0 - s)) / (4.0 * Math.PI);
+    
+    var y = 0.5 - Math.log((1.0 + s) / (1.0 - s)) * 0.0795774715459;
+    
+    
+
+    var w = 256 << z;
+            
+    var px = parseInt(x * w + 0.5);
+    var py = parseInt(y * w + 0.5);
+            
+    return [px, py];
+}//gbGIS_LatLonToXYZ_EPSG3857
+    
+function bv_gbGIS_MetersForLatPxZ_EPSG3857(lat,px,z)
+{
+    return (Math.cos(lat*Math.PI/180.0)*2.0*Math.PI*6378137.0/(256.0*Math.pow(2.0,z)))*px;
+}//gbGIS_MetersForLatPxZ_EPSG3857
+
+
+// Returns array of google.maps.LatLng centroid and integer zoom level that fully contains the input extent.
+// This can be used with map.setCenter() and map.setZoom() set to the visible region.
+// All x/y params are in EPSG:4326 latitude and longitude.
+// vw/vh are the client view size in pixels.
+//
+function bv_gbGIS_GetRegionForExtentAndScreenSize_EPSG3857(x_min, y_min, x_max, y_max, vw, vh)
+{
+    var yx0 = new google.maps.LatLng(y_min + (y_max - y_min) * 0.5,
+                                     x_min + (x_max - x_min) * 0.5); // centroid
+
+    var dest_z = 3;
+                
+    // brute force approach.
+                
+    for (var z = 20; z >= 0; z--)
+    {
+        var merc_xy0 = bv_gbGIS_LatLonToXYZ_EPSG3857(y_min, x_min, z);
+        var merc_xy1 = bv_gbGIS_LatLonToXYZ_EPSG3857(y_max, x_max, z);
+                    
+        if (   Math.abs(merc_xy1[0] - merc_xy0[0])  < vw
+            && Math.abs(merc_xy1[1] - merc_xy0[1])  < vh)
+        {
+            dest_z = z;
+            break;
+        }//if
+    }//for
+    
+    // try not to show the world repeating on the x-axis if possible
+    // seems to slow down drawing when lots of markers(?)
+    if (256 << dest_z < vw)
+    {
+        dest_z++;
+    }//if
+    
+    return [yx0, dest_z];
+}//bv_gbGIS_GetRegionForExtentAndScreenSize_EPSG3857
+
+
+
+
+
+
+// *********************************************************************************
+// ****************************** MISC HELPERS *************************************
+// *********************************************************************************
+
+/*
+var oReq = new XMLHttpRequest();
+
+oReq.addEventListener("progress", updateProgress, false);
+oReq.addEventListener("load", transferComplete, false);
+oReq.addEventListener("error", transferFailed, false);
+oReq.addEventListener("abort", transferCanceled, false);
+
+oReq.open();
+
+// ...
+
+// progress on transfers from the server to the client (downloads)
+function updateProgress (oEvent) {
+  if (oEvent.lengthComputable) {
+    var percentComplete = oEvent.loaded / oEvent.total;
+    // ...
+  } else {
+    // Unable to compute progress information since the total size is unknown
+  }
+}
+
+function transferComplete(evt) {
+  alert("The transfer is complete.");
+}
+
+function transferFailed(evt) {
+  alert("An error occurred while transferring the file.");
+}
+
+function transferCanceled(evt) {
+  alert("The transfer has been canceled by the user.");
+}
+*/
+
+
+
+// readyState:
+// 0 Unsent
+// 1 Opened
+// 2 Headers Received
+// 3 Loading
+// 4 Done
+
+// status, statusText -- use statusText for error?
+// ontimeout = function
+
+
+// ==============
+// GetAsync_HTTP2
+// ==============
+//
+// Variant of GetAsyncHTTP with events for connection status and failure.
+//
+// Callback:
+//           fxCallback(response, userData, readyState, status, statusText, contentLength);
+//
+// Where:
+//        response: nullable string *OR* event object.
+//                  This is the response body or requested header. To determine
+//                  download status, evaluate the length.
+//        userData: [any]
+//                  Optional parameter supplied in userData, passthrough.
+//      readyState: int
+//                  Enumerated status code: 0: Unsent
+//                                          1: Opened
+//                                          2: Headers Received
+//                                          3: Loading
+//                                          4: Done
+//          status: int
+//                  HTTP status code.  Success should generally be tested for
+//                  as testing equality to 200.
+//
+//      statusText: nullable string
+//                  HTTP status code and meaning.  Useful for error messages.
+//   contentLength: int
+//                  Number of bytes reported by server in HTTP header Content-Length.
+//                  Use to show relative download progress.  Not supported by most servers.
+//
+//
+// Note: Other status and connection events in addition to the above readyStates will be sent.
+// ----
+//
+// Timeouts: fxCallback(null, userData, -1, -1, "Timeout",  -1);    // connection timed out.
+// Progress: fxCallback(evt,  userData, -2, -2, "Progress", -2);    // progress of transfer.
+// Load:     fxCallback(evt,  userData, -3, -3, "Load",     -3);    // success - request was loaded.
+// Error:    fxCallback(evt,  userData, -4, -4, "Error",    -4);    // error of some kind.
+// Abort:    fxCallback(evt,  userData, -5, -5, "Abort",    -5);    // canceled
+// LoadEnd:  fxCallback(evt,  userData, -6, -6, "Load End", -6);    // done; unknown if success or error.
+//
+// To determine progress from the listener callback:
+//
+//  if (oEvent.lengthComputable) {
+//      var percentComplete = oEvent.loaded / oEvent.total;
+//  } 
+/*
+function bv_GetAsync_HTTP2(url, responseType, responseHeader, fxCallback, userData)
+{
+    var contentLength = 0;
+    var req           = new XMLHttpRequest();
+    
+    var pCB = function(evt)
+    {
+        if (evt.lengthComputable)
+        {
+            contentLength = evt.total;
+        }//if
+        
+        fxCallback(evt, userData, -2, -2, "Progress", -2);
+    }.bind(this);
+    
+    var lCB = function(evt)
+    {
+        fxCallback(evt, userData, -3, -3, "Load", -3);
+    }.bind(this);
+    
+    var eCB = function(evt)
+    {
+        fxCallback(evt, userData, -4, -4, "Error", -4);
+    }.bind(this);
+    
+    var aCB = function(evt)
+    {
+        fxCallback(evt, userData, -5, -5, "Abort", -5);
+    }.bind(this);
+    
+    var fCB = function(evt)
+    {
+        fxCallback(evt, userData, -6, -6, "Load End", -6);
+    }.bind(this);
+    
+    req.addEventListener("progress", pCB, false);
+    req.addEventListener("load",     lCB, false);
+    req.addEventListener("error",    eCB, false);
+    req.addEventListener("abort",    aCB, false);
+    req.addEventListener("loadEnd",  fCB, false);
+    
+    
+    req.open("GET", url, true);
+    
+    if (responseType != null)
+    {
+        if (responseType == "text\/plain; charset=x-user-defined")
+        {
+            req.overrideMimeType(responseType);
+        }//if
+        else
+        {
+            req.responseType = responseType;    //"arraybuffer", "blob", "document", "json", and "text"        
+        }//else
+    }//if
+        
+    req.onreadystatechange = function () // why was this ==== ?
+    {
+        // **** ready state 0: unsent ****
+        
+        if (req.readyState === 1)
+        {
+            fxCallback(null, userData, req.readyState, req.status, req.statusText, contentLength);
+        }//if
+        
+        if (req.readyState === 2)
+        {
+            //var hdr = req.getResponseHeader("Content-Length"); // will fail unless configured on server.  may not be able to request it like this even then.  see: req.getAllResponseHeaders()
+            
+            //if (hdr != null && hdr.length > 0)
+            //{
+            //    contentLength = parseInt(hdr);
+            //}//if
+            
+            fxCallback(responseHeader != null ? req.getResponseHeader(responseHeader) : null, userData, req.readyState, req.status, req.statusText, contentLength);
+        }//if
+        
+        if (req.readyState === 3)
+        {
+            fxCallback(req.response, userData, req.readyState, req.status, req.statusText, contentLength);
+        }//if
+        
+        if (req.readyState === 4)
+        {
+            if (responseHeader != null)
+            {
+                fxCallback(req.getResponseHeader(responseHeader), userData, req.readyState, req.status, req.statusText, contentLength);
+            }//if
+            else
+            {
+                fxCallback(req.response, userData, req.readyState, req.status, req.statusText, contentLength);
+            }//else
+        }//if
+    };
+    
+    req.ontimeout = function()
+    {
+        fxCallback(null, userData, -1, -1, "Timeout", -1);
+    };
+        
+    req.send(null);
+}//bv_GetAsync_HTTP2
+*/
+
+/*
+function bv_GetAsync_HTTP(url, responseType, responseHeader, fxCallback, userData)
+{
+    var req = new XMLHttpRequest();
+    req.open("GET", url, true);
+    
+    if (responseType != null)
+    {
+        if (responseType == "text\/plain; charset=x-user-defined")
+        {
+            req.overrideMimeType(responseType);
+        }//if
+        else
+        {
+            req.responseType = responseType;    //"arraybuffer", "blob", "document", "json", and "text"        
+        }//else
+    }//if
+        
+    req.onreadystatechange = function () // why was this ==== ?
+    {
+        if (req.readyState === 4 && req.status == 200 && req.response != null)
+        {
+            if (responseHeader != null)
+            {
+                fxCallback(req.getResponseHeader(responseHeader), userData);
+            }//if
+            else
+            {
+                fxCallback(req.response, userData);
+            }//else
+        }//if
+    };
+        
+    req.send(null);
+}//bv_GetAsync_HTTP
+*/
+
+// returns value of querystring parameter "name"
+function bv_GetParam(name) 
+{
+    name        = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+    var regexS  = "[\\?&]" + name + "=([^&#]*)";
+    var regex   = new RegExp(regexS);
+    var results = regex.exec(window.location.href);
+    
+    return results == null ? "" : results[1];
+}//bv_GetParam
+
+
+// http://stackoverflow.com/questions/11381673/detecting-a-mobile-browser
+// returns true if useragent is detected as being a mobile platform, or "mobile=1" is set in querystring.
+function bv_IsPlatformMobile()
+{
+    var check   = false;
+    var ovr_str = bv_GetParam("mobile");
+    
+    if (ovr_str != null && ovr_str.length > 0)
+    {
+        check = parseInt(ovr_str) == 1;
+    }//if
+    else
+    {
+        (function(a,b){if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(a)||/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte|android|ipad|playbook|silk\-/i.test(a.substr(0,4)))check = true})(navigator.userAgent||navigator.vendor||window.opera);
+    
+        if (!check) check = navigator.userAgent.match(/iPad/i);
+        if (!check) check = navigator.userAgent.match(/Android/i);
+        if (!check) check = window.navigator.userAgent.indexOf("iPad") > 0;
+        if (!check) check = window.navigator.userAgent.indexOf("Android") > 0;
+    }//else
+    
+    return check;
+}//bv_IsPlatformMobile
+
+
+function bv_GetClientViewSize()
+{
+    var _w = window,
+        _d = document,
+        _e = _d.documentElement,
+        _g = _d.getElementsByTagName('body')[0],
+        vw = _w.innerWidth || _e.clientWidth || _g.clientWidth,
+        vh = _w.innerHeight|| _e.clientHeight|| _g.clientHeight;
+        
+    return [vw, vh];
+}//bv_GetClientViewSize
+
+
+
+
+// ******************************************************************************************************
+// ****************************** DRAWING - GEOMETRY, 2D, LOW-LEVEL *************************************
+// ******************************************************************************************************
+
+//http://stackoverflow.com/questions/1201200/fast-algorithm-for-drawing-filled-circles
+function bv_FillCircle(dest, width, height, offset_x, offset_y, radius, fill)
+{
+    var r  = radius;
+    var ox = offset_x;
+    var oy = offset_y;    
+    var x;
+
+    for (var y=-r; y<=r; y++)
+    {
+        for (x=-r; x<=r; x++)
+        {
+            if (x*x+y*y <= r*r + 0.8 * r)
+                dest[(y+oy)*width+x+ox] = fill;
+        }//for
+    }//for
+}//bv_FillCircle
+
+function bv_FillCircle3(dest, width, height, offset_x, offset_y, radius, fill)
+{
+    var r  = parseFloat(radius);
+    var ox = parseFloat(offset_x);
+    var oy = parseFloat(offset_y);
+    var x  = 0.0;
+    var rc = r * r + 0.8 * r;
+
+    for (var y=-r; y<=r; y++)
+    {
+        for (x=-r; x<=r; x++)
+        {
+            if (x*x+y*y <= rc)
+                dest[(y+oy)*width+x+ox] = fill;
+        }//for
+    }//for
+}//bv_FillCircle3
+
+
+// oddly, produces terrible output compared to the fast approximation.
+/*
+function FillCircle2(dest, width, height, offset_x, offset_y, radius, fill)
+{
+    var x;
+
+    for (var y = 0-radius; y <= radius; y++)
+    {
+        for (x = 0-radius; x <= radius; x++)
+        {
+            if (Math.sqrt(x * x + y * y) <= radius)
+            {
+                dest[(y+offset_y)*width+x+offset_x] = fill;
+            }//if
+        }//for
+    }//for
+}//FillCircle2
+*/
+
+
+function bv_DrawLineToBearing(dest, width, height, offset_x, offset_y, degrees, length, length_factor, fill)
+{
+    degrees -= 90.0; // not sure why this is needed -- assume bearing calc is fine(?) maybe related to upper-left 0, 0 raster origin?
+
+    var dx = Math.cos(bv_gbGIS_DEG2RAD(degrees)) * parseFloat(length * length_factor);
+    var dy = Math.sin(bv_gbGIS_DEG2RAD(degrees)) * parseFloat(length * length_factor);
+    
+    var x = offset_x + dx;
+    var y = offset_y + dy;
+        
+    x = Math.round(x);
+    y = Math.round(y);
+    
+    bv_EVGALine(offset_x, offset_y, x, y, dest, width, height, fill);
+}//DrawLineToBearing
+
+
+// instead of drawing from offset to edge, this draws from the edge to the offset.
+function bv_DrawLineToBearingReversed(dest, width, height, offset_x, offset_y, degrees, length, length_factor, fill)
+{
+    degrees -= 90.0; // not sure why this is needed -- assume bearing calc is fine(?) maybe related to upper-left 0, 0 raster origin?
+
+    var dx = Math.cos(bv_gbGIS_DEG2RAD(degrees)) * parseFloat(length);
+    var dy = Math.sin(bv_gbGIS_DEG2RAD(degrees)) * parseFloat(length);
+    
+    var x = offset_x + dx;
+    var y = offset_y + dy;
+            
+    // x, y are the outer endpoint, but now work backwards to find start point.
+    
+    var inv_deg = degrees - 180.0;
+    
+    var idx = Math.cos(bv_gbGIS_DEG2RAD(inv_deg)) * parseFloat(length * length_factor);
+    var idy = Math.sin(bv_gbGIS_DEG2RAD(inv_deg)) * parseFloat(length * length_factor);
+
+    var ix = x + idx;
+    var iy = y + idy;
+    
+    ix = ix < 0 ? 0 : ix > width  - 1 ? width  - 1 : ix;
+    iy = iy < 0 ? 0 : iy > height - 1 ? height - 1 : iy;
+    
+    x = x < 0 ? 0 : x > width  - 1 ? width  - 1 : x;
+    y = y < 0 ? 0 : y > height - 1 ? height - 1 : y;
+    
+    ix = Math.round(ix);
+    iy = Math.round(iy);
+    x  = Math.round(x);
+    y  = Math.round(y);
+
+    
+    bv_EVGALine(x, y, ix, iy, dest, width, height, fill);
+}//DrawLineToBearingReversed
+
+
+
+
+// this doesn't seem to handle all the cases Abrash's "EVGALine" does
+// and will sometimes fail.
+/*
+function DrawLine2(dest, width, height, x0, y0, x1, y1, fill)
+{
+    var dx  =  Math.abs(x1 - x0);
+    var dy  =  Math.abs(y1 - y0);
+    var sx  =  x0 < x1 ? 1 : -1;
+    var sy  =  y0 < y1 ? 1 : -1;
+    var err = (dx > dy ? dx : -dy) / 2;
+    var e2;
+ 
+    while (true) 
+    {
+        dest[y0 * width + x0] = fill;
+        if (x0 === x1 && y0 === y1) break;
+        e2 = err;
+        if (e2 > -dx) { err -= dy; x0  += sx; }//if
+        if (e2 <  dy) { err += dx; y0  += sy; }//if
+    }//while
+}//DrawLine2
+*/
+
+
+
+//unsigned int X0, Y0;          /* coordinates of start of the line */
+//unsigned int DeltaX, DeltaY;  /* length of the line (both > 0) */
+//int XDirection;               /* 1 if line is drawn left to right,
+//                                 -1 if drawn right to left */
+function bv_Octant0(X0, Y0, DeltaX, DeltaY, XDirection, dest, width, height, fill)
+{
+    var DeltaYx2              = DeltaY * 2;
+    var DeltaYx2MinusDeltaXx2 = DeltaYx2 - parseInt(DeltaX * 2);
+    var ErrorTerm             = DeltaYx2 - parseInt(DeltaX);
+
+    dest[Y0 * width + X0] = fill;
+      
+    while (DeltaX-- != 0)
+    {
+        if (ErrorTerm >= 0)
+        {
+            Y0++;
+            ErrorTerm += DeltaYx2MinusDeltaXx2;
+        }//if
+        else 
+        {
+            ErrorTerm += DeltaYx2;
+        }//else
+      
+        X0 += XDirection;
+      
+        dest[Y0 * width + X0] = fill;
+   }//while
+}//bv_Octant0
+
+/*
+ * Draws a line in octant 1 or 2 ( |DeltaX| < DeltaY ).
+ */
+//unsigned int X0, Y0;          /* coordinates of start of the line */
+//unsigned int DeltaX, DeltaY;  /* length of the line (both > 0) */
+//int XDirection;               /* 1 if line is drawn left to right,
+//                                 -1 if drawn right to left */
+function bv_Octant1(X0, Y0, DeltaX, DeltaY, XDirection, dest, width, height, fill)
+{
+    var DeltaXx2              = DeltaX * 2;
+    var DeltaXx2MinusDeltaYx2 = DeltaXx2 - parseInt(DeltaY * 2);
+    var ErrorTerm             = DeltaXx2 - parseInt(DeltaY);
+
+    dest[Y0 * width + X0] = fill;
+   
+    while (DeltaY-- != 0)
+    {
+        if (ErrorTerm >= 0)
+        {
+            X0        += XDirection;
+            ErrorTerm += DeltaXx2MinusDeltaYx2;
+        }//if
+        else 
+        {
+            ErrorTerm += DeltaXx2;
+        }//else
+      
+        Y0++;
+      
+        dest[Y0 * width + X0] = fill;
+    }//while
+}//bv_Octant1
+
+/*
+ * Draws a line on the EGA or VGA.
+ */
+//int X0, Y0;    /* coordinates of one end of the line */
+//int X1, Y1;    /* coordinates of the other end of the line */
+//char Color;    /* color to draw line in */
+// Adapted from the Graphics Programming Black Book by Michael Abrash
+// http://www.gamedev.net/page/resources/_/technical/graphics-programming-and-theory/graphics-programming-black-book-r1698
+//
+function bv_EVGALine(X0, Y0, X1, Y1, dest, width, height, fill)
+{
+    X0 = parseInt(X0);
+    Y0 = parseInt(Y0);
+    X1 = parseInt(X1);
+    Y1 = parseInt(Y1);
+
+    if (Y0 > Y1)
+    {
+        var TT = Y0;
+        Y0     = Y1;
+        Y1     = TT;
+        TT     = X0;
+        X0     = X1;
+        X1     = TT;
+    }//if
+
+    var DeltaX = X1 - X0;
+    var DeltaY = Y1 - Y0;
+   
+    if (DeltaX > 0)
+    {
+        if (DeltaX > DeltaY)
+        {
+            bv_Octant0(X0, Y0, DeltaX, DeltaY, 1, dest, width, height, fill);
+        }//if
+        else
+        {
+            bv_Octant1(X0, Y0, DeltaX, DeltaY, 1, dest, width, height, fill);
+        }//else
+    }//if
+    else 
+    {
+        DeltaX = -DeltaX;
+        
+        if (DeltaX > DeltaY)
+        {
+            bv_Octant0(X0, Y0, DeltaX, DeltaY, -1, dest, width, height, fill);
+        }//if
+        else 
+        {
+            bv_Octant1(X0, Y0, DeltaX, DeltaY, -1, dest, width, height, fill);
+        }//else
+    }//else
+}//bv_EVGALine
+
+
+
+
+
+
+
+
+
+
+
+// *************************************************************************************
+// ****************************** LUT - TRANSFORMS *************************************
+// *************************************************************************************
+
+// Discretizes a LUT, reducing the number of colors in the palette.
+// This should be done before resampling the LUT or applying a logarithimic
+// transform.
+function bv_gbGIS_LUT_Discretize(r, g, b, steps, n)
+{
+    var minVal = 0;
+    var maxVal = n;
+    var curStart = minVal;
+    var stride = n/steps;
+    if (stride < 1) stride = 1;
+    var curEnd = curStart + stride <= maxVal ? curStart + stride : maxVal;
+    
+    var f_mean;
+    
+    while (curStart <= maxVal)
+    {
+        f_mean = bv_gbGIS_meanv(r, curStart, curEnd - curStart);
+        bv_gbGIS_vfill(f_mean, r, curStart, curEnd - curStart);
+        
+        f_mean = bv_gbGIS_meanv(g, curStart, curEnd - curStart);
+        bv_gbGIS_vfill(f_mean, g, curStart, curEnd - curStart);
+
+        f_mean = bv_gbGIS_meanv(b, curStart, curEnd - curStart);
+        bv_gbGIS_vfill(f_mean, b, curStart, curEnd - curStart);
+
+        curStart += stride;
+        curEnd   = curStart + stride <= maxVal ? curStart + stride : maxVal;
+    }//while
+}//bv_gbGIS_LUT_Discretize
+
+// Resamples a LUT to have more colors, using nearest-neighbor interpolation.
+// NN is suitable for discretized palettes.
+// This should be done after discretization, but before logarithmic transformation.
+function bv_gbGIS_LUT_Resample_NN(r, g, b, n, dest_n, dest_r, dest_g, dest_b)
+{
+    var stride = dest_n / n;
+    var vOffset;
+    
+    for (var i=0; i<n; i++)
+    {
+        vOffset = i * stride;
+        
+        bv_gbGIS_vfill(r[i], dest_r, vOffset, stride);
+        bv_gbGIS_vfill(g[i], dest_g, vOffset, stride);
+        bv_gbGIS_vfill(b[i], dest_b, vOffset, stride);
+    }//for
+}//bv_gbGIS_LUT_Resample_NN
+
+// This fills an intermediate vector of indices used for a logarithmic
+// transformation of the LUT.  The transform itself should be the final
+// step in creating the LUT.
+function bv_gbGIS_LUT_CreateLog10Idxs(dest, n)
+{
+    var lins         = new Float32Array(n);
+    var tmps         = new Float32Array(n);
+    var imax         = parseFloat(n) - 1.0;
+    var kLog         = 9.0;                     // base of logarithm - 1.0, for offsetting the "log1pf" added to handle 0 correctly.
+    var logPasses    = 4;
+    var rcip         = 1.0 / imax;
+    
+    bv_gbGIS_vramp(   0.0,  1.0,        lins, n);
+    bv_gbGIS_vsmul(   lins, rcip,       dest, n);
+    bv_gbGIS_vsmsa(   dest, kLog, 1.0,  dest, n);
+    bv_gbGIS_vvlog10f(dest, dest,             n);
+    bv_gbGIS_vsmul(   dest, imax,       dest, n);
+    
+    bv_gbGIS_vindex(  dest, lins,       tmps, n);
+    
+    for (var i = 0; i < logPasses - 1; i++)       // -1 as first pass is done above out of place of this loop
+    {
+        bv_gbGIS_vindex(dest, tmps, tmps, n);
+    }//for
+    
+    bv_gbGIS_vcopy(dest, 0, tmps, 0, n);
+    
+    lins = null;
+    tmps = null;
+}//bv_gbGIS_LUT_CreateLog10Idxs
+
+// Transforms a normal linear RGB LUT to a logarithmically scaled one, using
+// logidxs from gbGIS_LUT_CreateLog10Idxs.  This should be done after all other
+// modifications to the LUT.
+function bv_gbGIS_LUT_IndexedTransform(rs, gs, bs, logidxs, logr, logg, logb, n)
+{
+    bv_gbGIS_vindex(rs, logidxs, logr, n);
+    bv_gbGIS_vindex(gs, logidxs, logg, n);
+    bv_gbGIS_vindex(bs, logidxs, logb, n);
+}//bv_gbGIS_LUT_IndexedTransform
+
+
+
+
+
+
+// *************************************************************************************
+// **************************** LUT - APPLY TO DATA ************************************
+// *************************************************************************************
+
+// "normal" case but not used in this implementation.  outputs planar R/G/B data.
+function bv_gbGIS_LUT_ApplyToVector(src, n, lut_r, lut_g, lut_b, lut_n, lut_min, lut_max, dest_r, dest_g, dest_b)
+{
+    var clipmax = parseFloat(lut_n) - 1.0;
+    var clipmin = 0.0;
+    var negMin  = 0.0 - lut_min;                 // negate for vsadd (no vssub)
+    var mul     = clipmax / (lut_max - lut_min); // tricksy but saves an op
+
+    // 1. Normalize to [0...1] -> [0...n] and clip
+    if (lut_min != 0.0)
+    {
+        bv_gbGIS_vsadd(src, negMin, src, n);
+    }//if
+        
+    bv_gbGIS_vsmul(src, mul,  src,  n);
+    bv_gbGIS_vclip(src, clipmin, clipmax, src, n);
+
+    // 2. indexed color lookup
+    bv_gbGIS_vindex(lut_r, src, dest_r, n);
+    bv_gbGIS_vindex(lut_g, src, dest_g, n);
+    bv_gbGIS_vindex(lut_b, src, dest_b, n);
+}//bv_gbGIS_LUT_ApplyToVector
+
+// spin-off for indexed color GIF support.
+function bv_gbGIS_LUT_ApplyToVector_Mono(src, n, lut_luma, lut_n, lut_min, lut_max, dest_luma)
+{
+    var clipmax = parseFloat(lut_n) - 1.0;
+    var clipmin = 0.0;
+    var negMin  = 0.0 - lut_min;                 // negate for vsadd (no vssub)
+    var mul     = clipmax / (lut_max - lut_min); // tricksy but saves an op
+
+    // 1. Normalize to [0...1] -> [0...n] and clip
+    if (lut_min != 0.0)
+    {
+        bv_gbGIS_vsadd(src, negMin, src, n);
+    }//if
+        
+    bv_gbGIS_vsmul(src, mul,  src,  n);
+    bv_gbGIS_vclip(src, clipmin, clipmax, src, n);
+
+    // 2. indexed luma lookup
+    bv_gbGIS_vindex(lut_luma, src, dest_luma, n);
+}//gbGIS_LUT_ApplyToVector_Mono
+
+
+// hack wrapper for above -- a GIF needs a couple reserved colors, so clip and bitshift
+function bv_gbGIS_LUT_ApplyToVector_MonoGIF(src, n, lut_luma, lut_n, lut_min, lut_max, dest_luma)
+{
+    var kGB_Reserved_GIF_Colors = 2.0;
+    
+    bv_gbGIS_LUT_ApplyToVector_Mono(src, n, lut_luma, lut_n, lut_min, lut_max, dest_luma);    
+    
+    bv_gbGIS_vshr_n(dest_luma, 0, 9, n); // it's a GIF, need to do this anyway.
+    bv_gbGIS_vclip(dest_luma, 0, 127.0 - kGB_Reserved_GIF_Colors, dest_luma, n);
+}//bv_gbGIS_ApplyLUTtoVector_MonoGIF
+
+
+// Unused.  Example of applying a LUT which hasn't been log transformed to an arbitrary
+// single scalar value.
+//
+// This is a simple way to have non-linear scaling that does not transform the LUT directly
+// or rely on a precomputed linear-to-non-linear index lookup table.
+//
+// However, it is 10x-100x slower.  Log10 and fdiv are slow.  This would only be worthwhile
+// for applying the LUT to a relatively small number of values.
+//
+// src: the input value of the map feature, in uSv/h (float or double)
+// lut_min: the minimum uSv/h for the LUT scaling.  normally 0.03. (float or double)
+// lut_max: the maximum uSv/h for the LUT scaling.  normally 65.535. (float or double)
+// lut_r: a Uint8Array (uint8_t*) of red channel color values
+// lut_g: a Uint8Array (uint8_t*) of green channel color values
+// lut_b: a Uint8Array (uint8_t*) of blue channel color values
+// lut_n: the number of elements in the LUT.  for a basic LUT, 256. (int)
+function bv_gbGIS_LUT_ApplyToScalar_Log10(src, lut_min, lut_max, lut_r, lut_g, lut_b, lut_n)
+{
+    var norm, idx;
+    var log_iter = 4;                                   // number of LOG10 iterations to perform.
+    
+    norm = (src - lut_min) / (lut_max - lut_min);       // normalize the dose rate to the range of the LUT.
+    norm = norm > 1.0 ? 1.0 : norm < 0.0 ? 0.0 : norm;  // clamp, [0.0 ... 1.0]
+    
+    for (var i = 0; i < log_iter; i++)
+    {
+        norm = norm * 9.0 + 1.0;                        // [1.0 ... 10.0]
+        norm = Math.log10(norm);                        // [0.0 ...  1.0]
+    }//for
+    
+    idx = parseInt(norm * (lut_n - 1.0));               // index of color
+    
+    return [lut_r[idx], lut_g[idx], lut_b[idx]];        // return RGB values from LUT
+}//bv_gbGIS_LUT_ApplyToScalar_Log10
+
+
+
+
+
+// ********************************************************************************************
+// ******************************** LUT - STATIC HELPERS **************************************
+// ********************************************************************************************
+
+// ***** UNUSED ****  This is an example of the normal tranforms a LUT goes through for 
+// RGB output.
+// 
+// However, that's not used with the javascript implementation because the only real
+// performant thing you can make on the client is an uncompressed 7-bit GIF which uses
+// indexed color.  Palletizing that would be a giant waste of time, so the workaround
+// is to not log transfrom the RGB data but instead using the final remapping indices
+// from that step to transform the normal scaling of each data point.  That way, the
+// value you get from that can be right-shifted down to the range of the 7-bit GIF's
+// indexed color palette in a consistent manner.
+//
+// tl;dr: GIFs are annoying.
+// tl;dr: JavaScript is annoying.
+//
+function bv_gbGIS_LUT_Setup_RGB(r, g, b, lut_n)
+{
+    var hdr_n   = 65536;
+    var hdr_r   = new Float32Array(hdr_n);
+    var hdr_g   = new Float32Array(hdr_n);
+    var hdr_b   = new Float32Array(hdr_n);
+    var dest_r  = new Float32Array(hdr_n);
+    var dest_g  = new Float32Array(hdr_n);
+    var dest_b  = new Float32Array(hdr_n);
+    var logidxs = new Float32Array(hdr_n);
+    
+    // 1. Discretize the LUT.  Optional.
+    
+    //gbGIS_LUT_Discretize(r, g, b, 128, lut_n);
+    
+    // 2. Resample the LUT to > 256 colors.  Otherwise, there won't be enough resolution
+    //    for the later logarithmic transform to be useful and the low ranges will get
+    //    crushed.
+    
+    bv_gbGIS_LUT_Resample_NN(r, g, b, lut_n, hdr_n, hdr_r, hdr_g, hdr_b);
+    
+    // 3. Make the log idx vector, which will be used to transform the LUT using
+    //    non-linear scaling to improve low-end contrast.
+    
+    bv_gbGIS_LUT_CreateLog10Idxs(logidxs, hdr_n);
+    
+    // 4. Now, apply the non-linear transform.  This operation cannot be done in-place.
+    
+    bv_gbGIS_LUT_IndexedTransform(hdr_r, hdr_g, hdr_b, logidxs, dest_r, dest_g, dest_b, hdr_n);
+    
+    // 5. Return the final transformed LUT vectors
+    
+    return [ dest_r, dest_g, dest_b ];
+}//bv_gbGIS_LUT_Setup_RGB
+
+
+
+// this is a specialized variant for indexed color output to support creating
+// client-side uncompressed GIFs in JavaScript.
+function bv_gbGIS_LUT_Setup_IndexedColor(r_u08, g_u08, b_u08, lut_n, hdr_n)
+{
+    var r_f32   = new Float32Array(lut_n);
+    var g_f32   = new Float32Array(lut_n);
+    var b_f32   = new Float32Array(lut_n);
+
+    var dest_r  = new Float32Array(hdr_n);
+    var dest_g  = new Float32Array(hdr_n);
+    var dest_b  = new Float32Array(hdr_n);
+    var logidxs = new Float32Array(hdr_n);  
+
+    // convert input uint8_t vectors to floats for processing
+    bv_gbGIS_vcopy_convert(r_f32, 0, r_u08, 0, lut_n);
+    bv_gbGIS_vcopy_convert(g_f32, 0, g_u08, 0, lut_n);
+    bv_gbGIS_vcopy_convert(b_f32, 0, b_u08, 0, lut_n);
+
+    // Expand LUT from 256 colors -> 65536 colors.  (8-bit to 16-bit)
+    // This is less about color depth, and more about the dynamic range of the indexed lookup.  
+    // Doing this with only 8-bit precision leads to significant low-end crush and loss of contrast.
+    bv_gbGIS_LUT_Resample_NN(r_f32, g_f32, b_f32, lut_n, hdr_n, dest_r, dest_g, dest_b);
+    
+    // Although with indexed color GIF output the LUT itself will not be logarithmically transformed,
+    // as is normally the case when generating RGBA data, the log index vector is still used.
+    bv_gbGIS_LUT_CreateLog10Idxs(logidxs, hdr_n);
+        
+    var logidxs_u16 = new Uint16Array(hdr_n);
+    var  dest_r_u08 = new Uint8Array(hdr_n);
+    var  dest_g_u08 = new Uint8Array(hdr_n);
+    var  dest_b_u08 = new Uint8Array(hdr_n);
+    
+    // convert output to uint8_t or uint16_t for later image processing.
+    bv_gbGIS_vcopy_convert(dest_r_u08,  0, dest_r,  0, hdr_n);
+    bv_gbGIS_vcopy_convert(dest_g_u08,  0, dest_g,  0, hdr_n);
+    bv_gbGIS_vcopy_convert(dest_b_u08,  0, dest_b,  0, hdr_n);
+    bv_gbGIS_vcopy_convert(logidxs_u16, 0, logidxs, 0, hdr_n);
+    
+    logidxs = null;
+    dest_r  = null;
+    dest_g  = null;
+    dest_b  = null;
+    
+    return [ dest_r_u08, dest_g_u08, dest_b_u08, logidxs_u16 ];
+}//gbGIS_LUT_Setup_IndexedColor
+
+
+
+
+
+
+
+// **********************************************************************************************
+// ******************************** LUT - INSTANCE HELPERS **************************************
+// **********************************************************************************************
+
+function bv_gbGIS_SetupGlobalLUTs()
+{
+    var src_lut = bv_GetCyanHaloLUT();
+
+    var luts = bv_gbGIS_LUT_Setup_IndexedColor(src_lut[0], src_lut[1], src_lut[2], 256, 65536);
+
+    _bv_cached_LUT_logidx_u16 = luts[3];
+    _bv_cached_LUT_r_u08      = luts[0];
+    _bv_cached_LUT_g_u08      = luts[1];
+    _bv_cached_LUT_b_u08      = luts[2];
+    _bv_cached_LUT_n          = 65536;
+}//bv_gbGIS_SetupGlobalLUTs
+
+
+
+
+
+
+// ********************************* GIF - CORE ****************************************
+
+// This creates a GIF file header at a very low-level for an indexed color GIF89A.
+// It also converts a designated color LUT to a GIF indexed color palette.
+//
+// NOTES: Uncompressed GIF Format
+//    - Uncompressed GIFs are a hack, but are compatible with everything.
+//    - It is not worth the performance/complexity to try to perform compression here.
+//    - For various technical reasons, only 7-bit color is supported for uncompressed GIFs.
+//
+// Generating a GIF header requires an indexed color palette.  The image data contains indices, not colors.
+//
+// This function generates a GIF header with this embedded palette for ONLY 3 cases of input data:
+//    1. A 256-color LUT.
+//       - A 128-color GIF palette will be created using nearest neighbor interpolation.
+//       - The last two colors in the GIF palette are overriden with black and transparent.
+//       - Specified by lut_n=256, optimized_pal_idx=-1
+//    2. A 65536-color LUT.
+//       - A 128-color GIF palette will be created using nearest neighbor interpolation.
+//       - The last two colors in the GIF palette are overriden with black and transparent.
+//       - Specified by lut_n=65536, optimized_pal_idx=-1
+//    3. A 65536-color LUT, single color mode.
+//       - A 4-color GIF palette will be created using nearest neighbor interpolation.
+//       - The GIF palette order will be: [ YOUR_COLOR, BLACK, TRANSPARENT, PADDING ]
+//       - Specified by lut_n=65536, optimized_pal_idx>=0
+//       - This is a special mode intended for creating simple map marker symbology.
+function bv_gbGIS_GIF_GetGIFHeader(width, height, lut_r, lut_g, lut_b, lut_n, optimized_pal_idx)
+{
+    var iw = parseInt(width)  >>> 0;
+    var ih = parseInt(height) >>> 0;
+    var w0 = iw   & 0xFF;   // width,   low byte (LSB)
+    var w1 = iw >>> 0x08;   // width,  high byte (LSB)
+    var h0 = ih   & 0xFF;   // height,  low byte (LSB)
+    var h1 = ih >>> 0x08;   // height, high byte (LSB)    
+    
+    var pal_entries = optimized_pal_idx < 0 ? 128 : 4;
+    var bytes       = 32 + pal_entries * 3;
+    
+    var gct = pal_entries == 256 ? 0xF7 
+            : pal_entries == 128 ? 0xF6 
+            : pal_entries ==  64 ? 0xF5
+            : pal_entries ==  32 ? 0xF4
+            : pal_entries ==  16 ? 0xF3
+            : pal_entries ==   8 ? 0xF2
+            : pal_entries ==   4 ? 0xF1
+            :                      0xF0; // GCT is the GIF header field specifying the palette size in some weird way.
+
+    var trans_idx  = optimized_pal_idx < 0 ? 0x7F : 0x02; // palette index of transparent color
+
+    var h  = new Uint8Array(bytes);
+    var i  = 0;
+    var j  = 0;
+    var lutIdx = 0;
+
+    // header
+    h[i++] = 0x47; // g
+    h[i++] = 0x49; // i
+    h[i++] = 0x46; // f
+    h[i++] = 0x38; // 8
+    
+    h[i++] = 0x39; // 9
+    h[i++] = 0x61; // a
+    
+    h[i++] = w0;   // width
+    h[i++] = w1;   // width
+    h[i++] = h0;   // height
+    h[i++] = h1;   // height
+    
+    h[i++] = gct; // GCT something palette (F7=256, F6=128, F5=64, F4=32, F3=16, F2=8, F1=4, F0=2)
+    
+    h[i++] = 0x00; // background color 0 (?)
+    h[i++] = 0x00; // aspect ratio  // 13 bytes
+
+    // --------------- <Palette> ---------------
+    if (lut_n == 256 && optimized_pal_idx < 0)
+    {
+        for (j=0; j<126; j++) // truncate at 126 entries for reserved colors
+        {
+            lutIdx = (j << 1) + 1; // NN 8-bit -> 7-bit remap
+        
+            h[i++] = lut_r[lutIdx];
+            h[i++] = lut_g[lutIdx];
+            h[i++] = lut_b[lutIdx];
+        }//for
+    }//if
+    else if (lut_n == 65536 && optimized_pal_idx < 0)
+    {
+        for (j=0; j<126; j++) // truncate at 126 entries for reserved colors
+        {
+            lutIdx = (j << 9); // NN 16-bit -> 7-bit remap
+        
+            h[i++] = lut_r[lutIdx];
+            h[i++] = lut_g[lutIdx];
+            h[i++] = lut_b[lutIdx];
+        }//for
+    }//else if
+    else if (lut_n == 65536 && optimized_pal_idx >= 0)
+    {
+        h[i++] = lut_r[optimized_pal_idx << 9]; // was << 9, testing reducing palette further
+        h[i++] = lut_g[optimized_pal_idx << 9];
+        h[i++] = lut_b[optimized_pal_idx << 9];
+    }//else if
+    
+    h[i++] = 0x00;  // Reserved color black - red
+    h[i++] = 0x00;  // Reserved color black - green
+    h[i++] = 0x00;  // Reserved color black - blue
+    
+    h[i++] = 0x00;  // Reserved color transparent - red
+    h[i++] = 0xFF;  // Reserved color transparent - green
+    h[i++] = 0x00;  // Reserved color transparent - blue
+    
+    if (pal_entries == 4) // only using 3 colors, but need to pad out to be a power of 2.
+    {
+        h[i++] = 0x00; // Reserved padding color - red
+        h[i++] = 0x00; // Reserved padding color - green
+        h[i++] = 0x00; // Reserved padding color - blue
+    }//if
+    // --------------- </Palette> ---------------
+    
+    // 13 + 384 bytes
+    
+    // --- <Graphics Control Extension> ---
+    h[i++] = 0x21; // graphics control extension
+    h[i++] = 0xF9;
+    
+    h[i++] = 0x04; // 4 bytes of GCE
+    
+    h[i++] = 0x01; // yes, palette transparency
+    
+    h[i++] = 0x00; // no animation delay // 0x0A
+    h[i++] = 0x00;
+    
+    h[i++] = trans_idx; // color #127 is transparent // was: 0x00
+    
+    h[i++] = 0x00; // end of GCE block        // 13 + 384 + 8 bytes
+    // --- </Graphics Control Extension> ---
+    
+    h[i++] = 0x2C; // image descriptor
+    
+    h[i++] = 0x00; // screen origin x
+    h[i++] = 0x00;
+    h[i++] = 0x00; // screen origin y
+    h[i++] = 0x00;
+    
+    h[i++] = w0; // image width
+    h[i++] = w1; // image width
+    h[i++] = h0; // image height
+    h[i++] = h1; // image height
+    
+    h[i++] = 0x00; // no local color table
+    
+    h[i++] = 0x07; // LZW min code size -- 8 = 8-bit palette, 7 = 7-bit palette
+                          // 13 + 384 + 8 + 11 bytes = 416
+    return h;
+}//bv_gbGIS_GIF_GetGIFHeader
+
+
+function bv_gbGIS_GIF_GetGIFImageData(src, isMax127)
+{
+    if (isMax127 == false)
+    {
+        //gbGIS_vshr_n(src, 0, 1, src.length);  // this assumes max idx of 256, bad
+        bv_gbGIS_vshr_n(src, 0, 9, src.length);  // this assumes max idx of 65536
+    }//if
+    
+    var i              = 0;
+    var srcIdx         = 0;
+    
+    var codeBits       = 7;
+    var blockSize      = (1 << codeBits) - 2; // max code width
+    var numBlocks      = (src.length / blockSize)|0;
+    var lastCleanIdx   =   numBlocks * blockSize;
+    var lzwBytesCode   = blockSize + 1;
+    var lzwClearCode   = 1 << codeBits;
+    
+    var padding        = numBlocks * 2 + 2;
+    var h              = new Uint8Array(src.length + padding);
+    
+    for (var px = 0; px < lastCleanIdx; px += blockSize)
+    {
+        h[i++] = lzwBytesCode;
+        h[i++] = lzwClearCode;
+        
+        h.set(src.subarray(srcIdx, srcIdx+blockSize), i);
+        
+        i      += blockSize;
+        srcIdx += blockSize;
+    }//for
+    
+    // handle remainder
+    if (src.length % blockSize != 0)
+    {
+        var remSize = src.length - lastCleanIdx;
+        
+        h[i++] = remSize + 1;
+        h[i++] = lzwClearCode;
+        
+        h.set(src.subarray(srcIdx, srcIdx+remSize), i);
+        
+        i      += remSize;
+        srcIdx += remSize;
+    }//if
+    
+    return h;
+}//bv_gbGIS_GIF_GetGIFImageData
+
+function bv_gbGIS_GIF_GetGIFFooter()
+{
+    var h = new Uint8Array(4);
+    var i = 0;
+    
+    h[i++] = 0x01; // 1 byte follows
+    h[i++] = 0x81; // STOP.
+    h[i++] = 0x00; // eom
+    h[i++] = 0x3B; // GIF file terminator
+    
+    return h;
+}//bv_gbGIS_GIF_GetGIFFooter
+
+
+
+// **********************************************************************************************
+// *************************************** GIF - CREATION ***************************************
+// **********************************************************************************************
+
+// this creates a GIF from the src data of color indices as a uint8_t* vector.
+// while a good idea in C, in JS it must be converted to a string still for base64,
+// so the *_str version is faster, especially with caching.
+function bv_gbGIS_GIF_GetGIFForPlanar8_u08(src, width, height, lut_r, lut_g, lut_b, lut_n, isMax127, optimized_pal_idx)
+{
+    var h = bv_gbGIS_GIF_GetGIFHeader(width, height, lut_r, lut_g, lut_b, lut_n, optimized_pal_idx);
+    var d = bv_gbGIS_GIF_GetGIFImageData(src, isMax127);
+    var f = bv_gbGIS_GIF_GetGIFFooter();
+
+    var hd  = bv_gbGIS_vcombinen_u08(h,  d, 0);
+    var hdf = bv_gbGIS_vcombinen_u08(hd, f, 0);
+    
+    h  = null;
+    d  = null;
+    f  = null;
+    hd = null;
+    
+    return  hdf;
+}//bv_gbGIS_GIF_GetGIFForPlanar8_u08
+
+// this creates a GIF from the src data of color indices as a string suitable for
+// base64 encoding.  if the ivar caches do not exist they will be created.
+// this is the fastest way to create a GIF in JS.
+function bv_gbGIS_GIF_GetGIFForPlanar8_Cached_str(src, width, height, lut_r, lut_g, lut_b, lut_n, isMax127, optimized_pal_idx)
+{
+    if (  (_bv_cached_GIF_width != width || _bv_cached_GIF_height != height || _bv_cached_GIF_pal_idx != optimized_pal_idx) 
+        && _bv_cached_GIF_header_str != null)
+    {
+        _bv_cached_GIF_header_str = null; // reset on size change
+    }//if
+
+    if (_bv_cached_GIF_header_str == null)
+    {
+        _bv_cached_GIF_header_str = bv_gbGIS_GetBinaryString_ForTypedArray_u08( bv_gbGIS_GIF_GetGIFHeader(width, height, lut_r, lut_g, lut_b, lut_n, optimized_pal_idx) );
+    }//if
+    
+    if (_bv_cached_GIF_footer_str == null)
+    {
+        _bv_cached_GIF_footer_str = bv_gbGIS_GetBinaryString_ForTypedArray_u08( bv_gbGIS_GIF_GetGIFFooter() );
+    }//if
+    
+    var d       = bv_gbGIS_GIF_GetGIFImageData(src, isMax127);
+    var hdr_str = _bv_cached_GIF_header_str + bv_gbGIS_GetBinaryString_ForTypedArray_u08(d) + _bv_cached_GIF_footer_str;
+    
+    _bv_cached_GIF_width   = width;
+    _bv_cached_GIF_height  = height;
+    _bv_cached_GIF_pal_idx = optimized_pal_idx;
+    
+    d = null;
+    
+    return hdr_str;
+}//bv_gbGIS_GIF_GetGIFForPlanar8_Cached_str
+
+
+// *****************************************************************************************
+// ************************************* GIF -> BASE64 *************************************
+// *****************************************************************************************
+
+// this creates a GIF as a string, and then prepends a base64 header to it for direct
+// use by javascript.
+function bv_gbGIS_GIF_GetBase64_Planar8IC_ForPlanar8(src, width, height, lut_r, lut_g, lut_b, lut_n, isMax127, optimized_pal_idx)
+{
+    var gif_str = bv_gbGIS_GIF_GetGIFForPlanar8_Cached_str(src, width, height, lut_r, lut_g, lut_b, lut_n, isMax127, optimized_pal_idx);
+    
+    return "data:image/gif;base64," + window.btoa(gif_str);
+}//bv_gbGIS_GIF_GetBase64_Planar8IC_ForPlanar8
+
+
+// to actually use a GIF with a page element, you need to use a callback lambda function
+// as inserting the element into the DOM is "asynchronous" (although it actually blocks 
+// on the main thread).
+function bv_gbGIS_GIF_InsertLlamaInto(dest, src, width, height, lut_r, lut_g, lut_b, lut_n, isMax127)
+{
+    if (typeof dest == "string")
+    {
+        var element = document.getElementById(dest);
+        
+        if (element && element.tagName && element.tagName == "IMG")
+        {
+            element.src = bv_gbGIS_GIF_GetBase64_Planar8IC_ForPlanar8(src, width, height,  lut_r, lut_g, lut_b, lut_n, isMax127);
+        }//if
+    }//if
+    else
+    {
+        dest.src = bv_gbGIS_GIF_GetBase64_Planar8IC_ForPlanar8(src, width, height,  lut_r, lut_g, lut_b, lut_n, isMax127);
+    }//else
+}//bv_gbGIS_GIF_InsertLlamaInto
+
+
+
+
+
+
+
+
+
+
+
+// ***************************************************************************************************
+// ************************************* IMPLEMENTATION-SPECIFIC *************************************
+// ***************************************************************************************************
+
+// create raw indexed color palette marker bitmap
+function bv_gbGIS_GetMarkerTestBuffer_Planar8(luma, width, height, bearing, distance, shd_luma, trans_luma, shouldStrokeOutline)
+{
+    var dest = new Uint8Array(width * height);
+    
+    bv_gbGIS_vfill(trans_luma, dest, 0, width * height); // set background to transparent index color
+    
+    var r  = ((width < height ? width : height) >> 1) - 1;
+    var ox = width  >> 1;
+    var oy = height >> 1;
+    
+    if (width % 2 == 0 || height % 2 == 0)
+    {
+        r--;
+    }//if
+    
+    if (width > 20)
+    {
+        bv_FillCircle(dest, width, height, ox+1, oy+1, r,   shd_luma);  // shadow
+    }//if
+    
+    if (shouldStrokeOutline)
+    {
+        bv_FillCircle(dest, width, height, ox,   oy,   r,   shd_luma);  // halo / outline
+    }//if
+    
+    bv_FillCircle(dest, width, height, ox,   oy,   shouldStrokeOutline ? r-1 : r, luma);      // color fill
+    
+    
+    if (bearing > 0.0)
+    {
+        if (distance != 1.0)
+        {
+            bv_DrawLineToBearingReversed(dest, width, height, ox, oy, bearing, r, distance, shd_luma);
+        }//if
+        else
+        {
+            bv_DrawLineToBearing(dest, width, height, ox, oy, bearing, r, distance, shd_luma);
+        }//else
+    }//if
+    
+    return dest;
+}//bv_gbGIS_GetMarkerTestBuffer_Planar8
+
+
+
+
+
+
+
+
+function bv_GetCyanHaloLUT()
+{
+    var r = new Uint8Array([1,8,9,10,12,14,16,16,18,18,19,20,21,22,22,24,24,25,25,25,26,26,26,26,25,26,27,26,25,26,26,24,24,25,24,21,21,21,17,16,9,7,0,7,15,23,28,32,34,38,40,43,45,46,50,51,54,55,56,56,56,58,59,59,59,59,59,59,59,59,57,56,56,56,54,51,48,45,43,39,37,33,29,23,10,0,29,39,60,67,84,90,97,105,110,120,124,133,137,143,148,153,161,163,171,173,178,181,185,191,194,200,202,208,210,214,217,220,225,226,233,235,240,242,245,249,251,254,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255]);
+
+    var g = new Uint8Array([1,7,7,8,10,11,12,12,13,13,13,13,14,14,14,15,15,15,15,15,15,15,15,15,15,15,15,15,15,14,14,14,14,13,13,12,11,11,10,9,5,4,0,9,19,30,36,43,46,56,59,65,70,74,82,85,94,96,103,107,112,118,121,130,132,140,144,150,156,160,167,170,181,184,191,195,200,208,213,221,224,233,237,243,250,255,252,251,242,240,235,231,226,221,219,212,210,204,202,197,192,187,182,180,172,170,163,160,156,151,148,137,134,128,124,117,112,107,100,97,87,83,71,64,56,44,38,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,25,36,42,53,57,68,73,81,85,89,96,98,106,109,119,123,128,133,136,144,146,153,156,162,166,170,180,183,191,193,200,204,208,214,217,224,226,234,239,247,251,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255]);
+
+    var b = new Uint8Array([1,10,12,15,19,23,29,31,38,39,43,48,54,59,61,70,72,79,83,89,94,99,109,112,122,125,135,140,145,153,158,169,173,186,191,199,206,212,223,228,239,244,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,254,247,242,234,227,221,211,207,196,192,183,179,174,166,161,154,151,140,136,128,123,119,113,111,102,100,94,88,81,75,72,65,63,55,52,47,42,38,32,29,18,13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,10,20,23,31,36,41,47,51,62,65,74,78,84,90,94,102,105,115,118,128,133,138,145,148,157,159,168,172,179,186,191,198,202,211,215,222,226,232,238,242,253]);
+
+    return [r,g,b];
+}//bv_GetCyanHaloLUT
+
+
+
+
+
+
+
+// ************************************************************************************************
+// ************************************* STATIC LOG -> MARKER *************************************
+// ************************************************************************************************
+
+// Stolen from lionel's python code: https://github.com/Safecast/Databot/blob/master/bgeigie_report.py
+function bv_loadLogFile(filename, enableuSv, worldMode, ignoreDelay, ignoreDistance, log, isMobile)
+{
+    var dest = new Array();
+    
+    var resultDriveId = new Array();
+    var resultDate = new Array();
+    var resultReading = new Array();
+    var resultLat = new Array();
+    var resultLon = new Array();
+    var resultAltitude = new Array();
+    var totalDose = 0;
+    
+    var tile_u08 = new Uint8Array(65536);
+    var pxy;
+    
+    var bgeigieModel = "";
+    var bgeigieVersion = "";
+    var bgeigieSerial = "";
+    
+    var lineCounter = 0;
+    var dlasttime = 0;
+    var blastlon = 0;
+    var blastlat = 0;
+    var blastalt = 0;
+    var prefilter_n = 0;
+    var min_z = 0;
+    var i, j, lines, data;
+
+    var s_header, s_id, s_time, s_cpm, s_cp5s, s_totc, s_rnStatus, s_latitude, s_northsouthindicator, 
+        s_longitude, s_eastwestindicator, s_altitude, s_gpsStatus, s_dop, s_quality;
+    var blat, blon, bcpm, spatialMatch, comp_cpm;
+    
+    var x_min =  9000.0; // extent
+    var y_min =  9000.0;
+    var x_max = -9000.0;
+    var y_max = -9000.0;
+    
+    var useDecimation      = true;
+    var epsilon_mag_factor = !isMobile ? 1.32 : 1.98;
+    var spatial_epsilon    = !isMobile ? 0.000001 : 0.000002; // increase feature simplification on mobile
+    
+    // 0.000010  = 1.11 m    (z17 = 1.1943 m/px)
+    // 0.000005  = 0.55 m    (z18 = 0.5972 m/px)
+    // 0.000002  = 0.22 m    (z19 = 0.2986 m/px)
+    // 0.000001  = 0.11 m    (z21 = 0.0746 m/px)    
+    
+    if (_bv_epsilon_d  != -1.0) spatial_epsilon    = _bv_epsilon_d;
+    if (_bv_epsilon_m  != -1.0) epsilon_mag_factor = _bv_epsilon_m;
+    if (_bv_decimation != -1)   useDecimation      = _bv_decimation == 1;
+    
+    spatial_epsilon = spatial_epsilon * spatial_epsilon; // prevent sqrtf later
+    epsilon_mag_factor = 1.0 / epsilon_mag_factor;
+    
+    lines = log.split("\n");
+    
+    console.log("Log file lines: %d", lines.length);
+    
+    for (i=0; i<lines.length; i++)
+    {
+        lineCounter++;
+        
+        // bGeigie version parsing code goes here
+        
+        data = lines[i] != null && lines[i].length > 0 ? lines[i].split(",") : null;
+        
+        // checksum code goes here
+        // code to parse mini/classic/nano goes here.
+        
+        if (data != null && data.length > 13)// && data[0] != "$BMRDD" && data[0] != "$BGRDD" && data[0] != "$BNRDD")
+        {
+            // hack for bug in bgeigie firmware where no \n is appened to the header/initial line
+            if (data[0] != null && data[0].length > 0 && data.length == 16 && data[0].substring(0,1) == "#")
+            {
+                for (j=0; j<15; j++)
+                {
+                    data[j] = data[j+1];
+                }//for
+            }//if
+            
+            // s_header,s_id,s_time,s_cpm,s_cp5s,s_totc,s_rnStatus,s_latitude,s_northsouthindicator,s_longitude,s_eastwestindicator,s_altitude,s_gpsStatus,s_dop,s_quality) = data
+            
+            // $BNRDD, 2326, 2014-10-03T01:26:08Z, 42, 4, 141, A, 3400.9787, N, 11824.2101, W, -7.20, A, 6, 150*4C
+            //    0     1            2              3  4   5   6      7      8       9     10    11  12 13   14
+            
+            //s_header              = data[0];
+            //s_id                  = data[1];
+            s_time                = data[2];
+            s_cpm                 = data[3];
+            //s_cp5s                = data[4];
+            //s_totc                = data[5];
+            //s_rnStatus            = data[6];
+            s_latitude            = data[7];
+            s_northsouthindicator = data[8];
+            s_longitude           = data[9];
+            s_eastwestindicator   = data[10];
+            s_altitude            = data[11];
+            //s_gpsStatus           = data[12];
+            //s_dop                 = data[13];
+            //s_quality             = data[14];
+            
+            // if (bgeigieSerial == "") bgeigieSerial = s_id;  // extract serial
+            
+            // code to parse date goes here
+            // code to parse altitude goes here
+            // code to parse DE/DER goes here
+                       
+            if (   s_latitude  != null && s_latitude.length  > 0
+                && s_longitude != null && s_longitude.length > 0)
+                //&& (!useDecimation || (i & 1)))
+            {
+                // Convert from GPS format (DDDMM.MMMM..) to decimal degrees
+                blat = parseFloat(s_latitude);
+                blon = parseFloat(s_longitude);
+                bcpm = parseFloat(s_cpm);
+                
+                blat = Math.abs(blat) / 100.0;
+                blon = Math.abs(blon) / 100.0;
+
+                blat = ((blat - parseInt(blat)) / 60.0) * 100.0 + parseInt(blat);
+                blon = ((blon - parseInt(blon)) / 60.0) * 100.0 + parseInt(blon);
+            
+                if (s_northsouthindicator == "S") blat = 0.0 - blat;
+                if (s_eastwestindicator   == "W") blon = 0.0 - blon;
+            
+                // do other random things here
+                // prefilter output -- don't include dupe points, epsilon = 0.000001 decimal degrees or 10cm resolution
+                
+                spatialMatch = false;
+                comp_cpm     = bcpm * epsilon_mag_factor;
+            
+                for (j=0; j<dest.length; j++)
+                {
+                    if (  (dest[j][0] - blat) 
+                        * (dest[j][0] - blat) 
+                        + (dest[j][1] - blon) 
+                        * (dest[j][1] - blon) <  spatial_epsilon
+                       && (dest[j][2]         >= comp_cpm))
+                    {
+                        spatialMatch = true;
+                        prefilter_n++;
+                        break;
+                    }//if
+                }//for
+            
+                if (!spatialMatch)
+                {
+                    if (blat > -90.0 && blat < 90.0 && blon > -180.0 && blon < 180.0)
+                    {
+                        if (blat > y_max) y_max = blat;
+                        if (blat < y_min) y_min = blat;
+                        if (blon > x_max) x_max = blon;
+                        if (blon < x_min) x_min = blon;
+                        
+                        pxy = bv_gbGIS_LatLonToXYZ_EPSG3857(blat, blon, 0);
+                        //console.log("Idx: %d", parseInt(pxy[1]) * 256 + parseInt(pxy[0]));
+                        tile_u08[pxy[1] * 256 + pxy[0]] = 255;
+                        
+                        /*
+                        if (useDecimation)
+                        {
+                            min_z = i % 20 == 0 ?  0 
+                                  : i %  9 == 0 ?  6
+                                  : i %  4 == 0 ?  9 
+                                  : i %  2 == 0 ? 11
+                                  :               13;
+                        }//if
+                        */
+                        
+                        dest.push([blat, blon, bcpm, s_time, s_altitude, -1]);
+                    }//if
+                }//if
+            }//if
+        }//if
+        else
+        {
+            //console.log("Rejected line, col0: %s", data[0]);
+        }//else
+    }//for
+    
+    if (dest.length > 0 && useDecimation)
+    {
+        var d0       = new Date();
+        AssignScaleVisibilityToLines(dest);
+        var d1       = new Date();
+        
+        var de = d1.getTime() - d0.getTime();
+        
+        console.log("AssignScaleVisibilityToLines: Done for %d lines in %1.4f ms.", lines.length, de);
+    }//if
+    
+    console.log("loadLogFile: Prefiltered %d/%d points by spatial epsilon.", prefilter_n, lines.length);
+    
+    // do random summary stats here
+    
+    return [dest, x_min, y_min, x_max, y_max, tile_u08];
+}//loadLogFile  
+
+function AssignScaleVisibilityToLines(lines)
+{
+    //  1: 78,271.5170
+    //  2: 39,135.7585
+    //  3: 19,567.8792
+    //  4:  9,783.9396
+    //  5:  4,891.9698
+    //  6:  2,445.9849
+    //  7:  1,222.9925
+    //  8:    611.4962
+    //  9:    305.7481
+    // 10:    152.8741
+    // 11:     76.4370
+    // 12:     38.2185
+    // 13:     19.1093
+    // 14:      9.5546
+    // 15:      4.7773
+    // 16:      2.3887
+    // 17:      1.1943
+    // 18:      0.5972
+    // 19:      0.2986
+    // 21:      0.0746
+    
+    // [blat, blon, bcpm, s_time, s_altitude, min_z]
+
+    var epsilon_mag_factor, spatial_epsilon;
+    var m2dd = 0.00001;
+    
+    //      0.000001
+    // @21: 0.000000746
+    //  
+    var lat,lon,cpm, z, zdest, i, j, zdest_n;
+    
+    //zdest = new Array(lines.length);
+    
+    var src = new Float64Array(lines.length * 4);
+    var i4 = 0;
+    
+    for (i=0; i<lines.length; i++)
+    {
+        src[i4]   = lines[i][0];
+        src[i4+1] = lines[i][1];
+        src[i4+2] = lines[i][2];
+        src[i4+3] = lines[i][5];
+        i4 += 4;
+    }
+    
+    zdest = new Float64Array(lines.length * 3);
+    zdest_n = 0;
+
+    for (z=0; z<=21; z++)
+    {
+        spatial_epsilon = bv_gbGIS_MetersForLatPxZ_EPSG3857(0.0, 2.0, z) * m2dd;
+        epsilon_mag_factor = 1.32 + ((21.0 - parseFloat(z)) / 21.0) * 8.68;
+        
+        //console.log ("z[%d]: Spatial epsilon: %1.8f", z, spatial_epsilon);
+        //console.log ("z[%d]: Epsilon mag factor: %1.8f", z, epsilon_mag_factor);
+        
+        spatial_epsilon *= spatial_epsilon;
+        epsilon_mag_factor = 1.0 / epsilon_mag_factor;
+        
+        
+        
+        for (i=0; i<lines.length*4; i+=4)
+        {
+            //if (lines[i][5] == -1)
+            if (src[i+3] == -1.0)
+            {
+        
+            //lat = lines[i][0];
+            //lon = lines[i][1];
+            //cpm = lines[i][2] * epsilon_mag_factor;
+            lat = src[i];
+            lon = src[i+1];
+            cpm = src[i+2] * epsilon_mag_factor;
+            spatialMatch = false;
+            
+            //console.log("z[%d]: Using input point (%1.4f, %1.4f) @ %d cpm", z, lat, lon, cpm);
+            
+            for (j=0; j<zdest_n*3; j+=3)
+            {
+                if (  (zdest[j] - lat) 
+                    * (zdest[j] - lat) 
+                    + (zdest[j+1] - lon) 
+                    * (zdest[j+1] - lon) <  spatial_epsilon
+                   && (zdest[j+2]        >= cpm))
+                    {
+                        spatialMatch = true;
+                        break;
+                    }//if
+            }//for
+            
+            if (!spatialMatch)
+            {
+                //console.log("z[%d]: Adding to results: (%1.4f, %1.4f) @ %d cpm (idx = %d)", z, lat, lon, cpm, i);
+                //zdest[zdest_n++] = [lat, lon, lines[i][2]];//, i, z]);
+                zdest[zdest_n*3] = lat;
+                zdest[zdest_n*3+1] = lon;
+                //zdest[zdest_n*3+2] = lines[i][2];
+                zdest[zdest_n*3+2] = src[i+2];
+                zdest_n++;
+                //lines[i][5] = z;
+                src[i+3] = z;
+            }//if
+            
+            }
+        }//for
+        
+        /*
+        for (i=0; i<zdest.length; i++)
+        {
+            if (zdest[i][4] == z)
+            {
+                var idx = zdest[i][3];
+            
+                if (lines[idx][5] == -1)
+                {
+                    lines[idx][5] = z;
+                }//if
+            }//if
+        }//for
+        */
+        //console.log("z[%d]: Assigned %d markers.", z, c);
+    }//for
+
+    i4 = 0;
+    for (i=0; i<lines.length; i++)
+    {
+        lines[i][5] = src[i4+3];
+        i4 += 4;
+    }
+    
+
+    // fix any leftovers that were too much detail for the algorithm at z=21
+    //for (i=0; i<lines.length; i++)
+    //{
+//        if (lines[i][5] == -1) lines[i][5] = 21;
+        //else if (lines[i][5] == 4) lines[i][5] = 0;
+    //}//for
+}//AssignScaleVisibilityToLines
+
+/*
+function bv_GetFileAsyncWithFeedbackUI(url, width, height, isMobile, titleText, containerDivName, titleDivName, statusDivName, xferKbDivName, xferMsgDivName, fxCallback)
+{
+    var elTitle  = document.getElementById(titleDivName);
+    var elStatus = document.getElementById(statusDivName);
+    var elKB     = document.getElementById(xferKbDivName);
+    var elMsg    = document.getElementById(xferMsgDivName);
+    
+    elTitle.innerHTML  = titleText;
+    elStatus.innerHTML = "Connecting to Server";
+    elKB.innerHTML     = "0 KB";
+    elMsg.innerHTML    = "&nbsp;";
+
+    bv_TransferBar_SetHidden(false);
+
+    var cb = function(response, userData, readyState, status, statusText, contentLength)
+    {
+        if (readyState === 4 && status == 200)
+        {
+            if (response != null && response.length > 0)
+            {
+                elStatus.innerHTML = "Done";
+                fxCallback(response, userData);
+                //AddLogToMap(response, userData);
+            }//if
+            else
+            {
+                elStatus.innerHTML = "Error";
+                elMsg.innerHTML    = "Empty response.";
+            }//else
+            
+            var old_n = _bv_map_markers.length;
+            
+            setTimeout(function(){ if (_bv_map_markers.length == old_n) bv_TransferBar_SetHidden(true); }, 3000);
+        }//if
+        
+        if (readyState === 1)
+        {
+            elStatus.innerHTML = "Waiting for Response";
+        }//if
+        
+        if (readyState === 2)
+        {
+            elStatus.innerHTML = "Downloading";
+        }//if
+        
+        if (readyState === 3)
+        {
+            var progress = contentLength == 0 ? 0 : parseFloat(response.length) / parseFloat(contentLength);
+            var txt      = "";
+            
+            if (contentLength == 0)
+            {
+                txt = "" + bv_gbGIS_RoundToD(response.length/1024.0, 2) + " KB";
+            }//if
+            else
+            {
+                txt = "" + bv_gbGIS_RoundToD(progress*100.0, 0) + "% (" + bv_gbGIS_RoundToD(response.length/1024.0, 2) + " KB)";
+            }//else
+            
+            elKB.innerHTML = txt;
+        }//if
+        
+        if (readyState === 4 && status != 200)
+        {
+            elStatus.innerHTML = "Error";
+            
+            if (status != 0 || (statusText != null && statusText.length > 0))
+            {
+                elMsg.innerHTML = status + " - " + statusText;
+            }//if
+            else if (url.indexOf("://www.google.com/url") > 0)
+            {
+                elMsg.innerHTML = "Bad URL. Use direct URLs only, not Google's tracking links.";
+            }//else if
+            
+            setTimeout(function(){ bv_TransferBar_SetHidden(true); }, 10000);
+        }//if
+        
+        if (readyState === -1)
+        {
+            elStatus.innerHTML = "Error";
+            elMsg.innerHTML    = "Connection timed out.";
+            console.log("ERR: timeout for %s", url);
+            
+            setTimeout(function(){ bv_TransferBar_SetHidden(true); }, 10000);
+        }//if
+        
+        if (readyState === -4)
+        {
+            elStatus.innerHTML = "Error";
+            elMsg.innerHTML    = "Unknown connection error.";
+            console.log("ERR: unknown/connection for %s", url);
+            
+            setTimeout(function(){ bv_TransferBar_SetHidden(true); }, 10000);
+        }//if
+        
+        if (readyState === -5)
+        {
+            elStatus.innerHTMLL = "Aborted";
+            elMsg.innerHTML     = "Connection aborted.";
+            console.log("ERR: aborted/connection for %s", url);
+            
+            setTimeout(function(){ bv_TransferBar_SetHidden(true); }, 10000);
+        }//if
+    }.bind(this);
+        
+    bv_GetAsync_HTTP2(url, null, null, cb, [width, height, isMobile]);
+}//bv_GetFileAsyncWithFeedbackUI
+*/
+
+// xferStatus, xferKB, xferMsg
+// Invoke HTTP request, then pass off the log file for the further processing.
+function bv_GetLogFileAsync(url, width, height, isMobile, logId)
+{
+    //bv_GetFileAsyncWithFeedbackUI(url, width, height, isMobile, "Log Download", "bv_transferBar", "bv_xferTitle", "bv_xferStatus", "bv_xferKB", "bv_xferMsg", function(response, userData) { bv_AddLogToMap(response, userData); } );
+    // (url, responseType, fxCallback, userData, xfTitle, xfType)
+    _bv_xfm.AddTask(url, null, function(response, userData) { bv_AddLogToMap(response, userData); }, [width, height, isMobile, logId], "bGeigie Log", XF.TypeLog);
+}//bv_GetLogFileAsync
+
+
+
+
+
+
+// **************************************************************************************************
+// ************************************* INSTANCE LOG -> MARKER *************************************
+// **************************************************************************************************
+
+function bv_AddLogToMap(log, userData)
+{
+    var width    = userData[0];
+    var height   = userData[1];
+    var isMobile = userData[2];
+    var logId    = userData[3];
+    var d0       = new Date();
+    var pack     = bv_loadLogFile(null, null, null, null, null, log, isMobile);                // <-- parsing here
+    var d1       = new Date();
+    var lines    = pack[0];
+    
+    _bv_xfm.UpdateGlobalImage(pack[5]);
+                
+    // blah blah debug
+    //if (lines.length == 0) console.log("ERR: parsed 0 lines of src chars: %d", log.length);
+    var de   = d1.getTime() - d0.getTime();
+    var Lps  = de != 0.0 ? (lines.length * 1000.0 / de).toFixed(2) : (lines.length * 1000.0 / 0.5).toFixed(2);
+    var perf = "Info: Parsed " + lines.length + " lines (" + log.length + " bytes) in " + (de == 0.0 ? "< 1" : de) + " ms. (" + Lps + " lines per second)";
+    console.log(perf);
+
+    log = null;
+
+    bv_UpdateExtent(pack);
+    
+    var lumas_u08 = bv_GetLUTIndicesForLog(lines, _bv_cached_LUT_logidx_u16, _bv_cached_LUT_n);      // Get pretty color indices.
+    
+    // degrade color palette on mobile for fewer distinct markers
+    if (isMobile)
+    {
+        bv_gbGIS_vshr_n(lumas_u08, 0, 1, lumas_u08.length);
+        bv_gbGIS_vshl_n(lumas_u08, 0, 1, lumas_u08.length);
+    }//if
+
+    bv_ParsedLogToMarkers(lines, lumas_u08, isMobile, logId);                                         // Convert log to markers.
+    
+
+
+    if (!isMobile)
+    {
+        Chart_CreateChart(lines, lumas_u08);                                                // Build the elevation profile using the Google Charts API
+    }//if
+                
+    lines     = null;
+    lumas_u08 = null;
+    pack      = null;
+
+
+    // Finally, create marker images and add to map.
+    //setTimeout(function() {
+        bv_Markers_IconSet(width, height, false);
+    //}.bind(this), 100);
+    //bv_Markers_MapSet();
+}//AddParsedLogToMap
+
+
+
+
+// **********************************************************************************************************
+// ************************************* INSTANCE LOG -> MARKER HELPERS *************************************
+// **********************************************************************************************************
+
+// NOTE: These functions simply break up the massive log file -> marker function better.  They have all kinds
+//       of data structure and ivar dependencies.
+
+// Returns Uint8Array of the LUT index of each entry from the log file.
+function bv_GetLUTIndicesForLog(log_lines, logidxs_u16, lut_n)
+{
+    // Calculate the z value for all points and convert to indices into the 7-bit GIF palette
+    var n         = log_lines.length;
+    var zs        = new Float32Array(n);
+    var lumas_f32 = new Float32Array(n);
+    var lumas_u08 = new Uint8Array(n);
+                
+    for (var i = 0; i < n; i++)
+    {
+        zs[i] = parseFloat(log_lines[i][2]) * 0.0028571428571429;
+    }//for
+                
+    bv_gbGIS_LUT_ApplyToVector_MonoGIF(zs, n, logidxs_u16, lut_n, 0.03, 65.535, lumas_f32);
+    bv_gbGIS_vcopy_convert(lumas_u08, 0, lumas_f32, 0, n);     // float -> uint8_t
+
+    return lumas_u08;
+}//bv_GetLUTIndicesForLog
+
+
+// Main inner loop for log -> marker conversion.
+// Output is to ivars.
+function bv_ParsedLogToMarkers(log_lines, lumas_u08, isMobile, logId)
+{
+    for (var i = 0; i < log_lines.length; i++)                      // Loop through the points and create the markers.
+    {
+        var line   = log_lines[i];
+        var yx     = new google.maps.LatLng(line[0], line[1]);
+        var usvh   = (parseFloat(line[2]) * 0.0028571428571429).toFixed(2);
+        var vec    = bv_GetVectorForLogLine(line, i, log_lines, isMobile);
+        var marker = new google.maps.Marker(
+        {
+            position: yx,
+                 map: null,
+                icon: null,
+              zIndex: lumas_u08[i],
+         ext_bearing: vec[0],
+        ext_distance: vec[1],
+         ext_pal_idx: lumas_u08[i],                              // custom property used for marker creation, don't remove.
+          ext_log_id: logId
+        });
+        
+        marker.ext_min_z  = line[5];
+        marker.ext_params = bv_GetParamsForLogLine(line, i, log_lines, usvh, logId);
+        bv_Marker_AttachInfoWindow(marker, null, isMobile);  // bind popup
+
+        bv_Markers_ItemsAdd(marker);                                                                      // add to retained collection
+    }//for
+}//bv_ParsedLogToMarkers
+
+
+// Returns 2-element mutable array of the spatial angle and momentum for the log line.
+function bv_GetVectorForLogLine(log_line, idx, log_lines, isMobile)
+{
+    var deg  = -1.0;
+    var dist =  1.0;
+
+    // A vector line on the marker will encode bearing and velocity.  This comes at a performance cost, not due to the computation here
+    // but because it increases the number of distinct markers which hurts rendering performance.
+    // For optimal performance the distance / velocity should probably be dropped (it's implicit in the spatial distance to the next marker), 
+    // and the degrees rounded to the nearest 15 degree tick or so.
+                    
+    // BEARING: To disable showing the bearing, set it -1.0.                    
+    if (!isMobile)
+    {
+        deg = idx >= log_lines.length - 1 ? -1.0 : bv_gbGIS_GetBearing_EPSG4326(log_line[0], log_line[1], log_lines[idx+1][0], log_lines[idx+1][1]);
+        deg = Math.round(deg / 30.0) * 30.0; // round to nearest 30 degree tick
+        deg = deg == 0.0 ? 360.0 : deg; // deg=0 breaks stuff, 360 is the same though
+    }//if
+                    
+                    
+    // DISTANCE: To disable showing the velocity/distance, set it to a fixed value.
+    //           It will not show at all if bearing is disabled.
+
+    // *** UNCOMMENT TO ENABLE VECTOR LINE LENGTH -- DO NOT DELETE ****
+    //var dist = i >= lines.length - 1 ? 0.25 : gbGIS_pythag(line[0], line[1], lines[i+1][0], lines[i+1][1]);
+                    
+    //dist = dist / 0.00001;                                          // relative amount
+    //dist = Math.round(dist / 0.125) * 0.125;                        // round to nearest 0.125  (0.500 -> 0.625 -> 0.750 -> 0.875 -> 1.000)
+    //dist = dist < 0.50 ? 0.50 : dist > 1.0 ? 1.0 : dist;            // clip 0.50 - 1.00
+    
+    return [deg, dist];
+}//bv_GetVectorForLogLine
+
+function bv_gbGIS_RoundToD(x, n)
+{
+    return x.toFixed(n);
+}
+
+function gbGIS_RoundToD(x, n)
+{
+    return x.toFixed(n);
+}
+
+
+function bv_GetInfoWindowHTMLForLogLine(log_line, idx, log_lines, usvh)
+{
+    var params = bv_GetParamsForLogLine(log_line, idx, log_lines, usvh);
+    var html   = bv_GetInfoWindowHTMLForParams(params);
+                  
+    return html;
+}//bv_GetInfoWindowHTMLForLogLine
+
+function bv_GetParamsForLogLine(log_line, idx, log_lines, usvh, logId)
+{
+    var params = new Array(7);
+    
+    var dateparts = log_line[3].split("T");
+    var timenoz   = dateparts[1].substring(0,dateparts[1].length-1);
+    var deg2      = idx >= log_lines.length - 1 ? -9000.0 : bv_gbGIS_RoundToD(bv_gbGIS_GetBearing_EPSG4326(log_line[0], log_line[1], log_lines[idx+1][0], log_lines[idx+1][1]), 0);
+    
+    params[0] = usvh;
+    params[1] = parseInt(log_line[2]);
+    params[2] = bv_gbGIS_RoundToD(parseFloat(log_line[4]), 0);
+    params[3] = deg2;
+    params[4] = dateparts[0];
+    params[5] = timenoz;
+    params[6] = logId;
+    
+    return params;
+}//bv_GetParamsForLogLine
+
+function bv_GetInfoWindowHTMLForParams(params)
+{
+    var sdre = "" + params[0];
+    
+         if (   params[0] <  10.0 && sdre.length == 3) sdre += "0";    //  9.0
+    else if (   params[0] <  10.0 && sdre.length == 1) sdre += ".00";  //  9
+    else if (   params[0] >= 10.0
+             && params[0] < 100.0 && sdre.length == 4) sdre += "0";    // 99.9
+    else if (   params[0] >= 10.0
+             && params[0] < 100.0 && sdre.length == 2) sdre += ".00";  // 99
+    
+
+    var html = "<table border=0 class='bv_FuturaFont'>"
+             + "<tr><td align=right>" + sdre       + "</td><td>"         + "\u00B5" + "Sv/h"     + "</td></tr>"
+             + "<tr><td align=right>" + params[1]  + "</td><td>"         + "CPM"                 + "</td></tr>"
+             + "<tr><td align=right>" + params[2]  + "</td><td>"         + "m alt"               + "</td></tr>"
+             + "<tr><td align=right>" + params[3]  + "</td><td>"         + "\u00B0" + " bearing" + "</td></tr>"
+             + "<tr><td align=right>" + params[4]  + "<br/>" + params[5] + "</td><td>UTC"        + "</td></tr>"
+             + "</table>"
+             + "<div class='bv_FuturaFont' style='position:absolute;top:0;left:0;font-size:50%;color:#999999;'>" + params[6] + "</div>";
+
+    return html;
+}//bv_GetInfoWindowHTMLForLogLine
+
+
+// Sets the map visible extent to contain the extent of the log at the highest zoom level possible.
+function bv_SetMapVisibleExtentForLog(pack)
+{
+    var vwh    = bv_GetClientViewSize();
+    var region = bv_gbGIS_GetRegionForExtentAndScreenSize_EPSG3857(pack[0], pack[1], pack[2], pack[3], vwh[0], vwh[1]);
+    map.panTo(region[0]);
+    map.setZoom(region[1]);
+}//bv_SetMapVisibleExtentForLog
+
+
+
+
+
+
+
+// *********************************************************************************************************
+// ************************************* INSTANCE GOOGLE CHART HELPERS *************************************
+// *********************************************************************************************************
+// Currently disabled.
+
+var _chart_inc = 1;
+
+function Chart_CreateChart(log_lines, lumas_u08)
+{
+    var wh = bv_GetClientViewSize();
+    var max_w = Math.max((wh[0] - 50) / 2.5, 100) >>> 0;
+
+    var inc = log_lines.length < max_w ? 1 : (log_lines.length / max_w)>>>0;
+
+    _chart_inc = inc;
+
+    var chart_array = new Array(Math.min(log_lines.length, max_w) + 1);
+
+    //var chart_array = new Array(log_lines.length + 1);
+
+    // 1. Create the datatable.
+
+    //chart_array[0] = ["Measurement Date/Time", "\u00B5" + "Sv/h", { role: "style" }];
+    chart_array[0] = ["Measurement Date/Time", "Altitude (meters)", { role: "style" }];
+
+
+
+    var ca_idx = 0;
+
+    for (var i = 0; i<log_lines.length; i+=inc)
+    {
+        var line      = log_lines[i];
+        var usvh      = gbGIS_RoundToD(parseFloat(line[2])*0.0028571428571429, 2);
+        var dateparts = line[3].split("T");
+        var timenoz   = dateparts[1].substring(0,dateparts[1].length-1);
+        var newdt     = "" + dateparts[0] + " " + timenoz;
+
+        var color     = bv_gbGIS_GetHexStringForRGB888(_bv_cached_LUT_r_u08[lumas_u08[i]<<9], 
+                                                       _bv_cached_LUT_g_u08[lumas_u08[i]<<9],
+                                                       _bv_cached_LUT_b_u08[lumas_u08[i]<<9]);
+
+        //chart_array[i+1] = [newdt, parseFloat(line[4]), color];
+        chart_array[ca_idx+1] = [newdt, parseFloat(line[4]), color];
+        ca_idx++;
+    }//for
+
+    // 2. Use datatable to create chart
+
+    var chart   = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+    var dt      = google.visualization.arrayToDataTable(chart_array);
+    var options = 
+    {
+        title: "Something Probably Goes Here",
+        hAxis: {title: "Poorly Labeled Measurement Date/Time Axis" },// minValue: 0, maxValue: 15},
+        'width': dt.getNumberOfRows() * 2,
+        //'width': 1400,
+        'height': 98,
+        chartArea:{left:0,top:0,width:"100%",height:"100%"},
+        tooltip: {isHtml: true},
+        'bar': {groupWidth: 1.0}
+        //vAxis: {title: "uSv/h", minValue: 0.0, maxValue: 65.535},
+        //legend: "none"
+    };
+
+    // 3. Bind to document body / events
+
+    chart.draw(dt, options);
+    Chart_AttachMarkerEvent(chart);
+}//Chart_CreateChart
+
+function Chart_AttachMarkerEvent(chart)
+{
+    google.visualization.events.addListener(chart, 'onmouseover', function(e) 
+    {
+        if (e != null && e.row != null && e.column != null && _bv_map_markers != null && _bv_map_markers.length >= e.row * _chart_inc)
+        {
+            map.panTo(_bv_map_markers[e.row * _chart_inc].position);
+        }//if
+    });
+}//Chart_AttachMarkerEvent
+
+
+
+
+
+
+// *******************************************************************************************************
+// ************************************* INSTANCE COLLECTION HELPERS *************************************
+// *******************************************************************************************************
+
+function bv_Marker_AttachInfoWindow(marker, html, isMobile)
+{
+    if (!isMobile)
+    {
+        /*
+        var infowindow = new google.maps.InfoWindow(
+        {
+            content: html,
+               size: new google.maps.Size(60, 40)
+        });
+        */
+        var infowindow = null;
+    
+        google.maps.event.addListener(marker, 'mouseover', function() 
+        {
+            if (infowindow == null)
+            {
+                infowindow = new google.maps.InfoWindow(
+                {
+                    content: bv_GetInfoWindowHTMLForParams(marker.ext_params),
+                    size: new google.maps.Size(60, 40)
+                });
+            }//if
+            
+            infowindow.open(map,marker);
+            
+            google.maps.event.clearListeners(marker, 'mouseout');
+            
+            google.maps.event.addListener(marker, 'mouseout', function() 
+            {
+                infowindow.close();
+            });
+        });
+        
+        google.maps.event.addListener(marker, 'click', function() 
+        {
+            if (infowindow == null)
+            {
+                infowindow = new google.maps.InfoWindow(
+                {
+                    content: bv_GetInfoWindowHTMLForParams(marker.ext_params),
+                    size: new google.maps.Size(60, 40)
+                });
+            }//if
+        
+            infowindow.open(map,marker);
+            
+            google.maps.event.clearListeners(marker, 'mouseout');
+        });
+    }//if
+    else
+    {
+        //marker.ext_html = html;
+        google.maps.event.addListener(marker, 'click', function() 
+        {
+            var w = new google.maps.InfoWindow(
+            {
+                content: bv_GetInfoWindowHTMLForParams(marker.ext_params),
+                   size: new google.maps.Size(60, 40)
+            });
+            
+            w.open(map, marker);
+        });
+    }//else
+}//bv_Marker_AttachInfoWindow
+
+function bv_Markers_ItemsAdd(src)
+{
+    _bv_map_markers.push(src);
+}//bv_Markers_ItemsAdd
+    
+function bv_Markers_ItemsAddMany(src)
+{
+    for (var i = 0; i < src.length; i++)
+    {
+        _bv_map_markers.push(src[i]);
+    }//for
+}//bv_Markers_ItemsAddMany
+
+function bv_Markers_MapSet(shouldOverrideNoIcon)
+{
+    var n = 0;
+    var z = map.getZoom();
+    
+    var b = map.getBounds();
+    
+    var y0 = b.getSouthWest().lat();
+    var x0 = b.getSouthWest().lng();
+    var y1 = b.getNorthEast().lat();
+    var x1 = b.getNorthEast().lng();
+    
+    var ex0 = -9000.0;
+    var ex1 = -9000.0;
+    
+    if (x0 > x1)
+    {
+        //  x0     x1
+        // 165   -130
+        // 
+        x1 = 180.0;
+        ex0 = -180.0;
+        ex1 = x1;
+        
+    }//if
+    
+    var latspan = y1 - y0;
+    var lonspan = x1 - x0;
+    
+    //console.log("Extent: (%1.4f, %1.4f) - (%1.4f, %1.4f).  span: (%1.4f, %1.4f)", min_lat, min_lon, max_lat, max_lon, latspan, lonspan);
+    
+    y0 -= latspan * 0.5;
+    y1 += latspan * 0.5;
+    x0 -= lonspan * 0.5;
+    x1 += lonspan * 0.5;    
+
+    for (var i = 0; i < _bv_map_markers.length; i++)
+    {
+        if (   _bv_map_markers[i].map            == null
+            &&(_bv_map_markers[i].icon           != null || shouldOverrideNoIcon)
+            && _bv_map_markers[i].ext_min_z      <= z
+            && _bv_map_markers[i].position.lat() >= y0
+            && _bv_map_markers[i].position.lat() <= y1
+            && ((   _bv_map_markers[i].position.lng() >= x0
+                 && _bv_map_markers[i].position.lng() <= x1)
+               || ( _bv_map_markers[i].position.lng() >= ex0
+                 && _bv_map_markers[i].position.lng() <= ex1)))
+        {
+            n++;
+            _bv_map_markers[i].setMap(map);
+        }//if
+    }//for
+    
+    if (n > 0)
+    {
+        console.log("bv_Markers_MapSet: [INFO] Set %d/%d markers to map. (z=%d)", n, _bv_map_markers.length, z);
+    }//if
+}//bv_Markers_MapSet
+
+function bv_Markers_MapRemove_ByZoom()
+{
+    var z = map.getZoom();
+    
+    for (var i = 0; i < _bv_map_markers.length; i++)
+    {
+        if (   _bv_map_markers[i].map       == map
+            && _bv_map_markers[i].ext_min_z  > z + 3)
+        {
+            _bv_map_markers[i].setMap(null);
+        }//if
+    }//for
+}//bv_Markers_MapRemove_ByZoom
+
+function bv_Markers_MapRemove()
+{
+    for (var i = 0; i < _bv_map_markers.length; i++)
+    {
+        if (_bv_map_markers[i].map == map)
+        {
+            _bv_map_markers[i].setMap(null);
+        }//if
+    }//for
+}//bv_Markers_MapRemove
+
+function bv_Markers_ItemsRemove()
+{
+    console.log("Clearing all %d markers...", _bv_map_markers.length);
+
+    bv_Markers_MapRemove();
+    
+    for (var i = 0; i < _bv_map_markers.length; i++)
+    {
+        _bv_map_markers[i] = null;
+    }//for
+    
+    _bv_map_markers = null;
+    _bv_map_markers = new Array();
+    
+    if (   _bv_map_markers_output_cache        != null
+        && _bv_map_markers_output_cache.length > 0)
+    {
+        bv_Markers_OutputCache_Destroy();
+    }//if
+}//bv_Markers_ItemsRemove
+
+function bv_Markers_IconRemove()
+{
+    for (var i = 0; i < _bv_map_markers.length; i++)
+    {
+        if (_bv_map_markers[i].icon != null)
+        {
+            _bv_map_markers[i].setIcon(null);
+        }//if
+    }//for
+}//bv_Markers_IconRemove
+
+
+
+
+function bv_Markers_OutputCache_GetKey(pal_idx, bearing, distance, width, height)
+{
+    return "" + pal_idx + "_" + bearing + "_" + distance + "_" + width + "_" + height;
+}//bv_Markers_OutputCache_GetKey
+
+function bv_Markers_OutputCache_Get(key)
+{
+    var url = null;
+    
+    for (var i=0; i<_bv_map_markers_output_cache.length; i++)
+    {
+        if (_bv_map_markers_output_cache[i][0] == key)
+        {
+            url = _bv_map_markers_output_cache[i][1];
+            break;
+        }//if
+    }//for
+    
+    return url;
+}//bv_Markers_OutputCache_Get
+
+function bv_Markers_OutputCache_GetSizeBytes(key)
+{
+    var b = 0;
+    
+    for (var i=0; i<_bv_map_markers_output_cache.length; i++)
+    {
+        if (_bv_map_markers_output_cache[i][0] == key)
+        {
+            b = _bv_map_markers_output_cache[i][2];
+            break;
+        }//if
+    }//for
+    
+    return b;
+}//bv_Markers_OutputCache_GetSizeBytes
+
+// "image/png", "image/gif"
+function bv_Markers_OutputCache_Set(key, icon_str, isBase64, mimeType)
+{
+    var blob = null;
+    
+    if (isBase64)
+    {
+        var parts    = icon_str.match(/data:([^;]*)(;base64)?,([0-9A-Za-z+/]+)/);
+        var bin_str  = atob(parts[3]);                
+        var icon_bin = new Uint8Array(bin_str.length);
+    
+        for (var i = 0; i < icon_bin.length; i++)
+        {
+            icon_bin[i] = bin_str.charCodeAt(i);
+        }//for
+    
+        var blob = new Blob([icon_bin], { type: parts[1] } );
+    }//if
+    else
+    {
+        blob = new Blob([icon_str], { type: mimeType } );
+    }//else
+    
+    var blob_url = URL.createObjectURL(blob);
+
+    _bv_map_markers_output_cache.push([key, blob_url, icon_str.length]);
+
+    return blob_url;
+}//bv_Markers_OutputCache_Set
+
+function bv_Markers_OutputCache_FreeByKey(key)
+{
+    for (var i=0; i<_bv_map_markers_output_cache.length; i++)
+    {
+        if (_bv_map_markers_output_cache[i][0] == key)
+        {
+            URL.revokeObjectURL(_bv_map_markers_output_cache[i][1]);
+            
+            _bv_map_markers_output_cache[i][1] = null;
+            
+            break;
+        }//if
+    }//for
+}//Markers_OutputCache_FreeByKey
+
+function bv_Markers_OutputCache_Destroy()
+{
+    for (var i=0; i<_bv_map_markers_output_cache.length; i++)
+    {
+        if (_bv_map_markers_output_cache[i][1] != null)
+        {
+            URL.revokeObjectURL(_bv_map_markers_output_cache[i][1]);
+        }//if
+    }//for
+    
+    _bv_map_markers_output_cache = null;
+    _bv_map_markers_output_cache = new Array();
+}//Markers_OutputCache_Destroy
+
+function bv_gbGIS_GetMarkerTestBuffer_PNG(red, green, blue, width, height, bearing)
+{
+    var c    = document.createElement("canvas");
+    c.width  = width;
+    c.height = height;
+    var ctx  = c.getContext("2d");
+    var r    = ((width < height ? width : height) >> 1) - 1;
+    var ox   = width  >> 1;
+    var oy   = height >> 1;
+
+    ctx.beginPath();
+        ctx.arc(ox, oy, r, 0, 2 * Math.PI);
+        ctx.fillStyle = "rgba(" + red + ", " + green + ", " + blue + ", 0.75)";
+    ctx.fill();
+    
+    ctx.beginPath();
+        ctx.arc(ox, oy, r, 0, 2 * Math.PI);
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.75)";
+        ctx.lineWidth   = 0.5;
+    ctx.stroke();
+
+    if (bearing > 0.0)
+    {
+        var length = parseFloat(r);
+        var length_factor = 1.0;
+        var degrees = parseFloat(bearing);
+    
+        degrees -= 90.0; // not sure why this is needed -- assume bearing calc is fine(?) maybe related to upper-left 0, 0 raster origin?
+
+        var dx = Math.cos(bv_gbGIS_DEG2RAD(degrees)) * parseFloat(length * length_factor);
+        var dy = Math.sin(bv_gbGIS_DEG2RAD(degrees)) * parseFloat(length * length_factor);
+    
+        var x = ox + dx;
+        var y = oy + dy;
+        
+        x = Math.round(x);
+        y = Math.round(y);
+        
+        ctx.beginPath();
+            ctx.strokeStyle = "rgba(0, 0, 0, 0.75)";
+            ctx.lineWidth   = 1.0;
+            ctx.moveTo(ox, oy);
+            ctx.lineTo(x, y);
+        ctx.stroke();
+    }//if
+    
+    var img = c.toDataURL("image/png");
+    
+    return img;
+}//bv_gbGIS_GetMarkerTestBuffer_PNG
+
+function bv_Markers_IconSet(width, height, force)
+{
+    var          t0 = new Date();
+    var           n = 0;
+    var           j, k;
+    var outputCache = new Array();
+    var         rsn = window.devicePixelRatio > 1.5 ? 1 : 0;
+    var       old_n = 0;
+    var dest_size_w = width  >> rsn;
+    var dest_size_h = height >> rsn;
+    var dest_anc_w  = width  >> (1 + rsn);
+    var dest_anc_h  = height >> (1 + rsn);
+    var   USE_SVG   = false;
+    var   USE_BLOBS = false;
+    var   USE_PNG   = true;
+    
+    if (_bv_render_svg  != -1) USE_SVG   = _bv_render_svg  == 1;
+    if (_bv_render_blob != -1) USE_BLOBS = _bv_render_blob == 1;
+    if (_bv_render_png  != -1) USE_PNG   = _bv_render_png  == 1;
+    
+    //console.log("bv_Markers_IconSet: svg=%d, blob=%d, png=%d", USE_SVG ? 1 : 0, USE_BLOBS ? 1 : 0, USE_PNG ? 1 : 0);
+    
+    if (USE_SVG && USE_PNG)   USE_PNG   = false; // fix invalid combinations
+    if (USE_SVG && USE_BLOBS) USE_BLOBS = false;
+    
+    // for multiple log support, find the end of the last log's icon set
+    for (var i=0; i<_bv_map_markers.length; i++)
+    {
+        if (_bv_map_markers[i].icon == null)
+        {
+            old_n = i;
+            break;
+        }//if
+    }//for
+    
+    for (var i = 0; i < _bv_map_markers.length; i++)
+    {        
+        if (_bv_map_markers[i].icon == null || force)
+        {
+            var icon_str  = null;
+            
+            if (!USE_BLOBS)
+            {
+                // locally scoped output cache -- only render a distinct image once.
+                for (j =0 ; j < outputCache.length; j++)
+                {
+                    if (   outputCache[j][0] == _bv_map_markers[i].ext_pal_idx
+                        && outputCache[j][1] == _bv_map_markers[i].ext_bearing
+                        && outputCache[j][2] == _bv_map_markers[i].ext_distance)
+                    {
+                        icon_str = outputCache[j][3];
+                        break;
+                    }//if
+                }//for
+            
+                // for multiple logs, search existing icons to see if they've already been rendered
+                // (but not if forced re-rendering)
+                if (icon_str == null && !force && old_n > 0)
+                {
+                    for (k=0; k<=old_n; k++)
+                    {
+                        if (   _bv_map_markers[k]              != null
+                            && _bv_map_markers[k].icon         != null
+                            && _bv_map_markers[k].icon.url     != null
+                            && _bv_map_markers[k].ext_pal_idx  == _bv_map_markers[i].ext_pal_idx
+                            && _bv_map_markers[k].ext_bearing  == _bv_map_markers[i].ext_bearing
+                            && _bv_map_markers[k].ext_distance == _bv_map_markers[i].ext_distance)
+                        {
+                            icon_str = _bv_map_markers[k].icon.url;
+                            break;
+                        }//if
+                    }//for
+                }//if
+            }//if (not blobs)
+
+            // if no cached image was found, render it normally (raster)
+            if (icon_str == null && !USE_SVG && !USE_BLOBS && !USE_PNG) // GIF
+            {
+                var img_u08   = bv_gbGIS_GetMarkerTestBuffer_Planar8(0, width, height, _bv_map_markers[i].ext_bearing, _bv_map_markers[i].ext_distance, 1, 2, true); // !_cached_is_mobile
+                icon_str      = bv_gbGIS_GIF_GetBase64_Planar8IC_ForPlanar8(img_u08, width, height, _bv_cached_LUT_r_u08, _bv_cached_LUT_g_u08, _bv_cached_LUT_b_u08, _bv_cached_LUT_n, true, _bv_map_markers[i].ext_pal_idx);
+                img_u08       = null;
+                var cacheItem = new Array(_bv_map_markers[i].ext_pal_idx, _bv_map_markers[i].ext_bearing, _bv_map_markers[i].ext_distance, icon_str);
+                outputCache.push(cacheItem);
+            }//if
+            else if (icon_str == null && USE_PNG && !USE_BLOBS) // PNG
+            {
+                var r = _bv_cached_LUT_r_u08[_bv_map_markers[i].ext_pal_idx << 9];
+                var g = _bv_cached_LUT_g_u08[_bv_map_markers[i].ext_pal_idx << 9];
+                var b = _bv_cached_LUT_b_u08[_bv_map_markers[i].ext_pal_idx << 9];
+            
+                icon_str = bv_gbGIS_GetMarkerTestBuffer_PNG(r, g, b, width, height, _bv_map_markers[i].ext_bearing);
+
+                outputCache.push([_bv_map_markers[i].ext_pal_idx, _bv_map_markers[i].ext_bearing, _bv_map_markers[i].ext_distance, icon_str]);
+            }//else if
+            else if (icon_str == null && USE_SVG) // SVG
+            {
+                var fc = bv_gbGIS_GetHexStringForRGB888(_bv_cached_LUT_r_u08[_bv_map_markers[i].ext_pal_idx << 9],
+                                                        _bv_cached_LUT_g_u08[_bv_map_markers[i].ext_pal_idx << 9], 
+                                                        _bv_cached_LUT_b_u08[_bv_map_markers[i].ext_pal_idx << 9]);
+                
+                icon_str = 
+                { 
+                    path: google.maps.SymbolPath.CIRCLE, 
+                    scale: 4,
+                    fillColor: fc,
+                    fillOpacity: 0.75,
+                    strokeWeight: 0.5,
+                    strokeOpacity: 0.5
+                };
+            }//else if
+            
+            var blob_url = null;
+                
+            if (USE_BLOBS)
+            {
+                var blob_key;
+                blob_key = bv_Markers_OutputCache_GetKey(_bv_map_markers[i].ext_pal_idx, _bv_map_markers[i].ext_bearing, _bv_map_markers[i].ext_distance, width, height);
+                blob_url = bv_Markers_OutputCache_Get(blob_key);
+                
+                if (blob_url == null && !USE_PNG) // GIF
+                {
+                    var img_u08 = bv_gbGIS_GetMarkerTestBuffer_Planar8(0, width, height, _bv_map_markers[i].ext_bearing, _bv_map_markers[i].ext_distance, 1, 2, true); // !_cached_is_mobile
+                    icon_str    = bv_gbGIS_GIF_GetGIFForPlanar8_u08(img_u08, width, height, _bv_cached_LUT_r_u08, _bv_cached_LUT_g_u08, _bv_cached_LUT_b_u08, _bv_cached_LUT_n, true, _bv_map_markers[i].ext_pal_idx);
+                    img_u08     = null;
+                    
+                    blob_url    = bv_Markers_OutputCache_Set(blob_key, icon_str, false, "image/gif");
+                    icon_str    = null;
+                }//if
+                else if (blob_url == null && USE_PNG) // PNG
+                {
+                    var r  = _bv_cached_LUT_r_u08[_bv_map_markers[i].ext_pal_idx << 9];
+                    var g  = _bv_cached_LUT_g_u08[_bv_map_markers[i].ext_pal_idx << 9];
+                    var b  = _bv_cached_LUT_b_u08[_bv_map_markers[i].ext_pal_idx << 9];
+            
+                    icon_str = bv_gbGIS_GetMarkerTestBuffer_PNG(r, g, b, width, height, _bv_map_markers[i].ext_bearing);
+                    blob_url = bv_Markers_OutputCache_Set(blob_key, icon_str, true, "image/png");
+                    icon_str = null;
+                }//else if
+            }//if
+                
+            if (!USE_SVG) // normal - raster
+            {
+                var icon_str_ref = 
+                {
+                       url: USE_BLOBS ? blob_url : icon_str,
+                      size: new google.maps.Size(dest_size_w, dest_size_h),
+                    origin: new google.maps.Point(0,0),
+                scaledSize: new google.maps.Size(dest_size_w, dest_size_h),
+                    anchor: new google.maps.Point(dest_anc_w, dest_anc_h)
+                };
+                
+                _bv_map_markers[i].setIcon(icon_str_ref);
+            }//if
+            else
+            {
+                _bv_map_markers[i].setIcon(icon_str);
+            }//else
+            
+            n++;
+        }//if
+    }//for
+    
+
+    //console.log("Set %d/%d icon markers (%d distinct) (%d recycled from %d).", n, _bv_map_markers.length, outputCache.length, r_n, old_n);
+    
+    var t1 = new Date();
+    
+    console.log("bv_Markers_IconSet: %d (%d distinct) in %1.4f ms", n, outputCache.length, parseFloat(t1.getTime() - t0.getTime()));
+    
+    outputCache = null;
+}//bv_Markers_IconSet
+
+function bv_Markers_ChangeIconSize(width, height)
+{
+    bv_Markers_IconSet(width, height, true);
+}//bv_Markers_ChangeIconSize
+
+
+
+
+function bv_UpdateExtent(pack)
+{
+    var wasChanged = false;
+    
+    if (_bv_extent_packed[0] > pack[1])
+    {
+        _bv_extent_packed[0] = pack[1];
+        wasChanged           = true;
+    }//if
+    
+    if (_bv_extent_packed[1] > pack[2])
+    {
+        _bv_extent_packed[1] = pack[2];
+        wasChanged           = true;
+    }//if
+    
+    if (_bv_extent_packed[2] < pack[3])
+    {
+        _bv_extent_packed[2] = pack[3];
+        wasChanged           = true;
+    }//if
+    
+    if (_bv_extent_packed[3] < pack[4])
+    {
+        _bv_extent_packed[3] = pack[4];
+        wasChanged           = true;
+    }//if
+    
+    if (wasChanged)
+    {
+        //setTimeout(function(){ bv_ApplyExtent(); }, 3000);
+    }//if
+}//bv_UpdateExtent
+
+function bv_ApplyExtent()
+{
+    if (_bv_extent_packed[0] > 180.0) return;
+    
+    var needUpdate = false;
+    
+    if (   _bv_extent_packed[0] < _bv_extent_last[0]
+        || _bv_extent_packed[1] < _bv_extent_last[1]
+        || _bv_extent_packed[2] > _bv_extent_last[2]
+        || _bv_extent_packed[3] > _bv_extent_last[3])
+    {
+        needUpdate = true;
+    }//if
+    
+    if (needUpdate)
+    {
+        for (var i=0; i<4; i++)
+        {
+            _bv_extent_last[i] = _bv_extent_packed[i];
+        }//for
+        
+        console.log("Setting extent to: (%1.4f, %1.4f) - (%1.4f, %1.4f)", _bv_extent_packed[0], _bv_extent_packed[1], _bv_extent_packed[2], _bv_extent_packed[3]);
+        bv_SetMapVisibleExtentForLog(_bv_extent_packed);
+    }//if
+}//bv_ApplyExtent
+
+
+
+
+// ******************************************************************************************
+// ************************************* EVENT HANDLERS *************************************
+// ******************************************************************************************
+
+// todo: add blob revoke URL to these.
+function bv_Markers_SizeDec(width, height)
+{
+    if (_bv_map_markers_width > 8 && _bv_map_markers_height > 8)
+    {
+        _bv_map_markers_width  -= 2;
+        _bv_map_markers_height -= 2;
+    }//if
+
+    bv_Markers_ChangeIconSize(_bv_map_markers_width, _bv_map_markers_height);
+}//bv_Markers_SizeDec
+
+function bv_Markers_SizeInc(width, height)
+{
+    if (_bv_map_markers_width < 256 && _bv_map_markers_height < 256)
+    {
+        _bv_map_markers_width  += 2;
+        _bv_map_markers_height += 2;
+    }//if
+
+    bv_Markers_ChangeIconSize(_bv_map_markers_width, _bv_map_markers_height);
+}//bv_Markers_SizeInc
+
+    
+    
+
+/*
+function bv_TestLoadLog()
+{
+    var url = document.getElementById("bv_address").value;
+        
+    if (url != null && url.length > 0)
+    {
+        bv_GetLogFileAsync(url, _bv_map_markers_width, _bv_map_markers_height, _bv_cached_is_mobile);
+    }//if
+}//bv_TestLoadLog
+*/
+
+
+
+
+function bv_GetJSONAsync(url, width, height, isMobile)
+{
+    var cb = function(response, userData)
+    {
+        var success = response != null && response.length > 0;
+        
+        if (success)
+        {
+            var obj = JSON.parse(response);
+        
+            if (obj != null && obj.source != null && obj.source.url != null && obj.source.url.length > 0)
+            {
+                bv_GetLogFileAsync(obj.source.url, userData[0], userData[1], userData[2], obj.id);
+            }//if
+            else
+            {
+                success = false;
+            }//else
+        }//if
+        
+        if (!success)
+        {
+            _bv_xfm.ReportResultsErrorForURL(url);
+        }//if
+    }.bind(this);
+
+    //bv_GetFileAsyncWithFeedbackUI(url, width, height, isMobile, "API Query", "bv_transferBar", "bv_xferTitle", "bv_xferStatus", "bv_xferKB", "bv_xferMsg", cb);
+    //(url, responseType, fxCallback, userData, xfTitle, xfType)
+    _bv_xfm.AddTask(url, null, cb, [width, height, isMobile], "API Query", XF.TypeLogQueryByLog);
+}//bv_GetJSONAsync
+
+
+function bv_GetJSONByUserAsync(url, width, height, isMobile)
+{
+    var cb = function(response, userData)
+    {
+        var success = response != null && response.length > 0;
+        
+        if (success)
+        {
+            var obj = JSON.parse(response);
+            var   j = 0;
+        
+            console.log("bv_GetJSONByUserAsync: User query results: %d logs on page.  Retrieving...", obj.length);
+                
+            for (var i=0; i<obj.length; i++)
+            {
+                if (obj[i].measurements_count != 0)
+                {
+                    bv_GetLogFileAsync(obj[i].source.url, userData[0], userData[1], userData[2], obj[i].id);
+                    j++;
+                }//if
+                else
+                {
+                    console.log("bv_GetJSONByUserAsync: Log ID=%d had 0 measurements, skipping.", obj[i].id);
+                }//else
+            }//for
+            
+            success = j > 0;
+        }//if
+        
+        if (!success)
+        {
+            _bv_xfm.ReportResultsErrorForURL(url);
+        }//if
+    }.bind(this);
+
+    _bv_xfm.AddTask(url, null, cb, [width, height, isMobile], "API Query (by User)", XF.TypeLogQueryByUser);
+    //(url, responseType, fxCallback, userData, xfTitle, xfType)
+    //bv_GetFileAsyncWithFeedbackUI(url, width, height, isMobile, "API Query", "bv_transferBar", "bv_xferTitle", "bv_xferStatus", "bv_xferKB", "bv_xferMsg", cb);
+}//bv_GetJSONByUserAsync
+
+//https://api.safecast.org/en-US/bgeigie_imports?approved=&by_status=&by_user_id=228&commit=Filter&order=created_at+desc&q=&uploaded_after=&uploaded_before=&utf8=%E2%9C%93
+
+
+
+
+// 0.1 MB: https://safecast-production.s3.amazonaws.com/uploads/bgeigie_import/source/16748/23261003.LOG
+// 7.9 MB: https://safecast-production.s3.amazonaws.com/uploads/bgeigie_import/source/14490/20820121.LOG
+// http://snowlands.ru/images/pages/bsv-standard_bootscreen.gif
+
+
+// https://api.safecast.org/bgeigie_imports/15719.json
+/*
+{
+    "approved": true,
+    "cities": "\"Chernobyl,Pripyat\"",
+    "created_at": "2014-07-07T07:52:06Z",
+    "credits": "\"Yasnori Hirata\"",
+    "description": "",
+    "height": "1.0",
+    "id": 15719,
+    "lines_count": 7116,
+    "map_id": null,
+    "md5sum": "7dfb2cd219d1c3e21c04427a8d2e7825",
+    "measurements_count": 7116,
+    "name": "Chernobyl,Pripyat",
+    "orientation": "Facing Left",
+    "source": {
+        "url": "https://safecast-production.s3.amazonaws.com/uploads/bgeigie_import/source/15719/20080701.LOG"
+    },
+    "status": "done",
+    "status_details": {
+        "process_file": true,
+        "import_bgeigie_logs": true,
+        "compute_latlng": true,
+        "measurements_added": true
+    },
+    "updated_at": "2014-07-08T01:55:23Z",
+    "user_id": 553
+}
+*/
+
+
+
+
+
+
+/*
+function bv_LoadTestData()
+{
+    bv_GetLogFileAsync('https://safecast-production.s3.amazonaws.com/uploads/bgeigie_import/source/12070/100-1111.LOG', _bv_map_markers_width, _bv_map_markers_height, _bv_cached_is_mobile);
+}//bv_LoadTestData
+*/
+
+
+// ================================================================================================================
+// ================================================================================================================
+// ================================================================================================================
+// https://api.safecast.org/bgeigie_imports.json?by_user_id=553&q=r
+/*
+[
+    {
+        "approved": true,
+        "cities": "\"Chernobyl,Pripyat\"",
+        "created_at": "2014-07-07T07:52:06Z",
+        "credits": "\"Yasnori Hirata\"",
+        "description": "",
+        "height": "1.0",
+        "id": 15719,
+        "lines_count": 7116,
+        "map_id": null,
+        "md5sum": "7dfb2cd219d1c3e21c04427a8d2e7825",
+        "measurements_count": 7116,
+        "name": "Chernobyl,Pripyat",
+        "orientation": "Facing Left",
+        "source": {
+            "url": "https://safecast-production.s3.amazonaws.com/uploads/bgeigie_import/source/15719/20080701.LOG"
+        },
+        "status": "done",
+        "status_details": {
+            "process_file": true,
+            "import_bgeigie_logs": true,
+            "compute_latlng": true,
+            "measurements_added": true
+        },
+        "updated_at": "2014-07-08T01:55:23Z",
+        "user_id": 553
+    },
+    {
+        "approved": true,
+        "cities": "\"Kiev\"",
+        "created_at": "2014-07-07T07:49:57Z",
+        "credits": "\"Yasnori Hirata\"",
+        "description": "",
+        "height": null,
+        "id": 15718,
+        "lines_count": 105,
+        "map_id": null,
+        "md5sum": "7bacfe2249326c50f4c776362630b5c0",
+        "measurements_count": 105,
+        "name": "Ukraine",
+        "orientation": "",
+        "source": {
+            "url": "https://safecast-production.s3.amazonaws.com/uploads/bgeigie_import/source/15718/20080629.LOG"
+        },
+        "status": "done",
+        "status_details": {
+            "process_file": true,
+            "import_bgeigie_logs": true,
+            "compute_latlng": true,
+            "measurements_added": true
+        },
+        "updated_at": "2014-07-08T01:50:49Z",
+        "user_id": 553
+    }
+]
+*/
+
+// ================================================================================================================
+// ================================================================================================================
+// ================================================================================================================
+// https://api.safecast.org/users.json?name=a&page=5
+/*
+[
+    {
+        "id": 220,
+        "name": "Ryota Hanyu",
+        "measurements_count": 0
+    },
+    {
+        "id": 76,
+        "name": "Alexandre Xavier",
+        "measurements_count": 0
+    }
+]
+*/
+
+
+// ================================================================================================================
+// ================================================================================================================
+// ================================================================================================================
+// https://api.safecast.org/en-US/measurements.csv?captured_after=&captured_before=&commit=Filter&distance=100&latitude=0&longitude=0&since=&until=&utf8=%E2%9C%93
+/*
+Captured Time,Latitude,Longitude,Value,Unit,Location Name,Device ID,MD5Sum,Height,Surface,Radiation,Uploaded Time,Loader ID
+2012-11-13 16:50:28 UTC,0.0,0.0,36.0,cpm,"","",6865e9d87ccb79e02988432272e60a44,"","","",2012-11-14 16:27:23 UTC,11543
+*/
+
+function bv_ParseUserInput_UserID(txt)
+{
+    var user_id = txt.length > 1 ? txt.substring(1, txt.length) : null;
+    var url = user_id != null ? "https://api.safecast.org/bgeigie_imports.json?by_user_id=" + user_id + "&order=created_at+desc" : null;
+    
+    return url;
+}//bv_ParseUserInput_UserID
+
+function bv_ParseUserInputIDs(txt)
+{
+    var dest = new Array();
+    
+    if (txt != null && txt.length > 0)
+    {
+        var txt_ids = txt.split(",");
+    
+        for (var i=0; i<txt_ids.length; i++)
+        {
+            var x = parseInt(txt_ids[i]);
+        
+            if (x != null && x > 0)
+            {
+                dest.push(x);
+            }//if
+        }//for
+    }//if
+    
+    return dest;
+}//bv_ParseUserInputIDs
+
+function bv_btnAdd_OnClick()
+{
+    bv_bvPanel_SetHidden(true);
+    
+    if (_bv_test_no_api == 1)
+    {
+        bv_GetLogFileAsync("http://safecast.org/tilemap/logs/100-1111.LOG", _bv_map_markers_width, _bv_map_markers_height, _bv_cached_is_mobile);
+        //bv_GetLogFileAsync("http://safecast.org/tilemap/logs/20080701.LOG", _bv_map_markers_width, _bv_map_markers_height, _bv_cached_is_mobile);
+        //bv_GetLogFileAsync("http://safecast.org/tilemap/logs/20080629.LOG", _bv_map_markers_width, _bv_map_markers_height, _bv_cached_is_mobile);
+
+        return;
+    }//if
+    
+    var txt = document.getElementById("bv_tbLogIDs").value;
+    
+    if (txt != null && txt.length > 0 && txt.substring(0,1) == "u")
+    {
+        var url = bv_ParseUserInput_UserID(txt);
+        
+        _bv_cached_is_mobile = true;
+        
+        bv_GetJSONByUserAsync(url, _bv_map_markers_width, _bv_map_markers_height, _bv_cached_is_mobile);
+    }//if
+    
+    var ids = bv_ParseUserInputIDs(txt);
+    
+    for (var i=0; i<ids.length; i++)
+    {
+        var url = "https://api.safecast.org/bgeigie_imports/" + ids[i] + ".json";
+        
+        bv_GetJSONAsync(url, _bv_map_markers_width, _bv_map_markers_height, _bv_cached_is_mobile);
+    }//for
+}//bv_btnAdd_OnClick
+
+function bv_bvPanel_SetHidden(isHidden)
+{
+    var bvp = document.getElementById("bv_bvPanel");
+        
+    if ( isHidden && bvp.className.match(/(?:^|\s)bv_bvPanelVisible(?!\S)/) )
+    {
+        bvp.className  = bvp.className.replace( /(?:^|\s)bv_bvPanelVisible(?!\S)/g , 'bv_bvPanelHidden' );
+    }//if
+    else if ( !isHidden && bvp.className.match(/(?:^|\s)bv_bvPanelHidden(?!\S)/) )
+    {
+        bvp.className  = bvp.className.replace( /(?:^|\s)bv_bvPanelHidden(?!\S)/g , 'bv_bvPanelVisible' );
+    }//else if
+}//bv_bvPanel_SetHidden
+
+function bv_TransferBar_SetHidden(isHidden)
+{
+    var bvp = document.getElementById("bv_transferBar");
+        
+    if ( isHidden && bvp.className.match(/(?:^|\s)bv_transferBarVisible(?!\S)/) )
+    {
+        bvp.className  = bvp.className.replace( /(?:^|\s)bv_transferBarVisible(?!\S)/g , 'bv_transferBarHidden' );
+    }//if
+    else if ( !isHidden && bvp.className.match(/(?:^|\s)bv_transferBarHidden(?!\S)/) )
+    {
+        bvp.className  = bvp.className.replace( /(?:^|\s)bv_transferBarHidden(?!\S)/g , 'bv_transferBarVisible' );
+    }//else if
+}//bv_bvPanel_SetHidden
+
+function bv_btnDone_OnClick()
+{
+    bv_bvPanel_SetHidden(true);
+}//bv_btnDone_OnClick
+
+function bv_btnRemoveAll_OnClick()
+{
+    bv_Markers_ItemsRemove();
+}//bv_btnRemoveAll_OnClick
+
+
+
+
+var XF = (function()
+{
+    function XF(xfId, ordinal, url, fxCallback, userData, xfTitle, xfType, responseType, XFM_progress)
+    {
+        this.xfId         = xfId;
+        this.ordinal      = ordinal;
+        this.url          = url;
+        this.bytes        = 0;
+        this.bytes_max    = 0;
+        this.fxCallback   = fxCallback;
+        this.userData     = userData;
+        this.xfTitle      = xfTitle;
+        this.xfType       = xfType;
+        this.done         = false;
+        this.error        = false;
+        this.callbackDone = false;
+        this.responseType = responseType;  //"arraybuffer", "blob", "document", "json", and "text"
+        this.time_started = new Date();
+        this.time_done    = null;
+        this.XFM_progress = XFM_progress;
+        this.statusText   = "Connecting";
+    }//XF
+
+    // 0 unsent, 1 open, 2 connected, 3 transfer, 4 done
+    XF.prototype.HttpEventReadyStateChange = function(response, readyState, status)
+    {
+        var old_bytes = this.bytes;
+    
+        if (response != null && response.length > this.bytes) this.bytes = response.length;
+    
+        if (readyState === 4 && status == 200)
+        {
+            this.done       = true;
+            this.statusText = "Done";
+            
+            this.XFM_progress(this);
+            
+            // test, see if helps prevent UI freezing on slower devices
+            setTimeout(function() {
+                this.fxCallback(response, this.userData);
+                this.callbackDone = true;
+                this.time_done    = new Date();
+                this.XFM_progress(this);
+            }.bind(this), 100);
+        }//if
+        else if (readyState === 4 && status != 200)
+        {
+            this.statusText = "Error";
+            this.done       = true;
+            this.error      = true;
+            this.time_done  = new Date();
+            this.XFM_progress(this);
+        }//else if
+        else if (old_bytes != this.bytes)
+        {
+            this.XFM_progress(this);
+        }//else if
+    };
+    
+    XF.prototype.HttpEventProgress = function(evt)
+    {
+        if (evt.lengthComputable && this.bytes_max == 0)
+        {
+            this.bytes_max  = evt.total;
+            this.statusText = "Downloading";
+        }//if
+        
+        if (evt.loaded > this.bytes)
+        {
+            this.bytes = evt.loaded;
+            this.XFM_progress(this);
+        }//if
+    };
+    
+    XF.prototype.HttpEventError = function(evt, eventName) // "error", "abort"
+    {
+        this.statusText = eventName == "error" ? "Error" : "Aborted";
+        this.done       = true;
+        this.error      = true;
+        this.time_done  = new Date();
+        this.XFM_progress(this);
+    };
+    
+    XF.prototype.HttpGet = function()
+    {
+        var req = new XMLHttpRequest();
+        
+        if (this.responseType != null)
+        {
+            req.responseType = this.responseType;
+        }//if
+        
+        var pCB = function(evt) { this.HttpEventProgress(evt);       }.bind(this);
+        var eCB = function(evt) { this.HttpEventError(evt, "error"); }.bind(this);
+        var aCB = function(evt) { this.HttpEventError(evt, "abort"); }.bind(this);
+        
+        req.addEventListener("progress", pCB, false);
+        req.addEventListener("error",    eCB, false);
+        req.addEventListener("abort",    aCB, false);
+        
+        req.open("GET", this.url, true);
+        
+        req.onreadystatechange = function()
+        {
+            this.HttpEventReadyStateChange(req.response, req.readyState, req.status);
+        }.bind(this);
+                
+        req.send(null);
+    };
+    
+    XF.prototype.GetProgressBytesText = function()
+    {
+        var bx = XF.GetKbOrMbWithLabelFor2xBytes(this.bytes, this.bytes_max);
+        
+        return "" + bx[0] + " / " + bx[1] + " " + bx[2]
+    };
+    
+    XF.prototype.GetProgressPercentText = function()
+    {
+        return "" + XF.RoundToD((this.GetProgressNormalized() * 100.0), 0) + "%";
+    };
+    
+    XF.prototype.GetProgressNormalized = function()
+    {
+        return this.bytes_max > 0 ? parseFloat(this.bytes) / parseFloat(this.bytes_max) : 0.0;
+    };
+    
+    XF.prototype.GetElapsedSinceDoneSS = function()
+    {
+        return this.time_done != null ? this.time_done.getTime() - this.time_started.getTime() : 0;
+    };
+    
+    XF.prototype.GetElapsedTimeSS = function()
+    {
+        var d1 = new Date();
+        return this.time_started.getTime() - d1.getTime();
+    };
+    
+    XF.RoundToD = function(x, d)
+    {
+        return Math.round(x * Math.pow(10.0, d)) / Math.pow(10.0, d);
+    };
+    
+    XF.GetKbOrMbWithLabelFor2xBytes = function(x, y)
+    {
+        var fx, fy, txt;
+        
+        if (x >= 1048576 || y >= 1048576)
+        {
+            fx  = parseFloat(x) * 0.00000095367431640625;
+            fy  = parseFloat(y) * 0.00000095367431640625;
+            txt = "MB";
+        }//if
+        else
+        {
+            fx  = parseFloat(x) * 0.0009765625;
+            fy  = parseFloat(y) * 0.0009765625;
+            txt = "KB";
+        }//else
+        
+        return [XF.RoundToD(fx, 2), XF.RoundToD(fy, 2), txt];
+    };
+    
+    XF.TypeLog = 0;
+    XF.TypeLogQueryByUser = 1;
+    XF.TypeLogQueryByLog = 2;
+
+    return XF;
+})();
+
+
+
+
+
+var XFM = (function()
+{
+    function XFM(fxCallbackStart, fxCallbackEnd, userData, title, titleClass, divElement, tableClass)
+    {
+        this.fxCallbackStart = fxCallbackStart;
+        this.fxCallbackEnd   = fxCallbackEnd;
+        this.userData        = userData;
+    
+        this.tasks   = new Array();
+        this.xfmId   = "xfm" + parseInt((Math.random() * 65535) + 1);
+        this.title   = title;        
+        this.tiClass = titleClass;
+        this.tbClass = tableClass;
+        this.div     = divElement;
+        this.hTbl    = null;
+        this.bTbl    = null;
+        this.cvx     = null;
+        this.xf_div  = null;
+        this.cpu_div = null;
+        this.xf_n    = 0;
+        this.mode    = XFM.ModeXF;
+        
+        this.NewHeaderTableElement();
+        this.NewBodyElements();
+    }//XFM
+    
+    XFM.prototype.ChangeMode = function(newMode)
+    {
+        if (this.mode == XFM.ModeXF && newMode == XFM.ModeCPU)
+        {
+            this.xf_div.style.visibility  = "hidden";
+            this.cpu_div.style.visibility = "visible";
+            this.mode = newMode;
+        }//if
+        else if (this.mode == XFM.ModeCPU && newMode == XFM.ModeXF)
+        {
+            this.cpu_div.style.visibility = "hidden";
+            this.xf_div.style.visibility  = "visible";
+            this.mode = newMode;
+        }//else if
+    };
+    
+    XFM.prototype.AddTask = function(url, responseType, fxCallback, userData, xfTitle, xfType)
+    {
+        var cb = function(xf)
+        {
+            this.XFCallback(xf);
+        }.bind(this);
+        
+        var xf = new XF(this.xfmId + "_" + this.xf_n, this.xf_n + 1, url, fxCallback, userData, xfTitle, xfType, responseType, cb);
+        
+        this.tasks.push(xf);
+        
+        this.xf_n = this.xf_n + 1;
+        
+        this.fxCallbackStart(this.userData);
+        
+        this.DataBindRow(xf);
+        
+        xf.HttpGet();
+    };
+    
+    XFM.prototype.UpdateGlobalImage = function(tile_u08)
+    {
+        var ctx = this.cvx.getContext("2d");
+        var x, y_w;
+
+        for (var y=0; y<256; y++)
+        {
+            y_w = y * 256;
+        
+            for (x=0; x<256; x++)
+            {
+                if (tile_u08[y_w + x] > 0)
+                {
+                    ctx.beginPath();
+                        var grd = ctx.createRadialGradient(x, y, 1, x, y, 7);
+                        
+                        grd.addColorStop(0, "rgba(0,0,255,1.0)");
+                        grd.addColorStop(1, "rgba(0,0,255,0.0)");        
+
+                        ctx.arc(x, y, 7, 0, 2 * Math.PI);
+                        ctx.fillStyle = grd;
+                    ctx.fill();
+                }//if
+            }//for x
+        }//for y
+    };
+    
+    XFM.prototype.ReportResultsErrorForURL = function(url)
+    {
+        console.log("XFM: error reported for url: %s", url);
+        
+        var matchIdx = -1;
+        
+        for (var i=0; i<this.tasks.length; i++)
+        {
+            if (this.tasks[i].done && !this.tasks[i].error && this.tasks[i].url == url)
+            {
+                this.tasks[i].error = true;
+                this.tasks[i].statusText = "Error";
+                matchIdx = i;
+                break;
+            }//if
+        }//for
+        
+        if (matchIdx > -1) this.XFCallback(this.tasks[matchIdx]);
+    };
+    
+    // invoked by task when progress / done / error
+    XFM.prototype.XFCallback = function(xf)
+    {
+        var allDone = true;
+        
+        if (xf != null) this.DataBindRow(xf);
+        //if (xf != null && (xf.callbackDone || xf.error))
+        //{
+//            setTimeout(function() { this.dataBindRow(xf); }.bind(this), 2000);
+//        }
+        
+        for (var i=0; i<this.tasks.length; i++)
+        {
+            if (!this.tasks[i].callbackDone && !this.tasks[i].error)
+            {
+                allDone = false;
+            }//if
+        }//for
+        
+        if (allDone)
+        {
+            // test for reducing UI blocking on slower devices
+            setTimeout(function() {
+                this.fxCallbackEnd(this.userData);
+            }.bind(this), 100);
+        }//if
+    };
+    
+    //array.splice( index, 1 );
+    
+    XFM.prototype.RemoveAllRows = function()
+    {
+        for (var i=0; i<this.bTbl.rows.length; i++)
+        {
+            this.bTbl.deleteRow(-1);
+        }//for
+    };
+    
+    XFM.prototype.DataBindRow = function(xf)
+    {
+        if (xf == null) return;
+        
+        var idx = -1;
+        
+        for (var i=0; i<this.bTbl.rows.length; i++)
+        {
+            if (this.bTbl.rows[i].id == xf.xfId)
+            {
+                idx = i;
+                break;
+            }//if
+        }//for
+        
+        if (idx == -1 && xf.GetElapsedSinceDoneSS() < 3.0)
+        {
+            var row = this.bTbl.insertRow(0); // reversed (new on top)
+            row.id = xf.xfId;
+            
+            var td0 = row.insertCell(-1);
+            td0.innerHTML = (xf.ordinal < 10 ? "&nbsp;" : "") + xf.ordinal + ". " + xf.xfTitle;
+            
+            var td1 = row.insertCell(-1);
+            td1.style.textAlign = "right";
+            td1.innerHTML = XFM.FormatXFCell(xf);
+        }//if
+        else if (xf.GetElapsedSinceDoneSS() < 3.0)
+        {
+            this.bTbl.rows[idx].cells[1].innerHTML = XFM.FormatXFCell(xf);
+        }//else
+        else if (idx != -1 && xf.GetElapsedSinceDoneSS() >= 3.0)
+        {
+            this.bTbl.deleteRow(idx);
+        }//else
+    };
+    
+    XFM.prototype.NewHeaderTableElement = function()
+    {
+        this.hTbl               = document.createElement("table");
+        this.hTbl.style.cssText = "width:256px;border:0px;padding:0px 0px 10px 0px;border-spacing:0px;"
+        this.hTbl.className     = this.tbClass;
+                
+        var div           = document.createElement("div");
+        div.className     = this.tiClass;
+        div.style.cssText = "font-size:120%;left:0;right:0;"
+        div.innerHTML     = this.title;
+        
+        var row  = this.hTbl.insertRow(0);
+        var cell = row.insertCell(0);
+        cell.style.textAlign = "center";
+        cell.appendChild(div);
+        
+        this.div.appendChild(this.hTbl);
+    };
+    
+    XFM.prototype.NewBodyElements = function()
+    {
+        var cdiv = document.createElement("div");
+        cdiv.style.cssText = "position:relative;width:276px;height:256px;";
+        
+        var div0 = document.createElement("div");
+        div0.style.cssText = "position:absolute;top:0;left:0;width:256px;height:256px;background:url('world_155a_z0.png') no-repeat;opacity:0.4;-webkit-filter:blur(2px);-moz-filter:blur(2px);-o-filter:blur(2px);-ms-filter:blur(2px);filter:blur(2px);";
+        
+        this.xf_div = document.createElement("div");
+        this.xf_div.style.cssText = "position:absolute;top:0;left:0;width:276px;height:256px;overflow-x:hidden;overflow-y:auto;";
+        
+        this.cpu_div = document.createElement("div");
+        this.cpu_div.style.cssText = "position:absolute;top:0;left:0;width:256px;height:256px;display:table;visibility:hidden;";
+        
+        this.cvx        = document.createElement("canvas");
+        this.cvx.width  = 256;
+        this.cvx.height = 256;
+                
+        this.bTbl               = document.createElement("table");
+        this.bTbl.style.cssText = "width:256px;border:0px;padding:0px;border-spacing:0px;"
+        this.bTbl.className     = this.tbClass;
+        
+        cdiv.appendChild(div0);
+        cdiv.appendChild(this.xf_div);
+        cdiv.appendChild(this.cpu_div);
+        
+        div0.appendChild(this.cvx);
+        this.xf_div.appendChild(this.bTbl);
+
+        this.cpu_div.innerHTML = "<div style='display:table-cell;vertical-align:middle;text-align:center;'><span style='font-size:140%'>- Please Wait -</span><br/><span style='font-size:60%'>Adding Markers to Map</span></div>";
+        
+        this.div.appendChild(cdiv);
+    };
+    
+    XFM.FormatXFCell = function(xf)
+    {
+        return xf.error ? xf.statusText : xf.callbackDone ? "100%" : xf.done && xf.xfType == XF.TypeLog ? "Processing" : xf.GetProgressPercentText();
+    };
+    
+    XFM.ModeXF  = 0;
+    XFM.ModeCPU = 1;
+
+    return XFM;
+})();
+
+
+
+
+
+// *************************************************************************************
+// ************************************* PAGE LOAD *************************************
+// *************************************************************************************
+
+function bv_Initialize()
+{
+    
+    if (_cached_is_mobile)
+    {
+        document.getElementById('chart_div').style.display = 'none';
+    }//if
+    else
+    {
+        document.getElementById('chart_div').style.width  = '900px';
+        document.getElementById('chart_div').style.height = '115px';
+    }//else
+    
+    
+    bv_SetDebugParams();
+    bv_gbGIS_SetupGlobalLUTs();
+
+    
+    var _bv_xfmcbs = function(userData)
+    {
+        bv_TransferBar_SetHidden(false);
+    }.bind(this);
+
+    var _bv_xfmcbe = function(userData)
+    {
+        var isAnyWork = false;
+        
+        for (var i=0; i<_bv_map_markers.length; i++)
+        {
+            if (_bv_map_markers[i].map == null)
+            {
+                isAnyWork = true;
+                break;
+            }//if
+        }//for
+        
+        if (isAnyWork)
+        {
+            //var ms = _bv_map_markers.length < 30000 ? 3000 : _bv_map_markers.length / 10;
+            //if (_bv_map_markers.length > 1000 && _bv_map_markers[0].ext_bearing != -1.0) ms *= 2;
+            var ms = 2500;
+        
+            //setTimeout(function() { _bv_xfm.ChangeMode(XFM.ModeCPU); }.bind(this), _bv_map_markers.length < 20000 ? 1000 : 10);
+            _bv_xfm.ChangeMode(XFM.ModeCPU);
+            
+            setTimeout(function() {
+        
+                //bv_Markers_IconSet(_bv_map_markers_width, _bv_map_markers_height, false);
+                bv_ApplyExtent();
+                bv_Markers_MapSet(true);
+    
+                setTimeout(function() { bv_TransferBar_SetHidden(true); _bv_xfm.ChangeMode(XFM.ModeXF); }.bind(this), ms);
+            }.bind(this), 500);
+        }//if
+        else
+        {
+            setTimeout(function() { bv_TransferBar_SetHidden(true); }.bind(this), 5000); // an error of some kind
+        }//else
+    }.bind(this);
+
+    var _bv_xfm_div = document.getElementById("bv_transferBar");
+
+    _bv_xfm = new XFM(_bv_xfmcbs, _bv_xfmcbe, null, "Data Transfer", "bv_hline", _bv_xfm_div, "bv_FuturaFont");
+
+
+    
+        
+    map = new google.maps.Map(document.getElementById('map_canvas'), null);
+
+    var loc = new google.maps.LatLng(37.316113, 140.515516);
+    map.panTo(loc);
+    map.setZoom(4);
+    
+    
+    
+    google.maps.event.addListener(map, "zoom_changed", function () { bv_Markers_MapSet(false); });
+    google.maps.event.addListener(map, "dragend", function () { bv_Markers_MapSet(false); });
+    //google.maps.event.addListener(map, "idle", function () { bv_Markers_MapSet(false); }); // bounds_changed
+        
+    //LoadTestData();
+}//initialize
+
+
+
+
+function bv_SetDebugParams()
+{
+    var svg_str = bv_GetParam("svg");
+    
+    if (svg_str != null && svg_str.length > 0)
+    {
+        _bv_render_svg = parseInt(svg_str);
+    }//if
+    
+    var blob_str = bv_GetParam("blob");
+    
+    if (blob_str != null && blob_str.length > 0)
+    {
+        _bv_render_blob = parseInt(blob_str);
+    }//if
+    
+    var png_str = bv_GetParam("png");
+    
+    if (png_str != null && png_str.length > 0)
+    {
+        _bv_render_png = parseInt(png_str);
+        
+        if (_bv_render_png == 1)
+        {
+            if (window.devicePixelRatio > 1.5)
+            {
+                _bv_map_markers_width  = 20;
+                _bv_map_markers_height = 20;
+            }//if
+            else
+            {
+                _bv_map_markers_width  = 10;
+                _bv_map_markers_height = 10;
+            }//else
+        }//if
+        else
+        {
+            if (window.devicePixelRatio > 1.5)
+            {
+                _bv_map_markers_width  = 20;
+                _bv_map_markers_height = 20;
+            }//if
+            else
+            {
+                _bv_map_markers_width  = 19;
+                _bv_map_markers_height = 19;
+            }//else
+        }//else
+    }//if
+    
+    var noapi_str = bv_GetParam("noapi");
+    
+    if (noapi_str != null && noapi_str.length > 0)
+    {
+        _bv_test_no_api = parseInt(noapi_str);
+    }//if
+    
+    var deci_str = bv_GetParam("deci");
+    
+    if (deci_str != null && deci_str.length > 0)
+    {
+        _bv_decimation = parseInt(deci_str);
+    }//if
+    
+    var ed_str = bv_GetParam("ed");
+    
+    if (ed_str != null && ed_str.length > 0)
+    {
+        _bv_epsilon_d = parseFloat(ed_str);
+    }//if
+    
+    var em_str = bv_GetParam("em");
+    
+    if (em_str != null && em_str.length > 0)
+    {
+        _bv_epsilon_m = parseFloat(em_str);
+    }//if
+}//bv_SetDebugParams
+
+</script>
+
+
+
+
+
+</head>
+
+<body style="margin:0px; padding:0px;" onload="bv_Initialize();" class="bv_FuturaFont">
+
+<div id="bv_bvPanel" class="bv_bvPanelVisible">
+    <table border=0 cellpadding=0 cellspacing=0 style="top:0;bottom:0;left:0;right:0;background-color: rgba(255, 255, 255, 0.85);" class="bv_FuturaFont">
+        <tr>
+            <td colspan="2" style="padding:10px;" align="center">
+                <div style="font-size:120%; left:0; right:0;" class="bv_hline">bGeigie Logs</div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" style="padding:10px;">
+                <img border=0 width=71 height=127 src="bgpreview_118x211.png" style="float:right; padding-left:2px;" />
+                A bGeigie log contains the original data points upon which the Safecast map tiles are based.<br/><br/>
+                This offers additional information and resolution, but is limited to a smaller subset of data.<br/><br/>
+                <table border=0 cellpadding=5 cellspacing=0 style="width:100%;" class="bv_FuturaFont">
+                    <tr>
+                        <td valign="top" align="right">To Add</td>
+                        <td valign="top">Enter the <a href="https://api.safecast.org/en-US/bgeigie_imports" target="_blank">ID of a log</a>, and click "Add".<br/><i>(Multiple IDs: use commas)</i></td>
+                    </tr>
+                    <tr>
+                        <td valign="top" align="right" nowrap>To Clear</td>
+                        <td valign="top">Click "Remove All" to remove all logs added to the map.</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" align="center" style="height:1px; padding: 0px 10px 0px 10px;"><hr style="border-style: none none solid; height:1px;" /></td>
+        </tr>
+        <tr>
+            <td align="right" valign="middle" style="padding:10px;"><input id="bv_tbLogIDs" type="text" placeholder="Enter bGeigie Log ID(s): 1,2,3..." value="28175" size=22></td>
+            <td valign="middle" style="padding:10px;"><button class="bv_btnW" style="width:85px;" onclick="bv_btnAdd_OnClick(); return false;">Add</button></td>
+        </tr>
+        <tr>
+            <td align="right" valign="middle" style="padding:10px;" nowrap>Remove Any Logs Added to Map</td>
+            <td valign="middle" style="padding:10px;"><button class="bv_btnW" style="width:85px;" onclick="bv_btnRemoveAll_OnClick(); return false;">Remove All</button></td>
+        </tr>
+        <tr>
+            <td colspan="2" align="center" style="height:1px; padding: 0px 10px 0px 10px;"><hr style="border-style: none none solid; height:1px;" /></td>
+        </tr>
+        <tr>
+            <td colspan="2" align="center" style="padding:10px 10px 20px 10px;"><button class="bv_btnW" style="width:85px;" onclick="bv_btnDone_OnClick(); return false;">Done</button></td>
+        </tr>
+    </table>
+</div>
+
+
+
+<div id="bv_transferBar" class="bv_transferBarHidden"></div>
+
+
+
+
+<div id="searchbar">
+<button class="bv_btnW" onclick="bv_bvPanel_SetHidden(false); return false;">Add bGeigie Log</button>
+</div>
+<!--
+Marker Size:
+ <button onclick="Markers_SizeDec(); return false;">-</button>
+ <button onclick="Markers_SizeInc(); return false;">+</button>
+ <button onclick="Markers_ItemsRemove(); return false;">Remove All Markers</button>
+ <button onclick="LoadTestData(); return false;">Load Test Data</button>
+ <button onclick="TestAPI(); return false;">Test API</button>
+<input id="address" type="text" placeholder="Enter bGeigie Log URL..." size=120>
+</div>
+/-->
+
+<div id="chart_div" style="z-index:9000; position:absolute; left:10px; top:50px;"></div> 
+<div id="map_canvas"> </div>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
