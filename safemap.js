@@ -6,7 +6,7 @@
 // See http://creativecommons.org/publicdomain/zero/1.0/
 // ----------------------------------------------------------------
 //
-// Modifications - 2014, 2015, 2016 - Nick Dolezal
+// Modifications - 2014, 2015, 2016, 2017 - Nick Dolezal
 
 // safemap.js is the primary code-behind for the Safecast webmap and loads all other components
 // asynchronously as needed.
@@ -31,6 +31,7 @@ var _flyToExtentProxy = null;    // retained proxy instance for map pans/zooms/s
 var _locStringsProxy  = null;    // retained proxy instance for localized UI strings
 var slideout          = null;    // retained slideout menu
 var _userloc          = null;    // retained user location marker / loc callback
+var _igProxy          = null;
 
 // ========== INTERNAL STATES =============
 var _cached_ext       = { baseurl:null, urlyxz:null, lidx:-1, cd:false, cd_y:0.0, cd_x:0.0, cd_z:0, midx:-1, mt:null };
@@ -43,6 +44,8 @@ var _ui_menu_basemap_more_visible = false;
 var _system_os_ios = navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i);
 var _last_history_push_ms = -1;
 var _img_tile_shadow_idx = -1;
+var _rt_ptcast_enabled = true;
+var _rt_ingest_enabled = true;
 
 // ========== USER PREFS =============
 var _no_hdpi_tiles    = false;
@@ -338,13 +341,13 @@ var SafemapInit = (function()
         for (var i=0; i<a.length; i++) { AListId(a[i],"dragstart",f); }
     };
 
-    var _InitRtViewer = function()
+    SafemapInit.InitRtViewer = function()
     {
         if (_rtvm == null && !SafemapUI.IsBrowserOldIE() && "ArrayBuffer" in window)
         {
             var cb = function() {
                 _rtvm = new RTVM(map, null);
-            };
+            }.bind(this);
         
             SafemapUI.RequireJS(SafemapUI.GetContentBaseUrl() + "rt_viewer_min.js", true, cb, null);
         }//if
@@ -445,7 +448,7 @@ var SafemapInit = (function()
         }, 500);
 
         setTimeout(function() {
-            _InitRtViewer();
+            //_InitRtViewer();
 
             var rp = function(gs,eps) { MenuHelper.RegisterGroupsAndPolys(gs,eps);    };
             var gl = function()       { return PrefHelper.GetEffectiveLanguagePref(); };
@@ -458,6 +461,7 @@ var SafemapInit = (function()
         }, 1500);
 
         setTimeout(function() {
+            //_igProxy = new IgProxy(map);
             _InitAboutMenu(); 
             _InitContextMenu(); 
             (map.getStreetView()).setOptions({ zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM }, panControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM }, enableCloseButton:true, imageDateControl:true, addressControlOptions:{ position: google.maps.ControlPosition.TOP_RIGHT } });
@@ -3691,6 +3695,180 @@ var LocalizedStringsProxy = (function()
 
 
 
+
+
+var IgProxy = (function()
+{
+    function IgProxy(mapref)
+    {
+        this._ddl    = ElGet("ddlRealtime1Unit");
+        this._units  = null;
+        this._ig     = null;
+        this._unit   = PrefHelper.GetIngestUnitPref();
+        this._mapref = mapref;
+
+        this._loadstate = { gcharts:false, igview:false, done:false };
+
+        this.fxRequireJS = function(url, isAsync, fxCallback, userData) { SafemapUI.RequireJS(url, isAsync, fxCallback, userData); }.bind(this);
+
+        this.Init();
+    }
+
+    IgProxy.prototype.SetEnabled = function(s)
+    {
+        if (this._ig != null)
+        {
+            this._ig.SetEnabled(s);
+        }//if
+    };
+
+    IgProxy.prototype._LoadCompletionCheck = function(cb)
+    {
+        if (this._loadstate.gcharts && this._loadstate.igview && !this._loadstate.done)
+        {
+            this._ig = new IngestViewer(this._mapref);
+
+            if (this._unit != null)
+            {
+                this._ig.SetUnit(this._unit);
+            }//if
+
+            this._loadstate.done = true;
+            cb();
+        }//if
+    };
+
+    IgProxy.prototype._LoadGoogleChartsAsync = function(cb)
+    {
+        var fx = function()
+        {
+            this._loadstate.gcharts = true;
+            this._LoadCompletionCheck(cb);
+        }.bind(this);
+        
+        //this.fxRequireJS(SafemapUI.GetContentBaseUrl() + "ingest_viewer_min.js", true, fx, null);
+
+        var p = localStorage.getItem("PREF_LANGUAGE") || "";
+        var j = p == "ja" || (p == "" && (new Date()).getTimezoneOffset() == -540);
+        var l = j ? "ja" : p == "" ? "en" : p;
+        var f,s = ElCr("script");
+        s.async = false; // this seemed to break it maybe?
+        s.type  = "text/javascript";
+        f = function(e) { 
+            s.removeEventListener("load", f); 
+            google.charts.load("current", {"packages":["corechart"], "language": l}); // classic=corechart, material=line
+            google.charts.setOnLoadCallback(fx);
+        }.bind(this);
+        AList(s, "load", f);
+        s.src = "https://www.gstatic.com/charts/loader.js";
+        document.head.appendChild(s);
+    };
+
+    IgProxy.prototype._LoadIngestViewerAsync = function(cb)
+    {
+        var fx = function()
+        {
+            this._loadstate.igview = true;
+            this._LoadCompletionCheck(cb);
+        }.bind(this);
+
+        this.fxRequireJS(SafemapUI.GetContentBaseUrl() + "ingest_viewer.js", true, fx, null);
+    };
+
+    IgProxy.prototype._ExecuteWithAsyncLoadIfNeeded = function(cb)
+    {
+        if (this._loadstate.done)
+        {
+            cb();
+        }//if
+        else
+        {
+            this._LoadGoogleChartsAsync(cb);
+            this._LoadIngestViewerAsync(cb);
+        }//else
+    };
+
+    IgProxy.prototype.Init = function()
+    {
+        this._ddlUnits_Init();
+    };
+
+    IgProxy.prototype.ddlUnits_OnChange = function()
+    {
+        this._unit = this._ddl.options[this._ddl.selectedIndex].value;
+        PrefHelper.SetIngestUnitPref(this._unit);
+        var cb = function()
+        {
+            this._ig.SetUnit(this._unit);
+        }.bind(this);
+        this._ExecuteWithAsyncLoadIfNeeded(cb);
+    };
+
+    var _GetUnitLabelForParts = function(up)
+    {
+        var d = (   up.ch    == null ? "" : up.ch + " ")
+              + (   up.si    == null ? "" : up.si      )
+              + (   up.mfr   == null 
+                 && up.model == null ? "" : " " + (up.mfr   == null ? "" : up.mfr   + " ")
+                                                + (up.model == null ? "" : up.model      ));
+        return d;
+    };
+
+    IgProxy.prototype._ddlUnits_SyncSelectedIdx = function()
+    {
+        var os  = this._ddl.options;
+
+        for (var i=0; i<os.length; i++)
+        {
+            if (os[i].value == this._unit)
+            {
+                this._ddl.selectedIndex = i;
+                break;
+            }//if
+        }//for
+    };
+
+    IgProxy.prototype._ddlUnits_Bind = function()
+    {
+        this._ddl.style.removeProperty("visibility");
+
+        for (var i=0; i<this._units.length; i++)
+        {
+            var o       = ElCr("option");
+            o.value     = this._units[i].unit;
+            o.innerHTML = _GetUnitLabelForParts(this._units[i].ui_display_unit_parts);
+            this._ddl.appendChild(o);
+        }//for
+
+        this._ddlUnits_SyncSelectedIdx();
+    };
+
+    IgProxy.prototype._ddlUnits_Init = function()
+    {
+        var cb_json = function(units)
+        {
+            this._units = units;
+            this._ddlUnits_Bind();
+        }.bind(this);
+
+        var cb = function()
+        {
+            this._ig.GetUnits(cb_json);
+        }.bind(this);
+
+        this._ExecuteWithAsyncLoadIfNeeded(cb);
+    };
+
+    return IgProxy;
+})();
+
+
+
+
+
+
+
+
 // ===============================================================================================
 // ========================================= PREF HELPER =========================================
 // ===============================================================================================
@@ -3774,6 +3952,7 @@ var PrefHelper = (function()
                  ["EXPANDED_REALTIME",0,1], ["EXPANDED_AREAS",      0,1], ["EXPANDED_BASEMAP",0,0], ["EXPANDED_ADVANCED",0,0],
                  ["LAYER_UI_INDEX",   1,0], ["BASEMAP_UI_INDEX",    1,0], ["LAYERS_MORE",     0,0], ["BASEMAP_MORE",     0,0], 
                  ["MENU_OPEN",        0,0], ["TOOLTIPS_ENABLED",    0,d], ["MENU_THEME",      1,0], ["USER_LOC_ENABLED", 0,0],
+                 ["RT_PTCAST_ENABLED",0,1], ["RT_INGEST_ENABLED",   0,1], ["INGEST_UNIT",3,"opc_pm02_5"],
                  ["LANGUAGE",         3,null],
                  ["VISIBLE_EXTENT_X",2,140.515516], ["VISIBLE_EXTENT_Y",2,37.316113], ["VISIBLE_EXTENT_Z",1,9]];
         for (var i=0; i<o.length; i++)
@@ -4744,24 +4923,66 @@ var MenuHelper = (function()
         }, false);
 
 
-        ElGet("chkMenuRealtime0").checked = true;
+
+        _rt_ptcast_enabled = PrefHelper.GetRtPtcastEnabledPref();
+        if (_rt_ptcast_enabled)
+        {
+            SafemapInit.InitRtViewer();
+        }//if
+        ElGet("chkMenuRealtime0").checked = _rt_ptcast_enabled;
         ElGet("menu_realtime_0").addEventListener("click", function()
         {
             var e = false;
-            if (_rtvm != null && _rtvm.GetMarkerCount() > 0)
+
+            if (_rt_ptcast_enabled && _rtvm != null && _rtvm.GetMarkerCount() > 0)
             {
                 _rtvm.RemoveAllMarkersFromMapAndPurgeData();
                 _rtvm.ClearGmapsListeners();
                 _rtvm.SetEnabled(false);
             }//if
-            else if (_rtvm != null)
+            else if (!_rt_ptcast_enabled)
             {
-                _rtvm.InitMarkersAsync();
-                _rtvm.AddGmapsListeners();
-                _rtvm.SetEnabled(true);
+                if (_rtvm == null)
+                {
+                    SafemapInit.InitRtViewer();
+                }//if
+                else
+                {
+                    _rtvm.InitMarkersAsync();
+                    _rtvm.AddGmapsListeners();
+                    _rtvm.SetEnabled(true);
+                }//else
+
                 e = true;
-            }//else
-            ElGet("chkMenuRealtime0").checked = e;
+            }//else if
+            _rt_ptcast_enabled = e;
+            PrefHelper.SetRtPtcastEnabledPref(_rt_ptcast_enabled);
+            ElGet("chkMenuRealtime0").checked = _rt_ptcast_enabled;
+        }, false);
+
+
+        _rt_ingest_enabled = PrefHelper.GetRtIngestEnabledPref();
+        if (_rt_ingest_enabled)
+        {
+            //SafemapInit.InitIngestViewer();
+            _igProxy = new IgProxy(map);
+        }//if
+        ElGet("chkMenuRealtime1").checked = _rt_ingest_enabled;
+        ElGet("menu_realtime_1").addEventListener("click", function()
+        {
+            _rt_ingest_enabled = !_rt_ingest_enabled;
+
+            if (_igProxy != null)
+            {
+                _igProxy.SetEnabled(_rt_ingest_enabled);
+            }//if
+            else if (_rt_ingest_enabled)
+            {
+                _igProxy = new IgProxy(map);
+            }//if
+            
+            PrefHelper.SetRtIngestEnabledPref(_rt_ingest_enabled);
+            ElGet("chkMenuRealtime1").checked = _rt_ingest_enabled;
         }, false);
 
 
@@ -5289,7 +5510,6 @@ var MenuHelper = (function()
 
 
 
-
 // ===============================================================================================
 // ======================================= MENU HELPER STUB ======================================
 // ===============================================================================================
@@ -5785,10 +6005,10 @@ var UserLoc = (function()
         _SetLbl(p+"Lat", this.lat.toFixed(6));
         _SetLbl(p+"Lon", this.lon.toFixed(6));
         _SetLbl(p+"XyAcc", this.xyacc.toFixed(0));
-        _SetLbl(p+"Alt", this.alt != null ? this.alt.toFixed(0) : "0");
-        _SetLbl(p+"ZAcc", this.zacc != null ? this.zacc.toFixed(0) : "0");
-        _SetLbl(p+"Speed", this.speed != null ? ((this.speed / 1000.0) / 360.0).toFixed(0) : "0");
-        _SetLbl(p+"Deg", this.deg != null && !isNan(this.deg) ? this.deg.toFixed(0) : "0");
+        _SetLbl(p+"Alt", this.alt != null && !isNaN(this.alt) ? this.alt.toFixed(0) : "0");
+        _SetLbl(p+"ZAcc", this.zacc != null && !isNaN(this.zacc) ? this.zacc.toFixed(0) : "0");
+        _SetLbl(p+"Speed", this.speed != null && !isNaN(this.speed) ? ((this.speed / 1000.0) / 360.0).toFixed(0) : "0");
+        _SetLbl(p+"Deg", this.deg != null && !isNaN(this.deg) ? this.deg.toFixed(0) : "0");
         _SetLbl(p+"Up1", ""+this.update1);
         _SetLbl(p+"Up0", ""+this.update0);
     };

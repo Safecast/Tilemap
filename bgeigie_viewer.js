@@ -1,10 +1,13 @@
 // ==============================================
 // bGeigie Log Viewer
 // ==============================================
-// Nick Dolezal/Safecast, 2015
+// Nick Dolezal/Safecast, 2015 - 2017
 // This code is released into the public domain.
 // ==============================================
 
+// 2017-04-25 ND: - Fix for autozoom when running in smaller area on page.
+//                - Smarter handling of partial databind params.
+//                - Manually allow enabling infowindow on hover.
 // 2016-11-22 ND: - Make various static/class functions private, comment out dead code.
 // 2015-04-05 ND: - Test fix for remaining known no-draw panning issue
 // 2015-03-30 ND: - Fix for various no-draw panning issues.
@@ -102,14 +105,17 @@ var BVM = (function()
         this.mks      = null; // marker manager
         this.wwm      = null; // web worker manager
         
-        this.dataBinds = dataBinds;
-        
         this.did_add_gmaps_listeners = false;  // todo: move to MKS
         this.zoom_to_log_extent      = true;   // whether or not to zoom to the extent of the log(s) after processing.
         
-        if (this.dataBinds == null)
+        this.Init_DataBindDefaults();
+
+        if (dataBinds != null)
         {
-            this.Init_DataBindDefaults();
+            for (var key in dataBinds)
+            {
+                this.dataBinds[key] = dataBinds[key];
+            }//for
         }//if
         
         this.Init();
@@ -473,6 +479,11 @@ var BVM = (function()
     BVM.prototype.SetZoomToLogExtent = function(shouldZoom)
     {
         this.zoom_to_log_extent = shouldZoom;
+    };
+
+    BVM.prototype.SetOpenInfowindowOnHover = function(shouldOpen)
+    {
+        this.mks.hover_iw = shouldOpen;
     };
     
     BVM.prototype.SetNewCustomMarkerOptions = function(width, height, alpha_fill, alpha_stroke, shadow_radius, hasBearingTick)
@@ -1854,6 +1865,8 @@ var MKS = (function()
         this.m_idxs  = new Uint32Array(this.m_n); // Correlates with markers in this.markers.  Index into this.mxs, this.cpms etc of data values.
                                                   // Scanning a typed array is faster than enumerating the marker objects.
         this.mk_ex   = new Float64Array([9000.0, 9000.0, -9000.0, -9000.0]); // x0, y0, x1, y1 - EPSG:4326 only.
+
+        this.hover_iw = false;
         
         // callbacks to other stuff outside scope
         this.fxGetWorkerForDispatch = fxGetWorkerForDispatch;
@@ -1877,7 +1890,10 @@ var MKS = (function()
         this.shd_r  = shadow_radius;
         this.btick  = hasBearingTick;
         
-        this.AddMarkersToMapForCurrentVisibleExtent();
+        if (this.mxs != null)
+        {
+            this.AddMarkersToMapForCurrentVisibleExtent();
+        }//if
     };
     
     MKS.prototype.SetNewMarkerType = function(markerType)
@@ -1926,7 +1942,7 @@ var MKS = (function()
             return;
         }//if
         
-        var r = _GetRegionForExtentAndClientView_EPSG4326(this.mk_ex[0], this.mk_ex[1], this.mk_ex[2], this.mk_ex[3]);
+        var r = _GetRegionForExtentAndClientView_EPSG4326(this.mk_ex[0], this.mk_ex[1], this.mk_ex[2], this.mk_ex[3], this.mapref);
         this.mapref.panTo(r[0]);
         this.mapref.setZoom(r[1]);
     };
@@ -2682,9 +2698,7 @@ var MKS = (function()
     
     MKS.prototype.AttachInfoWindow = function(marker)
     {
-        // temp disabling hover cause annoying
-        /*
-        if (!this.isMobile)
+        if (this.hover_iw && !this.isMobile)
         {
             google.maps.event.addListener(marker, "mouseover", function() 
             {
@@ -2701,14 +2715,11 @@ var MKS = (function()
         }//if
         else
         {
-        */
             google.maps.event.addListener(marker, "click", function() 
             {
                 this.OpenRetainedInfoWindow(marker);
             }.bind(this));
-        /*
         }//else
-        */
     };
     
     MKS.prototype.OpenRetainedInfoWindow = function(marker)
@@ -2891,7 +2902,7 @@ var MKS = (function()
     {
         return "<table style='border:0;border-collapse:collapse;' class='" + fontCssClass + "'>"
                + "<tr><td align=right>" + dre + "</td><td>"        + "\u00B5" + "Sv/h"     + "</td></tr>"
-               + "<tr><td align=right>" + cpm + "</td><td>"        + "CPM"                 + "</td></tr>"
+               + "<tr><td align=right>" + cpm.toFixed(0) + "</td><td>"        + "CPM"                 + "</td></tr>"
                + "<tr><td align=right>" + alt + "</td><td nowrap>" + "m alt"               + "</td></tr>"
                + "<tr><td align=right>" + deg + "</td><td nowrap>" + "\u00B0" + " heading" + "</td></tr>"
                + "<tr><td align=right nowrap>" + date + "<br/>" + time + "</td><td>UTC"    + "</td></tr>"
@@ -2903,10 +2914,12 @@ var MKS = (function()
     
     // based on the client's screen size and extent, find the center and zoom level
     // to pass to Google Maps to pan the view.
-    var _GetRegionForExtentAndClientView_EPSG4326 = function(x0, y0, x1, y1)
+    var _GetRegionForExtentAndClientView_EPSG4326 = function(x0, y0, x1, y1, mapref)
     {
         var vwh = _GetClientViewSize();
-        return _GetRegionForExtentAndScreenSize_EPSG4326(x0, y0, x1, y1, vwh[0], vwh[1]);
+        var mw  = mapref != null ? mapref.getDiv().clientWidth  : 0; // 2017-04-25 ND: bugfix for running in smaller div within window
+        var mh  = mapref != null ? mapref.getDiv().clientHeight : 0;
+        return _GetRegionForExtentAndScreenSize_EPSG4326(x0, y0, x1, y1, mw > 0 ? mw : vwh[0], mh > 0 ? mh : vwh[1]);
     };
     
     var _GetRegionForExtentAndScreenSize_EPSG4326 = function(x0, y0, x1, y1, vw, vh)

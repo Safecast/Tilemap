@@ -481,7 +481,7 @@ self.ParseLogFileToVectors = function(log, logbuffer, userData, logId, worker_id
     var last_lon = -9000.0;
     var last_i   = -1;
     var high_n   = 0;
-    var high_thr = 330.0;
+    var high_thr = 100.0; // 330.0
 
     // summary stats
     var ss = { n:0, dist_meters:0.0, time_ss:0.0, sum_usvh:0.0, mean_usvh:0.0, de_usv:0.0, min_usvh:9000.0, max_usvh:-9000.0, min_alt_meters:9000.0, max_alt_meters:-9000.0, min_kph:9000.0, max_kph:-9000.0, logId:logId };

@@ -40,7 +40,8 @@ function FinishLoadIfPossible()
         SafemapInit.Init();
         var a, f = function() {
             document.body.removeChild(ElGet("div_sc_ls_wb")); 
-            google.maps.event.removeListener(a); 
+            google.maps.event.removeListener(a);
+            //LoadGcharts();
         };
         a = google.maps.event.addListener(map, "tilesloaded", f);
     }//if
@@ -56,7 +57,7 @@ function LoadGmaps()
 {
     var p = localStorage.getItem("PREF_LANGUAGE") || "";
     var j = p == "ja" || (p == "" && (new Date()).getTimezoneOffset() == -540);
-    var l = j ? "&language=ja&region=JP" : p == "es" ? "&language=es&region=MX" : p == "br" ? "&language=pt&region=BR" : "";
+    var l = j ? "&language=ja&region=JP" : p == "es" ? "&language=es&region=MX" : p == "pt" ? "&language=pt&region=BR" : "";
     var s = ElCr("script");
     s.async = true;
     s.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyAC5-_YqoGgLWli64OHZ1HUL2XHgMJel_g&v=3.exp&libraries=geometry&callback=InitGmaps" + l;
@@ -96,6 +97,42 @@ function LoadCSS()
     };
     r.send(null);
 }
+
+/*
+var _ig = null;
+
+function LoadTest()
+{
+    var f,s = ElCr("script");
+    s.async = true;
+    s.type  = "text/javascript";
+    f = function(e) { 
+        s.removeEventListener("load", f); 
+        _ig = new IngestViewer(map);
+    };
+    AList(s, "load", f);
+    s.src = "ingest_viewer.js?" + Date.now();
+    document.head.appendChild(s);
+}
+
+function LoadGcharts()
+{
+    var p = localStorage.getItem("PREF_LANGUAGE") || "";
+    var j = p == "ja" || (p == "" && (new Date()).getTimezoneOffset() == -540);
+    var l = j ? "ja" : p == "" ? "en" : p;
+    var f,s = ElCr("script");
+    s.async = false; // this seemed to break it maybe?
+    s.type  = "text/javascript";
+    f = function(e) { 
+        s.removeEventListener("load", f); 
+        google.charts.load("current", {"packages":["corechart"], "language": l}); // classic=corechart, material=line
+        google.charts.setOnLoadCallback(LoadTest);
+    };
+    AList(s, "load", f);
+    s.src = "https://www.gstatic.com/charts/loader.js";
+    document.head.appendChild(s);
+}
+*/
 
 LoadGmaps();
 LoadSafemap();
@@ -243,25 +280,49 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                     </span>
                 </div>
             </li>
+            <li>
+                <div id="menu_realtime_1" class="menu-prefs-chk-item">
+                    <span id="menu_realtime_1_label">Ingest Sensors</span>
+                    <div><input type=checkbox id="chkMenuRealtime1" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-bottom">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_realtime_1_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_realtime_1_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+                <div>
+                    <select id="ddlRealtime1Unit" style="visibility:hidden;" onchange="_igProxy.ddlUnits_OnChange();">
+                    </select>
+                </div>
+            </li>
         </ul>
         </div>
     </section>
 
-    <hr id="muh_insert_before_menu_layers_node" />
+    <hr id="muh_insert_before_menu_layers_node" style="width:100%;" />
 
     <section class="menu-section">
         <ul class="menu-section-list">
-            <li><div>言語 · Language · Idioma<br/>
-                <select id="ddlLanguage" onchange="MenuHelper.ddlLanguage_OnChange();">
-                    <option value="ja">日本語</option>
-                    <option value="en" selected>English</option>
-                    <option value="es">Español</option>
-                    <option value="pt">Português</option>
-                </select>
-            </div></li>
-            <li><div id="aMenuAbout" onclick="MenuHelper.CloseAnimationHack(); slideout.close();">About this project...</div></li>
-            <li><a id="aMenuDonate" href="http://blog.safecast.org/donate/" target="_blank">Support this project</a></li>
-            <li><a id="aMenuBlog" href="http://blog.safecast.org" target="_blank">Safecast blog</a></li>
+            <li>
+                <div>言語 · Language · Idioma<br/>
+                    <select id="ddlLanguage" onchange="MenuHelper.ddlLanguage_OnChange();">
+                        <option value="ja">日本語</option>
+                        <option value="en" selected>English</option>
+                        <option value="es">Español</option>
+                        <option value="pt">Português</option>
+                    </select>
+                </div>
+            </li>
+            <li>
+                <div id="aMenuAbout" onclick="MenuHelper.CloseAnimationHack(); slideout.close();">About this project...</div>
+            </li>
+            <li>
+                <a id="aMenuDonate" href="http://blog.safecast.org/donate/" target="_blank">Support this project</a>
+            </li>
+            <li>
+                <a id="aMenuBlog" href="http://blog.safecast.org" target="_blank">Safecast blog</a>
+            </li>
         </ul>
     </section>
 
