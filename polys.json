@@ -740,6 +740,18 @@
            "more": [ { "k":"en", "v":["{FULL_ARTICLE}", "http://blog.safecast.org/2017/05/mount-juman-forest-fire-in-namie/"] } ],
           "point": { "x":140.918, "y":37.452 },
            "icon": { "url":"sc-icon-doc_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
+    },
+    {
+        "poly_id":49,
+       "group_id":2,
+         "author":"Edouard Lafargue",
+           "date":"2017-08-07T05:21:37Z",
+           "desc": [ { "k":"en", "v":"Safecasting Les Bois Noirs" } ],
+           "info": [ { "k":"en", "v":"{TL_NA}Like nearly every summer, our family visits France in July, sometimes stopping along the way. This year, we were staying for about 10 days in the center of France, and took this opportunity to visit a site called &quot;Les Bois Noirs Limouzat&quot;, a former uranium mine that was in activity from 1955 to about 1980." } ],
+           "imgs":"https://i0.wp.com/blog.safecast.org/wp-content/uploads/2017/08/org_75779b93adaa9a3b_1500043147000-EFFECTS.jpg?zoom=2&fit=1184%2C666",
+           "more": [ { "k":"en", "v":["{FULL_ARTICLE}", "https://blog.safecast.org/2017/08/safecasting-les-bois-noirs/"] } ],
+          "point": { "x":3.7215, "y":45.9693 },
+           "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     }
 ]
 }

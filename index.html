@@ -57,7 +57,7 @@ function LoadGmaps()
 {
     var p = localStorage.getItem("PREF_LANGUAGE") || "";
     var j = p == "ja" || (p == "" && (new Date()).getTimezoneOffset() == -540);
-    var l = j ? "&language=ja&region=JP" : p == "es" ? "&language=es&region=MX" : p == "pt" ? "&language=pt&region=BR" : "";
+    var l = j ? "&language=ja&region=JP" : p == "cs" ? "&language=cs&region=CZ" : p == "es" ? "&language=es&region=MX" : p == "pt" ? "&language=pt&region=BR" : "";
     var s = ElCr("script");
     s.async = true;
     s.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyAC5-_YqoGgLWli64OHZ1HUL2XHgMJel_g&v=3.exp&libraries=geometry&callback=InitGmaps" + l;
@@ -152,6 +152,7 @@ function ShowBrowserWarningWindowIfNeeded()
 
 function Init() 
 {
+    if (window.location.href.indexOf("test2") > -1) { document.title = "[TEST2] " + document.title; }
     if (ShowBrowserWarningWindowIfNeeded()) return;
     _ls.ui = true;
     FinishLoadIfPossible();
@@ -311,6 +312,7 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                         <option value="en" selected>English</option>
                         <option value="es">Español</option>
                         <option value="pt">Português</option>
+                        <option value="cs">Čeština</option>
                     </select>
                 </div>
             </li>
