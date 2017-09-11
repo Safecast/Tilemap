@@ -1,10 +1,91 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" itemscope itemtype="http://schema.org/map" style="height:100%">
 <head>
-<title>2017 Best Devicefu</title>
+<title>[PROTOTYPE] Ingest Device Grid</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name=viewport content="width=device-width, initial-scale=1">
 
 <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+
+<!--
+<link rel="stylesheet" href="font-awesome-4.7.0/css/font-awesome.min.css">
+/-->
+
+<link href="emoji/ap-64-emoji.min.css" rel="stylesheet">
+<style type="text/css">
+/* https://github.com/juanfran/emoji-data-css */
+
+.ap
+{
+    /*transform:scale(0.1875); */   /* 64x64px -> 12x12px */
+    /* transform:scale(0.375); */   /* 32x32px -> 12x12px */
+    transform:scale(0.171875);      /* 64x64px -> 11x11px */
+    transform-origin:0 0;
+}
+
+.ap.gray        { filter:grayscale(100%) contrast(500%); }
+.font_large .ap { transform:scale(0.265625); }     /* 64x64px -> 17x17px */
+
+.item_tag.old .ap
+{
+    /*-webkit-filter: url(#colorize_orange);*/
+    filter: url(#colorize_orange);
+    /* filter:url(#colorize_red) hue-rotate(45deg); */
+}
+
+.item_tag.err .ap
+{
+    /*-webkit-filter: url(#colorize_red);*/
+    filter: url(#colorize_red);
+}
+
+.ap.twitter   { background-image: url(emoji/sheet_twitter_64_indexed_256.png)   !important; }
+.ap.emojione  { background-image: url(emoji/sheet_emojione_64_indexed_256.png)  !important; }
+.ap.messenger { background-image: url(emoji/sheet_messenger_64_indexed_256.png) !important; }
+.ap.android   { background-image: url(emoji/sheet_google_64_indexed_256.png)    !important; }
+.ap.facebook  { background-image: url(emoji/sheet_facebook_64_indexed_256.png)  !important; }
+.ap.apple     { background-image: url(emoji/sheet_apple_64_indexed_256.png)     !important; }
+
+.fa-container
+{
+    display:inline-block;
+    vertical-align:middle;
+}
+
+.ap-container
+{
+    width:11px;
+    height:11px;
+    display:inline-block;
+    vertical-align:middle;
+}
+
+.font_large .ap-container
+{
+    width:17px;
+    height:17px;
+}
+
+.ap-thermometer_blue
+{
+    background-position:-384px -832px;
+    /* filter:invert(100%) brightness(200%); */
+    filter:hue-rotate(250deg);
+}
+
+.ap.gray .ap-thermometer_blue
+{
+    filter:hue-rotate(250deg) grayscale(100%) contrast(2.0);
+}
+
+.ap-label
+{
+    display:inline-block;
+    vertical-align:middle;
+    margin:2px 0px 2px 1px;
+}
+
+.font_large .ap-label { margin-left:2px; }
+</style>
 
 <style type="text/css">
 .tooltip
@@ -13,8 +94,8 @@
     display:inline-block;
 }
 
-.tooltip.up   .tooltiptext { bottom: 150%; }
-.tooltip.down .tooltiptext {    top: 150%; }
+.tooltip.up   .tooltiptext { bottom:150%; }
+.tooltip.down .tooltiptext {    top:150%; }
 
 .tooltip .tooltiptext
 {
@@ -30,6 +111,7 @@
     left:50%;
     margin-left:-60px;
     font-size:12px;
+    font-weight:normal;
 }
 
 .tooltip.wide .tooltiptext
@@ -46,6 +128,7 @@
     font-size:10px;
 }
 
+
 .tooltip.up   .tooltiptext::after {    top:100%; border-color:black transparent transparent transparent; }
 .tooltip.down .tooltiptext::after { bottom:100%; border-color:transparent transparent black transparent; }
 
@@ -57,7 +140,6 @@
     margin-left:-5px;
     border-width:5px;
     border-style:solid;
-    
 }
 
 .tooltip:hover .tooltiptext { visibility: visible; }
@@ -84,33 +166,33 @@
 .flag-icon,.flag-icon-background{background-size:contain;background-position:50%;background-repeat:no-repeat}.flag-icon{position:relative;display:inline-block;width:1.33333333em;line-height:1em}.flag-icon:before{content:"\00a0"}.flag-icon.flag-icon-squared{width:1em}.flag-icon-ad{background-image:url(flags/4x3/ad.svg)}.flag-icon-ad.flag-icon-squared{background-image:url(flags/1x1/ad.svg)}.flag-icon-ae{background-image:url(flags/4x3/ae.svg)}.flag-icon-ae.flag-icon-squared{background-image:url(flags/1x1/ae.svg)}.flag-icon-af{background-image:url(flags/4x3/af.svg)}.flag-icon-af.flag-icon-squared{background-image:url(flags/1x1/af.svg)}.flag-icon-ag{background-image:url(flags/4x3/ag.svg)}.flag-icon-ag.flag-icon-squared{background-image:url(flags/1x1/ag.svg)}.flag-icon-ai{background-image:url(flags/4x3/ai.svg)}.flag-icon-ai.flag-icon-squared{background-image:url(flags/1x1/ai.svg)}.flag-icon-al{background-image:url(flags/4x3/al.svg)}.flag-icon-al.flag-icon-squared{background-image:url(flags/1x1/al.svg)}.flag-icon-am{background-image:url(flags/4x3/am.svg)}.flag-icon-am.flag-icon-squared{background-image:url(flags/1x1/am.svg)}.flag-icon-ao{background-image:url(flags/4x3/ao.svg)}.flag-icon-ao.flag-icon-squared{background-image:url(flags/1x1/ao.svg)}.flag-icon-aq{background-image:url(flags/4x3/aq.svg)}.flag-icon-aq.flag-icon-squared{background-image:url(flags/1x1/aq.svg)}.flag-icon-ar{background-image:url(flags/4x3/ar.svg)}.flag-icon-ar.flag-icon-squared{background-image:url(flags/1x1/ar.svg)}.flag-icon-as{background-image:url(flags/4x3/as.svg)}.flag-icon-as.flag-icon-squared{background-image:url(flags/1x1/as.svg)}.flag-icon-at{background-image:url(flags/4x3/at.svg)}.flag-icon-at.flag-icon-squared{background-image:url(flags/1x1/at.svg)}.flag-icon-au{background-image:url(flags/4x3/au.svg)}.flag-icon-au.flag-icon-squared{background-image:url(flags/1x1/au.svg)}.flag-icon-aw{background-image:url(flags/4x3/aw.svg)}.flag-icon-aw.flag-icon-squared{background-image:url(flags/1x1/aw.svg)}.flag-icon-ax{background-image:url(flags/4x3/ax.svg)}.flag-icon-ax.flag-icon-squared{background-image:url(flags/1x1/ax.svg)}.flag-icon-az{background-image:url(flags/4x3/az.svg)}.flag-icon-az.flag-icon-squared{background-image:url(flags/1x1/az.svg)}.flag-icon-ba{background-image:url(flags/4x3/ba.svg)}.flag-icon-ba.flag-icon-squared{background-image:url(flags/1x1/ba.svg)}.flag-icon-bb{background-image:url(flags/4x3/bb.svg)}.flag-icon-bb.flag-icon-squared{background-image:url(flags/1x1/bb.svg)}.flag-icon-bd{background-image:url(flags/4x3/bd.svg)}.flag-icon-bd.flag-icon-squared{background-image:url(flags/1x1/bd.svg)}.flag-icon-be{background-image:url(flags/4x3/be.svg)}.flag-icon-be.flag-icon-squared{background-image:url(flags/1x1/be.svg)}.flag-icon-bf{background-image:url(flags/4x3/bf.svg)}.flag-icon-bf.flag-icon-squared{background-image:url(flags/1x1/bf.svg)}.flag-icon-bg{background-image:url(flags/4x3/bg.svg)}.flag-icon-bg.flag-icon-squared{background-image:url(flags/1x1/bg.svg)}.flag-icon-bh{background-image:url(flags/4x3/bh.svg)}.flag-icon-bh.flag-icon-squared{background-image:url(flags/1x1/bh.svg)}.flag-icon-bi{background-image:url(flags/4x3/bi.svg)}.flag-icon-bi.flag-icon-squared{background-image:url(flags/1x1/bi.svg)}.flag-icon-bj{background-image:url(flags/4x3/bj.svg)}.flag-icon-bj.flag-icon-squared{background-image:url(flags/1x1/bj.svg)}.flag-icon-bl{background-image:url(flags/4x3/bl.svg)}.flag-icon-bl.flag-icon-squared{background-image:url(flags/1x1/bl.svg)}.flag-icon-bm{background-image:url(flags/4x3/bm.svg)}.flag-icon-bm.flag-icon-squared{background-image:url(flags/1x1/bm.svg)}.flag-icon-bn{background-image:url(flags/4x3/bn.svg)}.flag-icon-bn.flag-icon-squared{background-image:url(flags/1x1/bn.svg)}.flag-icon-bo{background-image:url(flags/4x3/bo.svg)}.flag-icon-bo.flag-icon-squared{background-image:url(flags/1x1/bo.svg)}.flag-icon-bq{background-image:url(flags/4x3/bq.svg)}.flag-icon-bq.flag-icon-squared{background-image:url(flags/1x1/bq.svg)}.flag-icon-br{background-image:url(flags/4x3/br.svg)}.flag-icon-br.flag-icon-squared{background-image:url(flags/1x1/br.svg)}.flag-icon-bs{background-image:url(flags/4x3/bs.svg)}.flag-icon-bs.flag-icon-squared{background-image:url(flags/1x1/bs.svg)}.flag-icon-bt{background-image:url(flags/4x3/bt.svg)}.flag-icon-bt.flag-icon-squared{background-image:url(flags/1x1/bt.svg)}.flag-icon-bv{background-image:url(flags/4x3/bv.svg)}.flag-icon-bv.flag-icon-squared{background-image:url(flags/1x1/bv.svg)}.flag-icon-bw{background-image:url(flags/4x3/bw.svg)}.flag-icon-bw.flag-icon-squared{background-image:url(flags/1x1/bw.svg)}.flag-icon-by{background-image:url(flags/4x3/by.svg)}.flag-icon-by.flag-icon-squared{background-image:url(flags/1x1/by.svg)}.flag-icon-bz{background-image:url(flags/4x3/bz.svg)}.flag-icon-bz.flag-icon-squared{background-image:url(flags/1x1/bz.svg)}.flag-icon-ca{background-image:url(flags/4x3/ca.svg)}.flag-icon-ca.flag-icon-squared{background-image:url(flags/1x1/ca.svg)}.flag-icon-cc{background-image:url(flags/4x3/cc.svg)}.flag-icon-cc.flag-icon-squared{background-image:url(flags/1x1/cc.svg)}.flag-icon-cd{background-image:url(flags/4x3/cd.svg)}.flag-icon-cd.flag-icon-squared{background-image:url(flags/1x1/cd.svg)}.flag-icon-cf{background-image:url(flags/4x3/cf.svg)}.flag-icon-cf.flag-icon-squared{background-image:url(flags/1x1/cf.svg)}.flag-icon-cg{background-image:url(flags/4x3/cg.svg)}.flag-icon-cg.flag-icon-squared{background-image:url(flags/1x1/cg.svg)}.flag-icon-ch{background-image:url(flags/4x3/ch.svg)}.flag-icon-ch.flag-icon-squared{background-image:url(flags/1x1/ch.svg)}.flag-icon-ci{background-image:url(flags/4x3/ci.svg)}.flag-icon-ci.flag-icon-squared{background-image:url(flags/1x1/ci.svg)}.flag-icon-ck{background-image:url(flags/4x3/ck.svg)}.flag-icon-ck.flag-icon-squared{background-image:url(flags/1x1/ck.svg)}.flag-icon-cl{background-image:url(flags/4x3/cl.svg)}.flag-icon-cl.flag-icon-squared{background-image:url(flags/1x1/cl.svg)}.flag-icon-cm{background-image:url(flags/4x3/cm.svg)}.flag-icon-cm.flag-icon-squared{background-image:url(flags/1x1/cm.svg)}.flag-icon-cn{background-image:url(flags/4x3/cn.svg)}.flag-icon-cn.flag-icon-squared{background-image:url(flags/1x1/cn.svg)}.flag-icon-co{background-image:url(flags/4x3/co.svg)}.flag-icon-co.flag-icon-squared{background-image:url(flags/1x1/co.svg)}.flag-icon-cr{background-image:url(flags/4x3/cr.svg)}.flag-icon-cr.flag-icon-squared{background-image:url(flags/1x1/cr.svg)}.flag-icon-cu{background-image:url(flags/4x3/cu.svg)}.flag-icon-cu.flag-icon-squared{background-image:url(flags/1x1/cu.svg)}.flag-icon-cv{background-image:url(flags/4x3/cv.svg)}.flag-icon-cv.flag-icon-squared{background-image:url(flags/1x1/cv.svg)}.flag-icon-cw{background-image:url(flags/4x3/cw.svg)}.flag-icon-cw.flag-icon-squared{background-image:url(flags/1x1/cw.svg)}.flag-icon-cx{background-image:url(flags/4x3/cx.svg)}.flag-icon-cx.flag-icon-squared{background-image:url(flags/1x1/cx.svg)}.flag-icon-cy{background-image:url(flags/4x3/cy.svg)}.flag-icon-cy.flag-icon-squared{background-image:url(flags/1x1/cy.svg)}.flag-icon-cz{background-image:url(flags/4x3/cz.svg)}.flag-icon-cz.flag-icon-squared{background-image:url(flags/1x1/cz.svg)}.flag-icon-de{background-image:url(flags/4x3/de.svg)}.flag-icon-de.flag-icon-squared{background-image:url(flags/1x1/de.svg)}.flag-icon-dj{background-image:url(flags/4x3/dj.svg)}.flag-icon-dj.flag-icon-squared{background-image:url(flags/1x1/dj.svg)}.flag-icon-dk{background-image:url(flags/4x3/dk.svg)}.flag-icon-dk.flag-icon-squared{background-image:url(flags/1x1/dk.svg)}.flag-icon-dm{background-image:url(flags/4x3/dm.svg)}.flag-icon-dm.flag-icon-squared{background-image:url(flags/1x1/dm.svg)}.flag-icon-do{background-image:url(flags/4x3/do.svg)}.flag-icon-do.flag-icon-squared{background-image:url(flags/1x1/do.svg)}.flag-icon-dz{background-image:url(flags/4x3/dz.svg)}.flag-icon-dz.flag-icon-squared{background-image:url(flags/1x1/dz.svg)}.flag-icon-ec{background-image:url(flags/4x3/ec.svg)}.flag-icon-ec.flag-icon-squared{background-image:url(flags/1x1/ec.svg)}.flag-icon-ee{background-image:url(flags/4x3/ee.svg)}.flag-icon-ee.flag-icon-squared{background-image:url(flags/1x1/ee.svg)}.flag-icon-eg{background-image:url(flags/4x3/eg.svg)}.flag-icon-eg.flag-icon-squared{background-image:url(flags/1x1/eg.svg)}.flag-icon-eh{background-image:url(flags/4x3/eh.svg)}.flag-icon-eh.flag-icon-squared{background-image:url(flags/1x1/eh.svg)}.flag-icon-er{background-image:url(flags/4x3/er.svg)}.flag-icon-er.flag-icon-squared{background-image:url(flags/1x1/er.svg)}.flag-icon-es{background-image:url(flags/4x3/es.svg)}.flag-icon-es.flag-icon-squared{background-image:url(flags/1x1/es.svg)}.flag-icon-et{background-image:url(flags/4x3/et.svg)}.flag-icon-et.flag-icon-squared{background-image:url(flags/1x1/et.svg)}.flag-icon-fi{background-image:url(flags/4x3/fi.svg)}.flag-icon-fi.flag-icon-squared{background-image:url(flags/1x1/fi.svg)}.flag-icon-fj{background-image:url(flags/4x3/fj.svg)}.flag-icon-fj.flag-icon-squared{background-image:url(flags/1x1/fj.svg)}.flag-icon-fk{background-image:url(flags/4x3/fk.svg)}.flag-icon-fk.flag-icon-squared{background-image:url(flags/1x1/fk.svg)}.flag-icon-fm{background-image:url(flags/4x3/fm.svg)}.flag-icon-fm.flag-icon-squared{background-image:url(flags/1x1/fm.svg)}.flag-icon-fo{background-image:url(flags/4x3/fo.svg)}.flag-icon-fo.flag-icon-squared{background-image:url(flags/1x1/fo.svg)}.flag-icon-fr{background-image:url(flags/4x3/fr.svg)}.flag-icon-fr.flag-icon-squared{background-image:url(flags/1x1/fr.svg)}.flag-icon-ga{background-image:url(flags/4x3/ga.svg)}.flag-icon-ga.flag-icon-squared{background-image:url(flags/1x1/ga.svg)}.flag-icon-gb{background-image:url(flags/4x3/gb.svg)}.flag-icon-gb.flag-icon-squared{background-image:url(flags/1x1/gb.svg)}.flag-icon-gd{background-image:url(flags/4x3/gd.svg)}.flag-icon-gd.flag-icon-squared{background-image:url(flags/1x1/gd.svg)}.flag-icon-ge{background-image:url(flags/4x3/ge.svg)}.flag-icon-ge.flag-icon-squared{background-image:url(flags/1x1/ge.svg)}.flag-icon-gf{background-image:url(flags/4x3/gf.svg)}.flag-icon-gf.flag-icon-squared{background-image:url(flags/1x1/gf.svg)}.flag-icon-gg{background-image:url(flags/4x3/gg.svg)}.flag-icon-gg.flag-icon-squared{background-image:url(flags/1x1/gg.svg)}.flag-icon-gh{background-image:url(flags/4x3/gh.svg)}.flag-icon-gh.flag-icon-squared{background-image:url(flags/1x1/gh.svg)}.flag-icon-gi{background-image:url(flags/4x3/gi.svg)}.flag-icon-gi.flag-icon-squared{background-image:url(flags/1x1/gi.svg)}.flag-icon-gl{background-image:url(flags/4x3/gl.svg)}.flag-icon-gl.flag-icon-squared{background-image:url(flags/1x1/gl.svg)}.flag-icon-gm{background-image:url(flags/4x3/gm.svg)}.flag-icon-gm.flag-icon-squared{background-image:url(flags/1x1/gm.svg)}.flag-icon-gn{background-image:url(flags/4x3/gn.svg)}.flag-icon-gn.flag-icon-squared{background-image:url(flags/1x1/gn.svg)}.flag-icon-gp{background-image:url(flags/4x3/gp.svg)}.flag-icon-gp.flag-icon-squared{background-image:url(flags/1x1/gp.svg)}.flag-icon-gq{background-image:url(flags/4x3/gq.svg)}.flag-icon-gq.flag-icon-squared{background-image:url(flags/1x1/gq.svg)}.flag-icon-gr{background-image:url(flags/4x3/gr.svg)}.flag-icon-gr.flag-icon-squared{background-image:url(flags/1x1/gr.svg)}.flag-icon-gs{background-image:url(flags/4x3/gs.svg)}.flag-icon-gs.flag-icon-squared{background-image:url(flags/1x1/gs.svg)}.flag-icon-gt{background-image:url(flags/4x3/gt.svg)}.flag-icon-gt.flag-icon-squared{background-image:url(flags/1x1/gt.svg)}.flag-icon-gu{background-image:url(flags/4x3/gu.svg)}.flag-icon-gu.flag-icon-squared{background-image:url(flags/1x1/gu.svg)}.flag-icon-gw{background-image:url(flags/4x3/gw.svg)}.flag-icon-gw.flag-icon-squared{background-image:url(flags/1x1/gw.svg)}.flag-icon-gy{background-image:url(flags/4x3/gy.svg)}.flag-icon-gy.flag-icon-squared{background-image:url(flags/1x1/gy.svg)}.flag-icon-hk{background-image:url(flags/4x3/hk.svg)}.flag-icon-hk.flag-icon-squared{background-image:url(flags/1x1/hk.svg)}.flag-icon-hm{background-image:url(flags/4x3/hm.svg)}.flag-icon-hm.flag-icon-squared{background-image:url(flags/1x1/hm.svg)}.flag-icon-hn{background-image:url(flags/4x3/hn.svg)}.flag-icon-hn.flag-icon-squared{background-image:url(flags/1x1/hn.svg)}.flag-icon-hr{background-image:url(flags/4x3/hr.svg)}.flag-icon-hr.flag-icon-squared{background-image:url(flags/1x1/hr.svg)}.flag-icon-ht{background-image:url(flags/4x3/ht.svg)}.flag-icon-ht.flag-icon-squared{background-image:url(flags/1x1/ht.svg)}.flag-icon-hu{background-image:url(flags/4x3/hu.svg)}.flag-icon-hu.flag-icon-squared{background-image:url(flags/1x1/hu.svg)}.flag-icon-id{background-image:url(flags/4x3/id.svg)}.flag-icon-id.flag-icon-squared{background-image:url(flags/1x1/id.svg)}.flag-icon-ie{background-image:url(flags/4x3/ie.svg)}.flag-icon-ie.flag-icon-squared{background-image:url(flags/1x1/ie.svg)}.flag-icon-il{background-image:url(flags/4x3/il.svg)}.flag-icon-il.flag-icon-squared{background-image:url(flags/1x1/il.svg)}.flag-icon-im{background-image:url(flags/4x3/im.svg)}.flag-icon-im.flag-icon-squared{background-image:url(flags/1x1/im.svg)}.flag-icon-in{background-image:url(flags/4x3/in.svg)}.flag-icon-in.flag-icon-squared{background-image:url(flags/1x1/in.svg)}.flag-icon-io{background-image:url(flags/4x3/io.svg)}.flag-icon-io.flag-icon-squared{background-image:url(flags/1x1/io.svg)}.flag-icon-iq{background-image:url(flags/4x3/iq.svg)}.flag-icon-iq.flag-icon-squared{background-image:url(flags/1x1/iq.svg)}.flag-icon-ir{background-image:url(flags/4x3/ir.svg)}.flag-icon-ir.flag-icon-squared{background-image:url(flags/1x1/ir.svg)}.flag-icon-is{background-image:url(flags/4x3/is.svg)}.flag-icon-is.flag-icon-squared{background-image:url(flags/1x1/is.svg)}.flag-icon-it{background-image:url(flags/4x3/it.svg)}.flag-icon-it.flag-icon-squared{background-image:url(flags/1x1/it.svg)}.flag-icon-je{background-image:url(flags/4x3/je.svg)}.flag-icon-je.flag-icon-squared{background-image:url(flags/1x1/je.svg)}.flag-icon-jm{background-image:url(flags/4x3/jm.svg)}.flag-icon-jm.flag-icon-squared{background-image:url(flags/1x1/jm.svg)}.flag-icon-jo{background-image:url(flags/4x3/jo.svg)}.flag-icon-jo.flag-icon-squared{background-image:url(flags/1x1/jo.svg)}.flag-icon-jp{background-image:url(flags/4x3/jp.svg)}.flag-icon-jp.flag-icon-squared{background-image:url(flags/1x1/jp.svg)}.flag-icon-ke{background-image:url(flags/4x3/ke.svg)}.flag-icon-ke.flag-icon-squared{background-image:url(flags/1x1/ke.svg)}.flag-icon-kg{background-image:url(flags/4x3/kg.svg)}.flag-icon-kg.flag-icon-squared{background-image:url(flags/1x1/kg.svg)}.flag-icon-kh{background-image:url(flags/4x3/kh.svg)}.flag-icon-kh.flag-icon-squared{background-image:url(flags/1x1/kh.svg)}.flag-icon-ki{background-image:url(flags/4x3/ki.svg)}.flag-icon-ki.flag-icon-squared{background-image:url(flags/1x1/ki.svg)}.flag-icon-km{background-image:url(flags/4x3/km.svg)}.flag-icon-km.flag-icon-squared{background-image:url(flags/1x1/km.svg)}.flag-icon-kn{background-image:url(flags/4x3/kn.svg)}.flag-icon-kn.flag-icon-squared{background-image:url(flags/1x1/kn.svg)}.flag-icon-kp{background-image:url(flags/4x3/kp.svg)}.flag-icon-kp.flag-icon-squared{background-image:url(flags/1x1/kp.svg)}.flag-icon-kr{background-image:url(flags/4x3/kr.svg)}.flag-icon-kr.flag-icon-squared{background-image:url(flags/1x1/kr.svg)}.flag-icon-kw{background-image:url(flags/4x3/kw.svg)}.flag-icon-kw.flag-icon-squared{background-image:url(flags/1x1/kw.svg)}.flag-icon-ky{background-image:url(flags/4x3/ky.svg)}.flag-icon-ky.flag-icon-squared{background-image:url(flags/1x1/ky.svg)}.flag-icon-kz{background-image:url(flags/4x3/kz.svg)}.flag-icon-kz.flag-icon-squared{background-image:url(flags/1x1/kz.svg)}.flag-icon-la{background-image:url(flags/4x3/la.svg)}.flag-icon-la.flag-icon-squared{background-image:url(flags/1x1/la.svg)}.flag-icon-lb{background-image:url(flags/4x3/lb.svg)}.flag-icon-lb.flag-icon-squared{background-image:url(flags/1x1/lb.svg)}.flag-icon-lc{background-image:url(flags/4x3/lc.svg)}.flag-icon-lc.flag-icon-squared{background-image:url(flags/1x1/lc.svg)}.flag-icon-li{background-image:url(flags/4x3/li.svg)}.flag-icon-li.flag-icon-squared{background-image:url(flags/1x1/li.svg)}.flag-icon-lk{background-image:url(flags/4x3/lk.svg)}.flag-icon-lk.flag-icon-squared{background-image:url(flags/1x1/lk.svg)}.flag-icon-lr{background-image:url(flags/4x3/lr.svg)}.flag-icon-lr.flag-icon-squared{background-image:url(flags/1x1/lr.svg)}.flag-icon-ls{background-image:url(flags/4x3/ls.svg)}.flag-icon-ls.flag-icon-squared{background-image:url(flags/1x1/ls.svg)}.flag-icon-lt{background-image:url(flags/4x3/lt.svg)}.flag-icon-lt.flag-icon-squared{background-image:url(flags/1x1/lt.svg)}.flag-icon-lu{background-image:url(flags/4x3/lu.svg)}.flag-icon-lu.flag-icon-squared{background-image:url(flags/1x1/lu.svg)}.flag-icon-lv{background-image:url(flags/4x3/lv.svg)}.flag-icon-lv.flag-icon-squared{background-image:url(flags/1x1/lv.svg)}.flag-icon-ly{background-image:url(flags/4x3/ly.svg)}.flag-icon-ly.flag-icon-squared{background-image:url(flags/1x1/ly.svg)}.flag-icon-ma{background-image:url(flags/4x3/ma.svg)}.flag-icon-ma.flag-icon-squared{background-image:url(flags/1x1/ma.svg)}.flag-icon-mc{background-image:url(flags/4x3/mc.svg)}.flag-icon-mc.flag-icon-squared{background-image:url(flags/1x1/mc.svg)}.flag-icon-md{background-image:url(flags/4x3/md.svg)}.flag-icon-md.flag-icon-squared{background-image:url(flags/1x1/md.svg)}.flag-icon-me{background-image:url(flags/4x3/me.svg)}.flag-icon-me.flag-icon-squared{background-image:url(flags/1x1/me.svg)}.flag-icon-mf{background-image:url(flags/4x3/mf.svg)}.flag-icon-mf.flag-icon-squared{background-image:url(flags/1x1/mf.svg)}.flag-icon-mg{background-image:url(flags/4x3/mg.svg)}.flag-icon-mg.flag-icon-squared{background-image:url(flags/1x1/mg.svg)}.flag-icon-mh{background-image:url(flags/4x3/mh.svg)}.flag-icon-mh.flag-icon-squared{background-image:url(flags/1x1/mh.svg)}.flag-icon-mk{background-image:url(flags/4x3/mk.svg)}.flag-icon-mk.flag-icon-squared{background-image:url(flags/1x1/mk.svg)}.flag-icon-ml{background-image:url(flags/4x3/ml.svg)}.flag-icon-ml.flag-icon-squared{background-image:url(flags/1x1/ml.svg)}.flag-icon-mm{background-image:url(flags/4x3/mm.svg)}.flag-icon-mm.flag-icon-squared{background-image:url(flags/1x1/mm.svg)}.flag-icon-mn{background-image:url(flags/4x3/mn.svg)}.flag-icon-mn.flag-icon-squared{background-image:url(flags/1x1/mn.svg)}.flag-icon-mo{background-image:url(flags/4x3/mo.svg)}.flag-icon-mo.flag-icon-squared{background-image:url(flags/1x1/mo.svg)}.flag-icon-mp{background-image:url(flags/4x3/mp.svg)}.flag-icon-mp.flag-icon-squared{background-image:url(flags/1x1/mp.svg)}.flag-icon-mq{background-image:url(flags/4x3/mq.svg)}.flag-icon-mq.flag-icon-squared{background-image:url(flags/1x1/mq.svg)}.flag-icon-mr{background-image:url(flags/4x3/mr.svg)}.flag-icon-mr.flag-icon-squared{background-image:url(flags/1x1/mr.svg)}.flag-icon-ms{background-image:url(flags/4x3/ms.svg)}.flag-icon-ms.flag-icon-squared{background-image:url(flags/1x1/ms.svg)}.flag-icon-mt{background-image:url(flags/4x3/mt.svg)}.flag-icon-mt.flag-icon-squared{background-image:url(flags/1x1/mt.svg)}.flag-icon-mu{background-image:url(flags/4x3/mu.svg)}.flag-icon-mu.flag-icon-squared{background-image:url(flags/1x1/mu.svg)}.flag-icon-mv{background-image:url(flags/4x3/mv.svg)}.flag-icon-mv.flag-icon-squared{background-image:url(flags/1x1/mv.svg)}.flag-icon-mw{background-image:url(flags/4x3/mw.svg)}.flag-icon-mw.flag-icon-squared{background-image:url(flags/1x1/mw.svg)}.flag-icon-mx{background-image:url(flags/4x3/mx.svg)}.flag-icon-mx.flag-icon-squared{background-image:url(flags/1x1/mx.svg)}.flag-icon-my{background-image:url(flags/4x3/my.svg)}.flag-icon-my.flag-icon-squared{background-image:url(flags/1x1/my.svg)}.flag-icon-mz{background-image:url(flags/4x3/mz.svg)}.flag-icon-mz.flag-icon-squared{background-image:url(flags/1x1/mz.svg)}.flag-icon-na{background-image:url(flags/4x3/na.svg)}.flag-icon-na.flag-icon-squared{background-image:url(flags/1x1/na.svg)}.flag-icon-nc{background-image:url(flags/4x3/nc.svg)}.flag-icon-nc.flag-icon-squared{background-image:url(flags/1x1/nc.svg)}.flag-icon-ne{background-image:url(flags/4x3/ne.svg)}.flag-icon-ne.flag-icon-squared{background-image:url(flags/1x1/ne.svg)}.flag-icon-nf{background-image:url(flags/4x3/nf.svg)}.flag-icon-nf.flag-icon-squared{background-image:url(flags/1x1/nf.svg)}.flag-icon-ng{background-image:url(flags/4x3/ng.svg)}.flag-icon-ng.flag-icon-squared{background-image:url(flags/1x1/ng.svg)}.flag-icon-ni{background-image:url(flags/4x3/ni.svg)}.flag-icon-ni.flag-icon-squared{background-image:url(flags/1x1/ni.svg)}.flag-icon-nl{background-image:url(flags/4x3/nl.svg)}.flag-icon-nl.flag-icon-squared{background-image:url(flags/1x1/nl.svg)}.flag-icon-no{background-image:url(flags/4x3/no.svg)}.flag-icon-no.flag-icon-squared{background-image:url(flags/1x1/no.svg)}.flag-icon-np{background-image:url(flags/4x3/np.svg)}.flag-icon-np.flag-icon-squared{background-image:url(flags/1x1/np.svg)}.flag-icon-nr{background-image:url(flags/4x3/nr.svg)}.flag-icon-nr.flag-icon-squared{background-image:url(flags/1x1/nr.svg)}.flag-icon-nu{background-image:url(flags/4x3/nu.svg)}.flag-icon-nu.flag-icon-squared{background-image:url(flags/1x1/nu.svg)}.flag-icon-nz{background-image:url(flags/4x3/nz.svg)}.flag-icon-nz.flag-icon-squared{background-image:url(flags/1x1/nz.svg)}.flag-icon-om{background-image:url(flags/4x3/om.svg)}.flag-icon-om.flag-icon-squared{background-image:url(flags/1x1/om.svg)}.flag-icon-pa{background-image:url(flags/4x3/pa.svg)}.flag-icon-pa.flag-icon-squared{background-image:url(flags/1x1/pa.svg)}.flag-icon-pe{background-image:url(flags/4x3/pe.svg)}.flag-icon-pe.flag-icon-squared{background-image:url(flags/1x1/pe.svg)}.flag-icon-pf{background-image:url(flags/4x3/pf.svg)}.flag-icon-pf.flag-icon-squared{background-image:url(flags/1x1/pf.svg)}.flag-icon-pg{background-image:url(flags/4x3/pg.svg)}.flag-icon-pg.flag-icon-squared{background-image:url(flags/1x1/pg.svg)}.flag-icon-ph{background-image:url(flags/4x3/ph.svg)}.flag-icon-ph.flag-icon-squared{background-image:url(flags/1x1/ph.svg)}.flag-icon-pk{background-image:url(flags/4x3/pk.svg)}.flag-icon-pk.flag-icon-squared{background-image:url(flags/1x1/pk.svg)}.flag-icon-pl{background-image:url(flags/4x3/pl.svg)}.flag-icon-pl.flag-icon-squared{background-image:url(flags/1x1/pl.svg)}.flag-icon-pm{background-image:url(flags/4x3/pm.svg)}.flag-icon-pm.flag-icon-squared{background-image:url(flags/1x1/pm.svg)}.flag-icon-pn{background-image:url(flags/4x3/pn.svg)}.flag-icon-pn.flag-icon-squared{background-image:url(flags/1x1/pn.svg)}.flag-icon-pr{background-image:url(flags/4x3/pr.svg)}.flag-icon-pr.flag-icon-squared{background-image:url(flags/1x1/pr.svg)}.flag-icon-ps{background-image:url(flags/4x3/ps.svg)}.flag-icon-ps.flag-icon-squared{background-image:url(flags/1x1/ps.svg)}.flag-icon-pt{background-image:url(flags/4x3/pt.svg)}.flag-icon-pt.flag-icon-squared{background-image:url(flags/1x1/pt.svg)}.flag-icon-pw{background-image:url(flags/4x3/pw.svg)}.flag-icon-pw.flag-icon-squared{background-image:url(flags/1x1/pw.svg)}.flag-icon-py{background-image:url(flags/4x3/py.svg)}.flag-icon-py.flag-icon-squared{background-image:url(flags/1x1/py.svg)}.flag-icon-qa{background-image:url(flags/4x3/qa.svg)}.flag-icon-qa.flag-icon-squared{background-image:url(flags/1x1/qa.svg)}.flag-icon-re{background-image:url(flags/4x3/re.svg)}.flag-icon-re.flag-icon-squared{background-image:url(flags/1x1/re.svg)}.flag-icon-ro{background-image:url(flags/4x3/ro.svg)}.flag-icon-ro.flag-icon-squared{background-image:url(flags/1x1/ro.svg)}.flag-icon-rs{background-image:url(flags/4x3/rs.svg)}.flag-icon-rs.flag-icon-squared{background-image:url(flags/1x1/rs.svg)}.flag-icon-ru{background-image:url(flags/4x3/ru.svg)}.flag-icon-ru.flag-icon-squared{background-image:url(flags/1x1/ru.svg)}.flag-icon-rw{background-image:url(flags/4x3/rw.svg)}.flag-icon-rw.flag-icon-squared{background-image:url(flags/1x1/rw.svg)}.flag-icon-sa{background-image:url(flags/4x3/sa.svg)}.flag-icon-sa.flag-icon-squared{background-image:url(flags/1x1/sa.svg)}.flag-icon-sb{background-image:url(flags/4x3/sb.svg)}.flag-icon-sb.flag-icon-squared{background-image:url(flags/1x1/sb.svg)}.flag-icon-sc{background-image:url(flags/4x3/sc.svg)}.flag-icon-sc.flag-icon-squared{background-image:url(flags/1x1/sc.svg)}.flag-icon-sd{background-image:url(flags/4x3/sd.svg)}.flag-icon-sd.flag-icon-squared{background-image:url(flags/1x1/sd.svg)}.flag-icon-se{background-image:url(flags/4x3/se.svg)}.flag-icon-se.flag-icon-squared{background-image:url(flags/1x1/se.svg)}.flag-icon-sg{background-image:url(flags/4x3/sg.svg)}.flag-icon-sg.flag-icon-squared{background-image:url(flags/1x1/sg.svg)}.flag-icon-sh{background-image:url(flags/4x3/sh.svg)}.flag-icon-sh.flag-icon-squared{background-image:url(flags/1x1/sh.svg)}.flag-icon-si{background-image:url(flags/4x3/si.svg)}.flag-icon-si.flag-icon-squared{background-image:url(flags/1x1/si.svg)}.flag-icon-sj{background-image:url(flags/4x3/sj.svg)}.flag-icon-sj.flag-icon-squared{background-image:url(flags/1x1/sj.svg)}.flag-icon-sk{background-image:url(flags/4x3/sk.svg)}.flag-icon-sk.flag-icon-squared{background-image:url(flags/1x1/sk.svg)}.flag-icon-sl{background-image:url(flags/4x3/sl.svg)}.flag-icon-sl.flag-icon-squared{background-image:url(flags/1x1/sl.svg)}.flag-icon-sm{background-image:url(flags/4x3/sm.svg)}.flag-icon-sm.flag-icon-squared{background-image:url(flags/1x1/sm.svg)}.flag-icon-sn{background-image:url(flags/4x3/sn.svg)}.flag-icon-sn.flag-icon-squared{background-image:url(flags/1x1/sn.svg)}.flag-icon-so{background-image:url(flags/4x3/so.svg)}.flag-icon-so.flag-icon-squared{background-image:url(flags/1x1/so.svg)}.flag-icon-sr{background-image:url(flags/4x3/sr.svg)}.flag-icon-sr.flag-icon-squared{background-image:url(flags/1x1/sr.svg)}.flag-icon-ss{background-image:url(flags/4x3/ss.svg)}.flag-icon-ss.flag-icon-squared{background-image:url(flags/1x1/ss.svg)}.flag-icon-st{background-image:url(flags/4x3/st.svg)}.flag-icon-st.flag-icon-squared{background-image:url(flags/1x1/st.svg)}.flag-icon-sv{background-image:url(flags/4x3/sv.svg)}.flag-icon-sv.flag-icon-squared{background-image:url(flags/1x1/sv.svg)}.flag-icon-sx{background-image:url(flags/4x3/sx.svg)}.flag-icon-sx.flag-icon-squared{background-image:url(flags/1x1/sx.svg)}.flag-icon-sy{background-image:url(flags/4x3/sy.svg)}.flag-icon-sy.flag-icon-squared{background-image:url(flags/1x1/sy.svg)}.flag-icon-sz{background-image:url(flags/4x3/sz.svg)}.flag-icon-sz.flag-icon-squared{background-image:url(flags/1x1/sz.svg)}.flag-icon-tc{background-image:url(flags/4x3/tc.svg)}.flag-icon-tc.flag-icon-squared{background-image:url(flags/1x1/tc.svg)}.flag-icon-td{background-image:url(flags/4x3/td.svg)}.flag-icon-td.flag-icon-squared{background-image:url(flags/1x1/td.svg)}.flag-icon-tf{background-image:url(flags/4x3/tf.svg)}.flag-icon-tf.flag-icon-squared{background-image:url(flags/1x1/tf.svg)}.flag-icon-tg{background-image:url(flags/4x3/tg.svg)}.flag-icon-tg.flag-icon-squared{background-image:url(flags/1x1/tg.svg)}.flag-icon-th{background-image:url(flags/4x3/th.svg)}.flag-icon-th.flag-icon-squared{background-image:url(flags/1x1/th.svg)}.flag-icon-tj{background-image:url(flags/4x3/tj.svg)}.flag-icon-tj.flag-icon-squared{background-image:url(flags/1x1/tj.svg)}.flag-icon-tk{background-image:url(flags/4x3/tk.svg)}.flag-icon-tk.flag-icon-squared{background-image:url(flags/1x1/tk.svg)}.flag-icon-tl{background-image:url(flags/4x3/tl.svg)}.flag-icon-tl.flag-icon-squared{background-image:url(flags/1x1/tl.svg)}.flag-icon-tm{background-image:url(flags/4x3/tm.svg)}.flag-icon-tm.flag-icon-squared{background-image:url(flags/1x1/tm.svg)}.flag-icon-tn{background-image:url(flags/4x3/tn.svg)}.flag-icon-tn.flag-icon-squared{background-image:url(flags/1x1/tn.svg)}.flag-icon-to{background-image:url(flags/4x3/to.svg)}.flag-icon-to.flag-icon-squared{background-image:url(flags/1x1/to.svg)}.flag-icon-tr{background-image:url(flags/4x3/tr.svg)}.flag-icon-tr.flag-icon-squared{background-image:url(flags/1x1/tr.svg)}.flag-icon-tt{background-image:url(flags/4x3/tt.svg)}.flag-icon-tt.flag-icon-squared{background-image:url(flags/1x1/tt.svg)}.flag-icon-tv{background-image:url(flags/4x3/tv.svg)}.flag-icon-tv.flag-icon-squared{background-image:url(flags/1x1/tv.svg)}.flag-icon-tw{background-image:url(flags/4x3/tw.svg)}.flag-icon-tw.flag-icon-squared{background-image:url(flags/1x1/tw.svg)}.flag-icon-tz{background-image:url(flags/4x3/tz.svg)}.flag-icon-tz.flag-icon-squared{background-image:url(flags/1x1/tz.svg)}.flag-icon-ua{background-image:url(flags/4x3/ua.svg)}.flag-icon-ua.flag-icon-squared{background-image:url(flags/1x1/ua.svg)}.flag-icon-ug{background-image:url(flags/4x3/ug.svg)}.flag-icon-ug.flag-icon-squared{background-image:url(flags/1x1/ug.svg)}.flag-icon-um{background-image:url(flags/4x3/um.svg)}.flag-icon-um.flag-icon-squared{background-image:url(flags/1x1/um.svg)}.flag-icon-us{background-image:url(flags/4x3/us.svg)}.flag-icon-us.flag-icon-squared{background-image:url(flags/1x1/us.svg)}.flag-icon-uy{background-image:url(flags/4x3/uy.svg)}.flag-icon-uy.flag-icon-squared{background-image:url(flags/1x1/uy.svg)}.flag-icon-uz{background-image:url(flags/4x3/uz.svg)}.flag-icon-uz.flag-icon-squared{background-image:url(flags/1x1/uz.svg)}.flag-icon-va{background-image:url(flags/4x3/va.svg)}.flag-icon-va.flag-icon-squared{background-image:url(flags/1x1/va.svg)}.flag-icon-vc{background-image:url(flags/4x3/vc.svg)}.flag-icon-vc.flag-icon-squared{background-image:url(flags/1x1/vc.svg)}.flag-icon-ve{background-image:url(flags/4x3/ve.svg)}.flag-icon-ve.flag-icon-squared{background-image:url(flags/1x1/ve.svg)}.flag-icon-vg{background-image:url(flags/4x3/vg.svg)}.flag-icon-vg.flag-icon-squared{background-image:url(flags/1x1/vg.svg)}.flag-icon-vi{background-image:url(flags/4x3/vi.svg)}.flag-icon-vi.flag-icon-squared{background-image:url(flags/1x1/vi.svg)}.flag-icon-vn{background-image:url(flags/4x3/vn.svg)}.flag-icon-vn.flag-icon-squared{background-image:url(flags/1x1/vn.svg)}.flag-icon-vu{background-image:url(flags/4x3/vu.svg)}.flag-icon-vu.flag-icon-squared{background-image:url(flags/1x1/vu.svg)}.flag-icon-wf{background-image:url(flags/4x3/wf.svg)}.flag-icon-wf.flag-icon-squared{background-image:url(flags/1x1/wf.svg)}.flag-icon-ws{background-image:url(flags/4x3/ws.svg)}.flag-icon-ws.flag-icon-squared{background-image:url(flags/1x1/ws.svg)}.flag-icon-ye{background-image:url(flags/4x3/ye.svg)}.flag-icon-ye.flag-icon-squared{background-image:url(flags/1x1/ye.svg)}.flag-icon-yt{background-image:url(flags/4x3/yt.svg)}.flag-icon-yt.flag-icon-squared{background-image:url(flags/1x1/yt.svg)}.flag-icon-za{background-image:url(flags/4x3/za.svg)}.flag-icon-za.flag-icon-squared{background-image:url(flags/1x1/za.svg)}.flag-icon-zm{background-image:url(flags/4x3/zm.svg)}.flag-icon-zm.flag-icon-squared{background-image:url(flags/1x1/zm.svg)}.flag-icon-zw{background-image:url(flags/4x3/zw.svg)}.flag-icon-zw.flag-icon-squared{background-image:url(flags/1x1/zw.svg)}.flag-icon-eu{background-image:url(flags/4x3/eu.svg)}.flag-icon-eu.flag-icon-squared{background-image:url(flags/1x1/eu.svg)}.flag-icon-gb-eng{background-image:url(flags/4x3/gb-eng.svg)}.flag-icon-gb-eng.flag-icon-squared{background-image:url(flags/1x1/gb-eng.svg)}.flag-icon-gb-nir{background-image:url(flags/4x3/gb-nir.svg)}.flag-icon-gb-nir.flag-icon-squared{background-image:url(flags/1x1/gb-nir.svg)}.flag-icon-gb-sct{background-image:url(flags/4x3/gb-sct.svg)}.flag-icon-gb-sct.flag-icon-squared{background-image:url(flags/1x1/gb-sct.svg)}.flag-icon-gb-wls{background-image:url(flags/4x3/gb-wls.svg)}.flag-icon-gb-wls.flag-icon-squared{background-image:url(flags/1x1/gb-wls.svg)}.flag-icon-un{background-image:url(flags/4x3/un.svg)}.flag-icon-un.flag-icon-squared{background-image:url(flags/1x1/un.svg)}
 </style>
 
-<style type="text/css">
 
+
+<style type="text/css">
 /* ----- Common/Page ----- */
 
 body 
 {
-    background-color:#252525;
+    background-color:#FFF;
     width:100%;
     height:100%;
     margin:0px;
     padding:0px;
 }
 
-body.akari
-{
-    background-color:#FFF;
-}
+body.kuro { background-color:#252525; }
 
 .card_title,
 .card_subtitle,
 .card_data_table,
 .div_placename,
 .seed,
+.dev_test,
 .label,
-.item_tag
+.item_tag,
+.btn
 {
-    font-family:-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+    font-family:-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif; /* 'Apple Symbols','Arial Unicode MS' */
 }
 
 #content
@@ -136,31 +218,29 @@ body.akari
 .label 
 {
     font-size:12px; 
-    color:#888; 
-    border:1px solid #666; 
     padding-right:5px; 
-}
-
-.akari .label
-{
     color:#000; 
     border:1px solid #666;
 }
 
+.kuro .label
+{
+    color:#888; 
+    border:1px solid #666; 
+}
+
 .btn
 { 
-    margin-top:10px;
+    margin:10px;
     padding:5px 10px 5px 10px; 
-    color:#AAA;
+    color:#000;
     background-color:rgba(0,0,0,0.15);
     font-size:12px;
     border:1px solid #444;
+    border-radius:4px;
 }
 
-.akari .btn
-{
-    color:#000;
-}
+.kuro .btn { color:#AAA; }
 
 
 /* ----- Device Card ----- */
@@ -170,35 +250,48 @@ body.akari
     width:230px;
     height:129px;
     flex-grow:1;
-    border:1px solid #666;
     margin:5px;
+    border:1px solid #DDD;
+    border-radius:4px;
+    overflow:hidden;
+}
+
+.kuro .device_card
+{
+    border:1px solid #666;
     border-radius:10px;
 }
 
-.akari .device_card
-{
-    border:1px solid #DDD;
-    border-radius:4px;
-}
+.device_card.nodt              { height: 87px; }
+.device_card.nodt.hiddenlines1 { height: 73px; }
+.device_card.nodt.hiddenlines2 { height: 59px; }
+.device_card.nodt.hiddenlines3 { height: 46px; }
+.device_card.tall              { height:409px; }
 
-.device_card.nodt              { height:87px; }
-.device_card.nodt.hiddenlines1 { height:73px; }
-.device_card.nodt.hiddenlines2 { height:59px; }
-.device_card.nodt.hiddenlines3 { height:46px; }
+.device_card.minidt              { height:153px; }
+.device_card.minidt.hiddenlines1 { height:145px; }
+.device_card.minidt.hiddenlines2 { height:137px; }
+.device_card.minidt.hiddenlines3 { height:129px; }
+
+.device_card.minidt.tall              { height:300px; }
+.device_card.minidt.tall.hiddenlines1 { height:290px; }
+.device_card.minidt.tall.hiddenlines2 { height:280px; }
+.device_card.minidt.tall.hiddenlines3 { height:270px; }
 
 .card_rel
 {
     position:relative;
+    /*
     overflow:hidden;
+    */
     width:100%;
     height:100%;
-    border-radius:10px;
+    /*
+    border-radius:4px;
+    */
 }
 
-.akari .card_rel
-{
-    border-radius:4px;
-}
+/*.kuro .card_rel { border-radius:10px; }*/
 
 .card_foreground
 {
@@ -210,18 +303,19 @@ body.akari
     z-index:10;
     overflow-x:hidden;
     overflow-y:auto;
-    border-radius:10px;
     display:flex;
     flex-direction:row;
     flex-wrap:wrap;
     justify-content:center;
     align-items:flex-start;
+    /*
+    border-radius:4px;
+    */
 }
 
-.akari .card_foreground
-{
-    border-radius:4px;
-}
+/*
+.kuro .card_foreground { border-radius:10px; }
+*/
 
 .device_card.minidt .card_foreground,
 .device_card.nodt   .card_foreground
@@ -237,26 +331,13 @@ body.akari
     width:100%;
     height:100%;
     z-index:-100;
-    background-color:rgba(102,102,102,1.00);
-    border-radius:10px;
-}
-
-.akari .card_background
-{
     background-color:rgba(255,255,255,1.00);
-    border-radius:0;
 }
 
-.device_card.gradient .card_background
-{
-    /*background-image:linear-gradient(145deg, rgb(102,102,102), rgb(63,63,63));*/
-    background-image:linear-gradient(145deg, rgb(102,102,102), rgb(0,0,0));
-}
+.kuro .card_background { background-color:rgba(102,102,102,1.00); }
 
-.akari .device_card.gradient .card_background
-{
-    background-image:linear-gradient(145deg, #EEE, #FFF);
-}
+.device_card.gradient .card_background       { background-image:linear-gradient(145deg, #EEE, #FFF); }
+.kuro .device_card.gradient .card_background { background-image:linear-gradient(145deg, #666, #000); }
 
 .card_flagbkg
 {
@@ -264,7 +345,7 @@ body.akari
     height:100%;
     background-position:50% 50%;
     background-size:cover;
-    mix-blend-mode:luminosity;
+    filter:grayscale(100%);
     opacity:0.05;
 }
 
@@ -276,36 +357,62 @@ body.akari
     position:absolute;
     top:0;
     left:0;
-    width:15px;
+    width:23px;
+    /*width:15px;*/
     height:14px;
     padding:2px 2px 2px 2px;
     z-index:-9;
-    color:rgba(255,255,255,0.5);
     font-size:12px;
-    font-weight:bold;
     text-align:right;
-    background-color:rgba(255,255,255,0.2);
-    border-top:1px solid rgba(0,0,0,0.5);
-    border-top-left-radius:10px;
-}
-
-.akari .seed
-{
     color:#BBB;
-    background-color:rgba(0,0,0,0.0);
-    border-radius:0;
-    border-top:0;
-    font-weight:normal;
 }
 
-.seed.new0 { color:rgba(  0,255,  0,1.0); }
-.seed.new1 { color:rgba( 63,255, 63,0.5); }
-.seed.new2 { color:rgba(192,255,192,0.5); }
+.font_large .seed { font-size:16px; /*width:25px;*/ width:30px; height:18px; }
 
-.akari .seed.new0 { color:rgba(0,255,0,1.0); }
-.akari .seed.new1 { color:#BBB; }
-.akari .seed.new2 { color:#BBB; }
+.kuro .seed
+{
+    color:rgba(255,255,255,0.5);
+    background-color:rgba(255,255,255,0.2);
+    border-top-left-radius:10px;
+    border-top:1px solid rgba(0,0,0,0.5);
+    font-weight:bold;
+}
 
+.seed.new0 { color:#000; }
+.seed.new1 { color:#BBB; }
+.seed.new2 { color:#BBB; }
+
+.kuro .seed.new0 { color:rgba(  0,255,  0,1.0); }
+.kuro .seed.new1 { color:rgba( 63,255, 63,0.5); }
+.kuro .seed.new2 { color:rgba(192,255,192,0.5); }
+
+
+/* ----- dev_test indicator ----- */
+
+.dev_test
+{
+    position:absolute;
+    top:0;
+    right:0;
+    width:23px;
+    height:14px;
+    padding:2px 2px 2px 2px;
+    z-index:-9;
+    font-size:12px;
+    text-align:left;
+    color:#BBB;
+}
+
+.font_large .dev_test { font-size:16px; width:30px; height:18px; }
+
+.kuro .dev_test
+{
+    color:rgba(255,255,255,0.5);
+    background-color:rgba(255,255,255,0.2);
+    border-top-right-radius:10px;
+    border-top:1px solid rgba(0,0,0,0.5);
+    font-weight:bold;
+}
 
 /* ----- Flag Icon (small, color) ----- */
 
@@ -324,28 +431,23 @@ body.akari
 .div_placename
 {
     font-size:14px;
-    text-shadow:0px -1px rgba(0,0,0,0.5);
     text-align:center;
     vertical-align:middle;
-    color:#EEE;
+    color:#737373;
 }
 
-.akari .div_placename
+.kuro .div_placename
 {
-    text-shadow:0 0 rgba(0,0,0,0);
-    color:#737373;
+    text-shadow:0px -1px rgba(0,0,0,0.5);
+    color:#EEE;
 }
 
 .div_placeflag
 {
     text-align:center;
-    filter:drop-shadow(0px -1px 0px rgba(0,0,0,0.5));
 }
 
-.akari .div_placeflag
-{
-    filter:drop-shadow(0 0 0 rgba(0,0,0,0));
-}
+.kuro .div_placeflag { filter:drop-shadow(0px -1px 0px rgba(0,0,0,0.5)); }
 
 .card_flagicon
 {
@@ -363,21 +465,21 @@ body.akari
     width:100%;
     font-size:16px; 
     z-index:10;
-    color:#EEE;
     text-align:center;
     margin-top:5px;
+    color:#737373;
+}
+
+.font_large .card_title { font-size:22px; }
+
+.kuro .card_title
+{
+    color:#EEE;
     text-shadow:0px 1px rgba(0,0,0,0.5);
 }
 
-.akari .card_title
-{
-    color:#737373;
-    text-shadow:0 0 rgba(0,0,0,0);
-}
-
-.card_title.highlight { color:#0F0; font-weight:bold; }
-
-.akari .card_title.highlight { color:#000; }
+.card_title.highlight       { color:#000; font-weight:bold; }
+.kuro .card_title.highlight { color:#0F0; }
 
 /* ----- Device Card: Subtitle ----- */
 
@@ -387,35 +489,38 @@ body.akari
     font-size:12px;
     text-align:center;
     vertical-align:middle;
-    color:#EEE;
-}
-
-.akari .card_subtitle
-{
     color:#737373;
 }
+
+.font_large .card_subtitle { font-size:18px; }
+
+.kuro .card_subtitle { color:#EEE; }
 
 .card_subtitle.err .lastseen_container
 {
     display:inline-block;
-    border-radius:5px;
     padding:0 3px;
     white-space:nowrap;
-    border:1px solid #F00;
-    background-color:rgba(63, 0, 0, 0.5);
-}
-
-.akari .card_subtitle.err .lastseen_container
-{
-    background-color:rgba(255, 0, 0, 0.0);
+    /*
     border-radius:0;
     border:0;
+    */
     color:#F00;
+}
+
+.kuro .card_subtitle.err .lastseen_container
+{
+    background-color:rgba(63, 0, 0, 0.5);
+    border-radius:5px;
+    border:1px solid #F00;
 }
 
 .card_subtitle.small   { font-size:10px; }
 .card_subtitle.smaller { font-size: 8px; padding-bottom:3px; }
 .card_subtitle.italic  { font-style:italic; }
+
+.font_large .card_subtitle.small   { font-size:16px; }
+.font_large .card_subtitle.smaller { font-size:14px; }
 
 .lastseen_arrow
 {
@@ -426,14 +531,11 @@ body.akari
 .ttlink
 {
     padding-right:5px;
-    color:#CCC;
     text-decoration:underline;
-}
-
-.akari .ttlink
-{
     color:#737373;
 }
+
+.kuro .ttlink { color:#CCC; }
 
 
 /* ----- Device Card: Data Table ----- */
@@ -442,39 +544,35 @@ body.akari
 
 .card_data_hdr
 {
-    color:#252525 !important;
-    background-color:#AAA !important;
-}
-
-.akari .card_data_hdr
-{
     color:#AAA !important;
     background-color:#252525 !important;
 }
 
+.kuro .card_data_hdr
+{
+    color:#252525 !important;
+    background-color:#AAA !important;
+}
+
 .card_data_table
 {
-    color:#BBB; /* is this used? */
     font-size:10px;
+    color:#444; /* is this used? */
 }
 
-.akari .card_data_table
-{
-    color:#444;
-}
+.kuro .card_data_table { color:#BBB; }
 
 .card_data_table td
+{
+    color:#737373;
+    border:1px solid #DDD;
+}
+
+.kuro .card_data_table td
 {
     color:#EEE; 
     border:1px solid #AAA;
     background-color:rgba(0, 0, 0, 0.5);
-}
-
-.akari .card_data_table td
-{
-    color:#737373;
-    border:1px solid #DDD;
-    background-color:rgba(0, 0, 0, 0.0);
 }
 
 .card_data_table tr > td:not(:first-of-type) { text-align:right; }
@@ -497,36 +595,63 @@ body.akari
 {
     font-size:10px;
     font-weight:lighter;
-    border-radius:5px;
     padding:0 3px;
     margin-bottom:2px;
     white-space:nowrap;
     margin-left:3px;
     text-align:left;
-    color:#EEE; 
-    border:1px solid #AAA;
-    background-color:rgba(0, 0, 0, 0.5);
-}
-
-.akari .item_tag
-{
     color:#737373;
-    background-color:rgba(0, 0, 0, 0.0);
     border:1px solid #DDD;
     border-radius:4px;
 }
 
+
+.font_large .item_tag
+{
+    font-size:16px;
+    margin-bottom:4px;
+    margin-left:5px;
+    border:2px solid #DDD;
+}
+
+.kuro .item_tag
+{
+    color:#EEE; 
+    background-color:rgba(0, 0, 0, 0.5);
+    border-color:#AAA;
+    border-radius:5px;
+}
+
+.item_tag.old
+{
+    color:#E70;
+    border-style:dashed;
+    border-color:#F84;
+}
+
 .item_tag.err
 {
-    border:1px solid #F00;
+    color:#F00;
+    border-color:#FBB;
+}
+
+.kuro .item_tag.old
+{
+    border-color:#F80;
+    border-style:dashed;
+    background-color:rgba(63, 31, 0, 0.5);
+}
+
+.kuro .item_tag.err
+{
+    border-color:#F00;
     background-color:rgba(63, 0, 0, 0.5);
 }
 
-.akari .item_tag.err
+.emboss
 {
-    color:#F00;
-    border:1px solid #FBB;
-    background-color:rgba(63, 0, 0, 0.0);
+    -webkit-filter: url(#Emboss);
+    filter: url(#Emboss);
 }
 </style>
 
@@ -551,7 +676,11 @@ body.akari
 
 <script type="text/javascript">
 
-var _opts = {           theme_akari:true,
+var _opts = null;
+
+var _opts_defs = {       theme_kuro:false,
+                          card_tall:false,
+           card_tbl_mini_largerfont:false,
               card_show_age_ordinal:true, 
                  card_show_bkg_flag:true,
                  card_show_bkg_grad:true,
@@ -565,20 +694,23 @@ var _opts = {           theme_akari:true,
                  card_show_tooltips:true,
                  card_show_tbl_thrh:true,
                  card_show_tbl_emoj:true,
+                 card_show_tbl_egry:false,
                  card_show_tt_links:false,
                    sort_age_ordinal:false,
+                           sort_loc:true,
                    filter_pointcast:true,
                    filter_solarcast:false,
                  filter_safecastair:true,
                        filter_nohis:false,
-                     filter_olddata:false
+                     filter_olddata:false,
+                     filter_devtest:false
             };
 
-var _highlights         = new Array();
-var _last_forced_reload = 0;
-var _interval_tsupdate  = null;
-var _json               = null;
-
+var _highlights           = new Array();
+var _last_forced_reload   = 0;
+var _interval_tsupdate    = null;
+var _json                 = null;
+var _local_storage_prefix = "INGEST_GRID_";
 
 
 
@@ -855,6 +987,11 @@ function IsOldDeviceId(device_id)
     return d;
 }//IsOldDeviceId
 
+function IsOfflineUnit(unit_node, is_scope_device)
+{
+    return Date.parse(unit_node.stats.max_ts) < Date.now() - 1.5 * (!is_scope_device && unit_node.unit.indexOf("dev_") > -1 ? 4.0 : 1.0) * 60.0 * 60.0 * 1000.0;
+}//IsOfflineUnit
+
 function IsOffline(dev_node)
 {
     var thr = Date.now() - 90.0 * 60.0 * 1000.0;
@@ -862,7 +999,14 @@ function IsOffline(dev_node)
 
     for (var i=0; i<dev_node.units.length; i++)
     {
+        /*
         if (Date.parse(dev_node.units[i].stats.max_ts) > thr)
+        {
+            d = true;
+            break;
+        }//if
+        */
+        if (!IsOfflineUnit(dev_node.units[i], true))
         {
             d = true;
             break;
@@ -973,6 +1117,10 @@ function _ToFixedIfShorterSig(x, n)
 
     if (n < 0) n = 0;
 
+    //if (n > 2 && parseFloat(x.toFixed(n)) == parseFloat(x.toFixed(n-1))) n--;
+    //if (n > 1 && parseFloat(x.toFixed(n)) == parseFloat(x.toFixed(n-1))) n--;
+    //if (n > 0 && parseFloat(x.toFixed(n)) == parseFloat(x.toFixed(0  ))) n = 0;
+
     var tf = x.toFixed(n);
     var ts = "" + x;
     return tf.length < ts.length ? tf : ts;
@@ -990,6 +1138,33 @@ function IsOldUnit(unit_node)
 
     return !d;
 }//IsOldUnit
+
+function GetEmojiSetNameForGlyph(g, is_gray)
+{
+    var d = "twitter";
+    var a = [ { g:"radioactive_sign", m:null,  s:"android"  },
+              { g:"thermometer",      m:null,  s:"twitter"  },
+              { g:"microscope",       m:null,  s:"twitter"  },
+              { g:"earth_asia",       m:null,  s:"android"  },
+              { g:"battery",          m:null,  s:"emojione" },
+              { g:"one",              m:true,  s:"twitter"  },
+              { g:"one",              m:false, s:"apple"    },
+              { g:"two",              m:true,  s:"twitter"  },
+              { g:"two",              m:false, s:"apple"    },
+              { g:"keycap_ten",       m:true,  s:"twitter"  },
+              { g:"keycap_ten",       m:false, s:"apple"    } ];
+
+    for (var i=0; i<a.length; i++)
+    {
+        if (a[i].g == g && (a[i].m == null || a[i].m == is_gray))
+        {
+            d = a[i].s;
+            break;
+        }//if
+    }//for
+
+    return d;
+}//GetEmojiSetNameForGlyph
 
 function NewFullDataTableForDeviceCard(dev_node)
 {
@@ -1030,7 +1205,31 @@ function NewFullDataTableForDeviceCard(dev_node)
             var td_min         = tr.insertCell(-1);
             var td_max         = tr.insertCell(-1);
             var td_last        = tr.insertCell(-1);
-            td_title.innerHTML = (_opts.card_show_tbl_emoj ? (grp_info.emoji + "&nbsp;") : "") + dev_node.units[i].unit;
+            //td_title.innerHTML = (_opts.card_show_tbl_emoj ? (grp_info.emoji + "&nbsp;") : "") + dev_node.units[i].unit;
+            if (!_opts.card_show_tbl_emoj)
+            {
+                td_title.innerHTML = dev_node.units[i].unit;
+            }//if
+            else
+            {
+                var ts = document.createElement("span");
+                ts.style.paddingLeft = "1px";
+                ts.innerHTML = dev_node.units[i].unit;
+
+                var emc = document.createElement("div");
+                emc.className = "ap-container";
+
+                var em = document.createElement("div");
+                em.className = "ap"
+                             + (_opts.card_show_tbl_egry ? " gray" : "")
+                             + " ap-" + unit_info.min_ic
+                             + " " + GetEmojiSetNameForGlyph(unit_info.min_ic, _opts.card_show_tbl_egry);
+
+                td_title.appendChild(emc);
+                emc.appendChild(em);
+                td_title.appendChild(ts);
+            }//else
+
             td_n.innerHTML     = "" + _ToFixedIfShorter(dev_node.units[i].stats.n, unit_info.decs);
             td_min.innerHTML   = "" + _ToFixedIfShorter(dev_node.units[i].stats.min, unit_info.decs);
             td_max.innerHTML   = "" + _ToFixedIfShorter(dev_node.units[i].stats.max, unit_info.decs);
@@ -1075,8 +1274,6 @@ function NewMiniDataTableForDeviceCard(dev_node)
     return div;
 }//NewMiniDataTableForDeviceCard
 
-
-
 function NewMiniNewestDataTableForDeviceCard(dev_node)
 {
     var div       = document.createElement("div");
@@ -1095,8 +1292,75 @@ function NewMiniNewestDataTableForDeviceCard(dev_node)
             var val        = (dev_node.units[i].unit == "env_press" || dev_node.units[i].unit == "dev_press" ? dev_node.units[i].stats.val / 10.0 : dev_node.units[i].stats.val);  // hack: hPa -> KPa for more compact display
             var xs         = _ToFixedIfShorterSig(val, unit_info.decs);
             var t;
-            el.className   = "item_tag tooltip narrow up" + (_opts.card_show_tbl_thrh && IsOorForUnit(val, dev_node.units[i].unit) ? " err" : "");
+            el.className   = "item_tag tooltip narrow up" + (_opts.card_show_tbl_thrh && IsOorForUnit(val, dev_node.units[i].unit) ? " err" : "")
+                                                          + (_opts.card_show_tbl_thrh && !IsOffline(dev_node) && IsOfflineUnit(dev_node.units[i]) ? " old" : "");
             
+            if (_opts.card_show_tbl_emoj)
+            {
+                t = ""+xs + (unit_info.min_suffix != null ? unit_info.min_suffix : "");
+
+                var ts = document.createElement("div");
+                ts.className = "ap-label";
+                ts.innerHTML = t;
+                //el.innerHTML = t;
+
+                var emc = document.createElement("div");
+                emc.className = "ap-container";
+
+                var em = document.createElement("div");
+                em.className = "ap"
+                             + (_opts.card_show_tbl_egry ? " gray" : "")
+                             + " ap-" + unit_info.min_ic
+                             + " " + GetEmojiSetNameForGlyph(unit_info.min_ic, _opts.card_show_tbl_egry);
+
+                /*
+                if (unit_info.min_ic == "battery")
+                {
+                    em.className = "fa fa-battery-full";
+                    emc.className = "fa-container";
+                }//if
+
+                if (unit_info.min_ic == "thermometer")
+                {
+                    em.className = "fa fa-thermometer-full";
+                    emc.className = "fa-container";
+                }//if
+
+                if (unit_info.min_ic == "microscope")
+                {
+                    em.className = "fa fa-thermometer-empty";
+                    emc.className = "fa-container";
+                }//if
+                */
+
+                /*
+                if (unit_info.min_ic == "one")
+                {
+                    em.className = "ap ap-one twitter";
+                }//if
+
+                if (unit_info.min_ic == "two")
+                {
+                    em.className = "ap ap-two twitter";
+                }//if
+
+                if (unit_info.min_ic == "keycap_ten")
+                {
+                    em.className = "ap ap-keycap_ten twitter";
+                }//if
+                */
+
+                el.appendChild(emc);
+                emc.appendChild(em);
+                el.appendChild(ts);
+            }//if
+            else
+            {
+                t = dev_node.units[i].unit + ": " + xs;
+                el.innerHTML = t;
+            }//else
+
+            /*
             if (_opts.card_show_tbl_emoj)
             {
                 t = ""+unit_info.st;
@@ -1108,12 +1372,23 @@ function NewMiniNewestDataTableForDeviceCard(dev_node)
             }//else
 
             el.innerHTML = t;
+            */
 
             if (_opts.card_show_tooltips)
             {
                 var tt       = document.createElement("span");
                 tt.className = "tooltiptext";
-                tt.innerHTML = dev_node.units[i].unit + "</br>" + unit_info.si;
+
+                var ett      = null;
+
+                if (_opts.card_show_tbl_thrh && !IsOffline(dev_node) && IsOfflineUnit(dev_node.units[i]))
+                {
+                    ett = _GetElapsedTimeText((Date.parse(dev_node.units[i].stats.max_ts)/1000.0)>>>0);
+                }//if
+
+                tt.innerHTML = dev_node.units[i].unit 
+                             + "<br/>" + (unit_info.si == "hPa" ? "kPa" : unit_info.si)
+                             + (ett != null ? "<br/>" + ett.value + " " + ett.text + " ago" : "");
                 el.appendChild(tt);
             }//if
 
@@ -1200,6 +1475,7 @@ function GetNewCardTitleDiv(dev_node, pn, wordsforid)
 {
     var d       = document.createElement("div");
     d.innerHTML = "" + dev_node.device_id;
+    d.value     = "" + dev_node.device_id;
     d.className = "card_title tooltip wide down";
     
     if (_opts.card_show_tooltips)
@@ -1208,12 +1484,15 @@ function GetNewCardTitleDiv(dev_node, pn, wordsforid)
         d.appendChild(tt);
     }//if
     
-    d.addEventListener("click", function(e) 
+    if (!_opts.filter_nohis)
     {
-        AddNameToHighlights(this.innerHTML);
-        this.className = this.className.indexOf("highlight") > -1 ? this.className.replace(/highlight/, "") : this.className + " highlight";
-        //e.stopPropagation(); 
-    }.bind(d), false);
+        d.addEventListener("click", function(e) 
+        {
+            AddNameToHighlights(this.value);
+            this.className = this.className.indexOf("highlight") > -1 ? this.className.replace(/highlight/, "") : this.className + " highlight";
+            //e.stopPropagation(); 
+        }.bind(d), false);
+    }//if
 
     if (IsHighlight(dev_node.device_id)) d.className += " highlight";
 
@@ -1244,7 +1523,7 @@ function GetNewCardTitleGroup(dev_node, pn)
 
     if (_opts.card_show_word_txt)
     {
-        var words_div = GetNewCardTitleDevWordsDiv(dev_node);
+        var words_div = GetNewCardTitleDevWordsDiv(dev_node, wordsforid);
         title_container.appendChild(words_div);
     }//if
 
@@ -1270,6 +1549,18 @@ function GetNewCardAgeOrdinalDiv(dev_node)
 
     return seed;
 }//GetNewCardAgeOrdinalDiv
+
+
+
+function GetNewCardDevTestDiv(dev_node)
+{
+    var d = document.createElement("div");
+    d.className = "dev_test";
+    d.innerHTML = "DEV";
+    return d;
+}//GetNewCardDevTestDiv
+
+
 
 function GetNewCardFlagIconDiv(dev_node, pn)
 {
@@ -1369,8 +1660,17 @@ function AddDeviceCardToContainer(container, dev_node)
     if (_opts.card_show_age_ordinal)
     {
         var seed = GetNewCardAgeOrdinalDiv(dev_node);
-        c_rel.appendChild(seed);
+        //c_rel.appendChild(seed);
+        f_abs.appendChild(seed);
     }//if
+
+
+    if (dev_node.dev_test.toLowerCase() == "true")
+    {
+        var devtest = GetNewCardDevTestDiv(dev_node);
+        f_abs.appendChild(devtest);
+    }//if
+
 
     AdjustCardHeightByClassForSubheaders(container);
 
@@ -1382,6 +1682,16 @@ function AddDeviceCardToContainer(container, dev_node)
     if (!_opts.card_show_data_tbl && container.className.indexOf("nodt") < 0)
     {
         container.className += " nodt";
+    }//if
+
+    if (_opts.card_tall && container.className.indexOf("tall") < 0)
+    {
+        container.className += " tall";
+    }//if
+
+    if (_opts.card_tbl_mini_largerfont && container.className.indexOf("font_large") < 0)
+    {
+        container.className += " font_large";
     }//if
 
     if (_opts.card_show_bkg_grad && container.className.indexOf("gradient") < 0)
@@ -1435,7 +1745,9 @@ function CreateOrUpdateDeviceCard(dev_node, content)
 
 function SortJson(o)
 {
-    o = _opts.sort_age_ordinal ? _SortJsonByDeviceAgeOrdinal(o) : _SortJsonByDeviceId(o);
+    o =   _opts.sort_age_ordinal ? _SortJsonByDeviceAgeOrdinal(o) 
+        : _opts.sort_loc         ? _SortJsonByLoc(o)
+        :                          _SortJsonByDeviceId(o);
 
     for (var i=0; i<o.length; i++)
     {
@@ -1461,13 +1773,29 @@ function IsDeviceSolarcast(device_id)
     return device_id > 199999;
 }//IsDeviceSolarcast
 
+function IsDevTest(device_id)
+{
+    var d = false;
+
+    for (var i=0; i<_json.length; i++)
+    {
+        if (_json[i].device_id == device_id)
+        {
+            d = _json[i].dev_test.toLowerCase() == 'true';
+        }//if
+    }//for
+
+    return d;
+}//IsDevTest
+
 function ShouldShowDevice(device_id)
 {
     return    (!_opts.filter_pointcast  || !IsDevicePointcast(device_id))
            && (!_opts.filter_safecastair|| !IsDeviceSafecastAir(device_id))
            && (!_opts.filter_solarcast  || !IsDeviceSolarcast(device_id))
            && (!_opts.filter_nohis      ||  IsHighlight(device_id))
-           && (!_opts.filter_olddata    || !IsOldDeviceId(device_id));
+           && (!_opts.filter_olddata    || !IsOldDeviceId(device_id))
+           && (!_opts.filter_devtest    || !IsDevTest(device_id));
 }//ShouldShowDevice
 
 function AddOrUpdateJson(o)
@@ -1476,6 +1804,7 @@ function AddOrUpdateJson(o)
     _json = o;
     JsonCpmToUsvh();
     AddDeviceAgeOrdinalToJson();
+    AddLocSortStringToJson();
     _json = SortJson(_json);
 
     // Currently the following are not handled with the incremental updates:
@@ -1490,13 +1819,13 @@ function AddOrUpdateJson(o)
         ClearAllContent();
     }//if
 
-    if (_opts.theme_akari && document.body.className.indexOf("akari") < 0)
+    if (_opts.theme_kuro && document.body.className.indexOf("kuro") < 0)
     {
-        document.body.className += " akari";
+        document.body.className += " kuro";
     }//if
-    else if (!_opts.theme_akari && document.body.className.indexOf("akari") >= 0)
+    else if (!_opts.theme_kuro && document.body.className.indexOf("kuro") >= 0)
     {
-        document.body.className = document.body.className.replace(/akari/, "");
+        document.body.className = document.body.className.replace(/kuro/, "");
     }//else if
 
     var content = document.getElementById("content");
@@ -1510,7 +1839,16 @@ function AddOrUpdateJson(o)
             UpdateLastSeen(_json[i]);
         }//if
     }//for
+
+    UpdateQueryString();
 }//AddOrUpdateJson
+
+function UpdateQueryString()
+{
+    var qs = GetQueryStringForOptions();
+    var url = (window.location.href.indexOf("?") > -1 ? window.location.href.split("?")[0] : window.location.href) + qs;
+    history.pushState(null, null, url);
+}//UpdateQueryString
 
 function GetHasChangedCard(dev_node)
 {
@@ -1641,31 +1979,34 @@ function GetGroupInfo(g)
 
 function GetPlaceNameForLatLon(lat, lon)
 {
-    var p = [ { y1:39.11,  x0: -77.37, y0: 38.80, x1: -76.88, fs:"us", detail_for_flag:"DC",    name:"Washington DC, US"              },
-              { y1:34.80,  x0:-120.40, y0: 33.10, x1:-117.10, fs:"us", detail_for_flag:"L.A.",  name:"Los Angeles, CA, US"            },
-              { y1:42.00,  x0:-124.62, y0: 32.40, x1:-114.57, fs:"us", detail_for_flag:"CA",    name:"California, US"                 },
-              { y1:23.10,  x0:-161.80, y0: 18.20, x1:-153.70, fs:"us", detail_for_flag:"HI",    name:"Hawaii, US"                     },
-              { y1:42.95,  x0: -73.68, y0: 41.15, x1: -69.83, fs:"us", detail_for_flag:"MA",    name:"Massachusetts, US"              },
-              { y1:45.01,  x0: -74.93, y0: 40.59, x1: -73.53, fs:"us", detail_for_flag:"NY",    name:"New York, US"                   },
-              { y1:37.00,  x0:-109.06, y0: 31.38, x1:-103.08, fs:"us", detail_for_flag:"NM",    name:"New Mexico, US"                 },
-              { y1:48.95,  x0:-124.88, y0: 46.03, x1:-116.97, fs:"us", detail_for_flag:"WA",    name:"Washington, US"                 },
-              { y1:49.40,  x0:-126.50, y0: 24.60, x1: -65.40, fs:"us", detail_for_flag:null,    name:"US"                             },
-              { y1:47.37,  x0:  13.49, y0: 45.47, x1:  16.61, fs:"si", detail_for_flag:null,    name:"Slovenia"                       },
-              { y1:45.90,  x0:   6.86, y0: 41.14, x1:  13.57, fs:"it", detail_for_flag:null,    name:"Italy"                          },
-              { y1:47.55,  x0:   6.11, y0: 45.85, x1:  10.33, fs:"ch", detail_for_flag:null,    name:"Switzerland"                    },
-              { y1:54.90,  x0:   5.20, y0: 47.70, x1:  13.80, fs:"de", detail_for_flag:null,    name:"Germany"                        },
-              { y1:22.54,  x0: 113.78, y0: 21.83, x1: 114.64, fs:"hk", detail_for_flag:null,    name:"Hong Kong SAR, China"           },
-              { y1:26.00,  x0: 120.00, y0:  1.80, x1: 122.10, fs:"tw", detail_for_flag:null,    name:"Taiwan"                         },
-              { y1:36.04,  x0: 139.25, y0: 35.30, x1: 140.33, fs:"jp", detail_for_flag:"東京",   name:"Tokyo Prefecture, Japan"        },
-              { y1:38.20,  x0: 138.77, y0: 36.71, x1: 141.20, fs:"jp", detail_for_flag:"福島",   name:"Fukushima Prefecture, Japan"    },
-              { y1:34.91,  x0: 135.31, y0: 33.49, x1: 136.89, fs:"jp", detail_for_flag:"奈良",   name:"Nara Prefecture, Japan"         },
-              { y1:33.03,  x0: 130.42, y0: 32.14, x1: 130.99, fs:"jp", detail_for_flag:"熊本",   name:"Kumamoto Prefecture, Japan"     },
-              { y1:32.09,  x0: 130.02, y0: 31.04, x1: 131.13, fs:"jp", detail_for_flag:"鹿児島", name:"Kagoshima Prefecture, Japan"    },
-              { y1:36.92,  x0: 140.20, y0: 35.93, x1: 140.73, fs:"jp", detail_for_flag:"茨城",   name:"Ibaraki Prefecture, Japan"      },
-              { y1:35.81,  x0: 134.84, y0: 34.71, x1: 136.04, fs:"jp", detail_for_flag:"京都",   name:"Kyoto Prefecture, Japan"        },
-              { y1:35.44,  x0: 135.84, y0: 35.02, x1: 136.40, fs:"jp", detail_for_flag:"滋賀",   name:"Shiga Prefecture, Japan"        },
-              { y1:45.80,  x0: 124.80, y0: 23.20, x1: 153.00, fs:"jp", detail_for_flag:null,    name:"Japan"                          },
-              { y1:90.00,  x0:-180.00, y0:-90.00, x1: 180.00, fs:"xx", detail_for_flag:null,    name:"(No Extent Match) Earth"        } ];
+    var p = [ { y1:39.11,  x0: -77.37, y0: 38.80, x1: -76.88, st:"us.dc",    fs:"us", detail_for_flag:"DC",    name:"Washington DC, US"              },
+              { y1:34.80,  x0:-120.40, y0: 33.10, x1:-117.10, st:"us.ca.la", fs:"us", detail_for_flag:"L.A.",  name:"Los Angeles, CA, US"            },
+              { y1:42.00,  x0:-124.62, y0: 32.40, x1:-114.57, st:"us.ca",    fs:"us", detail_for_flag:"CA",    name:"California, US"                 },
+              { y1:23.10,  x0:-161.80, y0: 18.20, x1:-153.70, st:"us.hi",    fs:"us", detail_for_flag:"HI",    name:"Hawaii, US"                     },
+              { y1:42.95,  x0: -73.68, y0: 41.15, x1: -69.83, st:"us.ma",    fs:"us", detail_for_flag:"MA",    name:"Massachusetts, US"              },
+              { y1:44.06,  x0: -72.07, y0: 42.88, x1: -71.00, st:"us.nh",    fs:"us", detail_for_flag:"NH",    name:"New Hampshire, US"              },
+              { y1:45.01,  x0: -74.93, y0: 40.59, x1: -73.53, st:"us.ny",    fs:"us", detail_for_flag:"NY",    name:"New York, US"                   },
+              { y1:37.00,  x0:-109.06, y0: 31.38, x1:-103.08, st:"us.nm",    fs:"us", detail_for_flag:"NM",    name:"New Mexico, US"                 },
+              { y1:48.95,  x0:-124.88, y0: 46.03, x1:-116.97, st:"us.wa",    fs:"us", detail_for_flag:"WA",    name:"Washington, US"                 },
+              { y1:46.00,  x0:-124.00, y0: 42.03, x1:-117.00, st:"us.or",    fs:"us", detail_for_flag:"OR",    name:"Oregon, US"                     },
+              { y1:49.00,  x0:-126.50, y0: 24.60, x1: -65.40, st:"us",       fs:"us", detail_for_flag:null,    name:"US"                             },
+              { y1:75.00,  x0:-141.00, y0: 49.01, x1: -52.10, st:"ca",       fs:"ca", detail_for_flag:null,    name:"Canada"                         },
+              { y1:47.37,  x0:  13.49, y0: 45.47, x1:  16.61, st:"si",       fs:"si", detail_for_flag:null,    name:"Slovenia"                       },
+              { y1:45.90,  x0:   6.86, y0: 41.14, x1:  13.57, st:"it",       fs:"it", detail_for_flag:null,    name:"Italy"                          },
+              { y1:47.55,  x0:   6.11, y0: 45.85, x1:  10.33, st:"ch",       fs:"ch", detail_for_flag:null,    name:"Switzerland"                    },
+              { y1:54.90,  x0:   5.20, y0: 47.70, x1:  13.80, st:"de",       fs:"de", detail_for_flag:null,    name:"Germany"                        },
+              { y1:22.54,  x0: 113.78, y0: 21.83, x1: 114.64, st:"hk",       fs:"hk", detail_for_flag:null,    name:"Hong Kong SAR, China"           },
+              { y1:26.00,  x0: 120.00, y0:  1.80, x1: 122.10, st:"tw",       fs:"tw", detail_for_flag:null,    name:"Taiwan"                         },
+              { y1:36.04,  x0: 139.25, y0: 35.30, x1: 140.33, st:"jp.to",    fs:"jp", detail_for_flag:"東京",   name:"Tokyo Prefecture, Japan"        },
+              { y1:38.20,  x0: 138.77, y0: 36.71, x1: 141.20, st:"jp.fu",    fs:"jp", detail_for_flag:"福島",   name:"Fukushima Prefecture, Japan"    },
+              { y1:34.91,  x0: 135.31, y0: 33.49, x1: 136.89, st:"jp.na",    fs:"jp", detail_for_flag:"奈良",   name:"Nara Prefecture, Japan"         },
+              { y1:33.03,  x0: 130.42, y0: 32.14, x1: 130.99, st:"jp.ku",    fs:"jp", detail_for_flag:"熊本",   name:"Kumamoto Prefecture, Japan"     },
+              { y1:32.09,  x0: 130.02, y0: 31.04, x1: 131.13, st:"jp.ka",    fs:"jp", detail_for_flag:"鹿児島", name:"Kagoshima Prefecture, Japan"    },
+              { y1:36.92,  x0: 140.20, y0: 35.93, x1: 140.73, st:"jp.ib",    fs:"jp", detail_for_flag:"茨城",   name:"Ibaraki Prefecture, Japan"      },
+              { y1:35.81,  x0: 134.84, y0: 34.71, x1: 136.04, st:"jp.ky",    fs:"jp", detail_for_flag:"京都",   name:"Kyoto Prefecture, Japan"        },
+              { y1:35.44,  x0: 135.84, y0: 35.02, x1: 136.40, st:"jp.sh",    fs:"jp", detail_for_flag:"滋賀",   name:"Shiga Prefecture, Japan"        },
+              { y1:45.80,  x0: 124.80, y0: 23.20, x1: 153.00, st:"jp",       fs:"jp", detail_for_flag:null,    name:"Japan"                          },
+              { y1:90.00,  x0:-180.00, y0:-90.00, x1: 180.00, st:"zz",       fs:"xx", detail_for_flag:null,    name:"(No Extent Match) Earth"        } ];
 
     var d = null;
 
@@ -1714,6 +2055,15 @@ function JsonCpmToUsvh()
         }//for
     }//for
 }//JsonCpmToUsvh
+
+function AddLocSortStringToJson()
+{
+    for (var i=0; i<_json.length; i++)
+    {
+        var pn = GetPlaceName(_json[i]);
+        _json[i].loc_sort = pn == null ? "zz" : pn.st;
+    }//for
+}//AddLocSortStringToJson
 
 function AddDeviceAgeOrdinalToJson()
 {
@@ -1796,6 +2146,7 @@ function IsOorForUnit(x, unit)
            || (unit.indexOf('_pm')  > -1 && (x <     0.00 || x >   80.0));
 }//IsOorForUnit
 
+/*
 var _unit_info = [   { u:"bat_charge",  si:"%",     st:"🔋 {x}%",   group:0, sort_ordinal:1, decs:0 }
                     ,{ u:"bat_current", si:"mA",    st:"🔋 {x}㎃",   group:0, sort_ordinal:2, decs:1 }
                     ,{ u:"bat_voltage", si:"V",     st:"🔋 {x}V",   group:0, sort_ordinal:3, decs:1 }
@@ -1825,8 +2176,53 @@ var _unit_info = [   { u:"bat_charge",  si:"%",     st:"🔋 {x}%",   group:0, s
                     ,{ u:"lnd_7128ec",  si:"μSv/h", st:"☢ {x}",     group:7, sort_ordinal:2, decs:2 } 
                     ,{ u:"loc_lat",     si:"°",     st:"🌎↕ {x}",   group:8, sort_ordinal:1, decs:2 } 
                     ,{ u:"loc_lon",     si:"°",     st:"🌎↔ {x}",   group:8, sort_ordinal:2, decs:2 } ];
+*/
 
 
+var _unit_info = [   { u:"bat_charge",  si:"%",     min_ic:"battery",           min_suffix:"%",   group:0, sort_ordinal:1, decs:0 }
+                    ,{ u:"bat_current", si:"mA",    min_ic:"battery",           min_suffix:"㎃",   group:0, sort_ordinal:2, decs:1 }
+                    ,{ u:"bat_voltage", si:"V",     min_ic:"battery",           min_suffix:"V",   group:0, sort_ordinal:3, decs:1 }
+                    ,{ u:"env_humid",   si:"RH%",   min_ic:"thermometer",       min_suffix:"%",   group:1, sort_ordinal:1, decs:0 }
+                    ,{ u:"env_press",   si:"hPa",   min_ic:"thermometer",       min_suffix:"㎪",   group:1, sort_ordinal:2, decs:0 } // ㎪ ㍱
+                    ,{ u:"env_temp",    si:"°C",    min_ic:"thermometer",       min_suffix:"°",   group:1, sort_ordinal:3, decs:1 } // ℃
+                    ,{ u:"dev_humid",   si:"RH%",   min_ic:"thermometer_blue",  min_suffix:"%",   group:2, sort_ordinal:1, decs:0 }
+                    ,{ u:"dev_press",   si:"hPa",   min_ic:"thermometer_blue",  min_suffix:"㎪",   group:2, sort_ordinal:2, decs:0 }
+                    ,{ u:"dev_temp",    si:"°C",    min_ic:"thermometer_blue",  min_suffix:"°",   group:2, sort_ordinal:3, decs:1 }    //℃
+                    ,{ u:"opc_pm01_0",  si:"μg/m³", min_ic:"one",                                 group:3, sort_ordinal:1, decs:1 }
+                    ,{ u:"opc_pm02_5",  si:"μg/m³", min_ic:"two",                                 group:3, sort_ordinal:2, decs:1 }
+                    ,{ u:"opc_pm10_0",  si:"μg/m³", min_ic:"keycap_ten",                          group:3, sort_ordinal:3, decs:1 }
+                    ,{ u:"pms_pm01_0",  si:"μg/m³", min_ic:"one",                                 group:4, sort_ordinal:1, decs:1 }
+                    ,{ u:"pms_pm02_5",  si:"μg/m³", min_ic:"two",                                 group:4, sort_ordinal:2, decs:1 }
+                    ,{ u:"pms_pm10_0",  si:"μg/m³", min_ic:"keycap_ten",                          group:4, sort_ordinal:3, decs:1 }
+                  //,{ u:"lnd_712",     si:"μSv/h", min_ic:"radioactive_sign",                    group:5, sort_ordinal:1, decs:2 }
+                    ,{ u:"lnd_712u",    si:"μSv/h", min_ic:"radioactive_sign",                    group:5, sort_ordinal:2, decs:2 }
+                  //,{ u:"lnd_7318",    si:"μSv/h", min_ic:"radioactive_sign",                    group:5, sort_ordinal:3, decs:2 }
+                    ,{ u:"lnd_7318u",   si:"μSv/h", min_ic:"radioactive_sign",                    group:5, sort_ordinal:4, decs:2 }
+                  //,{ u:"lnd_78017",   si:"μSv/h", min_ic:"radioactive_sign",                    group:5, sort_ordinal:5, decs:2 }
+                  //,{ u:"lnd_78017u",  si:"μSv/h", min_ic:"radioactive_sign",                    group:5, sort_ordinal:6, decs:2 }
+                  //,{ u:"lnd_712c",    si:"μSv/h", min_ic:"radioactive_sign",                    group:6, sort_ordinal:1, decs:2 }
+                    ,{ u:"lnd_7318c",   si:"μSv/h", min_ic:"radioactive_sign",                    group:6, sort_ordinal:2, decs:2 }
+                  //,{ u:"lnd_78017c",  si:"μSv/h", min_ic:"radioactive_sign",                    group:6, sort_ordinal:3, decs:2 }
+                    ,{ u:"lnd_78017w",  si:"μSv/h", min_ic:"radioactive_sign",                    group:6, sort_ordinal:4, decs:2 }
+                  //,{ u:"lnd_7128",    si:"μSv/h", min_ic:"radioactive_sign",                    group:7, sort_ordinal:1, decs:2 } 
+                    ,{ u:"lnd_7128ec",  si:"μSv/h", min_ic:"radioactive_sign",                    group:7, sort_ordinal:2, decs:2 } 
+                    ,{ u:"loc_lat",     si:"°",     min_ic:"earth_asia",        min_suffix:"y",   group:8, sort_ordinal:1, decs:2 } 
+                    ,{ u:"loc_lon",     si:"°",     min_ic:"earth_asia",        min_suffix:"x",   group:8, sort_ordinal:2, decs:2 } ];
+
+
+    var _SortJsonByLoc = function(src)
+    {
+        src = src.sort(function(a, b) 
+        {
+            return   a["loc_sort"]  > b["loc_sort"]  ?  1
+                   : a["loc_sort"]  < b["loc_sort"]  ? -1 
+                   : a["device_id"] > b["device_id"] ?  1
+                   : a["device_id"] < b["device_id"] ? -1 
+                   : 0;
+        });
+
+        return src;
+    };
 
     var _SortJsonByDeviceAgeOrdinal = function(src)
     {
@@ -1950,13 +2346,14 @@ function AddNameToHighlights(n)
 
     for (var i=0; i<nh.length; i++)
     {
-        csv += nh[i] + (i < nh.length - 1 ? ", " : "");
+        csv += nh[i] + (i < nh.length - 1 ? "," : "");
     }//for
 
     el.value    = csv;
     _highlights = nh;
 
-    localStorage.setItem("highlights", csv);
+    _LocalStorageSetWrapper("highlights", csv);
+    UpdateQueryString();
 }//AddNameToHighlights
 
 function CSVtoHighlights(dest, csv)
@@ -2029,8 +2426,27 @@ function ToggleOptsChk(opts_prop_name)
 
 function ddlSortBy_OnChange()
 {
-    _opts.sort_age_ordinal = !_opts.sort_age_ordinal;
+    var e = document.getElementById("ddlSortBy");
+    var v = parseInt(e.options[e.selectedIndex].value);
+
+    switch (v)
+    {
+        case 0:
+            _opts.sort_age_ordinal = false;
+            _opts.sort_loc         = false;
+            break;
+        case 1:
+            _opts.sort_age_ordinal = true;
+            _opts.sort_loc         = false;        
+            break;
+        case 2:
+            _opts.sort_age_ordinal = false;
+            _opts.sort_loc         = true;        
+            break;
+    }//switch
+
     SetPref_Boolean("sort_age_ordinal", _opts.sort_age_ordinal);
+    SetPref_Boolean("sort_loc",         _opts.sort_loc);
     ForceReloadAll();
 }//ddlSortBy_OnChange
 
@@ -2081,24 +2497,63 @@ function BindOptions()
         tre.parentElement.insertBefore(tr, tre);
     }//for
 
-    document.getElementById("ddlSortBy").selectedIndex = _opts.sort_age_ordinal ? 1 : 0;
+    document.getElementById("ddlSortBy").selectedIndex = _opts.sort_age_ordinal ? 1 : _opts.sort_loc ? 2 : 0;
 }//BindOptions
+
+function _LocalStorageSetWrapper(key, value)
+{
+    localStorage.setItem(_local_storage_prefix + key, value);
+}//_LocalStorageSetWrapper
+
+function _LocalStorageGetWrapper(key)
+{
+    return localStorage.getItem(_local_storage_prefix + key);
+}//_LocalStorageGetWrapper
 
 function GetPref_Boolean(k, d)
 {
-    var v = localStorage.getItem(k);
+    var v = _LocalStorageGetWrapper(k);
     return v == null ? d : parseInt(v) == 1;
 }//GetPref_Boolean
 
 function SetPref_Boolean(k, v)
 {
-    localStorage.setItem(k, v ? 1 : 0);
+    _LocalStorageSetWrapper(k, v ? 1 : 0);
 }//SetPref_Boolean
+
+function GetQueryStringForOptions()
+{
+    var d = "";
+
+    for (var key in _opts)
+    {
+        if (!IsOptionsKeyValueDefault(key, _opts[key])
+            && (typeof _opts[key] == "boolean" || _opts[key] instanceof Boolean))
+        {
+            if (d.length > 1) d += "&";
+            d += key + "=" + (_opts[key] ? 1 : 0);
+        }//if
+    }//for
+
+    if (_highlights.length > 0)
+    {
+        if (d.length > 1) d += "&";
+
+        var csv = _LocalStorageGetWrapper("highlights");
+
+        d += "highlights=" + csv;
+    }//if
+
+    return (d.length > 0 ? "?" : "") + d;
+}//GetQueryStringForOptions
 
 function LoadOptionsFromPrefs()
 {
-    if (localStorage.getItem("card_show_tbl_loc_lat") == null) localStorage.setItem("card_show_tbl_loc_lat", 0);
-    if (localStorage.getItem("card_show_tbl_loc_lon") == null) localStorage.setItem("card_show_tbl_loc_lon", 0);
+    if (_LocalStorageGetWrapper("card_show_tbl_loc_lat")   == null) _LocalStorageSetWrapper("card_show_tbl_loc_lat",   0);
+    if (_LocalStorageGetWrapper("card_show_tbl_loc_lon")   == null) _LocalStorageSetWrapper("card_show_tbl_loc_lon",   0);
+    //if (localStorage.getItem("card_show_tbl_dev_temp")  == null) localStorage.setItem("card_show_tbl_dev_temp",  0);
+    if (_LocalStorageGetWrapper("card_show_tbl_dev_press") == null) _LocalStorageSetWrapper("card_show_tbl_dev_press", 0);
+    if (_LocalStorageGetWrapper("card_show_tbl_dev_humid") == null) _LocalStorageSetWrapper("card_show_tbl_dev_humid", 0);
 
     for (var key in _opts)
     {
@@ -2110,7 +2565,7 @@ function LoadOptionsFromPrefs()
         _opts["card_show_tbl_" + _unit_info[i].u] = GetPref_Boolean("card_show_tbl_" + _unit_info[i].u, true);
     }//for
 
-    var ph = localStorage.getItem("highlights");
+    var ph = _LocalStorageGetWrapper("highlights");
     if (ph != null)
     {
         document.getElementById("txtHighlights").value = ph;
@@ -2119,10 +2574,169 @@ function LoadOptionsFromPrefs()
 }//LoadOptionsFromPrefs
 
 
-function Init()
+function GetOptionsFromQueryString()
 {
+    for (var key in _opts)
+    {
+        if (typeof _opts[key] == "boolean" || _opts[key] instanceof Boolean)
+        {
+            var p = _QueryString_GetParamAsInt(key);
+            if (p > -1) SetPref_Boolean(key, p == 1);
+        }//if
+    }//for
+
+    for (var i=0; i<_unit_info.length; i++)
+    {
+        var key = "card_show_tbl_" + _unit_info[i].u;
+        var p = _QueryString_GetParamAsInt(key);
+        if (p > -1) SetPref_Boolean(key, p == 1);
+    }//for
+
+    var h = _QueryString_GetParam("highlights");
+
+    if (h.length > 0)
+    {
+        _LocalStorageSetWrapper("highlights", h);
+    }//if
+}//GetOptionsFromQueryString
+
+var _QueryString_GetAllParams = function()
+{
+    var d = new Array();
+
+    if (window.location.href.indexOf("?") > -1)
+    {
+        var s0 = window.location.href.split("?")[1].split("&");
+
+        for (var i=0; i<s0.length; i++)
+        {
+            var s1 = s0.split("=");
+            d.push( { k:s0[0], v:s0[1] } );
+        }//for
+    }//if
+
+    return d;
+};
+
+var _QueryString_GetParamAsInt = function(paramName) // -1 if string was null
+{
+    var sp = _QueryString_GetParam(paramName);
+    return sp != null && sp.length > 0 ? parseInt(sp) : -1;
+};
+
+var _QueryString_IsParamEqual = function(paramName, compareValue)
+{
+    var retVal = false;
+
+    if (paramName != null)
+    {
+        var p  = _QueryString_GetParam(paramName);
+        retVal = p != null && p.length > 0 && p == compareValue;
+    }//if
+
+    return retVal;
+};
+
+var _QueryString_GetParam = function(name) 
+{
+    name        = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+    var regexS  = "[\\?&]" + name + "=([^&#]*)";
+    var regex   = new RegExp(regexS);
+    var results = regex.exec(window.location.href);
+
+    return results == null ? "" : results[1];
+};
+
+function IsOptionsKeyValueDefault(key, value)
+{
+    if (key == "highlights")     return value == null || value.length == 0;
+    if (_opts_defs[key] != null) return _opts_defs[key] == value;
+
+    if (key == "card_show_tbl_loc_lat") return value == false;
+    if (key == "card_show_tbl_loc_lon") return value == false;
+
+    return true;
+}//IsOptionsKeyValueDefault
+
+// Migrates old (pre-2017-05-10) localstorage key names to the new (2017-05-10) wrapped form with a prefix
+function MigrateLocalStorageKeyNames()
+{
+    var a = new Array();
+
+    for (var key in _opts_defs)
+    {
+        if (localStorage.getItem(key) != null)
+        {
+            a.push([key, localStorage.getItem(key)]);
+        }//if
+    }//for
+
+    for (var i=0; i<_unit_info.length; i++)
+    {
+        var key = "card_show_tbl_" + _unit_info[i].u;
+        
+        if (localStorage.getItem(key) != null)
+        {
+            a.push([key, localStorage.getItem(key)]);
+        }//if
+    }//for
+
+    if (localStorage.getItem("highlights") != null)
+    {
+        a.push(["highlights", localStorage.getItem("highlights")]);
+    }//if
+
+    for (var i=0; i<a.length; i++)
+    {
+        localStorage.removeItem(a[i][0]);
+        _LocalStorageSetWrapper(a[i][0], a[i][1]);
+    }//for
+}//MigrateLocalStorageKeyNames
+
+function ResetLocalOptionsIfQuerystring()
+{
+    if (window.location.href.indexOf("?") > -1)
+    {
+        var a = new Array();
+
+        for (var i=0; i<localStorage.length; i++)
+        {
+            var key = localStorage.key(i);
+
+            if (key.length > _local_storage_prefix.length && key.substring(0,_local_storage_prefix.length) == _local_storage_prefix)
+            {
+                a.push(key);
+            }//if
+        }//for
+
+        for (var i=0; i<a.length; i++)
+        {
+            localStorage.removeItem(a[i]);
+        }//for
+    }//if
+}//ResetLocalOptionsIfQuerystring
+
+function InitOptions()
+{
+    MigrateLocalStorageKeyNames();
+    ResetLocalOptionsIfQuerystring();
+
+    _opts = { };
+
+    for (var key in _opts_defs)
+    {
+        _opts[key] = _opts_defs[key];
+    }//for
+
+    GetOptionsFromQueryString();
     LoadOptionsFromPrefs();
     BindOptions();
+}//InitOptions
+
+
+function Init()
+{
+    InitOptions();
     _interval_tsupdate = setInterval(UpdateLastSeens, 1000);
     WordsInit();
     var url = "https://s3-us-west-2.amazonaws.com/safecastdata-us-west-2/ingest/prd/json/view_dstats.json";
@@ -2139,9 +2753,23 @@ function Init()
     <tr>
         <td class="label">Style</td>
         <td class="label">Theme</td>
-        <td class="label" align="right">Light: </td>
-        <td><input id="chk_theme_akari" type="checkbox" onclick="ToggleOptsChk('theme_akari');"></td>
-        <td class="label">(bright theme with white background and flatter styling)</td>
+        <td class="label" align="right">Dark: </td>
+        <td><input id="chk_theme_kuro" type="checkbox" onclick="ToggleOptsChk('theme_kuro');"></td>
+        <td class="label">(dark theme with dark background and rounder styling)</td>
+    </tr>
+    <tr>
+        <td class="label">Style</td>
+        <td class="label">Card Height</td>
+        <td class="label" align="right">Tall: </td>
+        <td><input id="chk_card_tall" type="checkbox" onclick="ToggleOptsChk('card_tall');"></td>
+        <td class="label">(taller, portrait-orientation cards)</td>
+    </tr>
+    <tr>
+        <td class="label">Style</td>
+        <td class="label">Font Size</td>
+        <td class="label" align="right">Larger Font: </td>
+        <td><input id="chk_card_tbl_mini_largerfont" type="checkbox" onclick="ToggleOptsChk('card_tbl_mini_largerfont');"></td>
+        <td class="label">(warning: may cause clipping. mostly intended for "tall" view.)</td>
     </tr>
     <tr>
         <td class="label">Style</td>
@@ -2237,9 +2865,16 @@ function Init()
     <tr>
         <td class="label">Measurements</td>
         <td class="label">Table</td>
+        <td class="label" align="right">Grayscale Emoji: </td>
+        <td><input id="chk_card_show_tbl_egry" type="checkbox" onclick="ToggleOptsChk('card_show_tbl_egry');"></td>
+        <td class="label">(force emoji to grayscale with CSS3 filters)</td>
+    </tr>    
+    <tr>
+        <td class="label">Measurements</td>
+        <td class="label">Table</td>
         <td class="label" align="right">Value Thresholds: </td>
         <td><input id="chk_card_show_tbl_thrh" type="checkbox" onclick="ToggleOptsChk('card_show_tbl_thrh');"></td>
-        <td class="label">(red highlight if out of range; mini view newest/unit only)</td>
+        <td class="label">(red highlight if out of range, orange if stale; mini view newest/unit only)</td>
     </tr>
     <tr>
         <td class="label">Sort</td>
@@ -2249,9 +2884,17 @@ function Init()
             <select id="ddlSortBy" onchange="ddlSortBy_OnChange();">
                 <option value="0">Device ID</option>
                 <option value="1">Device Age</option>
+                <option value="2">Device Location</option>
             </select>
         </td>
         <td></td>
+    </tr>
+    <tr>
+        <td class="label">Filter</td>
+        <td class="label">Dev/Test Devices</td>
+        <td class="label" align="right">Hide: </td>
+        <td><input id="chk_filter_devtest" type="checkbox" onclick="ToggleOptsChk('filter_devtest');"></td>
+        <td class="label">(filter devices which last reported 'dev_test' as 'true')</td>
     </tr>
     <tr>
         <td class="label">Filter</td>
@@ -2303,13 +2946,55 @@ function Init()
     </tr>
 </table>
 
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="0%" height="0%">
+    <defs>
+        <filter id="Emboss" w>
+            <feConvolveMatrix order="5 5"
+                preserveAlpha="true" 
+                kernelMatrix="-1 0 0 0 0 0 
+                              -2 0 0 0 0 0 
+                               3 0 0 0 0 0 
+                               0 0 0 0 0 0 0"/>
+        </filter>
+        <filter id="colorize_red" color-interpolation-filters="sRGB" x="0" y="0" height="100%" width="100%">
+        <feColorMatrix type="matrix"
+                     values="1 0 0 0  1.00 
+                             1 0 0 0  0.00 
+                             1 0 0 0  0.00 
+                             0 0 0 1  0"></feColorMatrix>
+        </filter>
+        <filter id="colorize_orange" color-interpolation-filters="sRGB" x="0" y="0" height="100%" width="100%">
+        <feColorMatrix type="matrix"
+                     values="0.95 0.95 0.95 0  0.05
+                             0.25 0.25 0.25 0  0.25 
+                             0.32 0.32 0.32 0  0.05 
+                             0    0    0    1  0"></feColorMatrix>
+        </filter>
+    </defs>
+</svg>
+
 </body>
 </html>
 
+<!--
+        <feColorMatrix type="matrix"
+                     values="1.0 0 0 0  1.00 
+                             1.0 0 0 0  0.00 
+                             1.0 0 0 0  0.00 
+                               0 0 0 1  0"></feColorMatrix>
+
+/-->
 
 
 
+<!--
+        <feColorMatrix type="matrix"
+                     values="0.95 0.95 0.95 0  0.05
+                             0.25 0.25 0.25 0  0.25 
+                             0.32 0.32 0.32 0  0.05 
+                               0 0    0 1  0"></feColorMatrix>
 
+/-->
 
 
 
