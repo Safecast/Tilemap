@@ -728,6 +728,18 @@
            "info": [ { "k":"en", "v":"{TL_NA}Repeated surveys by several volunteers have shown that much or Rome has elevated background radiation levels, most likely due to the use of radioactive building stone dating back to the Roman period. This data contains several apparent anomalies, however, with much higher levels, including here at St Peter’s Sq., at the Campidoglio Museum to the southeast, and at the Vatican Museum to the northwest. The submitter believes it is possible that the bGeigie was sent through Xray machines at these locations. Re-surveys would be helpful." } ],
           "point": { "x":12.45762, "y":41.90287 },
            "icon": { "url":"sc-icon-qm_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
+    },
+    {
+        "poly_id":48,
+       "group_id":2,
+         "author":"Azby Brown",
+           "date":"2017-05-02T08:19:37Z",
+           "desc": [ { "k":"en", "v":"Mount Juman Forest Fire in Namie" } ],
+           "info": [ { "k":"en", "v":"{TL_NA}A forest fire has been burning in the no-entry zone of Namie in Fukushima since April 29th 2017, and is now in its fourth day. This has been the subject of many news reports of varying quality, and we are following the situation closely." } ],
+           "imgs":"https://i2.wp.com/blog.safecast.org/wp-content/uploads/2017/05/Namie-Fire-Nippon-TV.jpg?zoom=2&fit=1000%2C432",
+           "more": [ { "k":"en", "v":["{FULL_ARTICLE}", "http://blog.safecast.org/2017/05/mount-juman-forest-fire-in-namie/"] } ],
+          "point": { "x":140.918, "y":37.452 },
+           "icon": { "url":"sc-icon-doc_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     }
 ]
 }

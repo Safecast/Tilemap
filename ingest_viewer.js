@@ -49,9 +49,10 @@ var IngestViewer = (function()
         this.last_tx   = 0;
         this.enabled   = true;
         this.int_up    = null;
+        this.dev_test  = false;
         
         this.Init();
-    }
+    }//IngestViewer
     
     
     
@@ -61,12 +62,28 @@ var IngestViewer = (function()
 
     IngestViewer.prototype.Init = function()
     {
+        this.Init_DevTestMode();
         this.Init_IngestMarkers();
         //this.InitMarkersAsync();
 
         this.SetEnabled(true);
 
         //this.InitConnectionWatchdog();
+    };
+
+    IngestViewer.prototype.Init_DevTestMode = function()
+    {
+        var dev_test_str = _GetParam("dev_test");
+
+        if (dev_test_str != null && dev_test_str.length > 0)
+        {
+            this.dev_test = parseInt(dev_test_str) == 1;
+
+            if (this.dev_test)
+            {
+                console.log("IngestViewer: dev_test mode temporarily set from querystring.  To return to normal (production) view, reload the page without dev_test=1 in the querystring.");
+            }//if
+        }//if
     };
 
     IngestViewer.prototype.Init_IngestMarkers = function()
@@ -80,7 +97,7 @@ var IngestViewer = (function()
     {
         //var pre = window.location.href.substring(0,5) == "https" ? "https://" : "http://";
         //var url = pre + "safecast.org/tilemap/test2/ingest-test.json";
-        var url = "https://s3-us-west-2.amazonaws.com/safecastdata-us-west-2/ingest/prd/json/view24h.json";
+        var url = this.GetJsonUrl();
         this.GetJSONAsync(url);
     };
     
@@ -91,6 +108,11 @@ var IngestViewer = (function()
         }.bind(this), 10 * 60 * 1000);
     };
 
+    IngestViewer.prototype.GetJsonUrl = function()
+    {
+        return !this.dev_test ? "https://s3-us-west-2.amazonaws.com/safecastdata-us-west-2/ingest/prd/json/view24h.json"
+                              : "https://s3-us-west-2.amazonaws.com/safecastdata-us-west-2/ingest/prd/json/view24h_devtest.json";
+    };
 
 
     // =======================================================================================================
@@ -1077,7 +1099,7 @@ var IngestMarkers = (function()
         
         this.lut_rsn  = 2;                       // 256 >> 128 >> 64 colors
                                                  // The LUT gets the RGB values for a value.
-        this.pmx_lut  = new IngestLUT(  0.00, 160.000, 20, IngestLUT.ScaleType.LN); //32  // NASA PM map = max 80
+        this.pmx_lut  = new IngestLUT(  0.00,  80.000, 20, IngestLUT.ScaleType.LN); //32  // NASA PM map = max 80
         this.rad_lut  = new IngestLUT(  0.03,  65.535, 30, IngestLUT.ScaleType.LOG10);
         this.tmp_lut  = new IngestLUT(-10.00,  60.000, 34, IngestLUT.ScaleType.LIN);
         this.rhp_lut  = new IngestLUT(  0.00, 200.000, 13, IngestLUT.ScaleType.LIN);
@@ -1483,81 +1505,6 @@ var IngestMarkers = (function()
     };
 
 
-    /*
-    var _GetTimeSeriesDataForAnyUnit = function(data_node, ss_per_epoch_timepart)
-    {
-        var d = null;
-
-        for (var i=0; i<data_node.length; i++)
-        {
-            for (var j=0; j<data_node[i].time_series.length; j++)
-            {
-                if (data_node[i].time_series[j].ss_per_epoch_timepart == ss_per_epoch_timepart)
-                {
-                    d = data_node[i].time_series[j].values;
-                    break;
-                }//if
-            }//for
-        }//for
-
-        return d;
-    };
-    */
-
-
-    /*
-    var _IsLastValueFromArrayNull = function(s)
-    {
-        return s == null || s.length < 2 || (s[s.length-1] == null && s[s.length-2] == null);
-    };
-    */
-
-    /*
-    var _GetLastNonNullValueFromArray = function(s)
-    {
-        if (s == null) return null;
-
-        var d = null;
-
-        for (var i=s.length-1; i>=0; i--)
-        {
-            if (s[i] != null)
-            {
-                d = s[i];
-                break;
-            }//if
-        }//for
-
-        return d;
-    };
-
-
-    var _GetSecondLastNonNullValueFromArray = function(s)
-    {
-        if (s == null) return null;
-
-        var d = null;
-        var f = false;
-
-        for (var i=s.length-1; i>=0; i--)
-        {
-            if (s[i] != null)
-            {
-                if (!f)
-                {
-                    f = true;
-                }//if
-                else
-                {
-                    d = s[i];
-                    break;
-                }//else
-            }//if
-        }//for
-
-        return d;
-    };
-    */
 
 
     var _GetLastTwoNonNullValuesFromArray = function(s)
@@ -1591,17 +1538,6 @@ var IngestMarkers = (function()
 
     var _GetChangeRateNormalizedFromArray = function(s)
     {
-        /*
-        var v0 = _GetSecondLastNonNullValueFromArray(s);
-        var v1 = _GetLastNonNullValueFromArray(s);
-
-        return v0 == null || v1 == null   ?  0.0 
-             : v0 == 0.0 && v1 - v0 < 0.0 ? -1.0 
-             : v0 == 0.0 && v1 - v0 > 0.0 ?  1.0 
-             : v0 == 0.0 && v1 == 0.0     ?  0.0
-             : (v1 - v0) / v0;
-        */
-
         var v = _GetLastTwoNonNullValuesFromArray(s);
 
         return v.a == null || v.b       == null ?  0.0 
@@ -1611,42 +1547,7 @@ var IngestMarkers = (function()
              :                                     (v.b - v.a) / v.a;
     };
 
-    /*
-    var _GetMaxValueFromArray = function(s)
-    {
-        if (s == null) return null;
 
-        var d = null;
-
-        for (var i=0; i<s.length; i++)
-        {
-            if (s[i] != null && (d == null || s[i] > d))
-            {
-                d = s[i];
-            }//if
-        }//for
-
-        return d;
-    };
-
-
-    var _GetMinValueFromArray = function(s)
-    {
-        if (s == null) return null;
-
-        var d = null;
-
-        for (var i=0; i<s.length; i++)
-        {
-            if (s[i] != null && (d == null || s[i] < d))
-            {
-                d = s[i];
-            }//if
-        }//for
-
-        return d;
-    };
-    */
 
     var _GetIsOfflineForAllUnitsHourly = function(data_node, compare_ss)
     {
@@ -1659,8 +1560,10 @@ var IngestMarkers = (function()
             for (var j=0; j<data_node[i].time_series.length; j++)
             {
                 if (    data_node[i].time_series[j].ss_per_epoch_timepart == 3600
-                    && (!data_node[i].time_series[j].is_offline
-                        || m - Date.parse(data_node[i].time_series[j].end_date) > t))
+                    &&  (data_node[i].time_series[j].values[data_node[i].time_series[j].values.length - 1] != null
+                     ||  data_node[i].time_series[j].values[data_node[i].time_series[j].values.length - 2] != null))
+                    //&& (!data_node[i].time_series[j].is_offline
+                    //    || m - Date.parse(data_node[i].time_series[j].end_date) > t))
                 {
                     d = false;
                     break;
@@ -1672,20 +1575,10 @@ var IngestMarkers = (function()
     };
 
 
-    /*
-    var _GetIsLatestValueNullForAnyUnitHourly = function(data_node)
-    {
-        var vs = _GetTimeSeriesDataForAnyUnit(data_node, 3600);
-        return _IsLastValueFromArrayNull(vs);
-    };
-    */
 
 
     var _GetLatestValueForUnitHourly = function(data_node, unit)
     {
-        //var vs = _GetTimeSeriesDataForUnit(data_node, unit, 3600);
-        //console.log("_GetLatestValueForUnitHourly: vs=" + (vs == null ? "<NULL>" : vs.toString()));
-        //return _GetLastNonNullValueFromArray(vs);
         var n = _GetTimeSeriesNodeForUnit(data_node, unit, 3600);
         return n != null ? n.value_newest : null;
     };
@@ -1693,8 +1586,6 @@ var IngestMarkers = (function()
 
     var _GetMaxValueForUnitHourly = function(data_node, unit)
     {
-        //var vs = _GetTimeSeriesDataForUnit(data_node, unit, 3600);
-        //return _GetMaxValueFromArray(vs);
         var n = _GetTimeSeriesNodeForUnit(data_node, unit, 3600);
         return n != null ? n.max : null;
     };
@@ -1702,8 +1593,6 @@ var IngestMarkers = (function()
 
     var _GetMinValueForUnitHourly = function(data_node, unit)
     {
-        //var vs = _GetTimeSeriesDataForUnit(data_node, unit, 3600);
-        //return _GetMinValueFromArray(vs);
         var n = _GetTimeSeriesNodeForUnit(data_node, unit, 3600);
         return n != null ? n.min : null;
     };
@@ -1717,16 +1606,12 @@ var IngestMarkers = (function()
 
     var _GetMaxValueForUnitDaily = function(data_node, unit)
     {
-        //var vs = _GetTimeSeriesDataForUnit(data_node, unit, 86400);
-        //return _GetMaxValueFromArray(vs);
         var n = _GetTimeSeriesNodeForUnit(data_node, unit, 86400);
         return n != null ? n.max : null;
     };
 
     var _GetMinValueForUnitDaily = function(data_node, unit)
     {
-        //var vs = _GetTimeSeriesDataForUnit(data_node, unit, 86400);
-        //return _GetMinValueFromArray(vs);
         var n = _GetTimeSeriesNodeForUnit(data_node, unit, 86400);
         return n != null ? n.min : null;
     };
@@ -1782,15 +1667,7 @@ var IngestMarkers = (function()
         var min = _GetMinValueForUnitHourly(json[json_idx].data, unit);
         var max = _GetMaxValueForUnitHourly(json[json_idx].data, unit);
         var deg = _GetDegForNormRate(_GetChangeRateForUnitHourly(json[json_idx].data, unit));
-        //var off = _GetIsLatestValueNullForAnyUnitHourly(json[json_idx].data);
         var off = _GetIsOfflineForAllUnitsHourly(json[json_idx].data, this.create_ss);
-
-        //console.log("IngestMarkers.GetDerivedValuesFromJsonForUnitHourly: [%d]: Value for unit=%s was %s", json_idx, unit, val == null ? "<NULL>" : val.toFixed(8));
-        /*
-        var lut_idx_val = val == null ? null : this.lut.GetIdxForValue(val, this.lut_rsn);
-        var lut_idx_min = min == null ? null : this.lut.GetIdxForValue(min, this.lut_rsn);
-        var lut_idx_max = max == null ? null : this.lut.GetIdxForValue(max, this.lut_rsn);
-        */
 
         var lut_idx_val = val == null ? null : this.GetIdxFromLutForUnitType(val, ut, this.lut_rsn);
         var lut_idx_min = min == null ? null : this.GetIdxFromLutForUnitType(min, ut, this.lut_rsn);
@@ -1836,12 +1713,13 @@ var IngestMarkers = (function()
 
             if (o == null)
             {
-                o = this.GetDerivedValuesFromJsonForUnitHourly(this.json, i, this.selected_unit); // still need to generate structs
+                //o = this.GetDerivedValuesFromJsonForUnitHourly(this.json, i, this.selected_unit); // make structs for empty marker
             }//if
 
-            //var o   = this.GetDerivedValuesFromJsonForUnitHourly(this.json, i, this.selected_unit);
-
-            this.AddMarker(i, lat, lon, o.lut_idx_val, o.is_offline, o.lut_idx_min, o.lut_idx_max, o.deg);
+            if (o != null) // don't show empty markers
+            {
+                this.AddMarker(i, lat, lon, o.lut_idx_val, o.is_offline, o.lut_idx_min, o.lut_idx_max, o.deg);
+            }//if
         }//for
         //this.RescaleIcons();
     };
@@ -1856,27 +1734,11 @@ var IngestMarkers = (function()
         var w      = _GetIconWidthForUnit(this.selected_unit); // this.width
         var h      = w; // this.height
 
-        /*
-        var w_add    = (this.shd_r - (this.width  * 0.5)) * 2;
-        var h_add    = (this.shd_r - (this.height * 0.5)) * 2;
-        var w_pt     = this.width  + Math.max(0, w_add);
-        var h_pt     = this.height + Math.max(0, h_add);
-
-        var size = new google.maps.Size(w_pt, h_pt);
-        var anch = new google.maps.Point(w_pt * 0.5, h_pt * 0.5);
-        var icon = { url:icon_url, size:size, anchor:anch };
-                   
-        icon.scaledSize = new google.maps.Size(w_pt, h_pt);
-        */
-
-        //var marker = new google.maps.Marker();
         var yx = new google.maps.LatLng(lat, lon);
         var zi = _GetMarkerZIndexForAttributes(lutidx, offline);
 
         marker.setPosition(yx);
         marker.setZIndex(zi);
-
-        //marker.setIcon(icon);
         
         marker.ext_id          = marker_id;
         marker.ext_lut_idx     = lutidx;
@@ -1887,13 +1749,20 @@ var IngestMarkers = (function()
 
         marker.setMap(this.mapref);
 
-        var url = this.GetIconCached(lutidx, offline, w, h, this.pxScale * scale, lutidx_min, lutidx_max, deg, marker);
+        //var url = this.GetIconCached(lutidx, offline, w, h, this.pxScale * scale, lutidx_min, lutidx_max, deg, marker);
 
-        //this.SetScaledIconForMarkerFromUrl(marker, url);
+        this.GetIconCached(lutidx, offline, w, h, this.pxScale * scale, lutidx_min, lutidx_max, deg, marker);
+
+        // on slower devices, async rendering the marker will be slower and cause a default balloon icon to temporarily appear
+        // thus, if the icon wasn't immediately rendered/cached in the above step, supply a blank icon instead of the balloon
+        if (marker.getIcon() == null)
+        {
+            this.SetScaledIconForMarkerFromUrl(marker, "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAEUlEQVR42mNgYGBgYhjxgAkAAxIABRlD9+oAAAAASUVORK5CYII=");
+        }//if
+
         this.AttachInfoWindow(marker);
         this.markers.push(marker);
     };
-
 
 
     IngestMarkers.prototype.GetIconCached = function(lutidx, offline, width, height, pxScale, lutidx_min, lutidx_max, deg, marker)
@@ -1917,7 +1786,6 @@ var IngestMarkers = (function()
         
         var cb = function(url)
         {
-            //console.log("IngestMarkers.prototype.GetIconCached: Icon render callback fired, url len=%d.", url.length);
             this.SetScaledIconForMarkerFromUrl(marker, url);
 
             if (!cached)
@@ -1938,10 +1806,6 @@ var IngestMarkers = (function()
                     this.icons.push(ico);
                 }//if
             }//if
-            //else
-            //{
-            //    console.log("IngestMarkers.prototype.GetIconCached: Not adding to cache, dupe detection during render callback.");
-            //}//else
         }.bind(this);
 
         for (var i=0; i<this.icons.length; i++)
@@ -1959,14 +1823,11 @@ var IngestMarkers = (function()
         {            
             var ico = new IngestIcon(w_px, h_px, deg, val_rgba, con_rgba, min_rgba, max_rgba, rstyle); // this.render_style, cb
             ico.Render(cb);
-            //url = ico.url;
         }//if
         else
         {
             cb(url);
         }//else
-        
-        //return url;
     };
 
     IngestMarkers.prototype.SetScaledIconForMarkerFromUrl = function(marker, url)
@@ -1994,8 +1855,6 @@ var IngestMarkers = (function()
             console.log("IngestMarkers.prototype.SetScaledIconForMarkerFromUrl: [ERR]: url is same!");
             return;
         }//if
-
-        //console.log("IngestMarkers.prototype.SetScaledIconForMarkerFromUrl: Setting icon for marker.ext_id=%d", marker.ext_id);        
 
         var e     = this._GetCurrentVisibleExtent();
         var scale = _GetIconScaleFactorForZ(e.z);
@@ -2128,6 +1987,124 @@ var IngestMarkers = (function()
         return h;
     };
 
+
+    IngestMarkers.prototype.CheckCanCreateCombinedChartForMarker = function(units, ss_per_epoch_timepart)
+    {
+        var d = false;
+
+        for (var i=0; i<units.length; i++)
+        {
+        }//for
+
+        return d;
+    };
+
+
+    IngestMarkers.prototype.CreateCombinedChartForMarker = function(marker, units, ss_per_epoch_timepart, el, width, height, is_inv)
+    {
+        var idx  = marker.ext_id;
+        var data = new google.visualization.DataTable();
+        var min = 1 << 30;
+        var max = 0 - min;
+        var ticks = null;
+
+        data.addColumn("number", "Date");
+
+        var units_vs = new Array(units.length);
+
+        for (var i=0; i<units.length; i++)
+        {
+            var unit = units[i];
+
+            var uc = _GetUiDisplayUnitAndCategoryIdForUnit(this.json[idx].data, unit);
+            data.addColumn("number", uc.unit);
+
+            var ts  = _GetTimeSeriesNodeForUnit(this.json[idx].data, unit, ss_per_epoch_timepart);
+            var _min = _GetMinValueForUnitHourlyDaily(this.json[idx].data, unit);
+            var _max = _GetMaxValueForUnitHourlyDaily(this.json[idx].data, unit);
+            var vs  = ts.values;
+
+            if (i == 0)
+            {
+                ticks = new Array(vs.length);
+            }//if
+
+            _min = Math.min(_min, min);
+            _max = Math.max(_max, max);
+
+            units_vs[i] = vs;
+        }//for
+
+        for (var i=0; i<units_vs[0].length; i++)
+        {
+            var row = new Array(units_vs.length + 1);
+
+            var d  = 0 - (units_vs[0].length - 1 - i);
+
+            row.push(d);
+
+            for (var j=0; j<units_vs.length; j++)
+            {
+                row.push(units_vs[j][i]);
+            }//for
+
+            data.addRow(row);
+        }//for
+
+
+
+        var options = 
+        {
+            chart: 
+            {
+                   title: null,
+                subtitle: null,
+            },
+            tooltip: 
+            {
+                   isHtml: true,
+                textStyle: 
+                {
+                        bold: false,
+                    fontName: "Helvetica,Arial,sans-serif",
+                    fontSize: 8
+                }
+            },
+            /*
+            legend: 
+            {
+                position: "none"
+            },
+            */
+            hAxis: 
+            {
+                ticks: ticks,
+                title: (ss_per_epoch_timepart == 3600 ? "Last 24 Hours" : "Last 30 Days")
+            },
+            vAxis: 
+            { 
+                viewWindowMode: "explicit",
+                    viewWindow: 
+                    {
+                        max: max,
+                        min: min
+                    }
+            },
+            lineWidth: 3,
+                width: width,
+               height: height
+        };
+
+
+        var chart = new google.visualization.LineChart(el);
+
+        chart.draw(data, options);
+    };
+
+
+
+
+
     IngestMarkers.prototype.CreateChartForMarker = function(marker, unit, ss_per_epoch_timepart, el, width, height, is_inv)
     {
         var idx = marker.ext_id;
@@ -2144,14 +2121,12 @@ var IngestMarkers = (function()
         var ticks  = new Array(vs.length);
         var last_d = -1;
 
-        //data.addColumn("date", "Date");
-        data.addColumn("number", "Date");//"" + ss_per_epoch_timepart + "ss");
+        data.addColumn("number", "Date");
         data.addColumn("number", uc.unit);
         data.addColumn({type: "string", role: "tooltip", "p": {"html": true}});
 
         for (var i=0; i<vs.length; i++)
         {
-            //var d = new Date(ts.start_epoch_timepart * ts.ss_per_epoch_timepart * 1000.0 + i * ts.ss_per_epoch_timepart * 1000.0);
             var d  = 0 - (vs.length - 1 - i);
             var dd = new Date(ts.start_epoch_timepart * ts.ss_per_epoch_timepart * 1000.0 + i * ts.ss_per_epoch_timepart * 1000.0);
 
@@ -2177,7 +2152,6 @@ var IngestMarkers = (function()
             }//if
         };
 
-        //var mm = _GetGraphMinMaxForUnit(unit);
         var min = _GetMinValueForUnitHourlyDaily(this.json[idx].data, unit);
         var max = _GetMaxValueForUnitHourlyDaily(this.json[idx].data, unit);
 
@@ -2259,40 +2233,6 @@ var IngestMarkers = (function()
             options.vAxis.viewWindow.max = props.pad_max || props.def_max;
         }//if
 
-        /*
-        if (is_rad)
-        {
-            options.vAxis.format = "0.00";
-            if (min > -0.05) options.vAxis.viewWindow.min = -0.05;
-            if (max <  1.05) options.vAxis.viewWindow.max =  1.05;
-            options.vAxis.baseline = -0.05;
-        }//if
-        else if (is_air)
-        {
-            if (min > -5.00) options.vAxis.viewWindow.min = -5.00;
-            if (max < 85.00) options.vAxis.viewWindow.max = 85.00;
-            options.vAxis.baseline = -5.00;
-        }//else if
-        else if (unit == "env_temp")
-        {
-            if (min >  -25.00) options.vAxis.viewWindow.min = -25.00;
-            if (max <  105.00) options.vAxis.viewWindow.max = 105.00;
-            options.vAxis.baseline = -25.00;
-        }//else if
-        else if (unit == "env_humid")
-        {
-            if (min >  -5.00) options.vAxis.viewWindow.min =  -5.00;
-            if (max < 105.00) options.vAxis.viewWindow.max = 105.00;
-            options.vAxis.baseline = -5.00;
-        }//else if
-        else if (unit == "env_press")
-        {
-            if (min >  250.00) options.vAxis.viewWindow.min =  250.00;
-            if (max < 2000.00) options.vAxis.viewWindow.max = 2000.00;
-            options.vAxis.baseline = 250.00;
-        }//else if
-        */
-
         var local_min = ss_per_epoch_timepart == 3600 ? _GetMinValueForUnitHourly(this.json[idx].data, unit) 
                                                       :  _GetMinValueForUnitDaily(this.json[idx].data, unit);
         var local_max = ss_per_epoch_timepart == 3600 ? _GetMaxValueForUnitHourly(this.json[idx].data, unit) 
@@ -2325,36 +2265,10 @@ var IngestMarkers = (function()
             options.vAxis.textStyle      = { color: "#F00" };
         }//if
 
-        /*
-        if (   (is_rad && local_max >  10.00)
-            || (is_air && local_max > 300.00))
-        {
-            is_anomaly_err = true;
-            options.vAxis.baseline = is_rad ? 1.00 : is_air ? 300.00 : 0.0;
-            //options.vAxis.baselineColor = "#F00";
-            options.vAxis.baselineColor = "#F00";
-            options.vAxis.titleTextStyle = { color: "#F00" };
-            options.vAxis.textStyle = { color: "#F00" };
-            //options.chartArea = { backgroundColor: "#FEE" }; //"#FFF4F4"
-            //options.backgroundColor = { stroke: "#F00", strokeWidth:1 };
-            //options.backgroundColor = { fill: "#000" };
-            //backgroundColor.stroke = "#FFF";
-        }//if
-        else if (   (is_air && local_max > 80.0)
-                 || (is_rad && local_max >  1.0)
-                 || (unit=="env_temp" && local_max > 100.0)
-                 || (unit=="env_temp" && local_min < -20.0))
-        {
-            options.vAxis.baselineColor = "#F00";
-            options.vAxis.baseline = is_rad ? 1.00 : is_air ? 80.00 : unit == "env_temp" && local_max > 100.0 ? 100.0 : unit == "env_temp" && local_min < -20.0 ? -20.0 : 0.0;
-        }//if
-        */
-
         if (last_d < -1)
         {
             is_anomaly_err               = true;
             options.hAxis.baseline       = last_d;
-            //options.hAxis.baselineColor = "#F00";
             options.hAxis.baselineColor  =          "#F00";
             options.hAxis.titleTextStyle = { color: "#F00" };
             options.hAxis.textStyle      = { color: "#F00" };
@@ -2365,7 +2279,6 @@ var IngestMarkers = (function()
         {
             options.chartArea = 
             {
-                //backgroundColor: { fill: "#FEE", stroke: "#F00", strokeWidth:2 }
                 backgroundColor: 
                 { 
                            fill: (!is_inv ? "#FEE" : "#400"), 
@@ -2382,7 +2295,6 @@ var IngestMarkers = (function()
         }//if
 
         
-        //var chart = new google.charts.Line(el);
         var chart = new google.visualization.LineChart(el);
 
         if (is_gradient_stroke && local_min != local_max)
@@ -2860,13 +2772,20 @@ var IngestMarkers = (function()
                     el: el,
                      w: img_w,
                      h: img_h, 
-                   inv: is_inv 
+                   inv: is_inv,
+                 combo: false
             };
 
             container.appendChild(el);
         }//for
 
         _AddDeviceListToContainerForJsonIdx(this.json, idx, container);
+
+
+        var units = ["opc_pm01_0", "opc_pm02_5", "opc_pm10_0", "pms_pm01_0", "pms_pm02_5", "pms_pm10_0"];
+
+        this.CreateCombinedChartForMarker(marker, units, ss_per_epoch_timepart, el, width, height, is_inv)
+
 
         setTimeout(function() {
             this.ProcessChartQueue(queue);

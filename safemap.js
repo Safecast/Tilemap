@@ -625,21 +625,20 @@ var BasemapHelper = (function()
         var stam_pre  = !_use_https ? "http://{s}.tile.stamen.com" : "https://stamen-tiles-{s}.a.ssl.fastly.net";
         var o = { };
 
-
-        o.b0 = _NewGmapsBasemap(0, stam_z, 256, stam_pre + "/terrain/{z}/{x}/{y}{r}.png", "Stamen Terrain", stam_r, stam_subs);
-        o.b1 = _NewGmapsBasemap(0, stam_z, 256, stam_pre + "/toner/{z}/{x}/{y}{r}.png", "Stamen Toner", stam_r, stam_subs);
-        o.b2 = _NewGmapsBasemap(0, stam_z, 256, stam_pre + "/toner-lite/{z}/{x}/{y}{r}.png", "Stamen Toner Lite", stam_r, stam_subs);
+        o.b0  = _NewGmapsBasemap(0, stam_z, 256, stam_pre + "/terrain/{z}/{x}/{y}{r}.png",    "Stamen Terrain",    stam_r, stam_subs);
+        o.b1  = _NewGmapsBasemap(0, stam_z, 256, stam_pre + "/toner/{z}/{x}/{y}{r}.png",      "Stamen Toner",      stam_r, stam_subs);
+        o.b2  = _NewGmapsBasemap(0, stam_z, 256, stam_pre + "/toner-lite/{z}/{x}/{y}{r}.png", "Stamen Toner Lite", stam_r, stam_subs);
         
-        o.b3 = _NewGmapsBasemap(0, 19, 256, stam_pre + "/watercolor/{z}/{x}/{y}.jpg", "Stamen Watercolor", null, stam_subs);
-        o.b4 = _NewGmapsBasemap(0, 19, 256, "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap", null, osm_subs);
+        o.b3  = _NewGmapsBasemap(0, 19, 256, stam_pre + "/watercolor/{z}/{x}/{y}.jpg", "Stamen Watercolor", null, stam_subs);
+        o.b4  = _NewGmapsBasemap(0, 19, 256, "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap", null, osm_subs);
         
-        o.b9 = _NewGmapsBasemap(0, 18, 256, "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", "GSI Japan", null, null);
+        o.b9  = _NewGmapsBasemap(0, 18, 256, "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", "GSI Japan", null, null);
 
-        o.b5 = _NewGmapsBasemapConst(256, "Pure Black World Tendency", "None (Black)", "data:image/gif;base64,R0lGODdhAQABAPAAAAAAAAAAACwAAAAAAQABAAACAkQBADs=");
-        o.b6 = _NewGmapsBasemapConst(256, "Pure White World Tendency", "None (White)", "data:image/gif;base64,R0lGODdhAQABAPAAAP///wAAACwAAAAAAQABAAACAkQBADs=");
+        o.b5  = _NewGmapsBasemapConst(256, "Pure Black World Tendency", "None (Black)", "data:image/gif;base64,R0lGODdhAQABAPAAAAAAAAAAACwAAAAAAQABAAACAkQBADs=");
+        o.b6  = _NewGmapsBasemapConst(256, "Pure White World Tendency", "None (White)", "data:image/gif;base64,R0lGODdhAQABAPAAAP///wAAACwAAAAAAQABAAACAkQBADs=");
 
-        o.b7 = new google.maps.StyledMapType(_GetGmapsMapStyled_Gray(), {name: "Map (Gray)"});
-        o.b8 = new google.maps.StyledMapType(_GetGmapsMapStyled_Dark(), {name: "Map (Dark)"});
+        o.b7  = new google.maps.StyledMapType(_GetGmapsMapStyled_Gray(),  {name: "Map (Gray)" });
+        o.b8  = new google.maps.StyledMapType(_GetGmapsMapStyled_Dark(),  {name: "Map (Dark)" });
         o.b10 = new google.maps.StyledMapType(_GetGmapsMapStyled_Retro(), {name: "Map (Retro)"});
         
         map.mapTypes.set( "stamen_terrain", o.b0);
@@ -712,9 +711,9 @@ var SafecastDateHelper = (function()
                    { i:19, s:"2014-03-10T15:00:00Z", e:"2014-09-10T15:00:00Z" }, 
                    { i:20, s:"2014-09-10T15:00:00Z", e:"2015-03-10T15:00:00Z" }, 
                    { i:21, s:"2015-03-10T15:00:00Z", e:"2015-09-10T15:00:00Z" }, 
-                   { i:22, s:"2015-09-10T15:00:00Z", e:"2016-03-10T15:00:00Z" } ];
-                   //{ i:23, s:"2016-03-10T15:00:00Z", e:"2016-09-10T15:00:00Z" },    // not implemeneted
-                   //{ i:24, s:"2016-09-10T15:00:00Z", e:"2017-03-10T15:00:00Z" },    // not implemeneted
+                   { i:22, s:"2015-09-10T15:00:00Z", e:"2016-03-10T15:00:00Z" },
+                   { i:23, s:"2016-03-10T15:00:00Z", e:"2016-09-10T15:00:00Z" },
+                   { i:24, s:"2016-09-10T15:00:00Z", e:"2017-03-10T15:00:00Z" }  ];
                    //{ i:25, s:"2017-03-10T15:00:00Z", e:"2017-09-10T15:00:00Z" },    // not implemeneted
                    //{ i:26, s:"2017-09-10T15:00:00Z", e:"2018-03-10T15:00:00Z" },    // not implemeneted
                    //{ i:27, s:"2018-03-10T15:00:00Z", e:"2018-09-10T15:00:00Z" },    // not implemeneted
@@ -1127,7 +1126,8 @@ var ClientZoomHelper = (function()
         //    20 | Time Slice: 2014-09-10 - 2015-03-10
         //    21 | Time Slice: 2015-03-10 - 2015-09-10
         //    22 | Time Slice: 2015-09-10 - 2016-03-10
-        //    23 | Time Slice: 2016-03-10 - 2016-09-10  // not implemented
+        //    23 | Time Slice: 2016-03-10 - 2016-09-10
+        //    24 | Time Slice: 2016-09-10 - 2017-03-10
         // ...
         //    30 | Time Slice: 2019-09-10 - 2020-03-10  // not implemented
 
