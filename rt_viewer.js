@@ -145,7 +145,7 @@ var RTVM = (function()
             setTimeout(function() {
                 this.last_tx = Date.now();
                 this.GetJSONAsync(url);
-            }.bind(this), 60 * 1000);
+            }.bind(this), 1 * 1000);
                 
             return;
         }//if
