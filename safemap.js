@@ -404,6 +404,7 @@ var SafemapInit = (function()
                    streetViewControl: true,
                    navigationControl: true,
                   overviewMapControl: false,
+                     gestureHandling: "greedy",
             streetViewControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
                   zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
                 rotateControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
@@ -4961,7 +4962,7 @@ var MenuHelper = (function()
         }, false);
 
 
-        _rt_ingest_enabled = PrefHelper.GetRtIngestEnabledPref();
+        _rt_ingest_enabled = PrefHelper.GetRtIngestEnabledPref() && !PLATFORM_DISABLE_INGEST;
         if (_rt_ingest_enabled)
         {
             //SafemapInit.InitIngestViewer();
@@ -4984,6 +4985,11 @@ var MenuHelper = (function()
             PrefHelper.SetRtIngestEnabledPref(_rt_ingest_enabled);
             ElGet("chkMenuRealtime1").checked = _rt_ingest_enabled;
         }, false);
+
+        if (PLATFORM_DISABLE_INGEST)
+        {
+            ElGet("menu_realtime_1").parentElement.style.display = "none";
+        }//if
 
 
         ElGet("chkMenuZoomButtons").checked = map.zoomControl;
@@ -5072,6 +5078,7 @@ var MenuHelper = (function()
         ElGet("lblMenuApiQuery").innerHTML       = s.MENU_API_QUERY_CENTER_LABEL;
         ElGet("lblMenuRealtimeTitle").innerHTML  = s.MENU_REALTIME_TITLE;
         ElGet("menu_realtime_0_label").innerHTML = s.MENU_REALTIME_0_LABEL;
+        ElGet("menu_realtime_1_label").innerHTML = s.MENU_REALTIME_1_LABEL;
         
         if (PrefHelper.GetEffectiveLanguagePref() != "ja")
         {

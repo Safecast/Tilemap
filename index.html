@@ -140,6 +140,9 @@ LoadCSS();
 </script>
 
 <script type="text/javascript">
+var PLATFORM_IS_TEST        = window.location.href.indexOf("test2") > -1;
+var PLATFORM_DISABLE_INGEST = !PLATFORM_IS_TEST;
+
 function ShowBrowserWarningWindowIfNeeded()
 {
     var ua   = window.navigator.userAgent;
@@ -152,7 +155,7 @@ function ShowBrowserWarningWindowIfNeeded()
 
 function Init() 
 {
-    if (window.location.href.indexOf("test2") > -1) { document.title = "[TEST2] " + document.title; }
+    if (PLATFORM_IS_TEST) { document.title = "[TEST2] " + document.title; }
     if (ShowBrowserWarningWindowIfNeeded()) return;
     _ls.ui = true;
     FinishLoadIfPossible();

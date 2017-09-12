@@ -4,10 +4,11 @@
     {
         "group_id":0,
        "parent_id":null,
-            "desc": [ { "k":"en", "v":"Areas" },
-                      { "k":"ja", "v":"区域"   },
-                      { "k":"es", "v":"Áreas" },
-                      { "k":"pt", "v":"Áreas" } ]
+            "desc": [ { "k":"en", "v":"Areas"   },
+                      { "k":"ja", "v":"区域"     },
+                      { "k":"es", "v":"Áreas"   },
+                      { "k":"pt", "v":"Áreas"   },
+                      { "k":"cs", "v":"Oblasti" } ]
     },
     {
         "group_id":1,
@@ -15,7 +16,8 @@
             "desc": [ { "k":"en", "v":"Interest"   },
                       { "k":"ja", "v":"興味がある点" },
                       { "k":"es", "v":"Interés"    },
-                      { "k":"pt", "v":"Interesse"   } ]
+                      { "k":"pt", "v":"Interesse"  },
+                      { "k":"cs", "v":"Zájmu"      } ]
     },
     {
         "group_id":2,
@@ -23,7 +25,8 @@
             "desc": [ { "k":"en", "v":"Safecasting"                                                 },
                       { "k":"ja", "v":"<span style='letter-spacing:-2px;'>セーフキャスティング</span>" },
                       { "k":"es", "v":"Safecasting"                                                 },
-                      { "k":"pt", "v":"Safecasting"                                                 } ]
+                      { "k":"pt", "v":"Safecasting"                                                 },
+                      { "k":"cs", "v":"Safecasting"                                                 } ]
     },
     {
         "group_id":3,
@@ -31,7 +34,8 @@
             "desc": [ { "k":"en", "v":"Photos" },
                       { "k":"ja", "v":"写真"    },
                       { "k":"es", "v":"Fotos"  },
-                      { "k":"pt", "v":"Fotos" } ]
+                      { "k":"pt", "v":"Fotos"  },
+                      { "k":"cs", "v":"Fotky"  } ]
     },
     {
         "group_id":4,
@@ -39,7 +43,8 @@
             "desc": [ { "k":"en", "v":"Anomalies" },
                       { "k":"ja", "v":"異常"       },
                       { "k":"es", "v":"Anomalías" },
-                      { "k":"pt", "v":"Anomalias" } ]
+                      { "k":"pt", "v":"Anomalias" },
+                      { "k":"cs", "v":"Anomálie"  } ]
     }
 ],
 "polys":
