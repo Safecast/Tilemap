@@ -757,6 +757,19 @@
            "more": [ { "k":"en", "v":["{FULL_ARTICLE}", "https://blog.safecast.org/2017/08/safecasting-les-bois-noirs/"] } ],
           "point": { "x":3.7215, "y":45.9693 },
            "icon": { "url":"sc-icon-go_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
+    },
+    {
+        "poly_id":50,
+       "group_id":2,
+         "author":"Edouard Lafargue",
+           "date":"2017-09-11T11:26:25Z",
+           "desc": [ { "k":"en", "v":"Bodega Marine Lab Radiation Sensor" } ],
+           "info": [ { "k":"en", "v":"{TL_NA}Safecast was lucky enough to be invited to install a fixed radiation sensor at the location where BML measures many parameters of the seawater that is constantly pumped to feed the lab. Similarly to Safecast, all the data measured by those other sensors is also available online at the Bodega Ocean Observing Node page. This location is especially good because it measures pure seawater right as it comes out of the collection point located several hundred meters off the coast." } ],
+           "imgs":"https://i1.wp.com/blog.safecast.org/wp-content/uploads/2017/09/IMG_4656.jpg?zoom=2&resize=813%2C610",
+           "more": [ { "k":"en", "v":["{FULL_ARTICLE}", "https://blog.safecast.org/2017/09/bodega-marine-lab-radiation-sensor-is-back-online/"] } ],
+          "point": { "x":-123.0708, "y":38.31986 },
+           "icon": { "url":"sc-icon-gear_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
     }
 ]
 }
+
