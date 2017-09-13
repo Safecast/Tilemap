@@ -190,9 +190,37 @@ body.kuro { background-color:#252525; }
 .dev_test,
 .label,
 .item_tag,
-.btn
+.btn,
+#alert,
+#filter_msg
 {
     font-family:-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif; /* 'Apple Symbols','Arial Unicode MS' */
+}
+
+#alert
+{
+    width:90%;
+    margin:10px 10px;
+    padding:10px 10px;
+    border-radius:2px;
+    border:2px solid #F00;
+    color:#000;
+    background-color:#FCC;
+    text-align:center;
+    display:none;
+    position:fixed;
+    z-index:1000;
+    top:-100px;
+}
+
+#filter_msg
+{
+    padding-left:10px;
+}
+
+.kuro #filter_msg
+{
+    color:#FFF;
 }
 
 #content
@@ -653,6 +681,43 @@ body.kuro { background-color:#252525; }
     -webkit-filter: url(#Emboss);
     filter: url(#Emboss);
 }
+
+
+
+
+.alertfade {
+ -webkit-animation: alertani 5.0s linear 1;
+    -moz-animation: alertani 5.0s linear 1;
+     -ms-animation: alertani 5.0s linear 1;
+      -o-animation: alertani 5.0s linear 1;
+         animation: alertani 5.0s linear 1;
+}
+
+@keyframes alertani {
+   0% { opacity:0; top:-100px; }
+  10% { opacity:1; top:   0px; }
+  90% { opacity:1; top:   0px; } 
+ 100% { opacity:0; top:-100px; } }
+@-moz-keyframes alertani {
+    0% { opacity:0; top:-100px; }
+    10% { opacity:1; top:   0px; }
+    90% { opacity:1; top:   0px; } 
+   100% { opacity:0; top:-100px; } }
+@-webkit-keyframes "alertani" {
+    0% { opacity:0; top:-100px; }
+    10% { opacity:1; top:   0px; }
+    90% { opacity:1; top:   0px; } 
+   100% { opacity:0; top:-100px; } }
+@-ms-keyframes alertani {
+    0% { opacity:0; top:-100px; }
+    10% { opacity:1; top:   0px; }
+    90% { opacity:1; top:   0px; } 
+   100% { opacity:0; top:-100px; } }
+@-o-keyframes "alertani" {
+    0% { opacity:0; top:-100px; }
+    10% { opacity:1; top:   0px; }
+    90% { opacity:1; top:   0px; } 
+   100% { opacity:0; top:-100px; } }
 </style>
 
 
@@ -1807,6 +1872,8 @@ function AddOrUpdateJson(o)
     AddLocSortStringToJson();
     _json = SortJson(_json);
 
+    var c = 0;
+
     // Currently the following are not handled with the incremental updates:
     // 1. New devices being sorted properly
     // 2. Changes to age ordinal / icon URLs that would occur from the normal passage of time
@@ -1837,8 +1904,14 @@ function AddOrUpdateJson(o)
             if (GetHasChangedCard(_json[i])) CreateOrUpdateDeviceCard(_json[i], content);
 
             UpdateLastSeen(_json[i]);
+
+            c++;
         }//if
     }//for
+
+    var f = document.getElementById("filter_msg");
+
+    f.innerHTML = "Displaying " + c + "/" + _json.length + " devices." + (c != _json.length ? " (filtered)" : "");
 
     UpdateQueryString();
 }//AddOrUpdateJson
@@ -2574,6 +2647,35 @@ function LoadOptionsFromPrefs()
 }//LoadOptionsFromPrefs
 
 
+function IsAnySavedPrefs()
+{
+    var d = false;
+
+    for (var key in _opts)
+    {
+        var v = null;
+        if (typeof _opts[key] == "boolean" || _opts[key] instanceof Boolean) v = GetPref_Boolean(key, _opts[key]);
+
+        d = v != null && !IsOptionsKeyValueDefault(key, v);
+        if (d) break;
+    }//for
+
+    if (!d)
+    {
+        for (var i=0; i<_unit_info.length; i++)
+        {
+            var v = GetPref_Boolean("card_show_tbl_" + _unit_info[i].u, true);
+            d = !IsOptionsKeyValueDefault("card_show_tbl_" + _unit_info[i].u, v);
+            if (d) break;
+        }//for
+    }//if
+
+    if (!d) d = _LocalStorageGetWrapper("highlights") != null;
+
+    return d;
+}//IsAnySavedPrefs
+
+
 function GetOptionsFromQueryString()
 {
     for (var key in _opts)
@@ -2728,6 +2830,16 @@ function InitOptions()
         _opts[key] = _opts_defs[key];
     }//for
 
+    if (window.location.href.indexOf("?") == -1 && IsAnySavedPrefs())
+    {
+        var a = document.getElementById("alert");
+        a.style.display = "block";
+        a.className += " alertfade";
+        setTimeout(function() {
+            a.style.display = "none";
+        }.bind(this), 5100);
+    }//if
+
     GetOptionsFromQueryString();
     LoadOptionsFromPrefs();
     BindOptions();
@@ -2746,8 +2858,9 @@ function Init()
 
 </head>
 <body onload="Init();" >
+<div id="alert">Options loaded from last session.</div>
 <div id="content"></div>
-<button id="btnOptions" class="btn" onClick="ToggleOptions();">Show Options</button>
+<button id="btnOptions" class="btn" onClick="ToggleOptions();">Show Options</button> <span id="filter_msg"></span>
 
 <table class="tbl" id="tblOptions" style="display:none;">
     <tr>
