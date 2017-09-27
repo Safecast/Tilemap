@@ -2784,7 +2784,7 @@ var IngestMarkers = (function()
 
         var units = ["opc_pm01_0", "opc_pm02_5", "opc_pm10_0", "pms_pm01_0", "pms_pm02_5", "pms_pm10_0"];
 
-        this.CreateCombinedChartForMarker(marker, units, ss_per_epoch_timepart, el, width, height, is_inv)
+        //this.CreateCombinedChartForMarker(marker, units, ss_per_epoch_timepart, el, width, height, is_inv)
 
 
         setTimeout(function() {
@@ -2823,10 +2823,10 @@ var IngestMarkers = (function()
     };
     */
 
-    
+    // 2017-09-24 ND: +256 to layer over realtime.safecast.org
     var _GetMarkerZIndexForAttributes = function(lutidx, offline)
     {
-        return (lutidx != null ? lutidx : -5000) + (offline ? -1000 : 0);
+        return (lutidx != null ? lutidx : -5000) + (offline ? -1000 : 0) + 256;
     };
     
     var _GetIconScaleFactorForZ = function(z)

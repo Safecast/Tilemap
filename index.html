@@ -98,42 +98,6 @@ function LoadCSS()
     r.send(null);
 }
 
-/*
-var _ig = null;
-
-function LoadTest()
-{
-    var f,s = ElCr("script");
-    s.async = true;
-    s.type  = "text/javascript";
-    f = function(e) { 
-        s.removeEventListener("load", f); 
-        _ig = new IngestViewer(map);
-    };
-    AList(s, "load", f);
-    s.src = "ingest_viewer.js?" + Date.now();
-    document.head.appendChild(s);
-}
-
-function LoadGcharts()
-{
-    var p = localStorage.getItem("PREF_LANGUAGE") || "";
-    var j = p == "ja" || (p == "" && (new Date()).getTimezoneOffset() == -540);
-    var l = j ? "ja" : p == "" ? "en" : p;
-    var f,s = ElCr("script");
-    s.async = false; // this seemed to break it maybe?
-    s.type  = "text/javascript";
-    f = function(e) { 
-        s.removeEventListener("load", f); 
-        google.charts.load("current", {"packages":["corechart"], "language": l}); // classic=corechart, material=line
-        google.charts.setOnLoadCallback(LoadTest);
-    };
-    AList(s, "load", f);
-    s.src = "https://www.gstatic.com/charts/loader.js";
-    document.head.appendChild(s);
-}
-*/
-
 LoadGmaps();
 LoadSafemap();
 LoadCSS();
@@ -141,7 +105,7 @@ LoadCSS();
 
 <script type="text/javascript">
 var PLATFORM_IS_TEST        = window.location.href.indexOf("test2") > -1;
-var PLATFORM_DISABLE_INGEST = !PLATFORM_IS_TEST;
+var PLATFORM_DISABLE_INGEST = false;
 
 function ShowBrowserWarningWindowIfNeeded()
 {
