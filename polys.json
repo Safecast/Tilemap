@@ -769,6 +769,62 @@
            "more": [ { "k":"en", "v":["{FULL_ARTICLE}", "https://blog.safecast.org/2017/09/bodega-marine-lab-radiation-sensor-is-back-online/"] } ],
           "point": { "x":-123.0708, "y":38.31986 },
            "icon": { "url":"sc-icon-gear_v3_80x80.png", "w":20, "h":20, "zi":-32768 }
+    },
+    { 
+        "poly_id":51,
+       "group_id":0,
+         "author":"Nick Dolezal",
+           "date":"2017-12-09T21:00:00Z",
+           "desc": [ { "k":"en", "v":"Thomas Fire" } ],
+           "info": [ { "k":"en", "v":"December 2017 California Wildfire" } ],
+           "atts": [ { "k":"en", "v":["CA Fire", "http://www.fire.ca.gov/"] } ],
+           "path":"ismpE~ucwU{G~eBsYp_Bzf@~Mj[xYu`@`@nRjkBs`@jkB~U~vA}N~\\_cCt~Bgs@nr@qi@{KgLxh@lC`l@qBxv@mZlTy_@vXx@dPam@vg@{^sHqBvg@}FjS?`]{OmE[m`AgLgQ|NsHeEka@xGkSuPmE_GgQjSqVZoc@iSgBbMuf@|NwXw@mTaNyJ`F}[hDeAtX_]bFoTgT{KbUg~@px@_hA?g{AlCezA~MwXvP}x@iDoaApBio@r_A}gA_eAyY}NtWsvA_MvW}gAmR}[eEdQy_@re@w_@~L[qUiz@qpAqY_NcU~EsImAgPrKkeA_k@tAc^h[a@uAg`@w_@c^w_@yh@oBoc@|]}LaFsVox@oc@{VqGgEse@iDc|@lCiRhDjShDrcAfTzKbMse@kCc|@sIuWed@wIyOuI`F{K\\a]{^c^hDsWZ{h@kKyh@oR_\\ug@fBkb@`OuPePzVal@hDse@zG}j@mZc@_Vja@vWb^e\\bkAdMpU{GdP`NbArAf`@nJxYmZvIqIrVw_@c@fTtW}Nzh@jKhDyG`NdE?tPqd@tHf`@w@zfA|NlE?tf@fLlEyGh`@y@fo@xObOcM`]gTjEd\\naAzG`z@mCjb@hDfQqQqGoRuHwH|LmJkDuAaO_Vre@v@hRhDdPlZaNbcAdP~d@fQbl@xY_VjStAre@jKfQiDlc@eE`]mZ~[aFtu@gT_NsAjb@`FflA`NbvBwHtu@sInr@iSha@nBn`A_|@xcByWvIek@oFeMePtXiRy@kScMen@pBwu@iDmq@kKgQlZ{Z]e_@sXsH{Val@{Va]}e@sVacAzKbUpd@{Vvg@cU_]sIc^eEst@xOglAcMkp@gTuf@`e@iRnYmSiDuX{e@pGqQ|L_Vuf@}Fe_@fL_Nli@cvBkS_iAw@ihCeEekAi[{fAlq@_\\y@}[oJijByGurApBal@x^a{@fc@}x@lRfo@dEa@bMq_BeEimAxOgCmCqd@mRa]jKkb@vWaNq`@al@jCuWvn@a@zVgQtAia@iDoUjKePr`@}x@qByh@d\\uHpQwg@qw@qd@pQe_@jCuWtXkDzdAimAbM_k@|e@`NdMfCfc@hRd\\gChDzZz^iCvWmc@wHi~@cMyJ[~[}VuWtAsVrI{KnBiRsAor@nBkSvPeP]wg@y^cO?qe@pQ_k@r_Agn@xOlS|]{KtPfC~F|LpQvXuH|ZjK~MjSiRxOvX`FmTfLuW`m@tWpYtrAzVre@kS`Ovg@b^lb@xv@d\\vbBlb@`]v@zZ?dPkSzZ\\hRwPzKmRnUuAeQoR`OyOoFoi@lT[jp@pvBkp@bkAnTxWjq@~UbO\\tW`FbPlC`l@`m@fn@mCrWf\\`l@kSlSnJlTqBfQzGd_@oJxYvH`l@f\\~y@xf@vg@lb@yJ~FzKlb@uIlj@gBrIhCpBlTdMjD_Glb@tXnd@dMjp@aNlTjSjDzGxYjSwJlKfCcFjSdMiDrIqF{GzYqQbPzf@xJdEzKw@nc@[jb@xWf`@qBppA`NkSZzKwHzZhDbm@pJbOy@xJ}FnFhD`l@iLxYlKxJwHzi@ZjShLrGmClTwXpUZ|LtIbAzGrV|FzKsAlT]bOtAps@k[oFoJcOmS}Lsp@ePuPg`@cN~M{V_@|Fxh@eE`OaVam@ogB}K?xYy_@mEsA}Lc]jDlZpbAdMb@_GePvPlEpa@}LtPjDnX~ChEpO",
+             "ss": [ { "line":1, "events":1, "sc":"#F00", "sw":2, "so":1, "fc":"#F00", "fo":0.0, "zi":-32767, "min_z":3, "max_z":23 },
+                     { "line":0, "events":0, "sc":"#000", "sw":6, "so":1, "fc":"#000", "fo":0.2, "zi":-32768, "min_z":3, "max_z":23 },
+                     { "line":1, "events":1, "sc":"#F00", "sw":1, "so":1, "fc":"#F00", "fo":0.0, "zi":-32767, "min_z":3, "max_z":8  },
+                     { "line":1, "events":0, "sc":"#000", "sw":3, "so":1, "fc":"#000", "fo":0.0, "zi":-32768, "min_z":3, "max_z":8  } ]
+    },
+    { 
+        "poly_id":52,
+       "group_id":0,
+         "author":"Nick Dolezal",
+           "date":"2017-12-09T21:00:00Z",
+           "desc": [ { "k":"en", "v":"Rye Fire" } ],
+           "info": [ { "k":"en", "v":"December 2017 California Wildfire" } ],
+           "atts": [ { "k":"en", "v":["CA Fire", "http://www.fire.ca.gov/"] } ],
+           "path":"ov_qElkhsUqx@_~AkKs}BqgAytAed@glAmpAnr@{sAvIgTchBpByv@tPoc@zsAia@bt@mE~UzZz^hCdTppAxWvX`t@mE`VsGfT|Zhr@rt@tPj_AdMzKpBre@qBha@`Fha@jKb{@sI~tBgDf}@~UlTiDxv@aNaNyKnMkOsOuXwIsEyo@oRen@y@eW",
+             "ss": [ { "line":1, "events":1, "sc":"#F00", "sw":2, "so":1, "fc":"#F00", "fo":0.0, "zi":-32767, "min_z":3, "max_z":23 },
+                     { "line":0, "events":0, "sc":"#000", "sw":6, "so":1, "fc":"#000", "fo":0.2, "zi":-32768, "min_z":3, "max_z":23 },
+                     { "line":1, "events":1, "sc":"#F00", "sw":1, "so":1, "fc":"#F00", "fo":0.0, "zi":-32767, "min_z":3, "max_z":8  },
+                     { "line":1, "events":0, "sc":"#000", "sw":3, "so":1, "fc":"#000", "fo":0.0, "zi":-32768, "min_z":3, "max_z":8  } ]
+    },
+    { 
+        "poly_id":53,
+       "group_id":0,
+         "author":"Nick Dolezal",
+           "date":"2017-12-09T21:00:00Z",
+           "desc": [ { "k":"en", "v":"Skirball Fire" } ],
+           "info": [ { "k":"en", "v":"December 2017 California Wildfire" } ],
+           "atts": [ { "k":"en", "v":["CA Fire", "http://www.fire.ca.gov/"] } ],
+           "path":"yiboE`wbrUgMpNaVwBy\\zDea@mEiLuPaBaOJoTbJcWpV|DhLvJzSoFdI|DbJeIzGvBpn@vBdMfQcFvJwDzRwLxCqN@",
+             "ss": [ { "line":1, "events":1, "sc":"#F00", "sw":2, "so":1, "fc":"#F00", "fo":0.0, "zi":-32767, "min_z":3, "max_z":23 },
+                     { "line":0, "events":0, "sc":"#000", "sw":6, "so":1, "fc":"#000", "fo":0.2, "zi":-32768, "min_z":3, "max_z":23 },
+                     { "line":1, "events":1, "sc":"#F00", "sw":1, "so":1, "fc":"#F00", "fo":0.0, "zi":-32767, "min_z":3, "max_z":8  },
+                     { "line":1, "events":0, "sc":"#000", "sw":3, "so":1, "fc":"#000", "fo":0.0, "zi":-32768, "min_z":3, "max_z":8  } ]
+    },
+    { 
+        "poly_id":54,
+       "group_id":0,
+         "author":"Nick Dolezal",
+           "date":"2017-12-09T21:00:00Z",
+           "desc": [ { "k":"en", "v":"Creek Fire" } ],
+           "info": [ { "k":"en", "v":"December 2017 California Wildfire" } ],
+           "atts": [ { "k":"en", "v":["CA Fire", "http://www.fire.ca.gov/"] } ],
+           "path":"kzipEhpuqUmGjKom@n\\wjAuu@ce@aNwPzh@gT`OkSoUyWwX~Fe_@zGa@xOwXkKwXsYuHmCia@zKseCpB_k@cFaGvDyCoBoM]ePjDeQdAqNrEiJfEdAtD?pB}L}FsOwHcO`JkSdE`@nNe_@dIuf@dM_UrEsjAsAgJhDmEdAeP~FmEh@a]L_GtEwI`FxCpBPvDiC?`Gw@jL`FjDdMa@hDeB`FzDzKs@`NjDlCiCrEb@pJvJjOlEvDbHvDdIvHrOvHtWzSd_@zZP|RqN`R?j_@eIlKrV?`^`i@`Nfh@tdAeAbOmCdI`BpG?hJvHp@~FeBrE~TiHbcA{CrH~N~[zCpNhH|LmGnU{KgCoBcH_KtPhk@vg@~N`Vlj@hRzGvPqJNoJ{KsUxCwHzKoF`NuIiCc]`qAwHgCtXccAcMeAyHwQqBqG}BuHuA_NoJ}b@]w_@aFum@vDsOsIoFpFs@rEjDdAxCtAsOcF{KgPgJeIgg@wDse@wLvXdEvBqBfXwD`@uAvQjDdA?bPmKa@qB|LMhReI|ZcBl[}J`OmCjZsIdkA_Knr@pBdXmKzKpBv_@kSjSaRuHeMyCwH`@",
+             "ss": [ { "line":1, "events":1, "sc":"#F00", "sw":2, "so":1, "fc":"#F00", "fo":0.0, "zi":-32767, "min_z":3, "max_z":23 },
+                     { "line":0, "events":0, "sc":"#000", "sw":6, "so":1, "fc":"#000", "fo":0.2, "zi":-32768, "min_z":3, "max_z":23 },
+                     { "line":1, "events":1, "sc":"#F00", "sw":1, "so":1, "fc":"#F00", "fo":0.0, "zi":-32767, "min_z":3, "max_z":8  },
+                     { "line":1, "events":0, "sc":"#000", "sw":3, "so":1, "fc":"#000", "fo":0.0, "zi":-32768, "min_z":3, "max_z":8  } ]
     }
 ]
 }
