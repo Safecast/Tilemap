@@ -6163,7 +6163,7 @@ var UserLoc = (function()
 
     UserLoc.CanUseLoc = function()
     {
-        return navigator.geolocation && (_use_https || ("MozAppearance" in document.documentElement.style));
+        return navigator.geolocation && _use_https;
     };
 
     var _LatToY_z21 = function(lat)
