@@ -1104,8 +1104,8 @@ var IngestMarkers = (function()
         this.tmp_lut  = new IngestLUT(-10.00,  60.000, 34, IngestLUT.ScaleType.LIN);
         this.rhp_lut  = new IngestLUT(  0.00, 200.000, 13, IngestLUT.ScaleType.LIN);
 
-        this.mapref  = mapRef;
-        this.inforef = null;
+        this.mapref   = mapRef;
+        this.inforef  = null;
         
         this.zoomlistener = null;
         this.draglistener = null;
@@ -1559,7 +1559,7 @@ var IngestMarkers = (function()
         {
             for (var j=0; j<data_node[i].time_series.length; j++)
             {
-                if (    data_node[i].time_series[j].ss_per_epoch_timepart == 3600
+                if (     data_node[i].time_series[j].ss_per_epoch_timepart == 3600
                     &&  (data_node[i].time_series[j].values[data_node[i].time_series[j].values.length - 1] != null
                      ||  data_node[i].time_series[j].values[data_node[i].time_series[j].values.length - 2] != null))
                     //&& (!data_node[i].time_series[j].is_offline
@@ -2015,14 +2015,14 @@ var IngestMarkers = (function()
         for (var i=0; i<units.length; i++)
         {
             var unit = units[i];
+            var uc   = _GetUiDisplayUnitAndCategoryIdForUnit(this.json[idx].data, unit);
 
-            var uc = _GetUiDisplayUnitAndCategoryIdForUnit(this.json[idx].data, unit);
             data.addColumn("number", uc.unit);
 
-            var ts  = _GetTimeSeriesNodeForUnit(this.json[idx].data, unit, ss_per_epoch_timepart);
+            var ts   = _GetTimeSeriesNodeForUnit(this.json[idx].data, unit, ss_per_epoch_timepart);
             var _min = _GetMinValueForUnitHourlyDaily(this.json[idx].data, unit);
             var _max = _GetMaxValueForUnitHourlyDaily(this.json[idx].data, unit);
-            var vs  = ts.values;
+            var vs   = ts.values;
 
             if (i == 0)
             {
@@ -2038,8 +2038,7 @@ var IngestMarkers = (function()
         for (var i=0; i<units_vs[0].length; i++)
         {
             var row = new Array(units_vs.length + 1);
-
-            var d  = 0 - (units_vs[0].length - 1 - i);
+            var d   = 0 - (units_vs[0].length - 1 - i);
 
             row.push(d);
 
@@ -2255,8 +2254,14 @@ var IngestMarkers = (function()
 
         if (is_rescale)
         {
-            options.vAxis.baselineColor = "#F00";
-            options.vAxis.baseline      = props.def_max || props.pad_max || props.thr_max;
+            options.vAxis.baselineColor  = "#F00";
+            options.vAxis.baseline       = props.def_max || props.pad_max || props.thr_max;
+
+            if (   (props.def_max != null && max > props.def_max)
+                || (props.thr_max != null && max > props.thr_max))
+            {
+                options.vAxis.viewWindow.min = Math.min(props.pad_min || props.def_min, props.def_min - 0.1 * max);
+            }//if
         }//if
 
         if (is_anomaly_err)
@@ -2503,39 +2508,45 @@ var IngestMarkers = (function()
                              { unit_type:4, icon_w:20, icon_h:20, icon_rstyle:IngestIcon.RenderStyle.Chevron        },
                              { unit_type:5, icon_w:20, icon_h:20, icon_rstyle:IngestIcon.RenderStyle.Chevron        } ];
 
-    var _unit_chart_props = [//{ unit:"lnd_7318",   unit_type:1, unit_group:1, sort: 7, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
-                             { unit:"lnd_7318u",  unit_type:1, unit_group:1, sort: 8, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
-                             { unit:"lnd_7318c",  unit_type:1, unit_group:1, sort: 9, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
-                             //{ unit:"lnd_7128",   unit_type:1, unit_group:1, sort:10, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
-                             { unit:"lnd_7128ec", unit_type:1, unit_group:1, sort:11, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
-                             //{ unit:"lnd_712",    unit_type:1, unit_group:1, sort:12, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
-                             { unit:"lnd_712u",   unit_type:1, unit_group:1, sort:13, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
-                             //{ unit:"lnd_712c",   unit_type:1, unit_group:1, sort:14, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
-                             //{ unit:"lnd_78017",  unit_type:1, unit_group:1, sort:15, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
-                             //{ unit:"lnd_78017u", unit_type:1, unit_group:1, sort:16, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
-                             //{ unit:"lnd_78017c", unit_type:1, unit_group:1, sort:17, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
-                             { unit:"lnd_78017w", unit_type:1, unit_group:1, sort:18, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
-                             { unit:"opc_pm01_0", unit_type:2, unit_group:2, sort: 1, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
-                             { unit:"opc_pm02_5", unit_type:2, unit_group:2, sort: 2, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
-                             { unit:"opc_pm10_0", unit_type:2, unit_group:2, sort: 3, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
-                             { unit:"pms_pm01_0", unit_type:2, unit_group:3, sort: 4, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
-                             { unit:"pms_pm02_5", unit_type:2, unit_group:3, sort: 5, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
-                             { unit:"pms_pm10_0", unit_type:2, unit_group:3, sort: 6, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
-                             { unit:"env_temp",   unit_type:3, unit_group:4, sort:19, def_min:-20.00, def_max:100.00, pad_min:-25.00, pad_max:105.00, thr_min:null, thr_max:  null },
-                             { unit:"env_humid",  unit_type:4, unit_group:4, sort:20, def_min:  0.00, def_max:100.00, pad_min: -5.00, pad_max:105.00, thr_min:null, thr_max:  null },
-                             { unit:"env_press",  unit_type:5, unit_group:4, sort:21, def_min:  null, def_max:  null, pad_min:  null, pad_max:  null, thr_min:null, thr_max:  null }];
+    var _unit_chart_props = [//{ unit:"lnd_7318",    unit_type:1, unit_group:1, sort:10, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
+                             { unit:"lnd_7318u",   unit_type:1, unit_group:1, sort:11, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
+                             { unit:"lnd_7318c",   unit_type:1, unit_group:1, sort:12, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
+                             //{ unit:"lnd_7128",    unit_type:1, unit_group:1, sort:13, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
+                             { unit:"lnd_7128ec",  unit_type:1, unit_group:1, sort:14, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
+                             //{ unit:"lnd_712",     unit_type:1, unit_group:1, sort:15, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
+                             { unit:"lnd_712u",    unit_type:1, unit_group:1, sort:16, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
+                             //{ unit:"lnd_712c",    unit_type:1, unit_group:1, sort:17, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
+                             //{ unit:"lnd_78017",   unit_type:1, unit_group:1, sort:18, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
+                             //{ unit:"lnd_78017u",  unit_type:1, unit_group:1, sort:19, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
+                             //{ unit:"lnd_78017c",  unit_type:1, unit_group:1, sort:20, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
+                             { unit:"lnd_78017w",  unit_type:1, unit_group:1, sort:21, def_min:  0.03, def_max:  1.00, pad_min: -0.05, pad_max:  1.05, thr_min:null, thr_max: 10.00 },
+                             { unit:"opc_pm01_0",  unit_type:2, unit_group:2, sort: 1, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
+                             { unit:"opc_pm02_5",  unit_type:2, unit_group:2, sort: 2, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
+                             { unit:"opc_pm10_0",  unit_type:2, unit_group:2, sort: 3, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
+                             { unit:"pms_pm01_0",  unit_type:2, unit_group:3, sort: 4, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
+                             { unit:"pms_pm02_5",  unit_type:2, unit_group:3, sort: 5, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
+                             { unit:"pms_pm10_0",  unit_type:2, unit_group:3, sort: 6, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
+                             { unit:"pms2_pm01_0", unit_type:2, unit_group:4, sort: 7, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
+                             { unit:"pms2_pm02_5", unit_type:2, unit_group:4, sort: 8, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
+                             { unit:"pms2_pm10_0", unit_type:2, unit_group:4, sort: 9, def_min:  0.00, def_max: 80.00, pad_min: -5.00, pad_max: 85.00, thr_min:null, thr_max:300.00 },
+                             { unit:"env_temp",    unit_type:3, unit_group:5, sort:22, def_min:-20.00, def_max:100.00, pad_min:-25.00, pad_max:105.00, thr_min:null, thr_max:  null },
+                             { unit:"env_humid",   unit_type:4, unit_group:5, sort:23, def_min:  0.00, def_max:100.00, pad_min: -5.00, pad_max:105.00, thr_min:null, thr_max:  null },
+                             { unit:"env_press",   unit_type:5, unit_group:5, sort:24, def_min:  null, def_max:  null, pad_min:  null, pad_max:  null, thr_min:null, thr_max:  null }];
 
-    var _unit_substitutes = [{ unit:"opc_pm01_0", subs:["pms_pm01_0", "opc_pm02_5", "pms_pm02_5", "opc_pm10_0", "pms_pm10_0"] },
-                             { unit:"opc_pm02_5", subs:["pms_pm02_5", "opc_pm01_0", "pms_pm01_0", "opc_pm10_0", "pms_pm10_0"] },
-                             { unit:"opc_pm10_0", subs:["pms_pm10_0", "opc_pm02_5", "pms_pm02_5", "opc_pm01_0", "pms_pm01_0"] },
-                             { unit:"pms_pm02_5", subs:["opc_pm02_5", "pms_pm01_0", "opc_pm01_0", "pms_pm10_0", "opc_pm10_0"] },
-                             { unit:"pms_pm01_0", subs:["opc_pm01_0", "pms_pm02_5", "opc_pm02_5", "pms_pm10_0", "opc_pm10_0"] },
-                             { unit:"pms_pm10_0", subs:["opc_pm10_0", "pms_pm02_5", "opc_pm02_5", "pms_pm01_0", "opc_pm01_0"] },
-                             { unit:"lnd_7318u",  subs:["lnd_712u",   "lnd_7318c",  "lnd_7128ec", "lnd_78017w"] },
-                             { unit:"lnd_712u",   subs:["lnd_7318u",  "lnd_7318c",  "lnd_7128ec", "lnd_78017w"] },
-                             { unit:"lnd_7318c",  subs:["lnd_7128ec", "lnd_7318u",  "lnd_712u",   "lnd_78017w"] },
-                             { unit:"lnd_7128ec", subs:["lnd_7318c",  "lnd_7318u",  "lnd_712u",   "lnd_78017w"] },
-                             { unit:"lnd_78017w", subs:["lnd_7128ec", "lnd_7318c",  "lnd_712u",   "lnd_7318u" ] }];
+    var _unit_substitutes = [{ unit:"opc_pm01_0",  subs:["pms_pm01_0",  "pms2_pm01_0", "opc_pm02_5",  "pms_pm02_5",  "pms2_pm02_5", "opc_pm10_0",  "pms_pm10_0",  "pms2_pm10_0"] },
+                             { unit:"opc_pm02_5",  subs:["pms_pm02_5",  "pms2_pm02_5", "opc_pm01_0",  "pms_pm01_0",  "pms2_pm01_0", "opc_pm10_0",  "pms_pm10_0",  "pms2_pm10_0"] },
+                             { unit:"opc_pm10_0",  subs:["pms_pm10_0",  "pms2_pm10_0", "opc_pm02_5",  "pms_pm02_5",  "pms2_pm02_5", "opc_pm01_0",  "pms_pm01_0",  "pms2_pm01_0"] },
+                             { unit:"pms_pm02_5",  subs:["pms2_pm02_5", "opc_pm02_5",  "pms_pm01_0",  "pms2_pm01_0", "opc_pm01_0",  "pms_pm10_0",  "pms2_pm10_0", "opc_pm10_0" ] },
+                             { unit:"pms_pm01_0",  subs:["pms2_pm01_0", "opc_pm01_0",  "pms_pm02_5",  "pms2_pm02_5", "opc_pm02_5",  "pms_pm10_0",  "pms2_pm10_0", "opc_pm10_0" ] },
+                             { unit:"pms_pm10_0",  subs:["pms2_pm10_0", "opc_pm10_0",  "pms_pm02_5",  "pms2_pm02_5", "opc_pm02_5",  "pms_pm01_0",  "pms2_pm01_0", "opc_pm01_0" ] },
+                             { unit:"pms2_pm02_5", subs:["pms_pm02_5",  "opc_pm02_5",  "pms2_pm01_0", "pms_pm01_0",  "opc_pm01_0",  "pms2_pm10_0", "pms_pm10_0",  "opc_pm10_0" ] },
+                             { unit:"pms2_pm01_0", subs:["pms_pm01_0",  "opc_pm01_0",  "pms2_pm02_5", "pms_pm02_5",  "opc_pm02_5",  "pms2_pm10_0", "pms_pm10_0",  "opc_pm10_0" ] },
+                             { unit:"pms2_pm10_0", subs:["pms_pm10_0",  "opc_pm10_0",  "pms2_pm02_5", "pms_pm02_5",  "opc_pm02_5",  "pms2_pm01_0", "pms_pm01_0",  "opc_pm01_0" ] },
+                             { unit:"lnd_7318u",   subs:["lnd_712u",    "lnd_7318c",   "lnd_7128ec",  "lnd_78017w"] },
+                             { unit:"lnd_712u",    subs:["lnd_7318u",   "lnd_7318c",   "lnd_7128ec",  "lnd_78017w"] },
+                             { unit:"lnd_7318c",   subs:["lnd_7128ec",  "lnd_7318u",   "lnd_712u",    "lnd_78017w"] },
+                             { unit:"lnd_7128ec",  subs:["lnd_7318c",   "lnd_7318u",   "lnd_712u",    "lnd_78017w"] },
+                             { unit:"lnd_78017w",  subs:["lnd_7128ec",  "lnd_7318c",   "lnd_712u",    "lnd_7318u" ] }];
 
     var _GetSubUnitsForUnit = function(unit)
     {

@@ -1101,10 +1101,10 @@ function IsGpsErr(dev_node)
     var yx = GetLatLon(dev_node);
     var d  = false;
 
-    if (    yx.x != null   && yx.y !=  null
+    if (    yx.x !=   null && yx.y !=  null
         &&  yx.y >=  -90.0 && yx.y <=  90.0
         &&  yx.x >= -180.0 && yx.x <= 180.0
-        && (yx.y < -1.0 || yx.y > 1.0 || yx.x < -1.0 || yx.x > 1.0))
+        && (yx.y <    -1.0 || yx.y >    1.0 || yx.x < -1.0 || yx.x > 1.0))
     {
         d = true;
     }//if
@@ -2068,20 +2068,23 @@ function GetPlaceNameForLatLon(lat, lon)
               { y1:45.90,  x0:   6.86, y0: 41.14, x1:  13.57, st:"it",       fs:"it", detail_for_flag:null,    name:"Italy"                          },
               { y1:47.55,  x0:   6.11, y0: 45.85, x1:  10.33, st:"ch",       fs:"ch", detail_for_flag:null,    name:"Switzerland"                    },
               { y1:54.90,  x0:   5.20, y0: 47.70, x1:  13.80, st:"de",       fs:"de", detail_for_flag:null,    name:"Germany"                        },
-              { y1:22.54,  x0: 113.78, y0: 21.83, x1: 114.64, st:"hk",       fs:"hk", detail_for_flag:null,    name:"Hong Kong SAR, China"           },
+              { y1:22.54,  x0: 113.78, y0: 21.83, x1: 114.64, st:"hk",       fs:"hk", detail_for_flag:null,    name:"Hong Kong, China"               },
               { y1:26.00,  x0: 120.00, y0:  1.80, x1: 122.10, st:"tw",       fs:"tw", detail_for_flag:null,    name:"Taiwan"                         },
+              { y1:38.65,  x0: 124.80, y0: 33.16, x1: 129.16, st:"kr",       fs:"kr", detail_for_flag:null,    name:"South Korea"                    },
               { y1:36.04,  x0: 139.25, y0: 35.30, x1: 140.33, st:"jp.to",    fs:"jp", detail_for_flag:"東京",   name:"Tokyo Prefecture, Japan"        },
               { y1:38.20,  x0: 138.77, y0: 36.71, x1: 141.20, st:"jp.fu",    fs:"jp", detail_for_flag:"福島",   name:"Fukushima Prefecture, Japan"    },
               { y1:34.91,  x0: 135.31, y0: 33.49, x1: 136.89, st:"jp.na",    fs:"jp", detail_for_flag:"奈良",   name:"Nara Prefecture, Japan"         },
-              { y1:33.03,  x0: 130.42, y0: 32.14, x1: 130.99, st:"jp.ku",    fs:"jp", detail_for_flag:"熊本",   name:"Kumamoto Prefecture, Japan"     },
-              { y1:32.09,  x0: 130.02, y0: 31.04, x1: 131.13, st:"jp.ka",    fs:"jp", detail_for_flag:"鹿児島", name:"Kagoshima Prefecture, Japan"    },
+              { y1:33.03,  x0: 129.96, y0: 32.09, x1: 131.32, st:"jp.ku",    fs:"jp", detail_for_flag:"熊本",   name:"Kumamoto Prefecture, Japan"     },
+              { y1:32.09,  x0: 129.54, y0: 27.21, x1: 131.22, st:"jp.ka",    fs:"jp", detail_for_flag:"鹿児島", name:"Kagoshima Prefecture, Japan"    },
               { y1:36.92,  x0: 140.20, y0: 35.93, x1: 140.73, st:"jp.ib",    fs:"jp", detail_for_flag:"茨城",   name:"Ibaraki Prefecture, Japan"      },
               { y1:35.81,  x0: 134.84, y0: 34.71, x1: 136.04, st:"jp.ky",    fs:"jp", detail_for_flag:"京都",   name:"Kyoto Prefecture, Japan"        },
               { y1:35.44,  x0: 135.84, y0: 35.02, x1: 136.40, st:"jp.sh",    fs:"jp", detail_for_flag:"滋賀",   name:"Shiga Prefecture, Japan"        },
               { y1:45.80,  x0: 124.80, y0: 23.20, x1: 153.00, st:"jp",       fs:"jp", detail_for_flag:null,    name:"Japan"                          },
               { y1:53.50,  x0:   3.17, y0: 51.38, x1:   6.53, st:"nl",       fs:"nl", detail_for_flag:null,    name:"Netherlands"                    },
+              { y1:32.20,  x0:  25.00, y0: 22.00, x1:  33.90, st:"eg",       fs:"eg", detail_for_flag:null,    name:"Egypt"                          },
               { y1:90.00,  x0:-180.00, y0:-90.00, x1: 180.00, st:"zz",       fs:"xx", detail_for_flag:null,    name:"(No Extent Match) Earth"        } ];
-              
+
+
     var d = null;
 
     for (var i=0; i<p.length; i++)
@@ -2093,6 +2096,8 @@ function GetPlaceNameForLatLon(lat, lon)
             break;
         }//if
     }//for
+
+    if (d != null && d.fs == "jp") console.log(lat, lon, d);
 
     return d;
 }//GetPlaceNameForLatLon
@@ -2193,15 +2198,16 @@ function GetDeviceAges()
 }//GetDeviceAges
 
 
-var _group_info = [  { group:0, emoji:"🔋", title:"Bat",   sort_ordinal:6 }
-                    ,{ group:1, emoji:"🌡", title:"Env",   sort_ordinal:7 }
-                    ,{ group:2, emoji:"🔬", title:"Enc",   sort_ordinal:8 }
-                    ,{ group:3, emoji:"🌫", title:"OPC",   sort_ordinal:1 }
-                    ,{ group:4, emoji:"🌫", title:"PMS",   sort_ordinal:2 }
-                    ,{ group:5, emoji:"☢", title:"LNDu",  sort_ordinal:3 }
-                    ,{ group:6, emoji:"☢", title:"LNDc",  sort_ordinal:4 }
-                    ,{ group:7, emoji:"☢", title:"LNDec", sort_ordinal:5 }
-                    ,{ group:8, emoji:"🌎", title:"Loc",   sort_ordinal:9 } ];
+var _group_info = [  { group:0, emoji:"🔋", title:"Bat",    sort_ordinal:7 }
+                    ,{ group:1, emoji:"🌡", title:"Env",    sort_ordinal:8 }
+                    ,{ group:2, emoji:"🔬", title:"Enc",    sort_ordinal:9 }
+                    ,{ group:3, emoji:"🌫", title:"OPC",    sort_ordinal:1 }
+                    ,{ group:4, emoji:"🌫", title:"PMS",    sort_ordinal:2 }
+                    ,{ group:5, emoji:"🌫", title:"PMS2",   sort_ordinal:3 }
+                    ,{ group:6, emoji:"☢", title:"LNDu",   sort_ordinal:4 }
+                    ,{ group:7, emoji:"☢", title:"LNDc",   sort_ordinal:5 }
+                    ,{ group:8, emoji:"☢", title:"LNDec",  sort_ordinal:6 }
+                    ,{ group:9, emoji:"🌎", title:"Loc",   sort_ordinal:10 } ];
 
 
 
@@ -2253,35 +2259,38 @@ var _unit_info = [   { u:"bat_charge",  si:"%",     st:"🔋 {x}%",   group:0, s
 */
 
 
-var _unit_info = [   { u:"bat_charge",  si:"%",     min_ic:"battery",           min_suffix:"%",   group:0, sort_ordinal:1, decs:0 }
-                    ,{ u:"bat_current", si:"mA",    min_ic:"battery",           min_suffix:"㎃",   group:0, sort_ordinal:2, decs:1 }
-                    ,{ u:"bat_voltage", si:"V",     min_ic:"battery",           min_suffix:"V",   group:0, sort_ordinal:3, decs:1 }
-                    ,{ u:"env_humid",   si:"RH%",   min_ic:"thermometer",       min_suffix:"%",   group:1, sort_ordinal:1, decs:0 }
-                    ,{ u:"env_press",   si:"hPa",   min_ic:"thermometer",       min_suffix:"㎪",   group:1, sort_ordinal:2, decs:0 } // ㎪ ㍱
-                    ,{ u:"env_temp",    si:"°C",    min_ic:"thermometer",       min_suffix:"°",   group:1, sort_ordinal:3, decs:1 } // ℃
-                    ,{ u:"dev_humid",   si:"RH%",   min_ic:"thermometer_blue",  min_suffix:"%",   group:2, sort_ordinal:1, decs:0 }
-                    ,{ u:"dev_press",   si:"hPa",   min_ic:"thermometer_blue",  min_suffix:"㎪",   group:2, sort_ordinal:2, decs:0 }
-                    ,{ u:"dev_temp",    si:"°C",    min_ic:"thermometer_blue",  min_suffix:"°",   group:2, sort_ordinal:3, decs:1 }    //℃
-                    ,{ u:"opc_pm01_0",  si:"μg/m³", min_ic:"one",                                 group:3, sort_ordinal:1, decs:1 }
-                    ,{ u:"opc_pm02_5",  si:"μg/m³", min_ic:"two",                                 group:3, sort_ordinal:2, decs:1 }
-                    ,{ u:"opc_pm10_0",  si:"μg/m³", min_ic:"keycap_ten",                          group:3, sort_ordinal:3, decs:1 }
-                    ,{ u:"pms_pm01_0",  si:"μg/m³", min_ic:"one",                                 group:4, sort_ordinal:1, decs:1 }
-                    ,{ u:"pms_pm02_5",  si:"μg/m³", min_ic:"two",                                 group:4, sort_ordinal:2, decs:1 }
-                    ,{ u:"pms_pm10_0",  si:"μg/m³", min_ic:"keycap_ten",                          group:4, sort_ordinal:3, decs:1 }
-                  //,{ u:"lnd_712",     si:"μSv/h", min_ic:"radioactive_sign",                    group:5, sort_ordinal:1, decs:2 }
-                    ,{ u:"lnd_712u",    si:"μSv/h", min_ic:"radioactive_sign",                    group:5, sort_ordinal:2, decs:2 }
-                  //,{ u:"lnd_7318",    si:"μSv/h", min_ic:"radioactive_sign",                    group:5, sort_ordinal:3, decs:2 }
-                    ,{ u:"lnd_7318u",   si:"μSv/h", min_ic:"radioactive_sign",                    group:5, sort_ordinal:4, decs:2 }
-                  //,{ u:"lnd_78017",   si:"μSv/h", min_ic:"radioactive_sign",                    group:5, sort_ordinal:5, decs:2 }
-                  //,{ u:"lnd_78017u",  si:"μSv/h", min_ic:"radioactive_sign",                    group:5, sort_ordinal:6, decs:2 }
-                  //,{ u:"lnd_712c",    si:"μSv/h", min_ic:"radioactive_sign",                    group:6, sort_ordinal:1, decs:2 }
-                    ,{ u:"lnd_7318c",   si:"μSv/h", min_ic:"radioactive_sign",                    group:6, sort_ordinal:2, decs:2 }
-                  //,{ u:"lnd_78017c",  si:"μSv/h", min_ic:"radioactive_sign",                    group:6, sort_ordinal:3, decs:2 }
-                    ,{ u:"lnd_78017w",  si:"μSv/h", min_ic:"radioactive_sign",                    group:6, sort_ordinal:4, decs:2 }
-                  //,{ u:"lnd_7128",    si:"μSv/h", min_ic:"radioactive_sign",                    group:7, sort_ordinal:1, decs:2 } 
-                    ,{ u:"lnd_7128ec",  si:"μSv/h", min_ic:"radioactive_sign",                    group:7, sort_ordinal:2, decs:2 } 
-                    ,{ u:"loc_lat",     si:"°",     min_ic:"earth_asia",        min_suffix:"y",   group:8, sort_ordinal:1, decs:2 } 
-                    ,{ u:"loc_lon",     si:"°",     min_ic:"earth_asia",        min_suffix:"x",   group:8, sort_ordinal:2, decs:2 } ];
+var _unit_info = [   { u:"bat_charge",   si:"%",     min_ic:"battery",           min_suffix:"%",   group:0, sort_ordinal:1, decs:0 }
+                    ,{ u:"bat_current",  si:"mA",    min_ic:"battery",           min_suffix:"㎃",   group:0, sort_ordinal:2, decs:1 }
+                    ,{ u:"bat_voltage",  si:"V",     min_ic:"battery",           min_suffix:"V",   group:0, sort_ordinal:3, decs:1 }
+                    ,{ u:"env_humid",    si:"RH%",   min_ic:"thermometer",       min_suffix:"%",   group:1, sort_ordinal:1, decs:0 }
+                    ,{ u:"env_press",    si:"hPa",   min_ic:"thermometer",       min_suffix:"㎪",   group:1, sort_ordinal:2, decs:0 } // ㎪ ㍱
+                    ,{ u:"env_temp",     si:"°C",    min_ic:"thermometer",       min_suffix:"°",   group:1, sort_ordinal:3, decs:1 } // ℃
+                    ,{ u:"dev_humid",    si:"RH%",   min_ic:"thermometer_blue",  min_suffix:"%",   group:2, sort_ordinal:1, decs:0 }
+                    ,{ u:"dev_press",    si:"hPa",   min_ic:"thermometer_blue",  min_suffix:"㎪",   group:2, sort_ordinal:2, decs:0 }
+                    ,{ u:"dev_temp",     si:"°C",    min_ic:"thermometer_blue",  min_suffix:"°",   group:2, sort_ordinal:3, decs:1 }    //℃
+                    ,{ u:"opc_pm01_0",   si:"μg/m³", min_ic:"one",                                 group:3, sort_ordinal:1, decs:1 }
+                    ,{ u:"opc_pm02_5",   si:"μg/m³", min_ic:"two",                                 group:3, sort_ordinal:2, decs:1 }
+                    ,{ u:"opc_pm10_0",   si:"μg/m³", min_ic:"keycap_ten",                          group:3, sort_ordinal:3, decs:1 }
+                    ,{ u:"pms_pm01_0",   si:"μg/m³", min_ic:"one",                                 group:4, sort_ordinal:1, decs:1 }
+                    ,{ u:"pms_pm02_5",   si:"μg/m³", min_ic:"two",                                 group:4, sort_ordinal:2, decs:1 }
+                    ,{ u:"pms_pm10_0",   si:"μg/m³", min_ic:"keycap_ten",                          group:4, sort_ordinal:3, decs:1 }
+                    ,{ u:"pms2_pm01_0",  si:"μg/m³", min_ic:"one",                                 group:5, sort_ordinal:1, decs:1 }
+                    ,{ u:"pms2_pm02_5",  si:"μg/m³", min_ic:"two",                                 group:5, sort_ordinal:2, decs:1 }
+                    ,{ u:"pms2_pm10_0",  si:"μg/m³", min_ic:"keycap_ten",                          group:5, sort_ordinal:3, decs:1 }
+                  //,{ u:"lnd_712",      si:"μSv/h", min_ic:"radioactive_sign",                    group:6, sort_ordinal:1, decs:2 }
+                    ,{ u:"lnd_712u",     si:"μSv/h", min_ic:"radioactive_sign",                    group:6, sort_ordinal:2, decs:2 }
+                  //,{ u:"lnd_7318",     si:"μSv/h", min_ic:"radioactive_sign",                    group:6, sort_ordinal:3, decs:2 }
+                    ,{ u:"lnd_7318u",    si:"μSv/h", min_ic:"radioactive_sign",                    group:6, sort_ordinal:4, decs:2 }
+                  //,{ u:"lnd_78017",    si:"μSv/h", min_ic:"radioactive_sign",                    group:6, sort_ordinal:5, decs:2 }
+                  //,{ u:"lnd_78017u",   si:"μSv/h", min_ic:"radioactive_sign",                    group:6, sort_ordinal:6, decs:2 }
+                  //,{ u:"lnd_712c",     si:"μSv/h", min_ic:"radioactive_sign",                    group:7, sort_ordinal:1, decs:2 }
+                    ,{ u:"lnd_7318c",    si:"μSv/h", min_ic:"radioactive_sign",                    group:7, sort_ordinal:2, decs:2 }
+                  //,{ u:"lnd_78017c",   si:"μSv/h", min_ic:"radioactive_sign",                    group:7, sort_ordinal:3, decs:2 }
+                    ,{ u:"lnd_78017w",   si:"μSv/h", min_ic:"radioactive_sign",                    group:7, sort_ordinal:4, decs:2 }
+                  //,{ u:"lnd_7128",     si:"μSv/h", min_ic:"radioactive_sign",                    group:8, sort_ordinal:1, decs:2 } 
+                    ,{ u:"lnd_7128ec",   si:"μSv/h", min_ic:"radioactive_sign",                    group:8, sort_ordinal:2, decs:2 } 
+                    ,{ u:"loc_lat",      si:"°",     min_ic:"earth_asia",        min_suffix:"y",   group:9, sort_ordinal:1, decs:2 } 
+                    ,{ u:"loc_lon",      si:"°",     min_ic:"earth_asia",        min_suffix:"x",   group:9, sort_ordinal:2, decs:2 } ];
 
 
     var _SortJsonByLoc = function(src)
@@ -2665,8 +2674,8 @@ function IsAnySavedPrefs()
     {
         for (var i=0; i<_unit_info.length; i++)
         {
-            var v = GetPref_Boolean("card_show_tbl_" + _unit_info[i].u, true);
-            d = !IsOptionsKeyValueDefault("card_show_tbl_" + _unit_info[i].u, v);
+            var v =           GetPref_Boolean("card_show_tbl_" + _unit_info[i].u, true);
+            d     = !IsOptionsKeyValueDefault("card_show_tbl_" + _unit_info[i].u, v);
             if (d) break;
         }//for
     }//if
@@ -2691,7 +2700,7 @@ function GetOptionsFromQueryString()
     for (var i=0; i<_unit_info.length; i++)
     {
         var key = "card_show_tbl_" + _unit_info[i].u;
-        var p = _QueryString_GetParamAsInt(key);
+        var p   = _QueryString_GetParamAsInt(key);
         if (p > -1) SetPref_Boolean(key, p == 1);
     }//for
 

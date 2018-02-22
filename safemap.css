@@ -1002,6 +1002,32 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 /* These extend the style to map infowindows, but are relatively expensive selectors. */
 /* They may also break as Google shuffles elements around in Gmaps. */
 
+/* Updated for new 2018 Gmaps renderer -- no more Firefox handling required */
+
+#map_canvas.kuro .gm-style-iw div,
+#map_canvas.kuro .poi-info-window div,
+#map_canvas.kuro .poi-info-window a
+{
+    color: #FFF !important;
+    background-color: #000 !important;
+}
+
+#map_canvas.kuro .gm-style > div:first-child > div:nth-last-of-type(1) > div:last-child > div div img[src^="https://maps.gstatic"],
+#map_canvas.kuro .gm-style > div:first-child > div:nth-last-of-type(1) > div:last-child > div div img[src^="http://realtime"]
+{
+    filter: invert(100%);
+}
+
+
+#map_canvas.kuro .gm-style > div:first-child > div:nth-last-of-type(1) > div:last-child > div:last-child > div:last-child > div:first-child > div:last-child
+{
+    color:#FFF!important;
+    background-color:#000 !important;
+    box-shadow:0 0 2px 2px rgba(255,255,255,0.4);
+}
+
+/* Old 2017 Gmaps Renderer */
+/*
 @supports (not (-moz-appearance:none))
 { 
     #map_canvas.kuro .gm-style > div:first-child > div:nth-last-of-type(1) > div:last-child > div > div > div:nth-last-of-type(1),
@@ -1055,6 +1081,9 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
         filter:invert(100%);
     }
 }
+*/
+
+
 
 /* Time slider panel theme styling */
 
