@@ -2256,10 +2256,15 @@ var MKS = (function()
         return this.mk_ex[0] >= -180.0 && this.mk_ex[0] <= 180.0 && this.mk_ex[1] >= -90.0 && this.mk_ex[1] <= 90.0
             && this.mk_ex[2] >= -180.0 && this.mk_ex[2] <= 180.0 && this.mk_ex[3] >= -90.0 && this.mk_ex[3] <= 90.0;
     };
+
+    MKS.prototype.IsMarkerExtentZero = function()
+    {
+        return this.mk_ex[0] == 0.0 && this.mk_ex[1] == 0.0 && this.mk_ex[2] == 0.0 && this.mk_ex[3] == 0.0;
+    };
     
     MKS.prototype.ApplyMapVisibleExtentForMarkers = function()    
     {
-        if (!this.IsMarkerExtentValid())
+        if (!this.IsMarkerExtentValid() || this.IsMarkerExtentZero())
         {
             console.log("MKS.ApplyMapVisibleExtentForMarkers: Invalid marker extent: (%1.8f, %1.8f) - (%1.8f, %1.8f)", this.mk_ex[0], this.mk_ex[1], this.mk_ex[2], this.mk_ex[3]);
             return;
@@ -2269,7 +2274,7 @@ var MKS = (function()
         this.mapref.panTo(r[0]);
         this.mapref.setZoom(r[1]);
 
-        if (this.logids.length > 0 && this.litcpms != null)
+        if (this.logids != null && this.logids.length > 0 && this.litcpms != null)
         {
             // only show this prompt for api.safecast.org if the logfile hasn't been approved yet
             // theoretically this should also check the user for moderator status
