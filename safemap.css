@@ -19,11 +19,14 @@ body
 }
 
 /* nb: This is a hack to disable the alpha fade-in / fade-out effect that Google Maps defaults to.  It improves performance somewhat and makes tiles appear instantly. */
+/* 2018-09-28 ND: Disabling as this now breaks Gmaps tile loading via an undocumented API change. */
+/*
 #map_canvas div
 {
           transition:none !important; 
   -webkit-transition:none !important;
 }
+*/
 
 .FuturaFont, .gm-style, .poi-info-window div, .poi-info-window a, .menu
 {

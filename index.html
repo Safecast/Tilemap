@@ -38,12 +38,13 @@ function FinishLoadIfPossible()
         _ls.init = true;
         ElGet("tsPanel").style.removeProperty("display");
         SafemapInit.Init();
+        
         var a, f = function() {
             document.body.removeChild(ElGet("div_sc_ls_wb")); 
             google.maps.event.removeListener(a);
-            //LoadGcharts();
         };
-        a = google.maps.event.addListener(map, "tilesloaded", f);
+
+        a = google.maps.event.addListenerOnce(map, "tilesloaded", f);
     }//if
 }
 
@@ -81,7 +82,7 @@ function LoadSafemap()
 
 function LoadCSS()
 {
-    var p = parseInt(localStorage.getItem("CSS_LAST_GET") || 0);
+    var p = parseInt(localStorage.getItem("CSS_LAST_GET_2") || 0);
     var u = Date.now() - p > 86400*1000 ? "?" + Date.now() : "";
     var r = new XMLHttpRequest();
     r.open("GET", "safemap_min.css" + u, true);
@@ -93,7 +94,7 @@ function LoadCSS()
         document.head.appendChild(s);
         _ls.css = true;
         FinishLoadIfPossible();
-        if (u.length > 0) localStorage.setItem("CSS_LAST_GET", Date.now());
+        if (u.length > 0) localStorage.setItem("CSS_LAST_GET_2", Date.now());
     };
     r.send(null);
 }
