@@ -716,8 +716,8 @@ var SafecastDateHelper = (function()
                    { i:23, s:"2016-03-10T15:00:00Z", e:"2016-09-10T15:00:00Z" },
                    { i:24, s:"2016-09-10T15:00:00Z", e:"2017-03-10T15:00:00Z" },
                    { i:25, s:"2017-03-10T15:00:00Z", e:"2017-09-10T15:00:00Z" },
-                   { i:26, s:"2017-09-10T15:00:00Z", e:"2018-03-10T15:00:00Z" }  ];
-                   //{ i:27, s:"2018-03-10T15:00:00Z", e:"2018-09-10T15:00:00Z" },    // not implemeneted
+                   { i:26, s:"2017-09-10T15:00:00Z", e:"2018-03-10T15:00:00Z" },
+                   { i:27, s:"2018-03-10T15:00:00Z", e:"2018-09-10T15:00:00Z" } ];
                    //{ i:28, s:"2018-09-10T15:00:00Z", e:"2019-03-10T15:00:00Z" },    // not implemeneted
                    //{ i:29, s:"2019-03-10T15:00:00Z", e:"2019-09-10T15:00:00Z" },    // not implemeneted
                    //{ i:30, s:"2019-09-10T15:00:00Z", e:"2020-03-10T15:00:00Z" } ];  // not implemeneted
@@ -959,7 +959,7 @@ var ClientZoomHelper = (function()
     
         for (i=0; i<o.length; i++)
         {
-            if ((i == idx || (idx == 0 && i == 2)) && o[i] != null)
+            if (o[i] != null && ( ((o[i].ext_idx == null && i == idx) || (o[i].ext_idx == idx)) || (idx == 0 && i == 2)))
             {
                 lz = o[i].ext_tile_size > 256 && !hdpi ? z - 1 : z;
                 lr = o[i].ext_tile_size > 256 &&  hdpi ? 1     : 0;  // px>>=1 for 512x512 tiles on     retina displays only
@@ -997,9 +997,10 @@ var ClientZoomHelper = (function()
 
     var _GetClampedZoomLevelForIdx = function(idx, z)
     {
-        var o  = _fxGetLayers();
+        var o    = _fxGetLayers();
+        var oidx = LayersHelper.GetArrayIdxForLayerIdx(idx, o);
         
-        var mz = o[idx].ext_actual_max_z + (o[idx].ext_tile_size > 256 && !_fxGetIsRetina() ? 1 : 0);
+        var mz = o[oidx].ext_actual_max_z + (o[oidx].ext_tile_size > 256 && !_fxGetIsRetina() ? 1 : 0);
         var dz = o == null || z <= mz ? z : mz;        
         
         return dz;
@@ -1098,6 +1099,7 @@ var ClientZoomHelper = (function()
         var aist_url = _GetUrlTemplateForS3Bucket(isJ, isS, "aist");
         var te13_url = _GetUrlTemplateForS3Bucket(isJ, isS, "te20130415");
         var te14_url = _GetUrlTemplateForS3Bucket(isJ, isS, "te20140311");
+        var c_url    = _GetUrlTemplateForS3Bucket(isJ, isS, "cosmic");
         var ts       = _fxGetTimeSliceDates();
 
         x.push( _InitGmapsLayers_Create( 0, 2,  false, 17, 1.0, 512, te512url) );
@@ -1132,6 +1134,7 @@ var ClientZoomHelper = (function()
         // ...
         //    30 | Time Slice: 2019-09-10 - 2020-03-10  // not implemented
 
+        //   129 | Cosmic uSv/h (Raster Tiles)
         // 10001 | Add Cosmic Logs
         // 10002 | Add Surface Logs
 
@@ -1144,6 +1147,8 @@ var ClientZoomHelper = (function()
             var u = _GetUrlTemplateForS3Bucket(isJ, isS, "te" + ts[i].d);
             x.push( _InitGmapsLayers_Create(ts[i].i, 2, true, 17, 1.0, 512, u) );
         }//for
+
+        x.push( _InitGmapsLayers_Create(129, 129, false, 17, 1.0, 512, c_url) );
 
         return x;
     };
@@ -1575,6 +1580,22 @@ var LayersHelper = (function()
         LayersHelper.AddToMapByIdxs([idx]);
     };
 
+    LayersHelper.GetArrayIdxForLayerIdx = function(idx, omaps)
+    {
+        var d = -1;
+
+        for (var i=0; i<omaps.length; i++)
+        {
+            if (omaps[i] != null && omaps[i].ext_idx != null && omaps[i].ext_idx == idx)
+            {
+                d = i;
+                break;
+            }//if
+        }//for
+
+        return d == -1 ? idx : d;
+    };
+
     LayersHelper.AddToMapByIdxs = function(idxs)
     {
         var hud_layers = new Array();
@@ -1582,12 +1603,13 @@ var LayersHelper = (function()
 
         for (var i=0; i<idxs.length; i++)
         {
-            var gmaps_layer = _GmapsNewLayer(omaps[idxs[i]]);
+            var omaps_idx   = LayersHelper.GetArrayIdxForLayerIdx(idxs[i], omaps);
+            var gmaps_layer = _GmapsNewLayer(omaps[omaps_idx]);
 
             _GmapsSetAt(i, gmaps_layer);
 
-            hud_layers.push({     urlTemplate: omaps[idxs[i]].ext_url_template, 
-                              bitstoreLayerId: omaps[idxs[i]].ext_layer_id });
+            hud_layers.push({     urlTemplate: omaps[omaps_idx].ext_url_template, 
+                              bitstoreLayerId: omaps[omaps_idx].ext_layer_id });
         }//for
 
         _HudSetLayers(hud_layers);
@@ -2237,12 +2259,12 @@ var SafemapUtil = (function()
         var rm; // truncate using round/fdiv. toFixed also does this but zero pads, which is bad here.
     
              if (z >= 19) { rm = 1000000.0; } // 6 fractional digits
-        else if (z >= 16) { rm = 100000.0; }  // 5 ... etc
-        else if (z >= 13) { rm = 10000.0; }
-        else if (z >=  9) { rm = 1000.0; }
-        else if (z >=  6) { rm = 100.0; }
-        else if (z >=  3) { rm = 10.0; }
-        else              { rm = 1.0; }
+        else if (z >= 16) { rm =  100000.0; } // 5 ... etc
+        else if (z >= 13) { rm =   10000.0; }
+        else if (z >=  9) { rm =    1000.0; }
+        else if (z >=  6) { rm =     100.0; }
+        else if (z >=  3) { rm =      10.0; }
+        else              { rm =       1.0; }
 
         y *= rm;
         x *= rm;
@@ -2348,7 +2370,8 @@ var BitsProxy = (function()
 
         for (var i=0; i<overlayMaps.length; i++)
         {
-            if (    overlayMaps[i].ext_layer_id == layer_id
+            if (    overlayMaps[i] != null
+                &&  overlayMaps[i].ext_layer_id == layer_id
                 && !overlayMaps[i].ext_is_layer_id_proxy)
             {
                 d = overlayMaps[i].ext_url_template;
@@ -2394,8 +2417,10 @@ var BitsProxy = (function()
     BitsProxy.prototype.LegacyInitForSelection = function()
     {
         var idx = _GetSelectedLayerIdx();
-        if (idx <= 2 || idx >= 8) return;
-        
+
+        //if (idx <= 2 || idx >= 8) return;
+        if (idx != 3 && idx != 4 && idx != 5 && idx != 6 && idx != 7 && idx != 129) return;
+    
         var layer = this.fxGetLayerForIdx(idx);
         
         var layerId = layer != null ? layer.ext_layer_id : -1;
@@ -2509,6 +2534,13 @@ var BitsProxy = (function()
         this._layerBitstores.push(new LBITS(16, 2, 11, url, 3, 2, opts16, null));
     };
 
+    BitsProxy.prototype.Init_LayerId129 = function()
+    {
+        var url     = _GetUrlTemplateForLayerId(129);
+        var opts129 = new LBITSOptions({ lldim:1, ll:1, unshd:1, alpha:255, multi:0, maxz:3, url0:BitsProxy.pngsrc, url1:BitsProxy.bitsrc, w:512, h:512 });
+        this._layerBitstores.push(new LBITS(129, 0, 16, url, 0, 0, opts129, null));
+    };
+
     BitsProxy.prototype.InitForLayerIdIfNeeded = function(layerId)
     {
         if (this._layerBitstores == null) return;
@@ -2526,12 +2558,13 @@ var BitsProxy = (function()
     
         if (!hasLayer)
         {
-                 if (layerId ==  2) this.Init_LayerId02();
-            else if (layerId ==  8) this.Init_LayerId08();
-            else if (layerId ==  3) this.Init_LayerId03();
-            else if (layerId ==  6) this.Init_LayerId06();
-            else if (layerId ==  9) this.Init_LayerId09();
-            else if (layerId == 16) this.Init_LayerId16();
+                 if (layerId ==   2) this.Init_LayerId02();
+            else if (layerId ==   8) this.Init_LayerId08();
+            else if (layerId ==   3) this.Init_LayerId03();
+            else if (layerId ==   6) this.Init_LayerId06();
+            else if (layerId ==   9) this.Init_LayerId09();
+            else if (layerId ==  16) this.Init_LayerId16();
+            else if (layerId == 129) this.Init_LayerId129();
         }//if
     };
     
@@ -4578,9 +4611,9 @@ var MenuHelper = (function()
                   { n:"logs_2",       x0:32,  y0:2368,
                                       x1:288, y1:2368 },
                   { n:"logs_3",       x0:32,  y0:2624,
-                                      x1:288, y1:2624 },
-                  { n:"logs_1",       x0:32,  y0:2880,
-                                      x1:288, y1:2880 } ];
+                                      x1:288, y1:2624 } ];
+                  //{ n:"logs_1",       x0:32,  y0:2880,
+                  //                    x1:288, y1:2880 } ];
                   //{ n:"areas_0",      x0:32,  y0:3136,
                   //                    x1:288, y1:3136 } ];
 
@@ -4589,7 +4622,8 @@ var MenuHelper = (function()
             s[i].need_create = false; // flag the static defs in index.html as already created
         }//for
 
-        var sl = [0,1,2,12,8,9,3,4,5,6];
+        //var sl = [0,1,2,12,8,9,3,4,5,6];
+        var sl = [0,1,2,12,129,8,9,3,4,5,6];
         var sb = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14];
         var y  = 3136 + 256; // <-- reuses last y-value from the static section
     
@@ -4600,6 +4634,8 @@ var MenuHelper = (function()
         {
             s.push({n:("layers_" + sl[i]), need_create:true, x0:32, y0:y, x1:288, y1:y});
             y += 256;
+
+            if (sl[i] == 129) y -= 256; // hack for no cosmic tooltip
         }//for
     
         for (var i=0; i<sb.length; i++)
@@ -4615,7 +4651,7 @@ var MenuHelper = (function()
     var _GetTooltipsParentRefs = function()
     {
         // static index.html-defined elements that should have event listeners added for the tooltips
-        return ["hud_btnToggle", "menu_realtime_0", "menu_scale", "menu_zoom_buttons", "menu_hdpi", "menu_nnscaler", "menu_tile_shadow", "menu_logs_0", "menu_logs_1", "menu_logs_2", "menu_logs_3", "menu_apiquery"];
+        return ["hud_btnToggle", "menu_realtime_0", "menu_scale", "menu_zoom_buttons", "menu_hdpi", "menu_nnscaler", "menu_tile_shadow", "menu_logs_0", "menu_logs_2", "menu_logs_3", "menu_apiquery"];
     };
 
 
@@ -5120,7 +5156,10 @@ var MenuHelper = (function()
 
         for (var i=0; i<c.length; i++)
         {
-            ElGet("menu_logs_"+c[i]).innerHTML = s["MENU_LOGS_"+c[i]+"_LABEL"];
+            if (ElGet("menu_logs_"+c[i]) != null)
+            {
+                ElGet("menu_logs_"+c[i]).innerHTML = s["MENU_LOGS_"+c[i]+"_LABEL"];
+            }//if
         }//for
         
         // areas
@@ -5564,6 +5603,7 @@ var MenuHelperStub = (function()
             LayersHelper.ShowAddLogPanel();
         }, false);
 
+        /*
         ElGet("menu_logs_1").addEventListener("click", function()
         {
             MenuHelper.OptionsClearSelection("ul_menu_layers");
@@ -5573,6 +5613,7 @@ var MenuHelperStub = (function()
             LayersHelper.UiLayers_OnChange();
             LayersHelper.AddLogsCosmic();
         }, false);
+        */
 
         ElGet("menu_logs_2").addEventListener("click", function()
         {
@@ -5771,6 +5812,7 @@ var MenuHelperStub = (function()
             { i:    1, v:MenuHelperStub.UiVisibility.Normal },
             { i:    2, v:MenuHelperStub.UiVisibility.Normal },
             { i:   12, v:MenuHelperStub.UiVisibility.Always },
+            { i:  129, v:MenuHelperStub.UiVisibility.Normal },
             { i:    8, v:MenuHelperStub.UiVisibility.Normal },
             { i:    9, v:MenuHelperStub.UiVisibility.Normal },
             { i:    3, v:MenuHelperStub.UiVisibility.Normal },
