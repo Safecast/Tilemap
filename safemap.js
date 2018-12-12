@@ -353,6 +353,92 @@ var SafemapInit = (function()
         }//if
     };
 
+    var _Legend_CreateEntryNode = function(entry)
+    {
+        var d = ElCr("div");
+        var i = ElCr("img");
+        var t = ElCr("div");
+    
+        t.id    = entry.t;
+        i.src   = entry.i;
+    
+        if (entry.c != null)
+        {
+            i.style = entry.c;
+        }//if
+    
+        d.className = "map_legend_fs_entry";
+        i.className = "map_legend_fs_entry_img";
+        t.className = "map_legend_fs_entry_txt";
+    
+        d.appendChild(i);
+        d.appendChild(t);
+    
+        return d;
+    };
+
+    var _Legend_CreateSectionNode =function(pnlId, pnlLblId, entries)
+    {
+        var pnl_div = ElCr("div");
+        var pnl_fs  = ElCr("fieldset");
+        var pnl_txt = ElCr("legend");
+        var pnl_det = ElCr("div");
+    
+        pnl_div.id = pnlId;
+        pnl_txt.id = pnlLblId;
+        pnl_fs.className  = "map_legend_fs";
+        pnl_det.className = "map_legend_fs_pnl";
+        
+        pnl_div.appendChild(pnl_fs);
+        pnl_fs.appendChild(pnl_txt);
+        pnl_fs.appendChild(pnl_det);
+    
+        for (var i=0; i<entries.length; i++)
+        {
+            var e = _Legend_CreateEntryNode(entries[i]);
+            pnl_det.appendChild(e);
+        }//for
+    
+        return pnl_div;
+    }//Legend_CreateSectionNode
+
+    var _InitMapLegend = function()
+    {
+        var a = [ { i:"legend/air-online_154x154.png",  t:"lblAirOn",  c:null },
+                  { i:"legend/air-max_154x154.png",     t:"lblAirMax", c:null },
+                  { i:"legend/air-online_154x154.png",  t:"lblAirInc",  c:"transform: rotate(45deg);" },
+                  { i:"legend/air-offline_154x154.png", t:"lblAirOff", c:null },
+                  { i:"legend/air-cur_154x154.png",     t:"lblAirCur", c:null },
+                  { i:"legend/air-online_154x154.png",  t:"lblAirNoc", c:"transform: rotate(90deg);" },
+                  { i:"legend/lut-20_256x1.png",        t:"lblAirLut", c:null },
+                  { i:"legend/air-min_154x154.png",     t:"lblAirMin", c:null },
+                  { i:"legend/air-online_154x154.png",  t:"lblAirDec", c:"transform: rotate(135deg);" } ];
+        
+        var r = [ { i:"legend/rad-online_77x77.png",    t:"lblRadOn",  c:null },
+                  { i:"legend/rad-offline_77x77.png",   t:"lblRadOff", c:null },
+                  { i:"legend/lut-30_256x1.png",        t:"lblRadLut", c:null } ];
+        
+        var n = ElGet("map_legend");
+    
+        var an = _Legend_CreateSectionNode("pnlLegendAir", "lblPnlAir", a);
+        var rn = _Legend_CreateSectionNode("pnlLegendRad", "lblPnlRad", r);
+    
+        n.appendChild(an);
+        n.appendChild(rn);
+    
+        var e = ElCr("div");
+        e.style = "cursor:pointer; position:absolute; top:3px; right:3px; font-size:9px;";
+        var i = ElCr("img");
+        i.id = "btnLegendClose";
+        i.style.width = "13px";
+        i.style.height = "13px";
+        i.src = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224px%22%20height%3D%2224px%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22%23000000%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M19%206.41L17.59%205%2012%2010.59%206.41%205%205%206.41%2010.59%2012%205%2017.59%206.41%2019%2012%2013.41%2017.59%2019%2019%2017.59%2013.41%2012z%22%2F%3E%0A%20%20%20%20%3Cpath%20d%3D%22M0%200h24v24H0z%22%20fill%3D%22none%22%2F%3E%0A%3C%2Fsvg%3E%0A";
+        e.appendChild(i);
+    
+        n.appendChild(e);
+    };
+
+    
 
 
 
@@ -472,6 +558,7 @@ var SafemapInit = (function()
         //    SafemapPopupHelper.WhatsNewShowIfNeeded();
         //}, 3000);
 
+        _InitMapLegend();
         MenuHelper.Init(); // contains its own delayed loads; should be at end of initialize()
         _InjectSafariPerfFix();
         _ApplyFirefoxNoDragHack();
@@ -3988,6 +4075,7 @@ var PrefHelper = (function()
                  ["MENU_OPEN",        0,0], ["TOOLTIPS_ENABLED",    0,d], ["MENU_THEME",      1,0], ["USER_LOC_ENABLED", 0,0],
                  ["RT_PTCAST_ENABLED",0,1], ["RT_INGEST_ENABLED",   0,1], ["INGEST_UNIT",3,"opc_pm02_5"],
                  ["LANGUAGE",         3,null],
+                 ["LEGEND_ENABLED",   0,1],
                  ["VISIBLE_EXTENT_X",2,140.515516], ["VISIBLE_EXTENT_Y",2,37.316113], ["VISIBLE_EXTENT_Z",1,9]];
         for (var i=0; i<o.length; i++)
         {
@@ -4917,6 +5005,42 @@ var MenuHelper = (function()
         }, false);
 
 
+
+        var fxLegendVis = function(v)
+        {
+            if (v)
+            { 
+                ElGet("map_legend").style.display = "flex";
+            }//if
+            else
+            {
+                ElGet("map_legend").style.display = "none";
+            }//else
+        };
+        if (PrefHelper.GetLegendEnabledPref())
+        {
+            setTimeout(function() {
+                fxLegendVis(true);
+            }, 250);
+        }//if
+        ElGet("chkMenuLegend").checked = PrefHelper.GetLegendEnabledPref();
+        ElGet("menu_legend").addEventListener("click", function()
+        {
+            var v = ElGet("map_legend").style.display != "none";
+            fxLegendVis(!v);
+            ElGet("chkMenuLegend").checked = !v;
+            PrefHelper.SetLegendEnabledPref(!v);
+        }, false);
+        ElGet("btnLegendClose").addEventListener("click", function()
+        {
+            var v = ElGet("map_legend").style.display != "none";
+            fxLegendVis(!v);
+            ElGet("chkMenuLegend").checked = !v;
+            PrefHelper.SetLegendEnabledPref(!v);
+        }, false);
+
+
+
         var fxScaleVis = function(v)
         {
             if (v)
@@ -5106,6 +5230,7 @@ var MenuHelper = (function()
         ElGet("lblMenuAdvancedTitle").innerHTML  = s.MENU_ADVANCED_TITLE;
         ElGet("lblMenuHdpi").innerHTML           = s.MENU_HDPI_LABEL;
         ElGet("lblMenuScale").innerHTML          = s.MENU_SCALE_LABEL;
+        ElGet("lblMenuLegend").innerHTML         = s.MENU_LEGEND_LABEL;
         ElGet("lblMenuNnScaler").innerHTML       = s.MENU_NN_SCALER_LABEL;
         ElGet("lblMenuZoomButtons").innerHTML    = s.MENU_ZOOM_BUTTONS_LABEL;
         ElGet("lblMenuTileShadow").innerHTML     = s.MENU_TILE_SHADOW_LABEL;
@@ -5115,6 +5240,33 @@ var MenuHelper = (function()
         ElGet("lblMenuRealtimeTitle").innerHTML  = s.MENU_REALTIME_TITLE;
         ElGet("menu_realtime_0_label").innerHTML = s.MENU_REALTIME_0_LABEL;
         ElGet("menu_realtime_1_label").innerHTML = s.MENU_REALTIME_1_LABEL;
+        ElGet("lblPnlAir").innerHTML             = s.MAP_LEGEND_AIR_TITLE;
+        ElGet("lblPnlRad").innerHTML             = s.MAP_LEGEND_RAD_TITLE;
+        ElGet("lblAirOn").innerHTML              = s.MAP_LEGEND_ONLINE_LABEL;
+        ElGet("lblAirOn").title                  = s.MAP_LEGEND_ONLINE_TOOLTIP;
+        ElGet("lblAirMax").innerHTML             = s.MAP_LEGEND_AIR_MAX_LABEL;
+        ElGet("lblAirMax").title                 = s.MAP_LEGEND_AIR_MAX_TOOLTIP;
+        ElGet("lblAirInc").innerHTML             = s.MAP_LEGEND_AIR_INC_LABEL;
+        ElGet("lblAirInc").title                 = s.MAP_LEGEND_AIR_INC_TOOLTIP;
+        ElGet("lblAirOff").innerHTML             = s.MAP_LEGEND_OFFLINE_LABEL;
+        ElGet("lblAirOff").title                 = s.MAP_LEGEND_OFFLINE_TOOLTIP;
+        ElGet("lblAirCur").innerHTML             = s.MAP_LEGEND_AIR_CUR_LABEL;
+        ElGet("lblAirCur").title                 = s.MAP_LEGEND_AIR_CUR_TOOLTIP;
+        ElGet("lblAirNoc").innerHTML             = s.MAP_LEGEND_AIR_NC_LABEL;
+        ElGet("lblAirNoc").title                 = s.MAP_LEGEND_AIR_NC_TOOLTIP;
+        ElGet("lblAirLut").innerHTML             = s.MAP_LEGEND_AIR_LUT_LABEL;
+        ElGet("lblAirLut").title                 = s.MAP_LEGEND_AIR_LUT_TOOLTIP;
+        ElGet("lblAirMin").innerHTML             = s.MAP_LEGEND_AIR_MIN_LABEL;
+        ElGet("lblAirMin").title                 = s.MAP_LEGEND_AIR_MIN_TOOLTIP;
+        ElGet("lblAirDec").innerHTML             = s.MAP_LEGEND_AIR_DEC_LABEL;
+        ElGet("lblAirDec").title                 = s.MAP_LEGEND_AIR_DEC_TOOLTIP;
+        ElGet("lblRadOn").innerHTML              = s.MAP_LEGEND_ONLINE_LABEL;
+        ElGet("lblRadOn").title                  = s.MAP_LEGEND_ONLINE_TOOLTIP;
+        ElGet("lblRadOff").innerHTML             = s.MAP_LEGEND_OFFLINE_LABEL;
+        ElGet("lblRadOff").title                 = s.MAP_LEGEND_OFFLINE_TOOLTIP;
+        ElGet("lblRadLut").innerHTML             = s.MAP_LEGEND_RAD_LUT_LABEL;
+        ElGet("lblRadLut").title                 = s.MAP_LEGEND_RAD_LUT_TOOLTIP;
+    
         
         if (PrefHelper.GetEffectiveLanguagePref() != "ja")
         {
@@ -5408,6 +5560,7 @@ var MenuHelper = (function()
         var ce = ElGet("map_canvas");
         var pe = ElGet("panel");
         var tp = ElGet("tsPanel");
+        var ml = ElGet("map_legend");
 
         if (s == 0)
         {
@@ -5415,6 +5568,7 @@ var MenuHelper = (function()
             ce.className = ce.className.replace(/kuro/, "");
             pe.className = pe.className.replace(/kuro/, "");
             tp.className = tp.className.replace(/kuro/, "");
+            ml.className = tp.className.replace(/kuro/, "");
         }//if
         else
         {
@@ -5422,6 +5576,7 @@ var MenuHelper = (function()
             ce.className += " kuro";
             pe.className += " kuro";
             tp.className += " kuro";
+            ml.className += " kuro";
         }//else
     };
 

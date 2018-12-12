@@ -1172,6 +1172,98 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 
 
 
+/* Map Legend panel */
 
+#map_legend
+{
+    color:#737373;
+    font-size:14px;
+    z-index:2;
+
+    position:fixed;
+
+    justify-content:left;
+    align-items:flex-start;
+    background-image:linear-gradient(145deg,#DDD,#FFF);
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding:10px;
+
+    height:151px;
+    max-width:1050px;
+
+    right:60px;
+    bottom:24px;
+}
+
+#map_legend.kuro
+{
+    background-image:linear-gradient(145deg, #333, #000);
+}
+
+#map_legend,
+.map_legend_fs_pnl
+{
+    flex-direction:row;
+    flex-wrap:wrap;
+}
+
+#map_legend,
+.map_legend_fs_pnl,
+.map_legend_fs_entry
+{
+    display:flex;
+}
+
+#pnlLegendAir
+{
+    max-width:430px;
+}
+
+#pnlLegendRad
+{
+    max-width:160px;
+}
+
+#map_legend_fs.kuro
+{
+    border-color:#DDD;
+}
+
+#map_legend,
+.map_legend_fs
+{
+    border-radius:4px;
+}
+
+.map_legend_fs_pnl
+{
+    justify-content:space-evenly;
+    align-items:flex-start;
+}
+
+.map_legend_fs_entry
+{
+    flex-grow:1;
+    margin:1px;
+    width:128px;
+    justify-content:flex-start;
+    align-items:center;
+    flex-direction: row;
+    flex-wrap:nowrap;
+}
+
+.map_legend_fs_entry_img
+{
+    width:30px;
+    height:30px;
+    margin:3px;
+}
+
+.map_legend_fs_entry_txt
+{
+    white-space:nowrap;
+    display:inline;
+}
 
 

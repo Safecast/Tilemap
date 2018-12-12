@@ -934,8 +934,6 @@ var IngestIcon = (function()
         ctx.fill();
         
         
-        
-        
         oy += tri_h * 1.0;
         y0 += tri_h * 1.0;
         y1 += tri_h * 1.0;
@@ -951,12 +949,12 @@ var IngestIcon = (function()
 
         // inner filled color chevron
         ctx.beginPath();
+            ctx.fillStyle = "rgba(0,0,0)";
             ctx.fillStyle = c_fill_min;
             ctx.moveTo(x0, y0);                      // bottom-right corner
             ctx.lineTo(ox, oy + scale * 4.0 * 0.5);  // top-center
             ctx.lineTo(x1, y1);                      // bottom-left corner
         ctx.fill();
-        
         
         
         
@@ -1641,7 +1639,7 @@ var IngestMarkers = (function()
     // translate normalized rate of change [-1 ... +1] to degrees [0 ... 180], rounded to nearest 5 degrees
     var _GetDegForNormRate = function(r)
     {
-        var d = 90.0 - r * 90.0;
+        var d = 90.0 + r * 90.0;
         // | rate |   deg  |    desc    |    arrow    |
         // | -----|--------|------------|-------------|
         // |  1.0 |    0.0 |        inc |          up |
