@@ -33,8 +33,9 @@ body
     font-family:Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif !important;
 }
 
-#logo2, #imgMenuReticle, #imgMenuUserLoc, .slideout-menu, #imgMenuSafecastIcon
-{ 
+#logo2, #imgMenuReticle, #imgMenuUserLoc, .slideout-menu, #imgMenuSafecastIcon,
+#map_legend, .map_legend_fs_entry_img
+{
     user-drag:none; 
     user-select:none;
     -moz-user-select:none;
@@ -523,7 +524,7 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 .menu-header {
     padding:20px 0 20px 60px;
     background-repeat:no-repeat;
-    background-size:181px 22px;
+    background-size:201px 22px;
     background-position:bottom center;
 }
 
@@ -1009,25 +1010,57 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 
 #map_canvas.kuro .gm-style-iw div,
 #map_canvas.kuro .poi-info-window div,
-#map_canvas.kuro .poi-info-window a
+#map_canvas.kuro .poi-info-window a,
+#map_canvas.kuro .gm-style-iw-c
 {
     color: #FFF !important;
+    /*
     background-color: #000 !important;
+    */
 }
 
-#map_canvas.kuro .gm-style > div:first-child > div:nth-last-of-type(1) > div:last-child > div div img[src^="https://maps.gstatic"],
-#map_canvas.kuro .gm-style > div:first-child > div:nth-last-of-type(1) > div:last-child > div div img[src^="http://realtime"]
+#map_canvas.kuro .gm-style-iw-c
+{
+    background-color:rgba(0,0,0,0.5) !important;
+}
+
+#map_canvas.kuro .gm-style-iw-c > div
+{
+    background-color:rgba(0,0,0,0) !important;
+}
+
+
+#map_canvas.kuro .gm-style > div:first-child > div:nth-last-of-type(1) > div:last-child > div div img[src^="http://realtime"],
+#map_canvas.kuro .gm-style-iw-c > button > img
 {
     filter: invert(100%);
 }
 
 
+/* Google Maps infowindow: New Feb 2019 infowindow arrow decoration */
+
+#map_canvas.kuro .gm-style-iw-t::after 
+{
+    border-top-color: #000 !important;
+}
+
+
+
+
+/* Google Maps infowindow: Old pre-Feb 2019 .png raster x/close icon */
+/* 
+#map_canvas.kuro .gm-style > div:first-child > div:nth-last-of-type(1) > div:last-child > div div img[src^="https://maps.gstatic"],
+*/
+
+/* Google Maps infowindow: Old pre-Feb 2019 infowindow arrow decoration */
+/*
 #map_canvas.kuro .gm-style > div:first-child > div:nth-last-of-type(1) > div:last-child > div:last-child > div:last-child > div:first-child > div:last-child
 {
     color:#FFF!important;
     background-color:#000 !important;
     box-shadow:0 0 2px 2px rgba(255,255,255,0.4);
 }
+*/
 
 /* Old 2017 Gmaps Renderer */
 /*
@@ -1121,17 +1154,58 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 /* and 2: there is bad clipping on the menu item backgrounds at a rasterization level. It seems unlikely Apple will fix these anytime soon. */
 @supports (-webkit-appearance:none) and (not (overflow:-webkit-marquee)) and (not (-ms-ime-align:auto)) and (not (-moz-appearance:none))
 {
-              #menu.kuro::-webkit-scrollbar,
-    #map_canvas.kuro div::-webkit-scrollbar 
+    #menu.kuro::-webkit-scrollbar,
+    #map_canvas.kuro div::-webkit-scrollbar
     {
-        background-color:#404040;
+        width:18px;
+        height:12px;
+        -webkit-appearance:none;
+        background-color:rgba(0,0,0,0);
     }
-
-              #menu.kuro::-webkit-scrollbar-thumb,
-    #map_canvas.kuro div::-webkit-scrollbar-thumb 
+    
+    #menu.kuro::-webkit-scrollbar-track,
+    #menu.kuro::-webkit-scrollbar-track-piece,
+    #map_canvas.kuro div::-webkit-scrollbar-track,
+    #map_canvas.kuro div::-webkit-scrollbar-track-piece
+    {
+        background:rgba(0,0,0,0);
+    }
+    
+    #menu.kuro::-webkit-scrollbar-thumb,
+    #map_canvas.kuro div::-webkit-scrollbar-thumb
     {
         background-color:#BBB;
-        outline:1px solid #FFF;
+        border:6px solid transparent;
+        border-radius:9px;
+        background-clip:content-box;
+    }
+    
+    #menu.kuro::-webkit-scrollbar-thumb:horizontal,
+    #map_canvas.kuro div::-webkit-scrollbar-thumb:horizontal
+    {
+        border:3px solid transparent;
+    }
+    
+    #menu.kuro::-webkit-scrollbar-thumb:hover,
+    #map_canvas.kuro div::-webkit-scrollbar-thumb:hover
+    {
+        background-color:rgba(0,0,0,0.3);
+    }
+    
+    #menu.kuro::-webkit-scrollbar-corner,
+    #map_canvas.kuro div::-webkit-scrollbar-corner
+    {
+        background:transparent;
+    }
+
+    /* Google Maps infowindow: New Feb 2019 infowindow border color styling. */
+    /* As of Chrome 72.0.3626.119 (Feb 2019) there is a rendeirng bug where when the kuro theme is applied, */
+    /* the right/bottom edges of the infowindow remain white and are not repainted.  This must be overriden. */
+
+    #map_canvas.kuro .gm-style .gm-style-iw-d::-webkit-scrollbar-track,
+    #map_canvas.kuro .gm-style .gm-style-iw-d::-webkit-scrollbar-track-piece
+    {
+        background: rgba(0,0,0,0) !important;
     }
 }
 
@@ -1199,6 +1273,11 @@ input[type="checkbox"].scgreen.ios-switch:checked + div > div {
 #map_legend.kuro
 {
     background-image:linear-gradient(145deg, #333, #000);
+}
+
+#map_legend.kuro #btnLegendClose
+{
+    filter:invert(100%);
 }
 
 #map_legend,

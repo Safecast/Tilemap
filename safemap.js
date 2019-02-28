@@ -4610,7 +4610,7 @@ var MenuHelper = (function()
         }, 50);
 
         setTimeout(function() {
-            ElGet("menu-header").style.backgroundImage = "url('schoriz_362x44.png')";
+            ElGet("menu-header").style.backgroundImage = "url('schoriz_767x84.png')";
         }, 200);
 
         setTimeout(_InitReticleFromPref, 250);

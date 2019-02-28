@@ -15,7 +15,9 @@
 <title>Safecast Tile Map</title>
 
 <script type="text/javascript">
-var _ls = { gmaps:false, safemaps:false, ui:false, css:false, init:false, spinner:false };
+var PLATFORM_IS_TEST        = window.location.href.indexOf("test2") > -1;
+var PLATFORM_DISABLE_INGEST = false;
+var _ls                     = { gmaps:false, safemaps:false, ui:false, css:false, init:false, spinner:false };
 function _nua(s)           { return navigator.userAgent.indexOf(s) > -1; }
 function ElCr(n)           { return document.createElement(n); }
 function ElGet(id)         { return document.getElementById(id); }
@@ -82,8 +84,8 @@ function LoadSafemap()
 
 function LoadCSS()
 {
-    var p = parseInt(localStorage.getItem("CSS_LAST_GET_2") || 0);
-    var u = Date.now() - p > 86400*1000 ? "?" + Date.now() : "";
+    var p = parseInt(localStorage.getItem("CSS_LAST_GET") || 0);
+    var u = Date.now() - p > 86400*1000 || PLATFORM_IS_TEST ? "?" + Date.now() : "";
     var r = new XMLHttpRequest();
     r.open("GET", "safemap_min.css" + u, true);
     r.onreadystatechange = function() { 
@@ -94,7 +96,7 @@ function LoadCSS()
         document.head.appendChild(s);
         _ls.css = true;
         FinishLoadIfPossible();
-        if (u.length > 0) localStorage.setItem("CSS_LAST_GET_2", Date.now());
+        if (u.length > 0) localStorage.setItem("CSS_LAST_GET", Date.now());
     };
     r.send(null);
 }
@@ -105,9 +107,6 @@ LoadCSS();
 </script>
 
 <script type="text/javascript">
-var PLATFORM_IS_TEST        = window.location.href.indexOf("test2") > -1;
-var PLATFORM_DISABLE_INGEST = false;
-
 function ShowBrowserWarningWindowIfNeeded()
 {
     var ua   = window.navigator.userAgent;
@@ -202,17 +201,6 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                     </div>
                 </span>
             </li>
-            <!--
-            <li>
-                <div id="menu_logs_1">Add Cosmic Logs</div>
-                <span class="tooltiptext-bottom">
-                    <div style="position:relative;">
-                        <span id="menu_tooltip_logs_1_off" class="tooltiptext-off"></span>
-                        <span id="menu_tooltip_logs_1_on"  class="tooltiptext-on"></span>
-                    </div>
-                </span>
-            </li>
-            /-->
             <li>
                 <div id="menu_logs_2">Remove All</div>
                 <span class="tooltiptext-bottom">
