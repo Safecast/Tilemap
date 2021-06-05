@@ -32,6 +32,7 @@ var _locStringsProxy  = null;    // retained proxy instance for localized UI str
 var slideout          = null;    // retained slideout menu
 var _userloc          = null;    // retained user location marker / loc callback
 var _igProxy          = null;
+var _igProxyAir       = null;
 
 // ========== INTERNAL STATES =============
 var _cached_ext       = { baseurl:null, urlyxz:null, lidx:-1, cd:false, cd_y:0.0, cd_x:0.0, cd_z:0, midx:-1, mt:null };
@@ -52,6 +53,7 @@ var _no_hdpi_tiles    = false;
 var _img_scaler_idx   = 1;
 var _use_jp_region    = false;
 var _use_https        = window.location.href.substring(0,5) == "https";
+var _meta_content_idx = 0; // radiation = 0, air = 1
 
 
 // ============ LEGACY SUPPORT =============
@@ -805,9 +807,9 @@ var SafecastDateHelper = (function()
                    { i:25, s:"2017-03-10T15:00:00Z", e:"2017-09-10T15:00:00Z" },
                    { i:26, s:"2017-09-10T15:00:00Z", e:"2018-03-10T15:00:00Z" },
                    { i:27, s:"2018-03-10T15:00:00Z", e:"2018-09-10T15:00:00Z" },
-                   { i:28, s:"2018-09-10T15:00:00Z", e:"2019-03-10T15:00:00Z" } ];
-                   //{ i:29, s:"2019-03-10T15:00:00Z", e:"2019-09-10T15:00:00Z" },    // not implemeneted
-                   //{ i:30, s:"2019-09-10T15:00:00Z", e:"2020-03-10T15:00:00Z" } ];  // not implemeneted
+                   { i:28, s:"2018-09-10T15:00:00Z", e:"2019-03-10T15:00:00Z" },
+                   { i:29, s:"2019-03-10T15:00:00Z", e:"2019-09-10T15:00:00Z" },
+                   { i:30, s:"2019-09-10T15:00:00Z", e:"2020-03-10T15:00:00Z" } ];
 
         return ds;
     };
@@ -2822,8 +2824,8 @@ var BitsProxy = (function()
     var _GetUseHttps                 = function()     { return _use_https; };
     
     BitsProxy.relsrc = _GetContentBaseUrl() + "bitstore_min.js";
-    BitsProxy.bitsrc = (_GetUseHttps() ? "https://" : "http://") + "safecast.org/tilemap/bitstore_min.js";
-    BitsProxy.pngsrc = (_GetUseHttps() ? "https://" : "http://") + "safecast.org/tilemap/png_zlib_worker_min.js";
+    BitsProxy.bitsrc = (_GetUseHttps() ? "https://" : "http://") + "map.safecast.org/bitstore_min.js";
+    BitsProxy.pngsrc = (_GetUseHttps() ? "https://" : "http://") + "map.safecast.org/png_zlib_worker_min.js";
     
     var _CheckRequirements = function()
     {

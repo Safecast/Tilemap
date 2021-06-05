@@ -1719,6 +1719,8 @@ var IngestMarkers = (function()
 
     var _GetIsOfflineForAllUnitsHourly = function(data_node, compare_ss)
     {
+        return false;
+        /*
         var d = true;
         var t = 120.0 * 60.0 * 1000.0;
         var m = compare_ss * 1000.0;
@@ -1727,9 +1729,10 @@ var IngestMarkers = (function()
         {
             for (var j=0; j<data_node[i].time_series.length; j++)
             {
-                if (     data_node[i].time_series[j].ss_per_epoch_timepart == 3600
-                    &&  (data_node[i].time_series[j].values[data_node[i].time_series[j].values.length - 1] != null
-                     ||  data_node[i].time_series[j].values[data_node[i].time_series[j].values.length - 2] != null))
+                if (        data_node[i].time_series[j].ss_per_epoch_timepart == 3600
+                    &&      data_node[i].time_series[j].values                                                != null
+                    &&  (   data_node[i].time_series[j].values[data_node[i].time_series[j].values.length - 1] != null
+                         || data_node[i].time_series[j].values[data_node[i].time_series[j].values.length - 2] != null))
                     //&& (!data_node[i].time_series[j].is_offline
                     //    || m - Date.parse(data_node[i].time_series[j].end_date) > t))
                 {
@@ -1740,6 +1743,7 @@ var IngestMarkers = (function()
         }//for
 
         return d;
+        */
     };
 
 
@@ -2277,7 +2281,7 @@ var IngestMarkers = (function()
         var idx = marker.ext_id;
         var ts  = _GetTimeSeriesNodeForUnit(this.json[idx].data, unit, ss_per_epoch_timepart);
 
-        if (ts == null) return;
+        if (ts == null || ts.values == null) return;
 
         var vs     = ts.values;
         var props  = _GetUnitChartProps(unit);
@@ -2438,6 +2442,7 @@ var IngestMarkers = (function()
             options.vAxis.textStyle      = { color: "#F00" };
         }//if
 
+        /*
         if (last_d < -1)
         {
             is_anomaly_err               = true;
@@ -2446,6 +2451,7 @@ var IngestMarkers = (function()
             options.hAxis.titleTextStyle = { color: "#F00" };
             options.hAxis.textStyle      = { color: "#F00" };
         }//if
+        */
 
 
         if (is_anomaly_err)
@@ -2782,12 +2788,12 @@ var IngestMarkers = (function()
         {
             var ao = _GetSortOrdinalForUnit(a["unit"]);
             var bo = _GetSortOrdinalForUnit(b["unit"]);
-            var as = a["ss_per_epoch_timepart"];
-            var bs = b["ss_per_epoch_timepart"];
+            var ax = a["ss_per_epoch_timepart"];
+            var bx = b["ss_per_epoch_timepart"];
             return   ao > bo ?  1
                    : ao < bo ? -1 
-                   : as > bs ?  1
-                   : as < bs ? -1
+                   : ax > bx ?  1
+                   : ax < bx ? -1
                    : 0;
         });
         
@@ -2889,6 +2895,44 @@ var IngestMarkers = (function()
         }//if
     };
 
+
+
+
+    var _AddDeviceUrnListToContainerForJsonIdx = function(json, idx, container, words)
+    {
+        if (json[idx].device_ids != null)
+        {
+            var a_html          = "' target='_blank' style='color:rgb(66,114,219); text-decoration:none;'>";
+            var d01             = document.createElement("div");
+            var ul              = document.createElement("ul");
+            d01.innerHTML       = "Devices";
+            ul.style.fontFamily = "Courier,'Courier New',monospace";
+
+            for (var i=0; i<json[idx].device_urns.length; i++)
+            {
+                var li = document.createElement("li");
+
+                li.innerHTML = "<a href='" + _GetTtDeviceLnkUrl(json[idx].device_urns[i]) + a_html
+                             +      "[" + json[idx].device_urns[i] + "]"
+                             + "</a> "
+                             + " "
+                             + "<a href='" + _GetTtDeviceChkUrl(json[idx].device_urns[i]) + a_html
+                             +      "[chk]"
+                             + "</a> "
+                             + "<a href='" + _GetTtDeviceLogUrl(json[idx].device_urns[i]) + a_html
+                             +      "[log]"
+                             + "</a>";
+
+                ul.appendChild(li);
+            }//for
+
+            container.appendChild(d01);
+            container.appendChild(ul);
+        }//if
+    };
+
+
+
     
     IngestMarkers.prototype.OpenRetainedInfoWindow = function(marker)
     {
@@ -2969,13 +3013,18 @@ var IngestMarkers = (function()
             container.appendChild(el);
         }//for
 
-        _AddDeviceListToContainerForJsonIdx(this.json, idx, container, this.words);
+        // transitioning from device_id to device_urn
+        if (this.json[idx].device_urns == null)
+        {
+            _AddDeviceListToContainerForJsonIdx(this.json, idx, container, this.words);
+        }//if
+        else
+        {
+            _AddDeviceUrnListToContainerForJsonIdx(this.json, idx, container, this.words);
+        }//else
 
-
-        var units = ["opc_pm01_0", "opc_pm02_5", "opc_pm10_0", "pms_pm01_0", "pms_pm02_5", "pms_pm10_0"];
-
+        //var units = ["opc_pm01_0", "opc_pm02_5", "opc_pm10_0", "pms_pm01_0", "pms_pm02_5", "pms_pm10_0"];
         //this.CreateCombinedChartForMarker(marker, units, ss_per_epoch_timepart, el, width, height, is_inv)
-
 
         setTimeout(function() {
             this.ProcessChartQueue(queue);

@@ -5,17 +5,19 @@
 <meta name=viewport content="width=device-width, initial-scale=1, user-scalable=no">
 <meta name="referrer" content="origin">
 <meta http-equiv="refresh" content="86400">
-<link rel="shortcut icon" href="//safecast.org/favicon.png" />
+<link rel="shortcut icon" href="//map.safecast.org/favicon.png" />
 <link href="webicons/apple-touch-icon-152x152.png" rel="apple-touch-icon" sizes="152x152">
 <link href="webicons/apple-touch-icon-144x144.png" rel="apple-touch-icon" sizes="144x144">
 <link href="webicons/apple-touch-icon-76x76.png" rel="apple-touch-icon" sizes="76x76">
 <link href="webicons/apple-touch-icon-72x72.png" rel="apple-touch-icon" sizes="72x72">
 <link href="webicons/apple-touch-icon-57x57.png" rel="apple-touch-icon">
 
-<title>Safecast Tile Map</title>
+<title>Safecast Map</title>
 
 <script type="text/javascript">
-var PLATFORM_IS_TEST        = window.location.href.indexOf("test2") > -1;
+var PLATFORM_IS_TEST        =    window.location.href.indexOf("test2")     > -1;
+var PLATFORM_IS_LOCAL       =    window.location.href.indexOf("localhost") > -1 
+                              || window.location.href.indexOf("127.0.0.1") > -1;
 var PLATFORM_DISABLE_INGEST = false;
 var _ls                     = { gmaps:false, safemaps:false, ui:false, css:false, init:false, spinner:false };
 function _nua(s)           { return navigator.userAgent.indexOf(s) > -1; }
@@ -23,6 +25,68 @@ function ElCr(n)           { return document.createElement(n); }
 function ElGet(id)         { return document.getElementById(id); }
 function AList(el,ev,fx)   { return el.addEventListener(ev, fx, false); }
 function AListId(id,ev,fx) { return AList(ElGet(id), ev, fx); }
+
+function TestAirToggle()
+{
+    _meta_content_idx++;
+    if (_meta_content_idx > 1) _meta_content_idx = 0;
+
+    var es = ["ul_menu_layers", "ul_menu_logs", "ul_menu_realtime", "menu_scale", "menu_hdpi", "menu_nn_scaler", "menu_tile_shadow", "menu_apiquery", "hud_btnToggle"];
+
+    if (_meta_content_idx == 0)
+    {
+        if (_igProxyAir != null)
+        {
+            _igProxyAir.SetEnabled(false);
+            _igProxyAir = null;
+        }//if
+
+        MenuHelper.OptionsClearSelection("ul_menu_layers");
+        MenuHelper.OptionsSetSelection("ul_menu_layers", 0);
+        _ui_layer_idx = 0;
+        PrefHelper.SetLayerUiIndexPref(0);
+        LayersHelper.UiLayers_OnChange();
+
+        for (var i=0; i<es.length; i++)
+        {
+            ElGet(es[i]).parentElement.removeAttribute("display");
+        }//for
+    }//if (meta is radiation)
+    else if (_meta_content_idx == 1)
+    {
+        for (var i=0; i<es.length; i++)
+        {
+            ElGet(es[i]).parentElement.style.display = "none";
+        }//for
+
+        if (hudProxy._hud != null && _hudProxy._btnToggleStateOn)
+        {
+            MenuHelper.Hud_btnToggle_Click();
+        }//if
+
+        if (_bvProxy != null && _bvProxy.GetLogCount() > 0) 
+        {
+            _bvProxy.btnRemoveLogsOnClick();
+        }//if        
+
+        MenuHelper.OptionsClearSelection("ul_menu_layers");
+        MenuHelper.OptionsSetSelection("ul_menu_layers", 11);
+        _ui_layer_idx = 11;
+        PrefHelper.SetLayerUiIndexPref(11);
+        LayersHelper.UiLayers_OnChange();
+
+        if (_igProxyAir != null)
+        {
+            _igProxyAir.SetEnabled(_rt_ingest_enabled);
+        }//if
+        else
+        {
+            _igProxyAir = new IgProxy(map);
+        }//if
+    }//else if (meta is air)
+
+    PrefHelper.SetMetaContentIdxPref(_meta_content_idx);
+}
 
 function FinishLoadIfPossible()
 {
@@ -78,16 +142,16 @@ function LoadSafemap()
         FinishLoadIfPossible();
     };
     AList(s, "load", f);
-    s.src = "safemap_min.js?" + Date.now();
+    s.src = (!PLATFORM_IS_LOCAL ? "safemap_min.js?" : "safemap.js?") + Date.now();
     document.head.appendChild(s);
 }
 
 function LoadCSS()
 {
     var p = parseInt(localStorage.getItem("CSS_LAST_GET") || 0);
-    var u = Date.now() - p > 86400*1000 || PLATFORM_IS_TEST ? "?" + Date.now() : "";
+    var u = Date.now() - p > 86400*1000 || PLATFORM_IS_TEST || PLATFORM_IS_LOCAL ? "?" + Date.now() : "";
     var r = new XMLHttpRequest();
-    r.open("GET", "safemap_min.css" + u, true);
+    r.open("GET", (!PLATFORM_IS_LOCAL ? "safemap_min.css" : "safemap.css") + u, true);
     r.onreadystatechange = function() { 
         if (r.readyState != 4 || r.status != 200) return;
         var s = ElCr("style");
@@ -119,7 +183,7 @@ function ShowBrowserWarningWindowIfNeeded()
 
 function Init() 
 {
-    if (PLATFORM_IS_TEST) { document.title = "[TEST2] " + document.title; }
+    if (PLATFORM_IS_TEST || PLATFORM_IS_LOCAL) { document.title = (PLATFORM_IS_TEST ? "[TEST2] " : "[LOCAL] ") + document.title; }
     if (ShowBrowserWarningWindowIfNeeded()) return;
     _ls.ui = true;
     FinishLoadIfPossible();
@@ -449,11 +513,29 @@ if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i))
                 <td colspan="2" class="tsSliderTd">
                     <div id="tsSliderContainer">
                             
-                        <img id="tsTickImage" width="200" height="4" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAABCAQAAABa+zAVAAAAHUlEQVQoz2NgwANm/Z/1n4EEQGv1o24adRO93QQAPPkzIaB0ezEAAAAASUVORK5CYII=" />
-                        <!---- <img id="tsTickImage" width="200" height="4" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAABCAQAAABa+zAVAAAAG0lEQVQoz2NgwANm/Z/1n4FEMNz0jIbDyPYTAFCGL+/fhh8kAAAAAElFTkSuQmCC" /> 
-                        //-->
+                        <img id="tsTickImage" width="200" height="4" style="display:none;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAABCAQAAABa+zAVAAAAHUlEQVQoz2NgwANm/Z/1n4EEQGv1o24adRO93QQAPPkzIaB0ezEAAAAASUVORK5CYII=" />
                         <div id="tsSliderSubcontainer">
-                            <input type="range" id="tsSlider" value="13" min="13" max="28" step="1" onChange="TimeSliceUI.tsSlider_OnChange();">
+                            <input type="range" id="tsSlider" list="tsSliderList" value="13" min="13" max="30" step="1" onChange="TimeSliceUI.tsSlider_OnChange();">
+                            <datalist id="tsSliderList">
+                                <option>13</option>
+                                <option>14</option>
+                                <option>15</option>
+                                <option>16</option>
+                                <option>17</option>
+                                <option>18</option>
+                                <option>19</option>
+                                <option>20</option>
+                                <option>21</option>
+                                <option>22</option>
+                                <option>23</option>
+                                <option>24</option>
+                                <option>25</option>
+                                <option>26</option>
+                                <option>27</option>
+                                <option>28</option>
+                                <option>29</option>
+                                <option>30</option>
+                            </datalist>
                         </div>
                     </div>
                 </td>
