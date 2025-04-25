@@ -101,10 +101,8 @@ var RTVM = (function()
     
     RTVM.prototype.InitMarkersAsync = function()
     {
-        // 2019-02-08 ND: FIx for no CORS upon HTTP->HTTPS redirect on the server.  Always access via HTTPS now.     
-        var pre = "https://";
-        var url = this.rt_type == RTVM.RtType.SafecastRad ? pre + "realtime.safecast.org/wp-content/uploads/devices.json"
-                                                          : pre + "realtime.safecast.org/wp-content/uploads/devices.json";
+        // Direct access to tt.safecast.org/devices which should have proper CORS headers
+        var url = "https://tt.safecast.org/devices";
         this.GetJSONAsync(url);
     };
     
