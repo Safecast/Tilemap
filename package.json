@@ -1,0 +1,14 @@
+{
+  "name": "safecast-tilemap",
+  "version": "1.0.0",
+  "description": "Safecast Tilemap with API proxy",
+  "main": "proxy-server.js",
+  "scripts": {
+    "start": "node proxy-server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "http-proxy-middleware": "^2.0.1"
+  }
+}

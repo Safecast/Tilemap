@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safecast Map Debugger</title>
+    <script src="api-proxy.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #3a87ad;
+        }
+        button {
+            background-color: #3a87ad;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow: auto;
+            max-height: 300px;
+        }
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+        }
+        .device {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .radnote {
+            background-color: #ffe6e6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Safecast Map Debugger</h1>
+    
+    <button id="fetchData">Fetch Devices Data</button>
+    <button id="showMap">Show Map with Markers</button>
+    
+    <h2>Device Data</h2>
+    <pre id="dataOutput">Click "Fetch Devices Data" to see the API response</pre>
+    
+    <h2>Map</h2>
+    <div id="map"></div>
+    
+    <h2>Devices</h2>
+    <div id="devices"></div>
+    
+    <script>
+        // Store the devices data globally
+        let devicesData = [];
+        
+        // Fetch devices data from the API
+        document.getElementById('fetchData').addEventListener('click', function() {
+            const dataOutput = document.getElementById('dataOutput');
+            const devicesDiv = document.getElementById('devices');
+            
+            dataOutput.textContent = 'Fetching data from tt.safecast.org/devices...';
+            devicesDiv.innerHTML = '';
+            
+            fetch('/tt-api/devices')
+                .then(response => response.json())
+                .then(data => {
+                    devicesData = data;
+                    window._lastDevicesResponse = data; // Store for other scripts
+                    
+                    // Display data summary
+                    dataOutput.textContent = `Received ${data.length} devices\n\n`;
+                    dataOutput.textContent += `Sample device:\n${JSON.stringify(data[0], null, 2)}`;
+                    
+                    // Display devices
+                    displayDevices(data);
+                })
+                .catch(error => {
+                    dataOutput.textContent = `Error: ${error.message}`;
+                });
+        });
+        
+        // Display devices in the devices div
+        function displayDevices(data) {
+            const devicesDiv = document.getElementById('devices');
+            devicesDiv.innerHTML = '';
+            
+            // Find RadNote devices
+            const radnoteDevices = data.filter(device => 
+                device.product && device.product.includes('radnote')
+            );
+            
+            // Display RadNote devices
+            if (radnoteDevices.length > 0) {
+                const radnoteHeader = document.createElement('h3');
+                radnoteHeader.textContent = `RadNote Devices (${radnoteDevices.length})`;
+                devicesDiv.appendChild(radnoteHeader);
+                
+                radnoteDevices.slice(0, 5).forEach(device => {
+                    const deviceDiv = document.createElement('div');
+                    deviceDiv.className = 'device radnote';
+                    
+                    let html = `<h4>RadNote Device: ${device.device_urn || device.id}</h4>`;
+                    html += `<p><strong>Device Class:</strong> ${device.device_class || 'N/A'}</p>`;
+                    html += `<p><strong>Device ID:</strong> ${device.device || 'N/A'}</p>`;
+                    html += `<p><strong>Location:</strong> ${device.loc_lat || 'N/A'}, ${device.loc_lon || 'N/A'}</p>`;
+                    
+                    if (device.body) {
+                        html += `<p><strong>CPM:</strong> ${device.body.cpm || 'N/A'}</p>`;
+                        if (device.body.cpm) {
+                            const usvh = parseFloat(device.body.cpm) * 0.0057;
+                            html += `<p><strong>µSv/h (calculated):</strong> ${usvh.toFixed(4)}</p>`;
+                        }
+                    }
+                    
+                    html += `<p><strong>Last Updated:</strong> ${device.when_captured || device.updated || 'N/A'}</p>`;
+                    
+                    deviceDiv.innerHTML = html;
+                    devicesDiv.appendChild(deviceDiv);
+                });
+            }
+            
+            // Display regular devices
+            const regularDevices = data.filter(device => 
+                !(device.product && device.product.includes('radnote'))
+            );
+            
+            if (regularDevices.length > 0) {
+                const regularHeader = document.createElement('h3');
+                regularHeader.textContent = `Regular Devices (${regularDevices.length})`;
+                devicesDiv.appendChild(regularHeader);
+                
+                regularDevices.slice(0, 5).forEach(device => {
+                    const deviceDiv = document.createElement('div');
+                    deviceDiv.className = 'device';
+                    
+                    let html = `<h4>Device: ${device.device_urn || device.id}</h4>`;
+                    html += `<p><strong>Device Class:</strong> ${device.device_class || 'N/A'}</p>`;
+                    html += `<p><strong>Device ID:</strong> ${device.device || 'N/A'}</p>`;
+                    html += `<p><strong>Location:</strong> ${device.loc_lat || 'N/A'}, ${device.loc_lon || 'N/A'}</p>`;
+                    html += `<p><strong>Last Updated:</strong> ${device.when_captured || device.updated || 'N/A'}</p>`;
+                    
+                    deviceDiv.innerHTML = html;
+                    devicesDiv.appendChild(deviceDiv);
+                });
+            }
+        }
+        
+        // Initialize and show the map with markers
+        document.getElementById('showMap').addEventListener('click', function() {
+            if (devicesData.length === 0) {
+                alert('Please fetch devices data first!');
+                return;
+            }
+            
+            // Load Google Maps API
+            if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://maps.googleapis.com/maps/api/js?callback=initMap';
+                script.async = true;
+                script.defer = true;
+                document.head.appendChild(script);
+            } else {
+                initMap();
+            }
+        });
+        
+        // Initialize the map and add markers
+        function initMap() {
+            const mapDiv = document.getElementById('map');
+            
+            // Create the map centered on Tokyo
+            const map = new google.maps.Map(mapDiv, {
+                center: { lat: 35.6895, lng: 139.6917 },
+                zoom: 5
+            });
+            
+            // Add markers for each device
+            devicesData.forEach(device => {
+                if (device.loc_lat && device.loc_lon) {
+                    const lat = parseFloat(device.loc_lat);
+                    const lng = parseFloat(device.loc_lon);
+                    
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        // Create marker
+                        const marker = new google.maps.Marker({
+                            position: { lat, lng },
+                            map: map,
+                            title: device.device_urn || `Device ${device.device || device.id}`
+                        });
+                        
+                        // Create info window content
+                        let content = `<div style="max-width: 300px;">`;
+                        content += `<h3>${device.device_urn || `Device ${device.device || device.id}`}</h3>`;
+                        content += `<p><strong>Device Class:</strong> ${device.device_class || 'N/A'}</p>`;
+                        
+                        if (device.product && device.product.includes('radnote')) {
+                            if (device.body && device.body.cpm) {
+                                const cpm = parseFloat(device.body.cpm);
+                                const usvh = cpm * 0.0057;
+                                content += `<p><strong>CPM:</strong> ${cpm}</p>`;
+                                content += `<p><strong>µSv/h:</strong> ${usvh.toFixed(4)}</p>`;
+                            }
+                        } else if (device.usvh) {
+                            content += `<p><strong>µSv/h:</strong> ${device.usvh}</p>`;
+                        }
+                        
+                        content += `<p><strong>Last Updated:</strong> ${device.when_captured || device.updated || 'N/A'}</p>`;
+                        content += `</div>`;
+                        
+                        // Create info window
+                        const infoWindow = new google.maps.InfoWindow({
+                            content: content
+                        });
+                        
+                        // Add click listener to show info window
+                        marker.addListener('click', () => {
+                            infoWindow.open(map, marker);
+                        });
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
