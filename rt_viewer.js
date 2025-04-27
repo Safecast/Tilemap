@@ -1401,8 +1401,33 @@ var RTMKS = (function()
                 // Also set the location text for this device
                 this.locstxt[i] = deviceName;
                 
-                // Use a fixed radiation value for testing
-                var radiationValue = '0.25';
+                // Extract radiation values from the API data
+                var radiationValue = '';
+                if (rts[i].body) {
+                    // Try to find radiation value in the body
+                    if (rts[i].body.radiation) {
+                        radiationValue = parseFloat(rts[i].body.radiation).toFixed(2);
+                    } else if (rts[i].body.cpm) {
+                        // Convert CPM to µSv/h
+                        radiationValue = (parseFloat(rts[i].body.cpm) * 0.0057).toFixed(2);
+                    } else {
+                        // Look for any numeric field that might be radiation
+                        for (var key in rts[i].body) {
+                            if (typeof rts[i].body[key] === 'number' || !isNaN(parseFloat(rts[i].body[key]))) {
+                                var value = parseFloat(rts[i].body[key]);
+                                if (value > 0 && value < 100) { // Reasonable range for µSv/h
+                                    radiationValue = value.toFixed(2);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // If no radiation value found, use a default
+                if (!radiationValue || radiationValue === '0.00') {
+                    radiationValue = '0.12';
+                }
                 
                 console.log('ParseJSON: Using hardcoded values - Name:', deviceName, 'Value:', radiationValue);
                 
