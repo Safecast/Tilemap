@@ -1114,10 +1114,46 @@ var RTMKS = (function()
                 times.push(this.times[i]);
                 dres.push(this.dres[i].toFixed(2));
                 cpms.push(this.cpms[i]);
+                
+                // Debug what's in the imgtxt
+                console.log('DEBUG - GetInfoWindowContentForId - imgtxt for marker', i, ':', this.imgtxt[i]);
+                try {
+                    var imgData = JSON.parse(this.imgtxt[i]);
+                    console.log('DEBUG - Parsed imgtxt:', imgData);
+                } catch (e) {
+                    console.log('DEBUG - Not JSON data in imgtxt');
+                }
             }//if
         }//for
                  
-        return RTMKS.GetInfoWindowHtmlForParams(this.locstxt[idx], imgs, ids, times, urls, dres, cpms, fontcss);
+        // DIRECT FIX: Override the location name for all devices
+        var locationName = 'Device ' + ids[0];
+        
+        // Try to get device_urn from the JSON data
+        if (imgs.length > 0) {
+            try {
+                var imgData = JSON.parse(imgs[0]);
+                console.log('DEBUG - Popup data:', imgData);
+                
+                if (imgData.device_urn) {
+                    var parts = imgData.device_urn.split(':');
+                    if (parts.length > 1) {
+                        // Format as 'geigiecast 61099' - keep the original case
+                        locationName = parts[0] + ' ' + parts[1];
+                        console.log('DEBUG - Setting device name to:', locationName);
+                    } else {
+                        locationName = imgData.device_urn;
+                    }
+                } else if (imgData.device_class) {
+                    locationName = imgData.device_class + ' ' + ids[0];
+                }
+            } catch (e) {
+                console.log('DEBUG - Error parsing JSON:', e);
+            }
+        }
+        
+        console.log('DEBUG - Final location name:', locationName);
+        return RTMKS.GetInfoWindowHtmlForParams(locationName, imgs, ids, times, urls, dres, cpms, fontcss);
     };
     
     RTMKS.prototype.AttachInfoWindow = function(marker)
@@ -1385,21 +1421,49 @@ var RTMKS = (function()
                 // For RadNote devices, use a simple approach with hardcoded text
                 console.log('ParseJSON: RadNote device data:', rts[i]);
                 
-                // Create a simple device name from the device_urn
+                // Create a simple device name using device_class and device fields
                 var deviceName = '';
-                if (rts[i].device_urn) {
+                
+                // Prioritize using device_class and device fields
+                if (rts[i].device_class && rts[i].device) {
+                    deviceName = rts[i].device_class + ' ' + rts[i].device;
+                    console.log('Created device name from device_class and device:', deviceName);
+                } 
+                // Fallback to device_urn if available
+                else if (rts[i].device_urn) {
+                    console.log('DEVICE_URN for device', i, ':', rts[i].device_urn);
+                    
                     var parts = rts[i].device_urn.split(':');
                     if (parts.length > 1) {
-                        deviceName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1) + ' ' + parts[1];
+                        deviceName = parts[0] + ' ' + parts[1];
+                        console.log('Created device name from URN:', deviceName);
                     } else {
-                        deviceName = 'RadNote Device ' + rts[i].id;
+                        deviceName = rts[i].device_urn;
                     }
-                } else {
-                    deviceName = 'RadNote Device ' + rts[i].id;
+                } 
+                // Use device_class with id if only device_class is available
+                else if (rts[i].device_class) {
+                    deviceName = rts[i].device_class + ' ' + rts[i].id;
+                } 
+                // Last resort, use just the ID
+                else {
+                    deviceName = 'device ' + rts[i].id;
                 }
                 
-                // Also set the location text for this device
-                this.locstxt[i] = deviceName;
+                // FINAL FIX: Set the location text for this device - this is what's displayed in the popup title
+                // Prefer device_class + device, then device_urn, then fallback
+                if (rts[i].device_class && rts[i].device) {
+                    this.locstxt[i] = rts[i].device_class + ' ' + rts[i].device;
+                } else if (rts[i].device_urn) {
+                    var parts = rts[i].device_urn.split(':');
+                    if (parts.length > 1) {
+                        this.locstxt[i] = parts[0] + ' ' + parts[1];
+                    } else {
+                        this.locstxt[i] = 'Device ' + rts[i].id;
+                    }
+                } else {
+                    this.locstxt[i] = 'Device ' + rts[i].id;
+                }
                 
                 // Extract radiation values from the API data
                 var radiationValue = '';
@@ -1432,13 +1496,17 @@ var RTMKS = (function()
                 console.log('ParseJSON: Using hardcoded values - Name:', deviceName, 'Value:', radiationValue);
                 
                 // Store these values directly in the image text
+                var deviceUrn = rts[i].device_urn || '';
+                console.log('DEBUG - Storing device_urn in imgtxt:', deviceUrn);
+                
                 imgtxt[i] = JSON.stringify({
                     device_urn: rts[i].device_urn || '',
                     device_class: rts[i].device_class || '',
-                    when_captured: rts[i].when_captured || rts[i].updated || '',
-                    location: deviceName,
-                    value: radiationValue
+                    location: rts[i].location || rts[i].device_class && rts[i].device_urn ? (rts[i].device_class + ' ' + (rts[i].device_urn.split(':')[1] || '')) : (rts[i].device_urn || ''),
+                    value: (typeof rts[i].value !== 'undefined' && rts[i].value !== null && rts[i].value !== '') ? rts[i].value : (typeof rts[i].dres !== 'undefined' && rts[i].dres !== null ? rts[i].dres : '')
                 });
+                console.log('DEBUG imgtxt[' + i + ']:', imgtxt[i]);
+                console.log('DEBUG - JSON string stored in imgtxt:', imgtxt[i]);
             } else {
                 // For regular devices
                 cpms[i] = parseFloat(rts[i].cpm || 0);
@@ -1596,36 +1664,69 @@ var RTMKS = (function()
         });
 
         // Always use a meaningful location name
-        var displayLocation;
-        if (locations[0] && locations[0].length > 0 && locations[0] !== 'Unknown') {
-            // Use the location from our locations array if it exists and is not 'Unknown'
-            displayLocation = locations[0];
-        } else if (device_urns[0] && device_urns[0].length > 0) {
-            // If no valid location, create one from the device_urn
-            var parts = device_urns[0].split(':');
-            if (parts.length > 1) {
-                displayLocation = parts[0].charAt(0).toUpperCase() + parts[0].slice(1) + ' ' + parts[1];
-            } else {
-                displayLocation = device_urns[0];
+        console.log('DEBUG - Location options:', {
+            locations: locations,
+            device_urns: device_urns,
+            device_classes: device_classes,
+            loc: loc
+        });
+        
+        // Always use the JSON 'location' field if available, else fallback to device_class + device number, else fallback to device_urn, else fallback to id
+        var displayLocation = '';
+        try {
+            var deviceInfo = imgs[0] ? JSON.parse(imgs[0]) : null;
+            if (deviceInfo && typeof deviceInfo === 'object') {
+                if (deviceInfo.location && deviceInfo.location.length > 0 && deviceInfo.location !== 'Unknown') {
+                    displayLocation = deviceInfo.location;
+                } else if (deviceInfo.device_class && deviceInfo.device_urn) {
+                    var deviceNumber = deviceInfo.device_urn.split(':')[1] || '';
+                    if (deviceNumber) {
+                        displayLocation = deviceInfo.device_class + ' ' + deviceNumber;
+                    } else {
+                        displayLocation = deviceInfo.device_class;
+                    }
+                } else if (deviceInfo.device_urn && deviceInfo.device_urn.length > 0) {
+                    var parts = deviceInfo.device_urn.split(':');
+                    if (parts.length > 1) {
+                        displayLocation = parts[0] + ' ' + parts[1];
+                    } else {
+                        displayLocation = deviceInfo.device_urn;
+                    }
+                }
             }
-        } else if (device_classes[0] && device_classes[0].length > 0) {
-            // If no device_urn, use device_class
-            displayLocation = device_classes[0].charAt(0).toUpperCase() + device_classes[0].slice(1) + ' Device';
-        } else {
-            // Fallback to a generic name
-            displayLocation = 'Safecast Device';
+        } catch (e) {
+            displayLocation = '';
         }
-        console.log('Using display location:', displayLocation);
-
+        // Fallbacks if displayLocation is still empty
+        if (!displayLocation || displayLocation === 'Unknown') {
+            if (device_classes[0] && device_urns[0]) {
+                var deviceNumber = device_urns[0].split(':')[1] || '';
+                displayLocation = device_classes[0] + (deviceNumber ? (' ' + deviceNumber) : '');
+            } else if (device_classes[0]) {
+                displayLocation = device_classes[0];
+            } else if (device_urns[0]) {
+                var parts = device_urns[0].split(':');
+                if (parts.length > 1) {
+                    displayLocation = parts[0] + ' ' + parts[1];
+                } else {
+                    displayLocation = device_urns[0];
+                }
+            } else {
+                displayLocation = ids[0] ? 'Device ' + ids[0] : 'Unknown Device';
+            }
+        }
+        console.log('DEBUG - Final display location:', displayLocation);
+        
         html += "<tr>";
         html += "<td colspan=2 style='text-align:center; font-size:16px;'>";
-        html += (!mini ? "<span style='padding-left:15px;'>" : "")
-             +  displayLocation
-             +  (!mini ? "</span>" : "");
-        html += "</td>";
-        html += "</tr>";
         
-        for (var i=0; i<ids.length; i++)
+        // Use the display location as the title
+        html += (!mini ? "<span style='padding-left:15px;'>" : "")
+              + displayLocation
+              + (!mini ? "</span>" : "");
+        html += "</td></tr>";
+        
+        for (var i=0; i<1; i++)
         {
             var elapsedtxt = RTMKS.GetElapsedTimeText(unixSSs[i]);
             
@@ -1674,50 +1775,53 @@ var RTMKS = (function()
             
             html += "<tr>";
             html += "<td style='text-align:center; padding-top:10px; width:" + (tblw >>> 1) + "px;'>";
-            // Just use the value directly from our values array
-            var displayValue = values[i] || '0.25';
-            console.log('Using display value:', displayValue);
-            
-            console.log('GetInfoWindowHtmlForParams: Radiation value options:', { 
-                values: values[i], 
-                dres: dres[i], 
-                displayValue: displayValue
-            });
-            
-            html += "<span title='" + cpms[i] + " CPM'>"
-                 +  (!mini ? "<span style='padding-left:55px;'>" : "")
-                 +  "<span style='font-size:14px;'>"
-                 +  displayValue
-                 +  "</span>"
-                 +  "<span style='font-weight:lighter; font-size:12px;'>"
-                 +  " \u00B5" + "Sv/h"
-                 +  "</span>"
-                 +  (!mini ? "</span>" : "");
+            // Always use the value from the JSON if available, fallback to dres[i]
+            var displayValue = '';
+            try {
+                var deviceInfo = imgs[i] ? JSON.parse(imgs[i]) : null;
+                if (deviceInfo && typeof deviceInfo === 'object' && deviceInfo.value !== undefined && deviceInfo.value !== null && deviceInfo.value !== '') {
+                    displayValue = String(deviceInfo.value);
+                } else if (values[i] && values[i] !== '') {
+                    displayValue = String(values[i]);
+                } else if (dres[i] !== undefined && dres[i] !== null) {
+                    displayValue = String(dres[i]);
+                } else {
+                    displayValue = '0.25';
+                }
+            } catch (e) {
+                displayValue = values[i] || '0.25';
+            }
+            console.log('DEBUG - Using display value:', displayValue);
+            // Add the radiation value
+            html += "<span title='" + cpms[i] + " CPM'>";
+            html += (!mini ? "<span style='padding-left:15px;'>" : "");
+            html += "<span style='font-size:14px;'>" + displayValue + "</span>";
+            html += "<span style='font-weight:lighter; font-size:12px;'> µSv/h</span>";
+            html += (!mini ? "</span>" : "");
             html += "</span>";
             html += "</td>";
             
-            // Detail: Last Updated
-            
-            var d     = new Date(parseFloat(unixSSs[i]) * 1000.0);
-            var sdate = d.toISOString().substring( 0, 10);
-            var stime = d.toISOString().substring(11, 16);
-            
-                 +  "</span>";
+            // Add the last updated time
+            html += "<td style='text-align:center; padding-top:10px;'>";
+            try {
+                var elapsedText = RTMKS.GetElapsedTimeText(nowSS - unixSSs[i], jpago);
+                // If it's an object, use .text
+                if (typeof elapsedText === 'object' && elapsedText.text) {
+                    elapsedText = elapsedText.text;
+                }
+                if (typeof elapsedText !== 'string') {
+                    elapsedText = String(elapsedText);
+                }
+                html += "<span style='font-size:12px;'>" + elapsedText + "</span>";
+            } catch (e) {
+                html += "<span style='font-size:12px;'>Unknown</span>";
+                // console.log('Error getting elapsed time:', e);
+            }
             html += "</td>";
-            
             html += "</tr>";
             
-            // Detail: Chart
-            
-            // Completely remove the image display section for all devices
-            // No images will be displayed
-            
-            // Detail: External Link
-            
-            html += "<tr"
-                 +  (i < ids.length - 1 ? " style='border-bottom:1px solid gainsboro;'" : "")
-                 +  ">";
-
+            // Add the more info link
+            html += "<tr>";
             html += "<td colspan=2 style='line-height:20px;'>";
             html += "<a style='color:rgb(66,114,219);font-size:12px;text-decoration:none;vertical-align:bottom;'"
                  +  " href='" + linkurls[i] + "' target=_blank>"

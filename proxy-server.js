@@ -42,20 +42,29 @@ app.use('/tt-api', createProxyMiddleware({
     
     // Log response body for debugging
     if (req.path === '/devices') {
-      let responseBody = '';
-      proxyRes.on('data', (chunk) => {
-        responseBody += chunk;
+      let responseBody = [];
+      proxyRes.on('data', function (chunk) {
+        responseBody.push(chunk);
       });
-      proxyRes.on('end', () => {
-        console.log('Devices Response Body Length:', responseBody.length);
-        console.log('Devices Response Body (truncated):', responseBody.substring(0, 100) + '...');
-        
-        // Log a sample RadNote device if found
+      proxyRes.on('end', function () {
         try {
+          responseBody = Buffer.concat(responseBody).toString();
+          console.log('DEBUG - Original API response headers:', proxyRes.headers);
+          console.log('DEBUG - Original API response body:', responseBody.substring(0, 500) + (responseBody.length > 500 ? '...' : ''));
+          
           const data = JSON.parse(responseBody);
-          const radnoteDevice = data.find(d => d.product && d.product.includes('radnote'));
-          if (radnoteDevice) {
-            console.log('Sample RadNote Device:', JSON.stringify(radnoteDevice, null, 2));
+          if (Array.isArray(data) && data.length > 0) {
+            console.log('DEBUG - First device full structure:', JSON.stringify(data[0], null, 2));
+            
+            // Check for required popup fields
+            const sampleDevice = data[0];
+            console.log('DEBUG - Popup relevant fields:', {
+              device_urn: sampleDevice.device_urn,
+              device_class: sampleDevice.device_class,
+              location: sampleDevice.location,
+              value: sampleDevice.value,
+              dres: sampleDevice.dres
+            });
           }
         } catch (e) {
           console.error('Error parsing response:', e);
