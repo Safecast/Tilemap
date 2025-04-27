@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safecast Popup Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #3a87ad;
+        }
+        button {
+            background-color: #3a87ad;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        #results {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 500px;
+            overflow: auto;
+        }
+        .popup {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            max-width: 400px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <h1>Safecast Popup Debug</h1>
+    <button id="testButton">Test Popup Display</button>
+    <div id="results">Results will appear here...</div>
+    <div id="popup" class="popup"></div>
+
+    <script>
+        // Load the rt_viewer.js file to access its functions
+        function loadScript(url, callback) {
+            var script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = url;
+            script.onload = callback;
+            document.head.appendChild(script);
+        }
+
+        // Test the popup display with sample data
+        document.getElementById('testButton').addEventListener('click', function() {
+            const resultsDiv = document.getElementById('results');
+            const popupDiv = document.getElementById('popup');
+            
+            resultsDiv.textContent = 'Fetching data from tt.safecast.org/devices...';
+            
+            fetch('/tt-api/devices')
+                .then(response => {
+                    resultsDiv.textContent += `\nResponse status: ${response.status}`;
+                    return response.json();
+                })
+                .then(data => {
+                    resultsDiv.textContent += `\nReceived ${data.length} devices`;
+                    
+                    // Find a geigiecast device to test with
+                    let testDevice = data.find(device => 
+                        device.device_class === 'geigiecast' || device.device_class === 'pointcast'
+                    );
+                    
+                    if (!testDevice) {
+                        testDevice = data[0]; // Fallback to first device
+                    }
+                    
+                    resultsDiv.textContent += `\n\nTest device:`;
+                    resultsDiv.textContent += `\n${JSON.stringify(testDevice, null, 2)}`;
+                    
+                    // Create a mock popup using the device data
+                    let html = `<h3>${testDevice.device_class} ${testDevice.device}</h3>`;
+                    
+                    // Extract radiation value
+                    let radiationValue = null;
+                    if (testDevice.lnd_7318u !== undefined) {
+                        radiationValue = parseFloat(testDevice.lnd_7318u) / 1000; // Convert to µSv/h
+                        radiationValue = radiationValue.toFixed(2);
+                    }
+                    
+                    html += `<div style="text-align:center; font-size:18px;">
+                        <span style="font-size:24px;">${radiationValue}</span>
+                        <span style="font-weight:lighter; font-size:16px;"> µSv/h</span>
+                    </div>`;
+                    
+                    html += `<div style="text-align:center; font-size:12px; color:#666;">
+                        years
+                    </div>`;
+                    
+                    html += `<div style="text-align:center; margin-top:10px;">
+                        <a href="#" style="color:#3a87ad; text-decoration:none;">詳細 · more info</a>
+                    </div>`;
+                    
+                    popupDiv.innerHTML = html;
+                })
+                .catch(error => {
+                    resultsDiv.textContent += `\nError: ${error.message}`;
+                });
+        });
+    </script>
+</body>
+</html>

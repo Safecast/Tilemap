@@ -19,7 +19,6 @@ app.use('/api', createProxyMiddleware({
   pathRewrite: {
     '^/api': ''
   },
-  logLevel: 'debug',
   onProxyRes: function(proxyRes, req, res) {
     // Add CORS headers to the proxied response
     proxyRes.headers['Access-Control-Allow-Origin'] = '*';
@@ -28,14 +27,13 @@ app.use('/api', createProxyMiddleware({
   }
 }));
 
-// Realtime sensor proxy middleware options
-const realtimeSensorProxyOptions = {
+// Create a proxy for tt.safecast.org requests
+app.use('/tt-api', createProxyMiddleware({
   target: 'https://tt.safecast.org',
   changeOrigin: true,
   pathRewrite: {
     '^/tt-api': ''
   },
-  logLevel: 'debug',
   onProxyReq: (proxyReq, req, res) => {
     console.log('Realtime Sensor Request:', req.method, req.path);
   },
@@ -78,22 +76,15 @@ const realtimeSensorProxyOptions = {
       });
     }
   }
-};
-
-// Create the proxies
-const apiProxy = createProxyMiddleware(apiProxyOptions);
-const realtimeSensorProxy = createProxyMiddleware(realtimeSensorProxyOptions);
-
-// Mount the proxies
-app.use('/api', apiProxy);
-app.use('/tt-api', realtimeSensorProxy);
+}));
 
 // Fallback - serve index.html for any other request
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-const PORT = process.env.PORT || 8010;
+// Start the server
+const PORT = 8010;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

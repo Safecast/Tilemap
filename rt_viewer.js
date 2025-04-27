@@ -1518,8 +1518,16 @@ var RTMKS = (function()
                     dres[i] = cpms[i] * 0.0057; // Standard conversion factor
                 }
                 
-                // Use standard image URL
-                imgtxt[i] = "http://107.161.164.166/plots_new/out/" + rts[i].id + "_640x400.png";
+                // Store device information in JSON format for the popup
+                imgtxt[i] = JSON.stringify({
+                    id: rts[i].id || '',
+                    device_urn: rts[i].device_urn || '',
+                    device_class: rts[i].device_class || '',
+                    location: rts[i].location || 'Device ' + rts[i].id,
+                    value: (rts[i].value || (rts[i].dres ? rts[i].dres.toFixed(2) : '0.05')),
+                    when_captured: rts[i].when_captured || rts[i].updated || ''
+                });
+                console.log('DEBUG - Stored JSON data in imgtxt[' + i + ']:', imgtxt[i]);
             }
             
             // Set ID
