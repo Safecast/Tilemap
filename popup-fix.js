@@ -263,8 +263,11 @@
       // Store the original onchange handler if it exists
       const originalOnChange = radiationSensorsSwitch.onchange;
       
-      // Override the onchange handler
-      radiationSensorsSwitch.onchange = function(event) {
+      // Remove any existing event listeners to avoid duplicates
+      radiationSensorsSwitch.removeEventListener('change', window.radiationSensorChangeHandler);
+      
+      // Create a new change handler function
+      window.radiationSensorChangeHandler = function(event) {
         // Update our global state
         window.radiationSensorsEnabled = this.checked;
         console.log('Radiation sensors toggled to:', window.radiationSensorsEnabled);
@@ -278,10 +281,17 @@
         }, 50);
         
         // Call the original onchange handler if it exists
-        if (originalOnChange) {
-          originalOnChange.call(this, event);
+        if (originalOnChange && typeof originalOnChange === 'function') {
+          try {
+            originalOnChange.call(radiationSensorsSwitch, event);
+          } catch(e) {
+            console.error('Error calling original change handler:', e);
+          }
         }
       };
+      
+      // Add the event listener
+      radiationSensorsSwitch.addEventListener('change', window.radiationSensorChangeHandler);
       
       console.log('Successfully hooked into Radiation Sensors switch');
     } else {
@@ -294,8 +304,9 @@
   window.toggleRadiationSensors = function() {
     console.log('Toggling radiation sensors visibility: ' + (window.radiationSensorsEnabled ? 'enabled' : 'disabled'));
     
-    // Clear existing markers
+    // Always clear existing markers first
     if (window.allMarkers && window.allMarkers.length > 0) {
+      console.log('Clearing existing markers:', window.allMarkers.length);
       for (var i = 0; i < window.allMarkers.length; i++) {
         if (window.allMarkers[i].marker) {
           window.allMarkers[i].marker.setMap(null);
@@ -309,8 +320,13 @@
     
     // Reload markers if enabled
     if (window.radiationSensorsEnabled) {
-      fetchRealSensorData();
+      console.log('Radiation sensors enabled, fetching data...');
+      // Use a slight delay to ensure UI updates first
+      setTimeout(function() {
+        fetchRealSensorData();
+      }, 100);
     } else {
+      console.log('Radiation sensors disabled, hiding spinner...');
       // If disabled, hide the spinner after a short delay
       setTimeout(hideSpinner, 500);
     }
@@ -318,6 +334,7 @@
     // Update the switch state if needed
     const radiationSwitch = findRadiationSensorsSwitch();
     if (radiationSwitch && radiationSwitch.checked !== window.radiationSensorsEnabled) {
+      console.log('Updating switch state to match:', window.radiationSensorsEnabled);
       radiationSwitch.checked = window.radiationSensorsEnabled;
     }
   };
@@ -400,6 +417,19 @@
     }
     
     console.log('Fetching real sensor data from API...');
+    
+    // Make sure any previous data is cleared
+    if (window.allMarkers && window.allMarkers.length > 0) {
+      for (var i = 0; i < window.allMarkers.length; i++) {
+        if (window.allMarkers[i].marker) {
+          window.allMarkers[i].marker.setMap(null);
+        }
+        if (window.allMarkers[i].recentCircle) {
+          window.allMarkers[i].recentCircle.setMap(null);
+        }
+      }
+      window.allMarkers = [];
+    }
     
     // Show the loading spinner while fetching data
     showSpinner();
