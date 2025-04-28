@@ -93,9 +93,25 @@ const ttApiProxy = createProxyMiddleware({
   }
 });
 
+// Create a proxy for the S3 tile server
+const s3TileProxy = createProxyMiddleware({
+  target: 'https://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/s3-tiles': '' // remove /s3-tiles prefix
+  },
+  logLevel: 'debug',
+  secure: true,
+  onProxyReq: (proxyReq, req, res) => {
+    // Log the request URL
+    console.log('S3 Tile Request:', req.method, req.url);
+  }
+});
+
 // Mount the proxies
 app.use('/api', apiProxy);
 app.use('/tt-api', ttApiProxy);
+app.use('/s3-tiles', s3TileProxy);
 
 // Fallback - serve index.html for any other request
 app.get('*', (req, res) => {
