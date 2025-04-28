@@ -46,15 +46,6 @@
       // Process tube data if available
       if (tubeTypes && tubeTypes.length > 0 && cpms && cpms.length > 0) {
         hasTubeData = true;
-        // Check if cpms is a nested array and flatten it if needed
-        if (Array.isArray(cpms[0])) {
-          cpms = cpms[0];
-        }
-        // Check if tubeTypes is a nested array and flatten it if needed
-        if (Array.isArray(tubeTypes[0])) {
-          tubeTypes = tubeTypes[0];
-        }
-        
         for (let i = 0; i < tubeTypes.length; i++) {
           if (i < cpms.length) {
             tubeData[tubeTypes[i]] = cpms[i];
@@ -157,57 +148,24 @@
       // Show CPM values if available
       if (hasTubeData) {
         html += "<div style='font-size:13px; margin-top:5px;'>CPM</div>";
-        
-        // Handle case where tubeTypes and cpms are arrays
-        if (Array.isArray(tubeTypes) && Array.isArray(cpms)) {
-          // If tubeTypes is a nested array, flatten it
-          const flatTubeTypes = Array.isArray(tubeTypes[0]) ? tubeTypes[0] : tubeTypes;
-          // If cpms is a nested array, flatten it
-          const flatCpms = Array.isArray(cpms[0]) ? cpms[0] : cpms;
+        for (let tubeType in tubeData) {
+          var tubeValue = tubeData[tubeType];
+          var conversionFactor = 0.0057; // Default conversion factor
           
-          for (let i = 0; i < flatTubeTypes.length; i++) {
-            if (i < flatCpms.length) {
-              const tubeType = flatTubeTypes[i];
-              const tubeValue = flatCpms[i];
-              var conversionFactor = 0.0057; // Default conversion factor
-              
-              // Different tube types require different conversion factors
-              if (tubeType === 'lnd_7318u') {
-                conversionFactor = 0.0024; // Corrected from 0.0057 to 0.0024 for LND-7318
-              } else if (tubeType === 'lnd_7128ec') {
-                conversionFactor = 0.0063; // Keeping original value as no specific info found
-              } else if (tubeType === 'lnd_712u') {
-                conversionFactor = 0.0081; // Corrected from 0.0051 to 0.0081 for LND-712
-              } else if (tubeType === 'lnd_7318c') {
-                conversionFactor = 0.0059; // Keeping original value as no specific info found
-              }
-              
-              var usvhValue = (tubeValue * conversionFactor).toFixed(3);
-              
-              html += "<div style='font-size:13px; margin-top:3px;'>" + tubeType + ": " + tubeValue + " CPM (" + usvhValue + " \u00b5Sv/h)</div>";
-            }
+          // Different tube types require different conversion factors
+          if (tubeType === 'lnd_7318u') {
+            conversionFactor = 0.0024; // Corrected from 0.0057 to 0.0024 for LND-7318
+          } else if (tubeType === 'lnd_7128ec') {
+            conversionFactor = 0.0063; // Keeping original value as no specific info found
+          } else if (tubeType === 'lnd_712u') {
+            conversionFactor = 0.0081; // Corrected from 0.0051 to 0.0081 for LND-712
+          } else if (tubeType === 'lnd_7318c') {
+            conversionFactor = 0.0059; // Keeping original value as no specific info found
           }
-        } else {
-          // Handle case where tubeData is an object
-          for (let tubeType in tubeData) {
-            var tubeValue = tubeData[tubeType];
-            var conversionFactor = 0.0057; // Default conversion factor
-            
-            // Different tube types require different conversion factors
-            if (tubeType === 'lnd_7318u') {
-              conversionFactor = 0.0024; // Corrected from 0.0057 to 0.0024 for LND-7318
-            } else if (tubeType === 'lnd_7128ec') {
-              conversionFactor = 0.0063; // Keeping original value as no specific info found
-            } else if (tubeType === 'lnd_712u') {
-              conversionFactor = 0.0081; // Corrected from 0.0051 to 0.0081 for LND-712
-            } else if (tubeType === 'lnd_7318c') {
-              conversionFactor = 0.0059; // Keeping original value as no specific info found
-            }
-            
-            var usvhValue = (tubeValue * conversionFactor).toFixed(3);
-            
-            html += "<div style='font-size:13px; margin-top:3px;'>" + tubeType + ": " + tubeValue + " CPM (" + usvhValue + " \u00b5Sv/h)</div>";
-          }
+          
+          var usvhValue = (tubeValue * conversionFactor).toFixed(3);
+          
+          html += "<div style='font-size:13px; margin-top:3px;'>" + tubeType + ": " + tubeValue + " CPM (" + usvhValue + " \u00b5Sv/h)</div>";
         }
       } else if (cpms && cpms.length > 0) {
         html += "<div style='font-size:13px; margin-top:3px;'>" + cpms[0] + " CPM</div>";
@@ -389,41 +347,33 @@
       var tubeData = {};
       var tubeTypes = [];
       var cpmValues = [];
-      var totalConvertedValue = 0;
-      var tubeCount = 0;
+      var highestValue = 0;
       
       // Check for tube data
       if (device.lnd_7318u) {
         tubeData['lnd_7318u'] = device.lnd_7318u;
         tubeTypes.push('lnd_7318u');
         cpmValues.push(device.lnd_7318u);
-        totalConvertedValue += device.lnd_7318u * 0.0024; // Corrected conversion factor
-        tubeCount++;
+        highestValue = Math.max(highestValue, device.lnd_7318u * 0.0024); // Corrected conversion factor
       }
       if (device.lnd_7128ec) {
         tubeData['lnd_7128ec'] = device.lnd_7128ec;
         tubeTypes.push('lnd_7128ec');
         cpmValues.push(device.lnd_7128ec);
-        totalConvertedValue += device.lnd_7128ec * 0.0063; // Original conversion factor
-        tubeCount++;
+        highestValue = Math.max(highestValue, device.lnd_7128ec * 0.0063); // Original conversion factor
       }
       if (device.lnd_712u) {
         tubeData['lnd_712u'] = device.lnd_712u;
         tubeTypes.push('lnd_712u');
         cpmValues.push(device.lnd_712u);
-        totalConvertedValue += device.lnd_712u * 0.0081; // Corrected conversion factor
-        tubeCount++;
+        highestValue = Math.max(highestValue, device.lnd_712u * 0.0081); // Corrected conversion factor
       }
       if (device.lnd_7318c) {
         tubeData['lnd_7318c'] = device.lnd_7318c;
         tubeTypes.push('lnd_7318c');
         cpmValues.push(device.lnd_7318c);
-        totalConvertedValue += device.lnd_7318c * 0.0059; // Original conversion factor
-        tubeCount++;
+        highestValue = Math.max(highestValue, device.lnd_7318c * 0.0059); // Original conversion factor
       }
-      
-      // Calculate average value
-      var averageValue = tubeCount > 0 ? totalConvertedValue / tubeCount : 0;
       
       // Check if the measurement is recent (within 4 hours)
       var isRecent = false;
@@ -520,7 +470,7 @@
       marker.tubeData = tubeData;
       marker.tubeTypes = tubeTypes;
       marker.cpmValues = cpmValues;
-      marker.averageValue = averageValue.toFixed(3);
+      marker.highestValue = highestValue.toFixed(3);
       
       // Add click event to show info window
       marker.addListener('click', function() {
@@ -546,9 +496,8 @@
             title = 'Unknown Device';
           }
           
-          // Calculate the average value from all tubes
-          var totalConvertedValue = 0;
-          var tubeCount = 0;
+          // Calculate the highest value properly
+          var highestValue = 0;
           var cpmValuesWithConversions = [];
           
           if (marker.tubeData) {
@@ -573,18 +522,12 @@
                 cpm: tubeValue,
                 usvh: convertedValue.toFixed(3)
               });
-              
-              // Add to total for averaging
-              totalConvertedValue += convertedValue;
-              tubeCount++;
+              highestValue = Math.max(highestValue, convertedValue);
             }
           }
           
-          // Calculate average value (or 0 if no tubes)
-          var averageValue = tubeCount > 0 ? totalConvertedValue / tubeCount : 0;
-          
-          // Format the average value for display
-          var displayValue = averageValue.toFixed(3);
+          // Format the value for display
+          highestValue = highestValue.toFixed(3);
           
           // Store the converted values with the marker for use in the popup
           marker.cpmValuesWithConversions = cpmValuesWithConversions;
@@ -596,9 +539,9 @@
             [device.loc_lon || ''], // lons
             [device.device_urn || ''], // device_urns
             [device.device_class || ''], // device_classes
-            cpmValues, // cpms (array of CPM values)
-            [displayValue], // values (converted to µSv/h)
-            tubeTypes, // tube types
+            [cpmValues], // cpms (array of CPM values)
+            [highestValue], // values (converted to µSv/h)
+            [tubeTypes], // tube types
             [new Date(device.when_captured).getTime() / 1000], // unixSSs
             [JSON.stringify(device)], // locations_info
             0, // i

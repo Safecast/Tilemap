@@ -1163,17 +1163,11 @@ var ClientZoomHelper = (function()
     //       However, as of 2016-12-21, S3 is still using HTTP/1.1 with no ETA for HTTP/2.
     // 
     var _GetUrlTemplateForS3Bucket = function(isJ, isS, us_bucket_prefix)
-    {
-        var pre    = isS ? "https://" : "http://";
-        var bucket = us_bucket_prefix + (isJ ? "jp" : "") + ".safecast.org";
-        var sub    = !isS ? bucket + "." : "";
-        var domain = isJ ? "s3-ap-northeast-1.amazonaws.com"
-                   :       "s3.amazonaws.com";
-        var path   = isS ? "/" + bucket : "";
-        var url    = pre + sub + domain + path + "/{z}/{x}/{y}.png";
-
-        return url;
-    };
+{
+    // Use our local proxy for S3 tiles to avoid HTTPS-Only Mode errors
+    var url = "http://localhost:8010/s3-tiles/" + "/{z}/{x}/{y}.png";
+    return url;
+};
 
     var _InitGmapsLayers_CreateAll = function()
     {
@@ -2027,14 +2021,12 @@ var SafemapUI = (function()
     SafemapUI.ToggleTileShadow = function()
     {
         var n;
-    
+
         if (window.devicePixelRatio > 1.5)
         {
-            var pre = window.location.href.substring(0,5) != "https" ? "http://"
-                    : !_use_jp_region ? "https://s3.amazonaws.com/"
-                    : "https://s3-ap-northeast-1.amazonaws.com/";
-                
-            n = "#map_canvas img[src^=\"" + pre + "te\"], #map_canvas img[src^=\"" + pre + "nnsa\"]";
+            var pre = "http://localhost:8010/s3-tiles/";
+            
+            n = "#map_canvas img[src^=\"" + pre + "\"]";  
         }//if
         else
         {

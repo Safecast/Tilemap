@@ -101,7 +101,7 @@ const s3TileProxy = createProxyMiddleware({
     '^/s3-tiles': '' // remove /s3-tiles prefix
   },
   logLevel: 'debug',
-  secure: true,
+  secure: false, // Skip certificate validation
   onProxyReq: (proxyReq, req, res) => {
     // Log the request URL
     console.log('S3 Tile Request:', req.method, req.url);

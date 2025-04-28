@@ -252,13 +252,58 @@ var RTVM = (function() {
         console.log('RTVM.SetEnabled called with:', enabled);
         this.enabled = enabled;
         
-        // If we have markers, show/hide them based on enabled state
+        if (!enabled) {
+            // Clear markers when disabled
+            this.RemoveAllMarkersFromMapAndPurgeData();
+        }
+    };
+    
+    // Add the missing RemoveAllMarkersFromMapAndPurgeData method
+    RTVM.prototype.RemoveAllMarkersFromMapAndPurgeData = function() {
+        console.log('RTVM.RemoveAllMarkersFromMapAndPurgeData called');
+        
+        // Clear all markers from the map
+        if (window.allMarkers && window.allMarkers.length > 0) {
+            for (var i = 0; i < window.allMarkers.length; i++) {
+                if (window.allMarkers[i].marker) {
+                    window.allMarkers[i].marker.setMap(null);
+                }
+                if (window.allMarkers[i].recentCircle) {
+                    window.allMarkers[i].recentCircle.setMap(null);
+                }
+            }
+            window.allMarkers = [];
+        }
+        
+        // Clear markers from the marker manager
         if (this.mks && this.mks.markers) {
             for (var i = 0; i < this.mks.markers.length; i++) {
                 if (this.mks.markers[i]) {
-                    this.mks.markers[i].setVisible(enabled);
+                    this.mks.markers[i].setMap(null);
                 }
             }
+            this.mks.markers = [];
+        }
+    };
+    
+    // Add the missing ClearGmapsListeners method
+    RTVM.prototype.ClearGmapsListeners = function() {
+        console.log('RTVM.ClearGmapsListeners called');
+        
+        // Clear any Google Maps event listeners
+        if (this.mapRef && this.mapRef.gmaps_listeners) {
+            for (var i = 0; i < this.mapRef.gmaps_listeners.length; i++) {
+                google.maps.event.removeListener(this.mapRef.gmaps_listeners[i]);
+            }
+            this.mapRef.gmaps_listeners = [];
+        }
+        
+        // If we have stored listeners in our own instance
+        if (this.gmaps_listeners) {
+            for (var i = 0; i < this.gmaps_listeners.length; i++) {
+                google.maps.event.removeListener(this.gmaps_listeners[i]);
+            }
+            this.gmaps_listeners = [];
         }
     };
     
