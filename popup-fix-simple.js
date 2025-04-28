@@ -221,78 +221,35 @@
       return html;
     };
     
-    // Hook into the existing radiation sensors switch in the left panel
+    // Add the radiation toggle button
     setTimeout(function() {
-      hookIntoRadiationSensorsSwitch();
-      
-      // Show the spinner for initial data loading
-      showSpinner();
-      
-      // Fetch the data after showing the spinner
+      addRadiationToggleButton();
       fetchRealSensorData();
     }, 3000);
   }
   
-  // Function to hook into the existing Radiation Sensors switch in the left panel
-  function hookIntoRadiationSensorsSwitch() {
-    console.log('Looking for the existing Radiation Sensors switch in the left panel...');
+  // Function to add the toggle button to the UI
+  function addRadiationToggleButton() {
+    // Check if the air quality toggle button exists to position our button next to it
+    var airQualityBtn = document.querySelector('.air-quality-toggle');
+    var parentElement = airQualityBtn ? airQualityBtn.parentElement : document.body;
     
-    // Try to find the radiation sensors switch in the left panel
-    // Look for checkboxes with labels containing 'radiation' and 'sensors'
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-    let radiationSensorsSwitch = null;
+    // Create the radiation toggle button
+    var radiationBtn = document.createElement('button');
+    radiationBtn.id = 'toggle-radiation-btn';
+    radiationBtn.textContent = 'Hide Radiation Sensors';
+    radiationBtn.className = 'radiation-toggle';
+    radiationBtn.style.cssText = 'position: absolute; top: 70px; right: 10px; z-index: 1000; background-color: white; border: 1px solid #ccc; padding: 5px 10px; border-radius: 4px; cursor: pointer;';
+    radiationBtn.onclick = window.toggleRadiationSensors;
     
-    for (const checkbox of checkboxes) {
-      // Check if this checkbox or its parent contains text about radiation sensors
-      const parent = checkbox.parentElement;
-      const grandparent = parent ? parent.parentElement : null;
-      const text = (parent ? parent.textContent : '') + (grandparent ? grandparent.textContent : '');
-      
-      if (text.toLowerCase().includes('radiation') && text.toLowerCase().includes('sensor')) {
-        radiationSensorsSwitch = checkbox;
-        console.log('Found Radiation Sensors switch:', radiationSensorsSwitch);
-        break;
-      }
-    }
-    
-    if (radiationSensorsSwitch) {
-      // Store the original checked state
-      window.radiationSensorsEnabled = radiationSensorsSwitch.checked;
-      console.log('Initial radiation sensors state:', window.radiationSensorsEnabled);
-      
-      // Store the original onchange handler if it exists
-      const originalOnChange = radiationSensorsSwitch.onchange;
-      
-      // Override the onchange handler
-      radiationSensorsSwitch.onchange = function(event) {
-        // Update our global state
-        window.radiationSensorsEnabled = this.checked;
-        console.log('Radiation sensors toggled to:', window.radiationSensorsEnabled);
-        
-        // Show the existing loading spinner
-        showSpinner();
-        
-        // Call our toggle function with a slight delay
-        setTimeout(function() {
-          window.toggleRadiationSensors();
-        }, 50);
-        
-        // Call the original onchange handler if it exists
-        if (originalOnChange) {
-          originalOnChange.call(this, event);
-        }
-      };
-      
-      console.log('Successfully hooked into Radiation Sensors switch');
-    } else {
-      console.error('Could not find Radiation Sensors switch, will try again later');
-      setTimeout(hookIntoRadiationSensorsSwitch, 2000);
-    }
+    // Add the button to the page
+    parentElement.appendChild(radiationBtn);
   }
   
   // Function to toggle radiation sensors visibility
   window.toggleRadiationSensors = function() {
-    console.log('Toggling radiation sensors visibility: ' + (window.radiationSensorsEnabled ? 'enabled' : 'disabled'));
+    window.radiationSensorsEnabled = !window.radiationSensorsEnabled;
+    console.log('Radiation sensors ' + (window.radiationSensorsEnabled ? 'enabled' : 'disabled'));
     
     // Clear existing markers
     if (window.allMarkers && window.allMarkers.length > 0) {
@@ -310,99 +267,24 @@
     // Reload markers if enabled
     if (window.radiationSensorsEnabled) {
       fetchRealSensorData();
-    } else {
-      // If disabled, hide the spinner after a short delay
-      setTimeout(hideSpinner, 500);
     }
     
-    // Update the switch state if needed
-    const radiationSwitch = findRadiationSensorsSwitch();
-    if (radiationSwitch && radiationSwitch.checked !== window.radiationSensorsEnabled) {
-      radiationSwitch.checked = window.radiationSensorsEnabled;
+    // Update button state
+    var button = document.getElementById('toggle-radiation-btn');
+    if (button) {
+      button.textContent = window.radiationSensorsEnabled ? 'Hide Radiation Sensors' : 'Show Radiation Sensors';
     }
   };
-  
-  // Function to find the radiation sensors switch
-  function findRadiationSensorsSwitch() {
-    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-    
-    for (const checkbox of checkboxes) {
-      const parent = checkbox.parentElement;
-      const grandparent = parent ? parent.parentElement : null;
-      const text = (parent ? parent.textContent : '') + (grandparent ? grandparent.textContent : '');
-      
-      if (text.toLowerCase().includes('radiation') && text.toLowerCase().includes('sensor')) {
-        return checkbox;
-      }
-    }
-    
-    return null;
-  }
-  
-  // Function to show the loading spinner
-  function showSpinner() {
-    // Remove any existing spinner first
-    hideSpinner();
-    
-    // Clear any existing timeout
-    if (window.spinnerTimeout) {
-      clearTimeout(window.spinnerTimeout);
-    }
-    
-    // Set a safety timeout to hide the spinner after 15 seconds
-    // This ensures the spinner doesn't get stuck if there's an error
-    window.spinnerTimeout = setTimeout(function() {
-      console.log('Safety timeout: hiding spinner after 15 seconds');
-      hideSpinner();
-    }, 15000);
-    
-    // Show the loading spinner
-    if (window.SafecastMap && typeof window.SafecastMap.fxInjectLoadingSpinner === 'function') {
-      const spinnerContainer = document.createElement('div');
-      spinnerContainer.id = 'radiation-spinner-container';
-      document.body.appendChild(spinnerContainer);
-      window.SafecastMap.fxInjectLoadingSpinner(spinnerContainer);
-    } else if (typeof SafemapUI !== 'undefined' && typeof SafemapUI.InjectLoadingSpinner === 'function') {
-      const spinnerContainer = document.createElement('div');
-      spinnerContainer.id = 'radiation-spinner-container';
-      spinnerContainer.style.position = 'fixed';
-      spinnerContainer.style.top = '50%';
-      spinnerContainer.style.left = '50%';
-      spinnerContainer.style.transform = 'translate(-50%, -50%)';
-      spinnerContainer.style.zIndex = '9999';
-      document.body.appendChild(spinnerContainer);
-      SafemapUI.InjectLoadingSpinner(spinnerContainer, SafemapUI.LoadingSpinnerColor.White, SafemapUI.LoadingSpinnerSize.Large);
-    }
-  }
-  
-  // Function to hide the spinner
-  function hideSpinner() {
-    // Clear any spinner timeout
-    if (window.spinnerTimeout) {
-      clearTimeout(window.spinnerTimeout);
-      window.spinnerTimeout = null;
-    }
-    
-    // Remove the spinner element
-    const spinnerContainer = document.getElementById('radiation-spinner-container');
-    if (spinnerContainer) {
-      spinnerContainer.remove();
-    }
-  }
   
   // Function to fetch real sensor data from the API
   function fetchRealSensorData() {
     // Skip if radiation sensors are disabled
     if (!window.radiationSensorsEnabled) {
       console.log('Radiation sensors are disabled, skipping fetch');
-      hideSpinner();
       return;
     }
     
     console.log('Fetching real sensor data from API...');
-    
-    // Show the loading spinner while fetching data
-    showSpinner();
     
     // Clear any existing markers first
     if (window.allMarkers && window.allMarkers.length > 0) {
@@ -480,16 +362,12 @@
           }
         } catch (error) {
           console.error('Error processing device data:', error);
-          // Hide spinner on error
-          hideSpinner();
           // Only use mock data if we couldn't get real data
           useMockData();
         }
       })
       .catch(error => {
         console.error('Error fetching device data:', error);
-        // Hide spinner on error
-        hideSpinner();
         useMockData();
       });
   }
@@ -497,8 +375,6 @@
   // Function to use mock data as a fallback
   function useMockData() {
     console.log('Using mock device data');
-    // Make sure spinner is hidden when using mock data
-    hideSpinner();
     const mockDevices = [
       {
         "device_urn": "safecast:4007513236",
@@ -533,7 +409,6 @@
     // Skip if radiation sensors are disabled
     if (!window.radiationSensorsEnabled) {
       console.log('Radiation sensors are disabled, skipping marker creation');
-      hideSpinner();
       return;
     }
     
@@ -752,8 +627,5 @@
     }
     
     console.log('Created', window.allMarkers.length, 'markers');
-    
-    // Hide the spinner after markers are created
-    hideSpinner();
   }
 })();
