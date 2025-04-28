@@ -70,12 +70,12 @@
       const originalGetInfoWindowHtmlForParams = RTMKS.GetInfoWindowHtmlForParams;
       
       RTMKS.GetInfoWindowHtmlForParams = function(
-        locations, ids, device_urns, device_classes, 
-        values, unixSSs, imgs, loc, 
+        locations, lats, lons, device_urns, device_classes, 
+        cpms, values, tubeTypes, unixSSs, imgs, loc, 
         mini, tblw, fontCssClass, showGraph, showID
       ) {
         console.log('Patched GetInfoWindowHtmlForParams called with:', {
-          locations, ids, device_urns, device_classes, values, unixSSs, imgs
+          locations, lats, lons, device_urns, device_classes, cpms, values, tubeTypes, unixSSs, imgs
         });
         
         // Initialize variables
@@ -86,9 +86,17 @@
         let tubeData = {};
         let hasTubeData = false;
         let measurementTime = '';
-        let cpm = 0;
         let value = 0;
-        let tubeType = '';
+        
+        // Process tube data if available
+        if (tubeTypes && tubeTypes.length > 0 && cpms && cpms.length > 0) {
+          hasTubeData = true;
+          for (let i = 0; i < tubeTypes.length; i++) {
+            if (i < cpms.length) {
+              tubeData[tubeTypes[i]] = cpms[i];
+            }
+          }
+        }
         
         // Extract device info from imgs if available
         if (imgs && imgs.length > 0) {
@@ -160,12 +168,16 @@
         // Fallbacks if displayLocation is still empty
         if (!displayLocation || displayLocation === 'Unknown') {
           if (device_classes && device_classes.length > 0 && device_urns && device_urns.length > 0) {
-            const deviceNumber = device_urns[0].split(':')[1] || '';
+            // Check if device_urns[0] is a string before calling split
+            const deviceUrn = typeof device_urns[0] === 'string' ? device_urns[0] : String(device_urns[0]);
+            const deviceNumber = deviceUrn.split(':')[1] || '';
             displayLocation = device_classes[0] + (deviceNumber ? (' ' + deviceNumber) : '');
           } else if (device_classes && device_classes.length > 0) {
             displayLocation = device_classes[0];
           } else if (device_urns && device_urns.length > 0) {
-            const parts = device_urns[0].split(':');
+            // Check if device_urns[0] is a string before calling split
+            const deviceUrn = typeof device_urns[0] === 'string' ? device_urns[0] : String(device_urns[0]);
+            const parts = deviceUrn.split(':');
             if (parts.length > 1) {
               displayLocation = parts[0] + ' ' + parts[1];
             } else {
@@ -203,12 +215,26 @@
         html += "<div style='font-size:13px; margin-top:5px;'>Device URN: " + deviceUrn + "</div>";
         html += "<div style='font-size:13px;'>Device Class: " + deviceClass + "</div>";
         
+        // Extract all tube data from the device info
+        var deviceTubeData = {};
+        var tubeDataFound = false;
+        
+        // Check for all possible tube types in the device info
+        if (deviceInfo) {
+          for (var key in deviceInfo) {
+            if (key.startsWith('lnd_')) {
+              deviceTubeData[key] = deviceInfo[key];
+              tubeDataFound = true;
+            }
+          }
+        }
+        
         // Tube readings section
-        if (hasTubeData) {
+        if (tubeDataFound) {
           html += "<div style='font-size:14px; font-weight:bold; margin-top:15px;'>Tube Readings:</div>";
           
-          for (var tube in tubeData) {
-            var tubeValue = tubeData[tube];
+          for (var tube in deviceTubeData) {
+            var tubeValue = deviceTubeData[tube];
             var conversionFactor = 0.0057; // Default conversion factor
             
             // Different tube types require different conversion factors
@@ -284,9 +310,9 @@
               
               // Set location
               if (result.rts[i].device_class && result.rts[i].device_urn) {
-                const parts = result.rts[i].device_urn.split(':');
-                if (parts.length > 1) {
-                  result.rts[i].location = result.rts[i].device_class + ' ' + parts[1];
+                const deviceNumber = result.rts[i].device_urn.split(':')[1] || '';
+                if (deviceNumber) {
+                  result.rts[i].location = result.rts[i].device_class + ' ' + deviceNumber;
                   console.log('Set location to:', result.rts[i].location);
                 }
               }
@@ -349,58 +375,79 @@
       // Create marker position
       var position = new google.maps.LatLng(device.loc_lat, device.loc_lon);
       
-      // Determine radiation value and CPM based on tube type
-      var cpm = 0;
-      var value = 0;
-      var tubeType = '';
+      // Extract all tube data from the device
+      var tubeData = {};
+      var totalCpm = 0;
+      var highestValue = 0;
       
-      if (device.lnd_7318u) {
-        cpm = device.lnd_7318u;
-        value = (cpm * 0.0057).toFixed(3); // Standard conversion factor
-        tubeType = 'lnd_7318u';
-      } else if (device.lnd_7128ec) {
-        cpm = device.lnd_7128ec;
-        value = (cpm * 0.0063).toFixed(3); // Different conversion factor
-        tubeType = 'lnd_7128ec';
-      } else if (device.lnd_712u) {
-        cpm = device.lnd_712u;
-        value = (cpm * 0.0051).toFixed(3); // Different conversion factor
-        tubeType = 'lnd_712u';
-      } else if (device.lnd_7318c) {
-        cpm = device.lnd_7318c;
-        value = (cpm * 0.0059).toFixed(3); // Different conversion factor
-        tubeType = 'lnd_7318c';
+      // Check for all possible tube types and add them to tubeData
+      if (device.lnd_7318u !== undefined) {
+        tubeData['lnd_7318u'] = device.lnd_7318u;
+        totalCpm += device.lnd_7318u;
+        highestValue = Math.max(highestValue, device.lnd_7318u * 0.0057);
+      }
+      if (device.lnd_7128ec !== undefined) {
+        tubeData['lnd_7128ec'] = device.lnd_7128ec;
+        totalCpm += device.lnd_7128ec;
+        highestValue = Math.max(highestValue, device.lnd_7128ec * 0.0063);
+      }
+      if (device.lnd_712u !== undefined) {
+        tubeData['lnd_712u'] = device.lnd_712u;
+        totalCpm += device.lnd_712u;
+        highestValue = Math.max(highestValue, device.lnd_712u * 0.0051);
+      }
+      if (device.lnd_7318c !== undefined) {
+        tubeData['lnd_7318c'] = device.lnd_7318c;
+        totalCpm += device.lnd_7318c;
+        highestValue = Math.max(highestValue, device.lnd_7318c * 0.0059);
       }
       
-      // Determine icon color based on radiation value
-      var iconColor = '#00ff00'; // Green for low radiation
-      
-      if (value > 0.3) {
-        iconColor = '#ff0000'; // Red for high radiation
-      } else if (value > 0.1) {
-        iconColor = '#ffff00'; // Yellow for medium radiation
+      // Check if the measurement is recent (within 4 hours)
+      var isRecent = false;
+      if (device.when_captured) {
+        try {
+          var captureTime = new Date(device.when_captured).getTime();
+          var currentTime = new Date().getTime();
+          var fourHoursInMs = 4 * 60 * 60 * 1000;
+          isRecent = (currentTime - captureTime) <= fourHoursInMs;
+        } catch (e) {
+          console.log('Error parsing capture time:', e);
+        }
       }
       
-      // Create a custom icon as a data URL
-      var iconSize = 24;
-      var canvas = document.createElement('canvas');
-      canvas.width = iconSize;
-      canvas.height = iconSize;
-      var ctx = canvas.getContext('2d');
+      // Determine device type for icon selection and use original Safecast icons
+      var deviceType = (device.device_class || '').toLowerCase();
+      var iconUrl;
       
-      // Draw circle
-      ctx.beginPath();
-      ctx.arc(iconSize/2, iconSize/2, iconSize/2 - 2, 0, 2 * Math.PI, false);
-      ctx.fillStyle = iconColor;
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#ffffff';
-      ctx.stroke();
+      // Create SVG icons that match the legend
+      function createSvgIcon(innerCircleColor, outerCircleColor, dotColor) {
+        // Create SVG icon similar to the legend
+        var svg = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="11" fill="${outerCircleColor}" stroke="black" stroke-width="1"/>
+            <circle cx="12" cy="12" r="8" fill="${innerCircleColor}" stroke="black" stroke-width="1"/>
+            <circle cx="12" cy="12" r="3" fill="${dotColor}" stroke="black" stroke-width="0.5"/>
+          </svg>
+        `;
+        return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+      }
       
-      // Convert to data URL
-      var iconUrl = canvas.toDataURL();
+      // Match the icons in the legend
+      if (deviceType === 'pointcast') {
+        // Pointcast: Green outer, white inner, purple dot (like the offline icon in legend)
+        iconUrl = createSvgIcon('#FFFFFF', '#00FF00', '#800080');
+      } else if (deviceType === 'bgeigie') {
+        // bGeigie: Green outer, white inner, green dot
+        iconUrl = createSvgIcon('#FFFFFF', '#00FF00', '#00FF00');
+      } else if (deviceType === 'geigiecast') {
+        // GeigieCast: Green outer, white inner, blue dot
+        iconUrl = createSvgIcon('#FFFFFF', '#00FF00', '#0000FF');
+      } else {
+        // Default: Green outer, white inner, green dot (like the online icon in legend)
+        iconUrl = createSvgIcon('#FFFFFF', '#00FF00', '#00FF00');
+      }
       
-      // Create marker
+      // Create marker with custom icon
       var marker = new google.maps.Marker({
         position: position,
         map: window.map,
@@ -413,11 +460,28 @@
         }
       });
       
+      // If the measurement is recent, add a green circle overlay
+      if (isRecent) {
+        var recentCircle = new google.maps.Circle({
+          strokeColor: '#00FF00',
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: '#00FF00',
+          fillOpacity: 0.1,
+          map: window.map,
+          center: position,
+          radius: 100 // 100 meters radius
+        });
+        
+        // Store the circle with the marker for reference
+        marker.recentCircle = recentCircle;
+      }
+      
       // Store device data with the marker
       marker.deviceData = device;
-      marker.cpm = cpm;
-      marker.value = value;
-      marker.tubeType = tubeType;
+      marker.tubeData = tubeData;
+      marker.totalCpm = totalCpm;
+      marker.highestValue = highestValue;
       
       // Add click event to show info window
       (function(marker) {
@@ -425,15 +489,48 @@
           var device = marker.deviceData;
           
           // Create info window content
+          // Extract CPM values for each tube type
+          var cpmValues = [];
+          var tubeTypes = [];
+          
+          // Check for tube data
+          if (marker.tubeData) {
+            for (var tubeType in marker.tubeData) {
+              tubeTypes.push(tubeType);
+              cpmValues.push(marker.tubeData[tubeType]);
+            }
+          }
+          
+          // If no tube data found, use a default
+          if (cpmValues.length === 0 && device.lnd_7318u) {
+            tubeTypes.push('lnd_7318u');
+            cpmValues.push(device.lnd_7318u);
+          }
+          
+          // Format the location/title
+          var title = '';
+          if (device.device_class && device.device_urn) {
+            const deviceNumber = typeof device.device_urn === 'string' ? 
+              device.device_urn.split(':')[1] || '' : 
+              String(device.device_urn).split(':')[1] || '';
+            title = device.device_class + ' ' + deviceNumber;
+          } else {
+            title = 'Unknown Device';
+          }
+          
+          // Create info window content
           var content = RTMKS.GetInfoWindowHtmlForParams(
-            [device.device_class + ' ' + (device.device_urn ? device.device_urn.split(':')[1] : device.device)],
-            [device.device || i],
-            [device.device_urn || ''],
-            [device.device_class || ''],
-            [marker.value],
-            [new Date(device.when_captured).getTime() / 1000],
-            [JSON.stringify(device)],
-            0,
+            [title], // locations
+            [device.loc_lat || ''], // lats
+            [device.loc_lon || ''], // lons
+            [device.device_urn || ''], // device_urns
+            [device.device_class || ''], // device_classes
+            [cpmValues], // cpms (array of CPM values)
+            [marker.highestValue], // values (converted to µSv/h)
+            [tubeTypes], // tube types
+            [new Date(device.when_captured).getTime() / 1000], // unixSSs
+            [JSON.stringify(device)], // locations_info
+            0, // i
             false, // mini
             400,   // tblw
             '',    // fontCssClass
@@ -461,16 +558,20 @@
     // Create a timestamp parameter to avoid caching
     const timestamp = new Date().getTime();
     
-    // Fetch data from the proxy endpoint
+    // Fetch data from the proxy endpoint with additional debugging
+    console.log('Sending request to: /tt-api/devices?t=' + timestamp);
+    
     fetch('/tt-api/devices?t=' + timestamp)
       .then(response => {
         if (!response.ok) {
           throw new Error('Network response was not ok: ' + response.status);
         }
+        console.log('Response status:', response.status);
         return response.text();
       })
       .then(text => {
         console.log('Received response from API, length:', text.length);
+        console.log('Response preview:', text.substring(0, 200));
         
         // Try to parse the response as JSON
         try {
@@ -482,84 +583,116 @@
           let jsonEnd = cleanedText.lastIndexOf(']') + 1;
           
           if (jsonStart >= 0 && jsonEnd > jsonStart) {
+            console.log('JSON array found from position', jsonStart, 'to', jsonEnd);
             cleanedText = cleanedText.substring(jsonStart, jsonEnd);
+          } else {
+            console.error('Could not find JSON array in response');
+            throw new Error('Could not find JSON array in response');
           }
+          
+          // Additional cleaning for problematic characters
+          cleanedText = cleanedText
+            .replace(/[^\x20-\x7E]/g, '') // Remove non-printable ASCII
+            .replace(/\\u0000/g, '') // Remove null bytes
+            .replace(/[\r\n]+/g, '') // Remove newlines
+            .replace(/,\s*}/g, '}') // Fix trailing commas in objects
+            .replace(/,\s*\]/g, ']'); // Fix trailing commas in arrays
           
           // Parse the JSON
           const devices = JSON.parse(cleanedText);
           console.log('Successfully parsed device data, count:', devices.length);
           
-          // Store the device data globally
-          window._lastDevicesResponse = devices;
+          // Filter out devices without location data
+          const validDevices = devices.filter(device => 
+            device && 
+            device.loc_lat && 
+            device.loc_lon && 
+            !isNaN(parseFloat(device.loc_lat)) && 
+            !isNaN(parseFloat(device.loc_lon))
+          );
           
-          // Create markers for these devices
-          createMarkersFromDevices(devices);
+          console.log('Valid devices with location data:', validDevices.length);
+          
+          if (validDevices.length > 0) {
+            // Store the device data globally
+            window._lastDevicesResponse = validDevices;
+            
+            // Create markers for these devices
+            createMarkersFromDevices(validDevices);
+            
+            // Don't use mock devices if we have real ones
+            return;
+          } else {
+            throw new Error('No valid devices with location data found');
+          }
         } catch (error) {
-          console.error('Error parsing device data:', error);
-          
-          // Fall back to mock data
-          console.log('Falling back to mock device data');
-          const mockDevices = [
-            {
-              "device_urn": "safecast:1",
-              "device_class": "bGeigie",
-              "device": 1,
-              "when_captured": "2025-04-28T11:30:00Z",
-              "loc_lat": 35.6895,
-              "loc_lon": 139.6917,
-              "lnd_7318u": 42,
-              "service_uploaded": "2025-04-28T11:30:00Z"
-            },
-            {
-              "device_urn": "safecast:2",
-              "device_class": "bGeigie",
-              "device": 2,
-              "when_captured": "2025-04-28T11:30:00Z",
-              "loc_lat": 35.6795,
-              "loc_lon": 139.7017,
-              "lnd_7128ec": 38,
-              "service_uploaded": "2025-04-28T11:30:00Z"
-            },
-            {
-              "device_urn": "safecast:3",
-              "device_class": "bGeigie",
-              "device": 3,
-              "when_captured": "2025-04-28T11:30:00Z",
-              "loc_lat": 35.6995,
-              "loc_lon": 139.6817,
-              "lnd_712u": 45,
-              "service_uploaded": "2025-04-28T11:30:00Z"
-            },
-            {
-              "device_urn": "safecast:4",
-              "device_class": "bGeigie",
-              "device": 4,
-              "when_captured": "2025-04-28T11:30:00Z",
-              "loc_lat": 35.7095,
-              "loc_lon": 139.6717,
-              "lnd_7318c": 40,
-              "service_uploaded": "2025-04-28T11:30:00Z"
-            }
-          ];
-          
-          // Create markers for the mock devices
-          createMarkersFromDevices(mockDevices);
+          console.error('Error processing device data:', error);
+          // Continue to fallback
         }
+        
+        // Fall back to mock data
+        console.log('Falling back to mock device data');
+        const mockDevices = [
+          {
+            "device_urn": "pointcast:10017",
+            "device_class": "pointcast",
+            "device": 10017,
+            "when_captured": "2025-04-28T11:30:00Z",
+            "loc_lat": 35.6895,
+            "loc_lon": 139.6917,
+            "lnd_7318u": 73,
+            "lnd_7128ec": 68,
+            "service_uploaded": "2025-04-28T11:30:00Z"
+          },
+          {
+            "device_urn": "safecast:2",
+            "device_class": "bGeigie",
+            "device": 2,
+            "when_captured": "2025-04-28T11:30:00Z",
+            "loc_lat": 35.6795,
+            "loc_lon": 139.7017,
+            "lnd_7128ec": 38,
+            "service_uploaded": "2025-04-28T11:30:00Z"
+          },
+          {
+            "device_urn": "safecast:3",
+            "device_class": "bGeigie",
+            "device": 3,
+            "when_captured": "2025-04-28T11:30:00Z",
+            "loc_lat": 35.6995,
+            "loc_lon": 139.6817,
+            "lnd_712u": 45,
+            "service_uploaded": "2025-04-28T11:30:00Z"
+          },
+          {
+            "device_urn": "safecast:4",
+            "device_class": "bGeigie",
+            "device": 4,
+            "when_captured": "2025-04-28T11:30:00Z",
+            "loc_lat": 35.7095,
+            "loc_lon": 139.6717,
+            "lnd_7318c": 40,
+            "service_uploaded": "2025-04-28T11:30:00Z"
+          }
+        ];
+        
+        // Create markers for the mock devices
+        createMarkersFromDevices(mockDevices);
       })
       .catch(error => {
         console.error('Error fetching device data:', error);
         
-        // Fall back to mock data
         console.log('Falling back to mock device data due to fetch error');
         const mockDevices = [
           {
-            "device_urn": "safecast:1",
-            "device_class": "bGeigie",
-            "device": 1,
+            "device_urn": "pointcast:10017",
+            "device_class": "pointcast",
+            "device": 10017,
             "when_captured": "2025-04-28T11:30:00Z",
             "loc_lat": 35.6895,
             "loc_lon": 139.6917,
-            "lnd_7318u": 42,
+            "lnd_7318u": 73,
+            "lnd_7128ec": 68,
             "service_uploaded": "2025-04-28T11:30:00Z"
           },
           {
