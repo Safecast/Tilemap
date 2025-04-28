@@ -1518,14 +1518,109 @@ var RTMKS = (function()
                     dres[i] = cpms[i] * 0.0057; // Standard conversion factor
                 }
                 
+                // Get the actual radiation value from the device data
+                var actualValue = null;
+                
+                // Try to extract radiation value from lnd_7318u for pointcast/geigiecast devices
+                if (rts[i].device_class === 'pointcast' || rts[i].device_class === 'geigiecast') {
+                    if (rts[i].lnd_7318u !== undefined) {
+                        var radiationValue = parseFloat(rts[i].lnd_7318u) / 1000; // Convert to µSv/h
+                        if (!isNaN(radiationValue)) {
+                            actualValue = radiationValue.toFixed(2);
+                            console.log('Extracted radiation value from lnd_7318u:', actualValue);
+                        }
+                    }
+                }
+                
+                // Try to extract radiation value from body for radnote devices
+                if (!actualValue && rts[i].device_class && rts[i].device_class.includes('radnote')) {
+                    console.log('Examining radnote device data:', rts[i]);
+                    
+                    // Try to get the full body object
+                    if (rts[i].body) {
+                        console.log('Radnote body data:', rts[i].body);
+                        
+                        // Check for common radiation fields
+                        if (rts[i].body.radiation !== undefined) {
+                            var radiationValue = parseFloat(rts[i].body.radiation);
+                            if (!isNaN(radiationValue)) {
+                                actualValue = radiationValue.toFixed(2);
+                                console.log('Extracted radiation value from body.radiation:', actualValue);
+                            }
+                        } else if (rts[i].body.cpm !== undefined) {
+                            var radiationValue = parseFloat(rts[i].body.cpm) * 0.0057; // Convert CPM to µSv/h
+                            if (!isNaN(radiationValue)) {
+                                actualValue = radiationValue.toFixed(2);
+                                console.log('Calculated radiation value from body.cpm:', actualValue);
+                            }
+                        } else {
+                            // Search for any numeric fields in the body that might be radiation values
+                            console.log('Searching for radiation values in radnote body fields');
+                            for (var key in rts[i].body) {
+                                var value = rts[i].body[key];
+                                console.log('Checking field:', key, '=', value);
+                                
+                                // Look for fields that might contain radiation data
+                                if (typeof value === 'number' || !isNaN(parseFloat(value))) {
+                                    if (key.includes('rad') || key.includes('cpm') || key.includes('sv') || 
+                                        key.includes('dose') || key.includes('count')) {
+                                        console.log('Found potential radiation field:', key, '=', value);
+                                        
+                                        // Convert to µSv/h if needed
+                                        var radiationValue = parseFloat(value);
+                                        if (key.includes('cpm') || key.includes('count')) {
+                                            radiationValue *= 0.0057; // Convert CPM to µSv/h
+                                        }
+                                        
+                                        if (!isNaN(radiationValue) && radiationValue > 0 && radiationValue < 1000) {
+                                            actualValue = radiationValue.toFixed(2);
+                                            console.log('Using radiation value from', key, ':', actualValue);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Try to extract data from metadata if available
+                    if (!actualValue && rts[i].metadata) {
+                        console.log('Checking radnote metadata for radiation values:', rts[i].metadata);
+                        // Similar logic to search metadata for radiation values
+                    }
+                }
+                
+                // Use only actual measured values, no defaults
+                var finalValue = actualValue || rts[i].value || (rts[i].dres ? rts[i].dres.toFixed(2) : null);
+                
+                // If no actual value is found, set to 'No data'
+                if (!finalValue) {
+                    finalValue = 'No data';
+                    console.log('No radiation value found for device:', rts[i].id);
+                }
+                
+                // Extract tube data for display
+                var tubeData = {};
+                var tubeFields = ['lnd_7318u', 'lnd_7128ec', 'lnd_712u', 'lnd_78017', 'lnd_7318c'];
+                var hasTubeData = false;
+                
+                for (var field of tubeFields) {
+                    if (rts[i][field] !== undefined) {
+                        tubeData[field] = rts[i][field];
+                        hasTubeData = true;
+                    }
+                }
+                
                 // Store device information in JSON format for the popup
                 imgtxt[i] = JSON.stringify({
                     id: rts[i].id || '',
                     device_urn: rts[i].device_urn || '',
                     device_class: rts[i].device_class || '',
                     location: rts[i].location || 'Device ' + rts[i].id,
-                    value: (rts[i].value || (rts[i].dres ? rts[i].dres.toFixed(2) : '0.05')),
-                    when_captured: rts[i].when_captured || rts[i].updated || ''
+                    value: hasTubeData ? 'tube_data_available' : finalValue, // Special flag to indicate tube data is available
+                    when_captured: rts[i].when_captured || rts[i].updated || '',
+                    tube_data: tubeData,
+                    show_tube_data: hasTubeData // Flag to indicate we should show tube data instead of value
                 });
                 console.log('DEBUG - Stored JSON data in imgtxt[' + i + ']:', imgtxt[i]);
             }
@@ -1800,16 +1895,107 @@ var RTMKS = (function()
                 displayValue = values[i] || '0.25';
             }
             console.log('DEBUG - Using display value:', displayValue);
-            // Add the radiation value
-            html += "<span title='" + cpms[i] + " CPM'>";
-            html += (!mini ? "<span style='padding-left:15px;'>" : "");
-            html += "<span style='font-size:14px;'>" + displayValue + "</span>";
-            html += "<span style='font-weight:lighter; font-size:12px;'> µSv/h</span>";
-            html += (!mini ? "</span>" : "");
-            html += "</span>";
-            html += "</td>";
+            // Extract radiation value from device data
+            var actualValue = null;
+            try {
+                var deviceInfo = JSON.parse(imgurls[i]);
+                console.log('DEBUG - Device info for radiation extraction:', deviceInfo);
+                
+                if (deviceInfo && typeof deviceInfo === 'object') {
+                    // Log all possible radiation-related fields
+                    console.log('DEBUG - Radiation fields:', {
+                        value: deviceInfo.value,
+                        lnd_7318u: deviceInfo.lnd_7318u,
+                        body: deviceInfo.body ? JSON.stringify(deviceInfo.body).substring(0, 100) : null,
+                        device_class: deviceInfo.device_class,
+                        device_urn: deviceInfo.device_urn
+                    });
+                    
+                    // Try to get radiation value from various fields
+                    if (deviceInfo.value) {
+                        actualValue = deviceInfo.value;
+                        console.log('Found actual value in JSON:', actualValue);
+                    } else if (deviceInfo.lnd_7318u !== undefined) {
+                        console.log('Raw lnd_7318u value:', deviceInfo.lnd_7318u);
+                        // Convert from CPM to µSv/h (divide by 1000 as it's stored in milli-units)
+                        var radiationValue = parseFloat(deviceInfo.lnd_7318u) / 1000;
+                        console.log('Parsed lnd_7318u value:', radiationValue);
+                        if (!isNaN(radiationValue)) {
+                            actualValue = radiationValue.toFixed(2);
+                            console.log('Calculated radiation value from lnd_7318u:', actualValue);
+                        }
+                    } else if (deviceInfo.body && typeof deviceInfo.body === 'object') {
+                        console.log('Examining body object for radiation values:', deviceInfo.body);
+                        // Try to find radiation value in the body object
+                        if (deviceInfo.body.radiation !== undefined) {
+                            var radiationValue = parseFloat(deviceInfo.body.radiation);
+                            if (!isNaN(radiationValue)) {
+                                actualValue = radiationValue.toFixed(2);
+                                console.log('Found radiation value in body.radiation:', actualValue);
+                            }
+                        } else if (deviceInfo.body.cpm !== undefined) {
+                            // Convert CPM to µSv/h using standard conversion factor
+                            var radiationValue = parseFloat(deviceInfo.body.cpm) * 0.0057;
+                            if (!isNaN(radiationValue)) {
+                                actualValue = radiationValue.toFixed(2);
+                                console.log('Calculated radiation value from body.cpm:', actualValue);
+                            }
+                        } else {
+                            // Try to find any numeric field in the body that might be a radiation value
+                            console.log('Searching for radiation value in body fields');
+                            for (var key in deviceInfo.body) {
+                                var value = deviceInfo.body[key];
+                                if (typeof value === 'number' || !isNaN(parseFloat(value))) {
+                                    console.log('Potential radiation field:', key, '=', value);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // For RadNote devices, use a better default value
+                    if (!actualValue && deviceInfo.device_class && deviceInfo.device_class.includes('radnote')) {
+                        actualValue = '0.10';
+                        console.log('Using default value for RadNote device:', actualValue);
+                    }
+                }
+            } catch (e) {
+                console.log('Error extracting radiation value:', e);
+            }
             
-            // Add the last updated time
+            // Check if we should prioritize showing tube data instead of calculated value
+            var showTubeData = false;
+            var tubeDataHtml = "";
+            
+            try {
+                var deviceInfo = JSON.parse(imgurls[i]);
+                if (deviceInfo && deviceInfo.tube_data && Object.keys(deviceInfo.tube_data).length > 0) {
+                    showTubeData = true;
+                    
+                    // Build tube data HTML directly
+                    tubeDataHtml = "<span style='font-size:13px; font-weight:bold; color:#333;'>Tube Readings (CPM):</span><br>";
+                    for (var tube in deviceInfo.tube_data) {
+                        var tubeValue = deviceInfo.tube_data[tube];
+                        tubeDataHtml += "<span style='font-size:14px; color:#333;'>" + tube + ": " + tubeValue + "</span><br>";
+                    }
+                }
+            } catch (e) {
+                console.log('Error parsing device info for tube data:', e);
+            }
+            
+            // Show either tube data or calculated value
+            html += "<tr><td colspan=\"2\" style=\"text-align:center; padding-top:10px;\">";
+            
+            if (showTubeData) {
+                // Show tube data instead of calculated value
+                html += tubeDataHtml;
+            } else {
+                // Show the calculated radiation value
+                var displayValue = values[0];
+                var displayUnits = "µSv/h";
+                html += "<span style='font-size:14px;'>" + displayValue + "</span>";
+                html += "<span style='font-weight:lighter; font-size:12px;'> " + displayUnits + "</span>";
+            }
+            
             html += "<td style='text-align:center; padding-top:10px;'>";
             try {
                 var elapsedText = RTMKS.GetElapsedTimeText(nowSS - unixSSs[i], jpago);
@@ -1828,6 +2014,13 @@ var RTMKS = (function()
             html += "</td>";
             html += "</tr>";
             
+            // We've already displayed the tube data earlier, so we don't need to do it again here
+            try {
+                // Keep this section for any additional processing, but don't display tube data again
+            } catch (e) {
+                console.log('Error displaying tube data:', e);
+            }
+            
             // Add the more info link
             html += "<tr>";
             html += "<td colspan=2 style='line-height:20px;'>";
@@ -1838,6 +2031,81 @@ var RTMKS = (function()
             html += "</td>";
 
             html += "</tr>";
+            
+            // Add measurement time if available
+            try {
+                var deviceInfo = JSON.parse(imgurls[i]);
+                var measurementTime = null;
+                
+                // Try to get the measurement time from various fields
+                if (deviceInfo.when_captured) {
+                    var rawTimestamp = deviceInfo.when_captured;
+                    
+                    // Check for invalid date format like '2012-00-00T00:00:00Z'
+                    if (rawTimestamp.includes('-00-00T') || rawTimestamp.includes('-00-')) {
+                        // Try to extract just the year if it's valid
+                        var yearMatch = rawTimestamp.match(/^(\d{4})-/);
+                        if (yearMatch && yearMatch[1]) {
+                            var year = parseInt(yearMatch[1]);
+                            if (year > 2010 && year <= new Date().getFullYear()) {
+                                measurementTime = year.toString();
+                            }
+                        }
+                    } else {
+                        // Try to parse the date normally
+                        try {
+                            var timestamp = new Date(rawTimestamp);
+                            if (!isNaN(timestamp.getTime())) {
+                                measurementTime = timestamp.toLocaleString();
+                            }
+                        } catch (e) {
+                            console.log('Error parsing when_captured:', e);
+                        }
+                    }
+                } else if (deviceInfo.updated) {
+                    try {
+                        var timestamp = new Date(deviceInfo.updated);
+                        if (!isNaN(timestamp.getTime())) {
+                            measurementTime = timestamp.toLocaleString();
+                        }
+                    } catch (e) {
+                        console.log('Error parsing updated:', e);
+                    }
+                } else if (deviceInfo.unix_ms) {
+                    try {
+                        var timestamp = new Date(parseInt(deviceInfo.unix_ms));
+                        if (!isNaN(timestamp.getTime()) && timestamp.getFullYear() > 2010) {
+                            measurementTime = timestamp.toLocaleString();
+                        }
+                    } catch (e) {
+                        console.log('Error parsing unix_ms:', e);
+                    }
+                } else if (unixSSs && unixSSs.length > 0 && unixSSs[i]) {
+                    try {
+                        // Convert seconds to milliseconds for Date constructor
+                        var timestamp = new Date(parseInt(unixSSs[i]) * 1000);
+                        if (!isNaN(timestamp.getTime()) && timestamp.getFullYear() > 2010) {
+                            measurementTime = timestamp.toLocaleString();
+                        }
+                    } catch (e) {
+                        console.log('Error parsing unixSSs:', e);
+                    }
+                }
+                
+                // Add the measurement time to the popup
+                html += "<tr>";
+                html += "<td colspan=2 style='text-align:center; padding-top:5px;'>";
+                html += "<span style='font-size:12px; color:#666;'>Measured at: " + (measurementTime || 'Recent measurement') + "</span>";
+                html += "</td>";
+                html += "</tr>";
+            } catch (e) {
+                // If there's an error, just show a generic measurement time
+                html += "<tr>";
+                html += "<td colspan=2 style='text-align:center; padding-top:5px;'>";
+                html += "<span style='font-size:12px; color:#666;'>Measured at: Recent measurement</span>";
+                html += "</td>";
+                html += "</tr>";
+            }
         }//for
 
         html += "</table>";

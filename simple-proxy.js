@@ -62,16 +62,107 @@ app.use('/tt-api', createProxyMiddleware({
           if (Array.isArray(data)) {
             console.log(`Found ${data.length} devices in response`);
             
+            // Count devices with LND fields
+            const lndFields = ['lnd_7318u', 'lnd_7128ec', 'lnd_712u', 'lnd_78017'];
+            let devicesWithLnd = 0;
+            let lndFieldCounts = {};
+            
+            // Initialize counts
+            lndFields.forEach(field => {
+              lndFieldCounts[field] = 0;
+            });
+            
+            // Count devices with each LND field
+            data.forEach(device => {
+              let hasLndField = false;
+              
+              lndFields.forEach(field => {
+                if (device[field] !== undefined) {
+                  lndFieldCounts[field]++;
+                  hasLndField = true;
+                }
+              });
+              
+              if (hasLndField) {
+                devicesWithLnd++;
+              }
+            });
+            
+            console.log(`Found ${devicesWithLnd} devices with LND fields out of ${data.length} total devices`);
+            console.log('LND field counts:', lndFieldCounts);
+            
+            // Find a few example devices with LND fields
+            const exampleDevices = data.filter(device => {
+              return lndFields.some(field => device[field] !== undefined);
+            }).slice(0, 3);
+            
+            if (exampleDevices.length > 0) {
+              console.log('Example devices with LND fields:');
+              exampleDevices.forEach((device, index) => {
+                const lndValues = {};
+                lndFields.forEach(field => {
+                  if (device[field] !== undefined) {
+                    lndValues[field] = device[field];
+                  }
+                });
+                
+                console.log(`Example ${index + 1}:`, {
+                  id: device.id || device.device_urn || 'unknown',
+                  device_class: device.device_class || 'unknown',
+                  device_urn: device.device_urn || 'not set',
+                  lnd_values: lndValues
+                });
+              });
+            }
+            
+            // Log specific devices we're interested in
+            console.log('Looking for specific devices in the API response...');
+            
+            // Find safecast devices
+            const safecastDevices = data.filter(device => 
+              device.device_class === 'safecast' || 
+              (device.device_urn && device.device_urn.startsWith('safecast:')));
+            
+            if (safecastDevices.length > 0) {
+              console.log(`Found ${safecastDevices.length} safecast devices. First one:`, safecastDevices[0]);
+            }
+            
+            // Find pointcast/geigiecast devices
+            const pointcastDevices = data.filter(device => 
+              device.device_class === 'pointcast' || 
+              device.device_class === 'geigiecast' ||
+              (device.device_urn && (device.device_urn.startsWith('pointcast:') || device.device_urn.startsWith('geigiecast:'))));
+            
+            if (pointcastDevices.length > 0) {
+              console.log(`Found ${pointcastDevices.length} pointcast/geigiecast devices. First one:`, pointcastDevices[0]);
+            }
+            
+            // Find radnote devices
+            const radnoteDevices = data.filter(device => 
+              device.device_class && device.device_class.includes('radnote') ||
+              (device.device_urn && device.device_urn.includes('radnote')));
+            
+            if (radnoteDevices.length > 0) {
+              console.log(`Found ${radnoteDevices.length} radnote devices. First one:`, radnoteDevices[0]);
+            }
+            
             // Log the first 3 devices for debugging
             for (let i = 0; i < Math.min(3, data.length); i++) {
               const device = data[i];
-              console.log(`Device ${i+1} timestamp info:`, {
+              console.log(`Device ${i+1} basic info:`, {
                 id: device.id || device.device_urn || 'unknown',
                 device_class: device.device_class || 'unknown',
-                when_captured: device.when_captured || 'not set',
-                updated: device.updated || 'not set',
-                unix_ms: device.unix_ms || 'not set',
-                created_at: device.created_at || 'not set'
+                device_urn: device.device_urn || 'not set',
+                lnd_7318u: device.lnd_7318u || 'not set',
+                value: device.value || 'not set'
+              });
+              console.log(`Device ${i+1} full data:`, device);
+              console.log(`Device ${i+1} radiation fields:`, {
+                id: device.id || device.device_urn || 'unknown',
+                device_class: device.device_class || 'unknown',
+                value: device.value || 'not set',
+                lnd_7318u: device.lnd_7318u || 'not set',
+                body: device.body ? JSON.stringify(device.body).substring(0, 100) + '...' : 'not set'
               });
             }
           }

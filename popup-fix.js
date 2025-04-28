@@ -201,30 +201,9 @@
           mini, tblw, fontCssClass, showGraph, showID
         );
         
-        // Add measurement time if available
-        if (measurementTime) {
-          console.log('Adding measurement time to HTML');
-          
-          // Check if the HTML contains a table
-          if (originalHtml.includes('</table>')) {
-            // Insert the measurement time before the closing </table> tag
-            const enhancedHtml = originalHtml.replace('</table>', 
-              `<tr><td colspan="2" style="text-align:center; padding-top:5px;">
-                <span style="font-size:12px; color:#666;">Measured at: ${measurementTime}</span>
-              </td></tr></table>`);
-            console.log('Enhanced HTML with measurement time');
-            return enhancedHtml;
-          } else {
-            // If no table is found, append the measurement time at the end
-            const enhancedHtml = originalHtml + 
-              `<div style="text-align:center; padding-top:5px;">
-                <span style="font-size:12px; color:#666;">Measured at: ${measurementTime}</span>
-              </div>`;
-            console.log('Appended measurement time to HTML');
-            return enhancedHtml;
-          }
-        }
-        
+        // We're now handling the measurement time display in rt_viewer.js
+        // so we don't need to add it here
+        console.log('Measurement time is now handled in rt_viewer.js');
         return originalHtml;
       };
       
