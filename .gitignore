@@ -1,2 +1,40 @@
+# Tile directories
+tiles/
+TileGriddata_512/
+LocalTiles/
 
+# Cache directories
+__pycache__/
+*.py[cod]
+*$py.class
+.cache/
+
+# Node dependencies
+node_modules/
+npm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Generated JavaScript
+safemap_min.js
+
+# Log files
+*.log

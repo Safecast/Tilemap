@@ -24,7 +24,46 @@
 // -------------------------------
 // var rtvm = new RTVM(map, null);
 //
-// Instantiate will auto-initialize and start polling.
+// 3. Add a log by URL directly
+// -------------------------------
+// bvm.GetSensorsFromUrlAsync("http://realtime.safecast.org/wp-content/uploads/devices.json");
+
+
+// =================================
+// Optional - Data Transfer UI
+// =================================
+//
+// To display a UI showing download progress to the user, a div with a specific ID is required.
+// This div is used to inject HTML, as Google Maps does with "map_canvas" above.
+// External CSS styles and an image are also required.
+//
+// 1. HTML Div
+// -------------------------------
+// <div id="bv_transferBar" class="bv_transferBarHidden"></div>
+//
+// 2. World Map PNG (256x256)
+// -------------------------------
+// By default, "world_155a_z0.png" should be in the same path.
+//
+// 3. CSS Styles (many)
+// -------------------------------
+// Required styles are as follows.
+//
+// #bv_transferBar { position:absolute;top:0;bottom:0;left:0;right:0;margin:auto;padding:10px 0px 20px 20px;border:0px;background-color:rgba(255, 255, 255, 0.75);font-size:80%; }
+// .bv_transferBarVisible { visibility:visible;z-index:8;width:276px;height:286px;overflow:visible; }
+// .bv_transferBarHidden { visibility:hidden;z-index:-9000;width:0px;height:0px;overflow:hidden; }
+// .bv_FuturaFont { font-size:100%;font-family:Futura,Futura-Medium,'Futura Medium','Futura ND Medium','Futura Std Medium','Futura Md BT','Century Gothic','Segoe UI',Helvetica,Arial,sans-serif; }
+// .bv_hline { overflow:hidden;text-align:center; }
+// .bv_hline:before, .bv_hline:after { background-color:#000;content:"";display:inline-block;height:1px;position:relative;vertical-align:middle;width:50%; }
+// .bv_hline:before { right:0.5em;margin-left:-50%; }
+// .bv_hline:after { left:0.5em;margin-right:-50%; }
+//
+// Note the font can be anything, but should be about that size.
+// That font class is also used for marker info windows.
+
+
+
+
 
 
 
@@ -39,18 +78,18 @@
 
 var RTVM = (function()
 {
-    function RTVM(map, dataBinds, rtType)
+    function RTVM(map, dataBinds)
     {
-        this.mapRef    = map;
-        this.isMobile  = _IsPlatformMobile();
-        this.mks       = null; // marker manager
-        this.failures  = 0;
-        this.fail_max  = (86400 * 365) / 600;
-        this.last_tx   = 0;
-        this.enabled   = true;
-        this.rt_type   = rtType == null ? RTVM.RtType.SafecastRad : rtType;
+        this.mapRef   = map;
+        this.isMobile = RTVM.IsPlatformMobile();
+        this.mks      = null; // marker manager
+        this.failures = 0;
+        this.fail_max = (86400 * 365) / 600;
+        this.last_tx  = 0;
         
         this.dataBinds = dataBinds;
+        
+        this.zoom_to_data_extent     = false;   // whether or not to zoom to the extent of the sensor(s) after processing.
         
         if (this.dataBinds == null)
         {
@@ -77,9 +116,16 @@ var RTVM = (function()
     {
         var binds =
         {
+            elementIds:
+            {
+            },
             cssClasses:
             {
-                FuturaFont:"FuturaFont"
+                bv_FuturaFont:"bv_FuturaFont"
+            },
+            urls:
+            {
+                world_155a_z0:"world_155a_z0.png"
             }
         };
         
@@ -88,23 +134,15 @@ var RTVM = (function()
 
     RTVM.prototype.Init_MKS = function()
     {
-        var rs = this.rt_type == RTVM.RtType.SafecastRad ? RTICO.RenderStyle.Dot
-                                                         : RTICO.RenderStyle.Chevron;
-
-        //rs = RTICO.RenderStyle.DoubleTriangle;
-
-        var pf = this.rt_type == RTVM.RtType.SafecastRad ? RTMKS.ParseFormat.SafecastRtRad
-                                                         : RTMKS.ParseFormat.SafecastRtAir;
-
-        this.mks = new RTMKS(this.mapRef, window.devicePixelRatio, this.isMobile, this.dataBinds.cssClasses.FuturaFont, pf, rs);
+        this.mks = new RTMKS(this.mapRef, RTICO.IconStyleLg, window.devicePixelRatio, this.isMobile, this.dataBinds.cssClasses.bv_FuturaFont);
     };
     
     RTVM.prototype.InitMarkersAsync = function()
     {
-        // 2019-02-08 ND: FIx for no CORS upon HTTP->HTTPS redirect on the server.  Always access via HTTPS now.     
-        var pre = "https://";
-        var url = this.rt_type == RTVM.RtType.SafecastRad ? pre + "realtime.safecast.org/wp-content/uploads/devices.json"
-                                                          : pre + "realtime.safecast.org/wp-content/uploads/devices.json";
+        // Use the proxied URL instead of direct access to avoid CORS issues
+        console.log('RTVM.InitMarkersAsync: Fetching realtime sensor data');
+        var url = "/tt-api/devices";
+        console.log('RTVM.InitMarkersAsync: Using URL:', url);
         this.GetJSONAsync(url);
     };
     
@@ -126,7 +164,7 @@ var RTVM = (function()
     //
     RTVM.prototype.ConnectionWatchdog = function()
     {
-        if (Date.now() - this.last_tx > 20 * 60 * 1000)
+        if ((new Date()).getTime() - this.last_tx > 20 * 60 * 1000)
         {
             console.log("RTVM.prototype.ConnectionWatchdog: >20 mins since last connection attempt, restarting connection...");
             this.InitMarkersAsync();
@@ -139,19 +177,8 @@ var RTVM = (function()
 
     RTVM.prototype.GetJSONAsync = function(url)
     {
-        // 2016-08-14 ND: Fix for not being able to disable via UI due to timer polling.
-        //                This keeps timers running, but simply does a no-op.
-        if (!this.enabled)
-        {
-            setTimeout(function() {
-                this.last_tx = Date.now();
-                this.GetJSONAsync(url);
-            }.bind(this), 1 * 1000);
-                
-            return;
-        }//if
-    
-        var ss_now      = "" + (parseInt(Date.now() * 0.001));
+        var d           = new Date();
+        var ss_now      = "" + (parseInt(d.getTime() * 0.001));
         var url_nocache = url + "?t=" + ss_now;
         
         var cb = function(response, userData)
@@ -173,13 +200,8 @@ var RTVM = (function()
                 
                 if (obj != null)
                 {
-                    // 2016-08-14 ND: Recheck enabled status due to HTTP GET latency, to make sure
-                    //                markers are not being added against user's preference.
-                    if (this.enabled)
-                    {
-                        this.mks.AddSensorDataFromJson(obj);
-                        this.mks.AddMarkersToMap();
-                    }//if
+                    this.mks.AddSensorDataFromJson(obj);
+                    this.mks.AddMarkersToMap();
                 }//if
                 else
                 {
@@ -196,19 +218,19 @@ var RTVM = (function()
             {
                 console.log("RTVM: Error getting sensors from URL: %s", url);
             }//if
-
+            
             var after_ms = (success ? 60 : 600) * 1000; // 1 min normally, 10 mins on failure
-
+            
             if (this.failures < this.fail_max)
             {
                 setTimeout(function() {
-                    this.last_tx = Date.now();
+                    this.last_tx = (new Date()).getTime();
                     this.GetJSONAsync(url);
                 }.bind(this), after_ms);
             }//if
         }.bind(this);
-
-        _GetAsync_HTTP(url_nocache, null, null, cb, null);
+        
+        RTVM.GetAsync_HTTP(url_nocache, null, null, cb, null);
     };
     
     // =======================================================================================================
@@ -222,35 +244,41 @@ var RTVM = (function()
     
     RTVM.prototype.AddGmapsListeners = function()
     {
-        this.mks.AddGmapsListeners(); // only needed if they are manually removed.
+        this.mks.AddGmapsListener_ZoomChanged(); // only needed if they are manually removed.
     };
     
     RTVM.prototype.RemoveAllMarkersFromMapAndPurgeData = function()
     {
         this.mks.RemoveAllMarkersFromMapAndPurgeData();
     };
+
+    RTVM.prototype.SetZoomToDataExtent = function(shouldZoom)
+    {
+        this.zoom_to_data_extent = shouldZoom;
+    };
+    
+    RTVM.prototype.SetNewCustomMarkerOptions = function(width, height, alpha_fill, alpha_stroke, shadow_radius, hasBearingTick)
+    {
+        this.mks.SetNewCustomMarkerOptions(width, height, alpha_fill, alpha_stroke, shadow_radius, hasBearingTick);
+    };
+    
+    RTVM.prototype.SetNewMarkerType = function(iconTypeId)
+    {
+        this.mks.SetNewMarkerType(iconTypeId);
+    };
     
     RTVM.prototype.GetMarkerCount = function()
     {
-        return this.mks == null || this.mks.vals == null ? 0 : this.mks.vals.length;
+        return this.mks == null || this.mks.cpms == null ? 0 : this.mks.cpms.length;
     };
-
-    RTVM.prototype.GetEnabled = function()
-    {
-        return this.enabled;
-    };
-
-    RTVM.prototype.SetEnabled = function(v)
-    {
-        this.enabled = v;
-    };
+    
 
 
     // =======================================================================================================
     //                                      Static/Class Methods
     // =======================================================================================================
     
-    var _GetAsync_HTTP = function(url, responseType, responseHeader, fxCallback, userData)
+    RTVM.GetAsync_HTTP = function(url, responseType, responseHeader, fxCallback, userData)
     {
         var req = new XMLHttpRequest();
         req.open("GET", url, true);
@@ -284,7 +312,7 @@ var RTVM = (function()
             {
                 // This attemps to trap Chrome's ERR_NETWORK_CHANGED
                 // and other network failures which cause the updates to stop.
-                console.log("RTVM _GetAsync_HTTP: req.readyState == 4, req.status == %d.  Retrying.", req.status);
+                console.log("RTVM.GetAsync_HTTP: req.readyState == 4, req.status == %d.  Retrying.", req.status);
                 fxCallback(null, userData);
             }//else if
         };
@@ -293,7 +321,7 @@ var RTVM = (function()
     };
     
     // returns value of querystring parameter "name"
-    var _GetParam = function(name) 
+    RTVM.GetParam = function(name) 
     {
         name        = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
         var regexS  = "[\\?&]" + name + "=([^&#]*)";
@@ -306,10 +334,10 @@ var RTVM = (function()
 
     // http://stackoverflow.com/questions/11381673/detecting-a-mobile-browser
     // returns true if useragent is detected as being a mobile platform, or "mobile=1" is set in querystring.
-    var _IsPlatformMobile = function()
+    RTVM.IsPlatformMobile = function()
     {
         var check   = false;
-        var ovr_str = _GetParam("mobile");
+        var ovr_str = RTVM.GetParam("mobile");
     
         if (ovr_str != null && ovr_str.length > 0)
         {
@@ -321,20 +349,19 @@ var RTVM = (function()
     
             if (!check) check = navigator.userAgent.match(/iPad/i);
             if (!check) check = navigator.userAgent.match(/Android/i);
-            if (!check) check = navigator.userAgent.indexOf("iPad") > 0;
-            if (!check) check = navigator.userAgent.indexOf("Android") > 0;
+            if (!check) check = window.navigator.userAgent.indexOf("iPad") > 0;
+            if (!check) check = window.navigator.userAgent.indexOf("Android") > 0;
         }//else
     
         return check;
     };
-
-
-    RTVM.RtType =
+    
+    RTVM.ChangeVisibilityForElementByIdByReplacingClass = function(elementid, classHidden, classVisible, isHidden)
     {
-        SafecastRad: 0,
-        SafecastAir: 1
+        var el = document.getElementById(elementid);
+        if       (el != null &&  isHidden && el.className == classVisible) el.className = classHidden;
+        else if  (el != null && !isHidden && el.className == classHidden)  el.className = classVisible;
     };
-
 
     return RTVM;
 })();
@@ -350,23 +377,34 @@ var RTVM = (function()
 
 
 
-// RTLUT: contains color lookup table and returns RGB colors for a numeric value.
 
+
+// RTLUT: contains color lookup table and returns RGB colors for a numeric value.
 var RTLUT = (function()
 {
-    function RTLUT(min, max, lut_id, scale_type_id)
+    function RTLUT(min, max)
     {
         this.min = min;
         this.max = max;
-        this.lut_id = lut_id != null ? lut_id : 30;
-        this.scale_type_id = scale_type_id != null ? scale_type_id : 0;
-
-        var rgb = _GetRGBsForTableID(this.lut_id);
-
-        this.r = rgb.r;
-        this.g = rgb.g;
-        this.b = rgb.b;
-        
+        this.r = new Uint8Array([1,8,9,10,12,14,16,16,18,18,19,20,21,22,22,24,24,25,25,25,26,26,26,26,25,26,27,26,25,26,26,24,24,25,24,21,21,21,17,16,9,7,0,7,15,23,28,32,34,38,40,43,45,
+                                 46,50,51,54,55,56,56,56,58,59,59,59,59,59,59,59,59,57,56,56,56,54,51,48,45,43,39,37,33,29,23,10,0,29,39,60,67,84,90,97,105,110,120,124,133,137,143,148,
+                                 153,161,163,171,173,178,181,185,191,194,200,202,208,210,214,217,220,225,226,233,235,240,242,245,249,251,254,255,255,255,255,255,255,255,255,255,255,255,
+                                 255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+                                 255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+                                 255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+                                 255,255,255]);
+        this.g = new Uint8Array([1,7,7,8,10,11,12,12,13,13,13,13,14,14,14,15,15,15,15,15,15,15,15,15,15,15,15,15,15,14,14,14,14,13,13,12,11,11,10,9,5,4,0,9,19,30,36,43,46,56,59,65,70,74,
+                                 82,85,94,96,103,107,112,118,121,130,132,140,144,150,156,160,167,170,181,184,191,195,200,208,213,221,224,233,237,243,250,255,252,251,242,240,235,231,226,
+                                 221,219,212,210,204,202,197,192,187,182,180,172,170,163,160,156,151,148,137,134,128,124,117,112,107,100,97,87,83,71,64,56,44,38,5,0,0,0,0,0,0,0,0,0,0,0,
+                                 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,25,36,42,53,57,68,73,81,85,89,96,98,106,109,119,123,128,133,136,144,146,153,156,162,
+                                 166,170,180,183,191,193,200,204,208,214,217,224,226,234,239,247,251,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+                                 255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255]);
+        this.b = new Uint8Array([1,10,12,15,19,23,29,31,38,39,43,48,54,59,61,70,72,79,83,89,94,99,109,112,122,125,135,140,145,153,158,169,173,186,191,199,206,212,223,228,239,244,255,255,
+                                 255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+                                 255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,
+                                 255,255,255,255,255,255,255,255,254,247,242,234,227,221,211,207,196,192,183,179,174,166,161,154,151,140,136,128,123,119,113,111,102,100,94,88,81,75,72,65,
+                                 63,55,52,47,42,38,32,29,18,13,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,10,20,23,31,36,41,47,51,62,65,74,
+                                 78,84,90,94,102,105,115,118,128,133,138,145,148,157,159,168,172,179,186,191,198,202,211,215,222,226,232,238,242,253]);
         this.n = this.r.length;
         this.rdiff = 1.0 / (this.max - this.min);
         this.nsb1  = parseFloat(this.n - 1.0);
@@ -376,126 +414,29 @@ var RTLUT = (function()
     {
         return [this.r[i], this.g[i], this.b[i]];
     };
-
-    var _ScaleNormValueLOG10 = function(x) // y-you're going to inline this, right senpai VM?
-    {
-        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
-        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
-        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
-        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
-        return x;
-    };
     
-    var _ScaleNormValueLN = function(x)
-    {
-        x = Math.log(x * 1.718281828459045 + 1.0);
-        x = Math.log(x * 1.718281828459045 + 1.0);
-        x = Math.log(x * 1.718281828459045 + 1.0);
-        return x;
-    };
-    
-    var _ScaleNormValueNasaPm25 = function(x)
-    {
-        // https://upload.wikimedia.org/wikipedia/commons/4/4f/483897main_Global-PM2.5-map.JPG
-        if (x > 0.25) x = 0.25 + (x - 0.25) * 0.16666667; // [0...1] -> [0...0.375]
-        x *= 2.66666667; // [0...0.375] -> [0...1]
-        return x;
-    };
-
     RTLUT.prototype.GetIdxForValue = function(x, rsn)
     {
         x = (x - this.min) * this.rdiff;
         if (x > 1.0) x = 1.0; else if (x < 0.0) x = 0.0;
-    
-        switch (this.scale_type_id)
-        {
-            case RTLUT.ScaleType.LOG10:
-                x = _ScaleNormValueLOG10(x);
-                break;
-            case RTLUT.ScaleType.LN:
-                x = _ScaleNormValueLN(x);
-                break;
-            case RTLUT.ScaleType.NasaPm25:
-                x = _ScaleNormValueNasaPm25(x);
-                break;
-        }//switch
-        
-        if (x > 1.0) x = 1.0; else if (x < 0.0) x = 0.0;
+        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
+        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
+        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
+        x = Math.log(x * 9.0 + 1.0) * 0.43429448190325176;
         
         var i = parseInt(x * this.nsb1);
-        return rsn > 0 ? (i >>> rsn) << rsn : i;
+        return rsn > 0 ? (i >> rsn) << rsn : i;
     };
-
+    
     RTLUT.prototype.GetRgbForValue = function(x, rsn)
     {
         var i = this.GetIdxForValue(x, rsn);
         return [this.r[i], this.g[i], this.b[i]];
     };
     
-    var _SplitRGBLUT = function(src)
-    {
-        var nc = src.length / 3;
-        var rc = src.substring(0, nc);
-        var gc = src.substring(nc, nc * 2);
-        var bc = src.substring(nc * 2, nc * 3);
-    
-        return { rc:rc, gc:gc, bc:bc, nc:nc };
-    };
-
-    var _vhtoi_u08 = function(d,s) { for(var i=0;i<d.length; i++)d[i]=parseInt(("0x"+s.substring(i<<1,(i<<1)+2))); };
-
-    var _GetTypedArraysForHexStringLUT = function(src)
-    {
-        var rgbc = _SplitRGBLUT(src);
-        var n    = rgbc.nc >>> 1;
-        var r    = new Uint8Array(n);
-        var g    = new Uint8Array(n);
-        var b    = new Uint8Array(n);
-        _vhtoi_u08(r, rgbc.rc);
-        _vhtoi_u08(g, rgbc.gc);
-        _vhtoi_u08(b, rgbc.bc);
-    
-        return { r:r, g:g, b:b };
-    };
-
-    var _GetRGBsForTableID = function(table_id)
-    {
-        var row = null;
-        var rgb = null;
-        
-        for (var i=0; i<RTLUT.LUTs.length; i++)
-        {
-            if (RTLUT.LUTs[i][0] == table_id)
-            {
-                row = RTLUT.LUTs[i];
-                break;
-            }//if
-        }//for
-        
-        if (row != null)
-        {
-            rgb = _GetTypedArraysForHexStringLUT(row[13]);
-        }//if
-        
-        return rgb;
-    };
-
-    RTLUT.LUTs = 
-    [
-        [30,0,"Cyan Halo","GB",1,1,1,1,1,1,0,0.0,0.0,"0108090A0C0E10101212131415161618181919191A1A1A1A191A1B1A191A1A181819181515151110090700070F171C202226282B2D2E323336373838383A3B3B3B3B3B3B3B3B393838383633302D2B2725211D170A001D273C43545A61696E787C85898F9499A1A3ABADB2B5B9BFC2C8CAD0D2D6D9DCE1E2E9EBF0F2F5F9FBFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF010707080A0B0C0C0D0D0D0D0E0E0E0F0F0F0F0F0F0F0F0F0F0F0F0F0F0E0E0E0E0D0D0C0B0B0A0905040009131E242B2E383B41464A52555E60676B70767982848C90969CA0A7AAB5B8BFC3C8D0D5DDE0E9EDF3FAFFFCFBF2F0EBE7E2DDDBD4D2CCCAC5C0BBB6B4ACAAA3A09C97948986807C75706B646157534740382C2605000000000000000000000000000000000000000000000000000000000000000000000000000000000000000B19242A3539444951555960626A6D777B8085889092999CA2A6AAB4B7BFC1C8CCD0D6D9E0E2EAEFF7FBFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF010A0C0F13171D1F26272B30363B3D46484F53595E636D707A7D878C91999EA9ADBABFC7CED4DFE4EFF4FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEF7F2EAE3DDD3CFC4C0B7B3AEA6A19A978C88807B77716F66645E58514B48413F37342F2A26201D120D0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080A14171F24292F333E414A4E545A5E6669737680858A91949D9FA8ACB3BABFC6CAD3D7DEE2E8EEF2FD"],
-        [32,8,"Jet","MATLAB",  1,1,1,1,1,1,0,0.0,0.0,"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000103080C0F12181C1F232A2D3033393C3F42484C4F52585C5F646A6D70737A7D8083898C8F92989C9FA2A8ACAFB4BABDC0C3CACDD0D3D9DCDFE2E8ECEFF4FAFCFDFEFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFEFEFDFCF9F3F0EDEAE4DFDCD8D2CFCCC9C3C0BDBAB3B0ADAAA49F9C98928F8C8882807F7F00000000000000000000000000000000000000000000000000000000000001040A0D1013191C1F22282C2F32383C3F444A4D50535A5D6063696C6F72787C7F848A8E90949A9DA0A3A9ACAFB2B8BCBFC2C8CCCFD4DADDE0E3EAEDF0F3F9FBFDFEFEFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFEFEFDFBF8F2EFECE9E3E0DDDAD3D0CDCAC4BFBCB8B2AFACA8A29F9C9993908D8A837F7C77716E6C68625F5C5953504D4A43403D3A342F2C28221F1C18120F0C090401000000000000000000000000000000000000000000000000000000000000000000008F8F9092989C9FA2A8ACAFB4BABDC0C3CACDD0D3D9DCDFE2E8ECEFF4FAFCFDFEFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFEFEFDFCF9F3F0EDEAE4DFDCD8D2CFCCC9C3C0BDBAB3B0ADAAA49F9C98928F8C88827F7C7973706D6A63605D5A544F4C48423F3C38322F2C2923201D1A130F0C0802010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"]
-    ];
-
-    RTLUT.ScaleType =
-    {
-        LN: 0,
-        LIN: 1,
-        LOG10: 2,
-        NasaPm25: 3
-    };
-
     return RTLUT;
 })();
+
 
 
 
@@ -504,41 +445,76 @@ var RTLUT = (function()
 // ICO: Renders marker icon to ivar "this.url" as base64 png.
 //      Can be retained in cache as rendering pngs is slow.
 //      This is completely ignorant of retina displays.
-
 var RTICO = (function()
 {
-    function RTICO(width, height, deg, lutidx, lutidx2, red0, green0, blue0, red1, green1, blue1, red2, green2, blue2, alpha_fill, alpha_stroke, shadow_radius, render_style)
+    function RTICO(width, height, deg, showBearingTick, lutidx, red0, green0, blue0, red1, green1, blue1, alpha_fill, alpha_stroke, shadow_radius)
     {
-        this.width   = width;
-        this.height  = height;
-        this.deg     = deg;
-        this.lutidx  = lutidx;
-        this.lutidx2 = lutidx2;
-        this.red0    = red0;
-        this.green0  = green0;
-        this.blue0   = blue0;
-        this.alpha0  = alpha_fill;
-        this.alpha1  = alpha_stroke;
-        this.shd_r   = shadow_radius;
-        this.red1    = red1;
-        this.green1  = green1;
-        this.blue1   = blue1;
-        this.red2    = red2;
-        this.green2  = green2;
-        this.blue2   = blue2;
-        this.rstyle  = render_style;
+        this.width  = width;
+        this.height = height;
+        this.deg    = deg;
+        this.btick  = showBearingTick;
+        this.lutidx = lutidx;
+        this.red0   = red0;
+        this.green0 = green0;
+        this.blue0  = blue0;
+        this.alpha0 = alpha_fill;
+        this.alpha1 = alpha_stroke;
+        this.shd_r  = shadow_radius;
+        this.red1   = red1;
+        this.green1 = green1;
+        this.blue1  = blue1;
         
         this.url    = null;
         
         this.Render();
     }//RTICO
-
-
-    var _RenderStatusCircle = function(ctx, ox, oy, outer_r, r, g, b, a, scale, is_online)
+    
+    RTICO.prototype.Render = function()
     {
-        var c_green = "rgba(" + r + ", " + g + ", " + b + ", " + a + ")";
+        var c     = document.createElement("canvas");
+        var w_add = (this.shd_r - (this.width  >> 1)) * 2;
+        var h_add = (this.shd_r - (this.height >> 1)) * 2;
+        var w_px  = this.width  + Math.max(0, w_add);
+        var h_px  = this.height + Math.max(0, h_add); // ignore, shd_r is always 0 here.
+        c.width  = w_px;
+        c.height = h_px;
+        var ctx  = c.getContext("2d");
+        var r    = ((this.width < this.height ? this.width : this.height) >> 1) - 1; // radius
+        var ox   = w_px >> 1; // offset to center
+        var oy   = h_px >> 1;
+        
+        if (r <= 0) r = 1;
 
-        if (!is_online)
+        var scale   = w_px / 20.0;
+
+        var outer_r = r - 1.0 * scale;        // buffer for antialiasing
+        if (scale > 1.0) outer_r -= scale; // wtf
+        
+        var inner_r = outer_r - 4.0 * scale;  // 4px diff is ultimately about 1 visual pixel spacing
+        
+        if (w_px <= 12) inner_r = outer_r - 3.0 * scale;
+        
+        var c_fill  = "rgba(" + this.red0 + ", " + this.green0 + ", " + this.blue0 + ", " + this.alpha0 + ")";
+        var c_green = "rgba(" + this.red1 + ", " + this.green1 + ", " + this.blue1 + ", " + this.alpha1 + ")";
+        
+        var a1 = this.alpha1;
+        
+        // ------------------------ inner dot -------------------------------
+        
+        //if (w_px > 12)
+        //{
+        ctx.beginPath(); // fill with variable color
+            ctx.arc(ox, oy, inner_r, 0, 2 * Math.PI);
+            ctx.fillStyle = c_fill;
+        ctx.fill();
+
+        ctx.beginPath(); // stroke black outline
+            ctx.arc(ox, oy, inner_r, 0, 2 * Math.PI);
+            ctx.strokeStyle = "rgba(0,0,0," + this.alpha0 + ")";
+            ctx.lineWidth   = w_px > 12 ? 1.5 * scale : 0.75 * scale;
+        ctx.stroke();
+
+        if (this.red1 > 0)
         {
             var min_angle = 0.0;
             var max_angle = 2.0 * Math.PI;
@@ -548,11 +524,11 @@ var RTICO = (function()
             for (var i=0; i<steps; i++)
             {
                 var start_angle = parseFloat(i) * step_size;
-                var   end_angle = start_angle   + step_size * 0.75;
+                var end_angle   = start_angle + step_size * 0.75;
                 
                 ctx.beginPath(); // stroke thick black outline
                     ctx.arc(ox, oy, outer_r, start_angle, end_angle);
-                    ctx.strokeStyle = "rgba(0,0,0," + a + ")";
+                    ctx.strokeStyle = "rgba(0,0,0," + a1 + ")";
                     ctx.lineWidth   = Math.max(3.5 * scale, 3.5);
                 ctx.stroke();
         
@@ -570,6 +546,7 @@ var RTICO = (function()
                     ctx.strokeStyle = c_green;
                     ctx.lineWidth   = Math.max(1.0 * scale, 1.0);
                 ctx.stroke();
+        
                 
                 ctx.beginPath(); // repeat green stroke
                     ctx.arc(ox, oy, outer_r, start_angle, end_angle);
@@ -583,7 +560,7 @@ var RTICO = (function()
             // ------------------------ outer ring -------------------------------
             ctx.beginPath(); // stroke thick black outline
                 ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
-                ctx.strokeStyle = "rgba(0,0,0," + a + ")";
+                ctx.strokeStyle = "rgba(0,0,0," + a1 + ")";
                 ctx.lineWidth   = Math.max(3.5 * scale, 3.5);
             ctx.stroke();
         
@@ -602,324 +579,67 @@ var RTICO = (function()
                 ctx.lineWidth   = Math.max(1.0 * scale, 1.0);
             ctx.stroke();
         
+
             ctx.beginPath(); // repeat green stroke
                 ctx.arc(ox, oy, outer_r, 0, 2 * Math.PI);
                 ctx.strokeStyle = c_green;
                 ctx.lineWidth   = Math.max(0.5 * scale, 0.5);
             ctx.stroke();
         }//else
-    };
-
-
-    RTICO.prototype.Render = function()
-    {
-        if (this.rstyle == RTICO.RenderStyle.Dot)
-        {
-            this.RenderDot();
-        }//if
-        else if (this.rstyle == RTICO.RenderStyle.Chevron)
-        {
-            this.RenderChevron();
-        }//else if
-        else
-        {
-            this.RenderDoubleTriangle();
-        }//else
-    };
-
-
-    RTICO.prototype.RenderDot = function()
-    {
-        var c     = document.createElement("canvas");
-        var w_add = (this.shd_r - (this.width  >> 1)) * 2;
-        var h_add = (this.shd_r - (this.height >> 1)) * 2;
-        var w_px  = this.width  + Math.max(0, w_add);
-        var h_px  = this.height + Math.max(0, h_add); // ignore, shd_r is always 0 here.
-        c.width  = w_px;
-        c.height = h_px;
-        var ctx  = c.getContext("2d");
-        var r    = ((this.width < this.height ? this.width : this.height) >> 1) - 1; // radius
-        var ox   = w_px >> 1; // offset to center
-        var oy   = h_px >> 1;
-        
-        if (r <= 0) r = 1;
-
-        var scale   = w_px / 20.0;
-
-        var outer_r = r - 1.0 * scale;        // buffer for antialiasing
-        if (scale > 1.0) outer_r -= scale; // wtf
-        
-        var inner_r = outer_r - 4.0 * scale;  // 4px diff is ultimately about 1 visual pixel spacing
-        
-        if (w_px <= 12) inner_r = outer_r - 3.0 * scale;
-        
-        var c_fill  = "rgba(" + this.red0 + ", " + this.green0 + ", " + this.blue0 + ", " + this.alpha0 + ")";
-        
-        // ------------------------ inner dot -------------------------------
-
-        ctx.beginPath(); // fill with variable color
-            ctx.arc(ox, oy, inner_r, 0, 2 * Math.PI);
-            ctx.fillStyle = c_fill;
-        ctx.fill();
-
-        ctx.beginPath(); // stroke black outline
-            ctx.arc(ox, oy, inner_r, 0, 2 * Math.PI);
-            ctx.strokeStyle = "rgba(0,0,0," + this.alpha0 + ")";
-            ctx.lineWidth   = w_px > 12 ? 1.5 * scale : 0.75 * scale;
-        ctx.stroke();
-        
-        _RenderStatusCircle(ctx, ox, oy, outer_r, this.red1, this.green1, this.blue1, this.alpha1, scale, this.red1 == 0);
         
         this.url = c.toDataURL("image/png");
     };
-
-
-    RTICO.prototype.RenderChevron = function()
+    
+    RTICO.GetIconOptionsForIconStyle = function(iconStyle)
     {
-        var c     = document.createElement("canvas");
-        var w_add = (this.shd_r - (this.width  >> 1)) * 2;
-        var h_add = (this.shd_r - (this.height >> 1)) * 2;
-        var w_px  = this.width  + Math.max(0, w_add);
-        var h_px  = this.height + Math.max(0, h_add); // ignore, shd_r is always 0 here.
-        c.width  = w_px;
-        c.height = h_px;
-        var ctx  = c.getContext("2d");
-        var r    = ((this.width < this.height ? this.width : this.height) >> 1) - 1; // radius
-        var ox   = w_px >> 1; // offset to center
-        var oy   = h_px >> 1;
+        var p;
         
-        if (r <= 0) r = 1;
-
-        var scale   = w_px / 20.0;
-
-        var outer_r = r - 1.0 * scale;        // buffer for antialiasing
-        if (scale > 1.0) outer_r -= scale; // wtf
-        
-        var inner_r = outer_r - 4.0 * scale;  // 4px diff is ultimately about 1 visual pixel spacing
-        
-        if (w_px <= 12) inner_r = outer_r - 3.0 * scale;
-        
-        var c_fill  = "rgba(" + this.red0 + ", " + this.green0 + ", " + this.blue0 + ", " + this.alpha0 + ")";
-        
-        _RenderStatusCircle(ctx, ox, oy, outer_r, this.red1, this.green1, this.blue1, this.alpha1, scale, this.red1 == 0);
-        
-
-        // ---------------------- chevron ----------------------------
-        
-        oy  = Math.max(0, h_add) >> 1;
-        oy += 4.0 * scale;
-        
-        var length   = w_px - 4.0 * scale * 2.0;
-        var degrees0 = 180.0 - 30.0;
-        var degrees1 = 180.0 + 30.0;
-        var dx,dy,x0,y0,x1,y1;
-    
-        // not sure why deg - 90 is needed...
-        degrees0 = (degrees0 - 90.0) * 0.01745329251994329576923690768489; // ->rad
-        degrees1 = (degrees1 - 90.0) * 0.01745329251994329576923690768489; // ->rad
-
-        dx = Math.cos(degrees0) * length;
-        dy = Math.sin(degrees0) * length;
-        x0 = ox + dx;
-        y0 = oy + dy;
-        dx = Math.cos(degrees1) * length;
-        dy = Math.sin(degrees1) * length;
-        x1 = ox + dx;
-        y1 = oy + dy;
-        
-        ctx.beginPath();
-            ctx.strokeStyle = "rgba(0,0,0," + this.alpha0 + ")";
-            ctx.lineWidth   = scale * 8.0 * 0.75;
-            ctx.moveTo(x0, y0);                     // bottom-right corner
-            ctx.lineTo(ox, oy + scale * 4.0 * 0.5); // top-center
-            ctx.lineTo(x1, y1);                     // bottom-left corner
-        ctx.stroke();
-
-        var linediff = ((scale * 8.0 * 0.75) - (scale * 8.0 * 0.5)) * 0.5;
-
-        // inner filled color chevron
-        ctx.beginPath();
-            ctx.strokeStyle = c_fill;
-            ctx.lineWidth   = scale * 8.0 * 0.5;
-            ctx.moveTo(x0 - linediff, y0 - linediff); // bottom-right corner
-            ctx.lineTo(ox, oy + scale * 4.0 * 0.5);   // top-center
-            ctx.lineTo(x1 + linediff, y1 - linediff); // bottom-left corner
-        ctx.stroke();
-
-        this.url = c.toDataURL("image/png");
-    };
-
-
-    RTICO.prototype.RenderDoubleTriangle = function()
-    {
-        var c     = document.createElement("canvas");
-        var w_add = (this.shd_r - (this.width  >> 1)) * 2;
-        var h_add = (this.shd_r - (this.height >> 1)) * 2;
-        var w_px  = this.width  + Math.max(0, w_add);
-        var h_px  = this.height + Math.max(0, h_add); // ignore, shd_r is always 0 here.
-        c.width   = w_px;
-        c.height  = h_px;
-        var ctx   = c.getContext("2d");
-        var r     = ((this.width < this.height ? this.width : this.height) >> 1) - 1; // radius
-        var ox    = w_px >> 1; // offset to center
-        var oy    = h_px >> 1;
-        
-        if (r <= 0) r = 1;
-
-        var scale = w_px / 20.0;
-
-        var outer_r = r - 1.0 * scale;        // buffer for antialiasing
-        if (scale > 1.0) outer_r -= scale; // wtf
-        
-        var inner_r = outer_r - 4.0 * scale;  // 4px diff is ultimately about 1 visual pixel spacing
-        
-        if (w_px <= 12) inner_r = outer_r - 3.0 * scale;
-        
-        var c_fill  = "rgba(" + this.red0 + ", " + this.green0 + ", " + this.blue0 + ", " + this.alpha0 + ")";
-        var c_fill2 = "rgba(" + this.red2 + ", " + this.green2 + ", " + this.blue2 + ", " + this.alpha0 + ")";
-        
-        _RenderStatusCircle(ctx, ox, oy, outer_r, this.red1, this.green1, this.blue1, this.alpha1, scale, this.red1 == 0);
-        
-        // ---------------------- triangles ----------------------------
-        
-        oy  = Math.max(0, h_add) >> 1;
-        oy += 4.0 * scale;
-        
-        var length   = w_px - 4.0 * scale * 2.0; // scale * 1.5 = best for double triangle, scale * 2.0 = best for triple
-        var degrees0 = 180.0 - 30.0;
-        var degrees1 = 180.0 + 30.0;
-        var dx,dy,x0,y0,x1,y1;
-    
-        degrees0 = (degrees0 - 90.0) * 0.01745329251994329576923690768489; // ->rad
-        degrees1 = (degrees1 - 90.0) * 0.01745329251994329576923690768489; // ->rad
-    
-        var linediff = ((scale * 8.0 * 0.75) - (scale * 8.0 * 0.5)) * 0.5;
-    
-        dx = Math.cos(degrees0) * length;
-        dy = Math.sin(degrees0) * length;
-        x0 = ox + dx;
-        y0 = oy + dy;
-        dx = Math.cos(degrees1) * length;
-        dy = Math.sin(degrees1) * length;
-        x1 = ox + dx;
-        y1 = oy + dy;
-        
-        var y0_2 = y0 + 1.0 * scale; // asymmetric offset of bottom triangle, moving it down a bit
-        var y1_2 = y1 + 1.0 * scale;
-        var oy_2 = oy + 1.0 * scale;
-        
-        var tri_h = y0 - (oy + scale * 4.0 * 0.5);
-        
-        oy -= tri_h * 0.5; // draw the top triangle first for layering purposes
-        y0 -= tri_h * 0.5;
-        y1 -= tri_h * 0.5;
-
-        ctx.beginPath();
-            ctx.strokeStyle = "rgba(0,0,0," + this.alpha0 + ")";
-            ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
-            ctx.moveTo(x0, y0);                     // bottom-right corner
-            ctx.lineTo(ox, oy + scale * 4.0 * 0.5); // top-center
-            ctx.lineTo(x1, y1);                     // bottom-left corner
-            ctx.closePath();
-        ctx.stroke();
-
-        // inner filled color chevron
-        ctx.beginPath();
-            ctx.fillStyle = c_fill;
-            ctx.moveTo(x0, y0);                      // bottom-right corner
-            ctx.lineTo(ox, oy + scale * 4.0 * 0.5);  // top-center
-            ctx.lineTo(x1, y1);                      // bottom-left corner
-        ctx.fill();
-        
-        
-        
-        
-        oy += tri_h * 1.0;
-        y0 += tri_h * 1.0;
-        y1 += tri_h * 1.0;
-        
-        ctx.beginPath();
-            ctx.strokeStyle = "rgba(0,0,0," + this.alpha0 + ")";
-            ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
-            ctx.moveTo(x0, y0);                     // bottom-right corner
-            ctx.lineTo(ox, oy + scale * 4.0 * 0.5); // top-center
-            ctx.lineTo(x1, y1);                     // bottom-left corner
-            ctx.closePath();
-        ctx.stroke();
-
-        // inner filled color chevron
-        ctx.beginPath();
-            ctx.fillStyle = c_fill2;
-            ctx.moveTo(x0, y0);                      // bottom-right corner
-            ctx.lineTo(ox, oy + scale * 4.0 * 0.5);  // top-center
-            ctx.lineTo(x1, y1);                      // bottom-left corner
-        ctx.fill();
-        
-        
-        
-        
-
-        ctx.beginPath();
-            ctx.strokeStyle = "rgba(0,0,0," + this.alpha0 + ")";
-            ctx.lineWidth   = Math.max(1.5 * scale, 1.5);
-            ctx.moveTo(x0, y0_2);                     // bottom-right corner
-            ctx.lineTo(ox, oy_2 + scale * 4.0 * 0.5); // top-center
-            ctx.lineTo(x1, y1_2);                     // bottom-left corner
-            ctx.closePath();
-        ctx.stroke();
-
-        // inner filled color chevron
-        ctx.beginPath();
-            ctx.fillStyle = c_fill;
-            ctx.moveTo(x0, y0_2);                     // bottom-right corner
-            ctx.lineTo(ox, oy_2 + scale * 4.0 * 0.5); // top-center
-            ctx.lineTo(x1, y1_2);                     // bottom-left corner
-        ctx.fill();
-
-        this.url = c.toDataURL("image/png");
-        
-        var img = document.createElement("img");
-        
-        this.deg = Math.random() * 180.0;
-        
-        img.onload = function()
+        switch (iconStyle)
         {
-            ctx.clearRect(0,0,c.width,c.height);
-            ctx.save();
-            ctx.translate(c.width/2, c.height/2);
-            ctx.rotate(this.deg*Math.PI/180);
-            ctx.drawImage(img,-img.width/2,-img.width/2);
-            
-            this.url = c.toDataURL("image/png");
-            
-            ctx.restore();
-        }.bind(this);
+            case RTICO.IconStyleSm:
+                p = [ 7, 7, 0.75, 0.75, 0.0, false];
+                break;
+            case RTICO.IconStyleMdB:
+                p = [ 10, 10, 0.75, 0.75, 0.0, true];
+                break;
+            case RTICO.IconStyleLgB:
+                p = [ 16, 16, 0.75, 0.75, 0.0, true];
+                break;
+            case RTICO.IconStyleLg:
+                p = [ 16, 16, 0.75, 0.75, 0.0, false];
+                break;
+            case RTICO.IconStyleMd:
+                p = [ 10, 10, 0.75, 0.75, 0.0, false];
+                break;
+            default:
+                p = [ 10, 10, 0.75, 0.75, 0.0, true];
+                break;
+        }//switch
         
-        img.src = this.url;
+        return { width:p[0], height:p[1], fill_alpha:p[2], stroke_alpha:p[3], shadow_radius:p[4], show_bearing_tick:p[5] };
     };
-
-
-    RTICO.RenderStyle =
-    {
-        Dot: 0,
-        Chevron: 1,
-        DoubleTriangle: 2
-    };
-
+    
+    RTICO.IconStyleSm     = 0;
+    RTICO.IconStyleMdB    = 1;
+    RTICO.IconStyleMd     = 2;
+    RTICO.IconStyleLgB    = 3;
+    RTICO.IconStyleLg     = 4;
+    RTICO.IconStyleCustom = 5;
+    
     return RTICO;
 })();
 
 
 
-// MKS: Marker manager
 
+// MKS: Marker manager
 var RTMKS = (function()
 {
-    function RTMKS(mapRef, pxScale, isMobile, fontCssClass, parse_format, render_style)
+    function RTMKS(mapRef, iconType, pxScale, isMobile, fontCssClass)
     {
         // Typed arrays, these hold the parsed log data.
-        this.raws    = null;    // CPM value of point
-        this.vals    = null;
+        this.cpms    = null;    // CPM value of point
+        this.dres    = null;
         this.ids     = null;    // Original LogIDs of points.
         this.times   = null;    // Datetime of marker, seconds since 1970-01-01.
         this.onmaps  = null;    // 1=is a marker currently on map.  0=not on map.
@@ -928,37 +648,31 @@ var RTMKS = (function()
         this.locstxt = null;
         this.imgtxt  = null;
         this.linktxt = null;
-        this.m_idxs  = null;
         
         this.isMobile = isMobile; // Disables some caching and renders less markers per pass.
         
         this.fontCssClass = fontCssClass;
-        this.parse_format = parse_format;
-        this.render_style = render_style;
         
+        this.mkType   = iconType;       // Predefined marker templates.
         this.pxScale  = pxScale == null || pxScale < 1.0 ? 1.0 : pxScale;
         this.width    = 20;             // Marker icon width, in non-retina pixels
         this.height   = 20;             // Marker icon height, in non-retina pixels
-        this.alpha0   = 1.0;            // Marker icon fill alpha, [0.0 - 1.0]
-        this.alpha1   = 1.0;            // Maker icon stroke alpha, [0.0 - 1.0]
+        this.alpha0   = 1.0;           // Marker icon fill alpha, [0.0 - 1.0]
+        this.alpha1   = 1.0;           // Maker icon stroke alpha, [0.0 - 1.0]
         this.shd_r    = 0.0;            // Marker icon shadow radius, pixels.
         this.icons    = new Array();
         
         this.lut_rsn  = 2;                       // 256 >> 128 >> 64 colors
-                                                 // The LUT gets the RGB values for a value.
-        this.lut      = new RTLUT(this.parse_format == RTMKS.ParseFormat.SafecastRtRad ?  0.030 :  0.0, 
-                                  this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? 65.535 : 80.0, 
-                                  this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? 30     : 32,
-                                  this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? RTLUT.ScaleType.LOG10 
-                                                                                       : RTLUT.ScaleType.LN); 
+        this.lut      = new RTLUT(0.03, 65.535); // The LUT gets the RGB values for a value.
 
         this.mapref  = mapRef;
         this.inforef = null;
         
         this.zoomlistener = null;
-        this.draglistener = null;
         
-        this.create_ss = (Date.now() * 0.001)>>>0;
+        var d = new Date();
+        
+        this.create_ss = (d.getTime() * 0.001)>>>0;
         
         // Note: Extent vec values are: x0, y0, x1, y1, ex0, ex1, z
         // 
@@ -981,51 +695,47 @@ var RTMKS = (function()
         this.mk_ex   = new Float64Array([9000.0, 9000.0, -9000.0, -9000.0]); // x0, y0, x1, y1 - EPSG:4326 only.
         this.last_z  = 0;
         
-        this.AddGmapsListeners();
+        this.AddGmapsListener_ZoomChanged();
     }//RTMKS
     
-    
-    RTMKS.prototype._GetCurrentVisibleExtent = function()
+    RTMKS.prototype.SetNewCustomMarkerOptions = function(width, height, alpha_fill, alpha_stroke, shadow_radius, hasBearingTick)
     {
-        var e = {};
-        var b = this.mapref.getBounds();
-        e.x0  = b.getSouthWest().lng();
-        e.y0  = b.getSouthWest().lat();
-        e.x1  = b.getNorthEast().lng();
-        e.y1  = b.getNorthEast().lat();
-        e.z   = this.mapref.getZoom();
+        if (this.icons.length > 0) this.icons = new Array();
         
-        if (e.x0 > e.x1) // 180th meridian handling -- need to split into second extent
-        {                // but, y-coordinates stay the same, so only need two more x-coordinates.
-            e.ex1 = e.x1;
-            e.x1  =  180.0;
-            e.ex0 = -180.0;
-        }//if
-        else
+        this.RemoveAllMarkersFromMap();
+        
+        this.mkType = RTICO.IconStyleCustom;
+        this.width  = width;
+        this.height = height;
+        this.alpha0 = alpha_fill;
+        this.alpha1 = alpha_stroke;
+        this.shd_r  = shadow_radius;
+        
+        this.AddMarkersToMap();
+    };
+    
+    RTMKS.prototype.SetNewMarkerType = function(markerType)
+    {
+        if (markerType != this.mkType)
         {
-            e.ex0 = -9000.0;
-            e.ex1 = -9000.0;
-        }//else
+            if (this.icons.length > 0) this.icons = new Array();
+            this.mkType = markerType;
+            this.RemoveAllMarkersFromMap();
+            this.ApplyMarkerType();
+            this.AddMarkersToMap();
+        }//if
+    };
+    
+    RTMKS.prototype.ApplyMarkerType = function()
+    {
+        var p = RTICO.GetIconOptionsForIconStyle(this.mkType);
         
-        return e;
+        this.width  = p.width;
+        this.height = p.height;
+        this.alpha0 = p.fill_alpha;
+        this.alpha1 = p.stroke_alpha;
+        this.shd_r  = p.shadow_radius;
     };
-
-
-    var _IsIntersectingExtents = function(e0, e1)
-    {
-        return !(e0.x1 < e1.x0 || e0.x0 > e1.x1 || e0.y1 < e1.y0 || e0.y0 > e1.y1);
-    };
-    
-    var _IsPointInExtent = function(x, y, e)
-    {
-        return !(y < e.y0
-             ||  y > e.y1
-             || (x < e.x0 && (e.ex0 == -9000.0 || x < e.ex0))
-             || (x > e.x1 && (e.ex1 == -9000.0 || x > e.ex1)));
-    };
-
-    
-
     
     RTMKS.prototype.UpdateMarkerExtent = function(x0, y0, x1, y1)
     {
@@ -1040,11 +750,23 @@ var RTMKS = (function()
         return this.mk_ex[0] >= -180.0 && this.mk_ex[0] <= 180.0 && this.mk_ex[1] >= -90.0 && this.mk_ex[1] <= 90.0
             && this.mk_ex[2] >= -180.0 && this.mk_ex[2] <= 180.0 && this.mk_ex[3] >= -90.0 && this.mk_ex[3] <= 90.0;
     };
+    
+    RTMKS.prototype.ApplyMapVisibleExtentForMarkers = function()    
+    {
+        if (!this.IsMarkerExtentValid())
+        {
+            return;
+        }//if
+        
+        var r = MKS.GetRegionForExtentAndClientView_EPSG4326(this.mk_ex[0], this.mk_ex[1], this.mk_ex[2], this.mk_ex[3]);
+        this.mapref.panTo(r[0]);
+        this.mapref.setZoom(r[1]);
+    };
 
     RTMKS.prototype.PurgeData = function()
     {
-        this.vals    = null;
-        this.raws    = null;
+        this.dres    = null;
+        this.cpms    = null;
         this.ids     = null;
         this.times   = null;
         this.locstxt = null;
@@ -1072,42 +794,34 @@ var RTMKS = (function()
         
         if (this.onmaps != null)
         {
-            _vfill(0, this.onmaps, 0, this.onmaps.length);
+            RTMKS.vfill(0, this.onmaps, 0, this.onmaps.length);
         }//if
         
         this.markers = new Array();
     };
+
+    RTMKS.prototype.RecycleMarker = function(marker)
+    {
+        google.maps.event.clearInstanceListeners(marker);
+        marker.setMap(null);
+        marker.setIcon(null);
+    };
     
     RTMKS.prototype.ClearGmapsListeners = function()
     {
-        if (this.zoomlistener != null)
-        {
-            google.maps.event.removeListener(this.zoomlistener);
-            this.zoomlistener = null;
-        }//if
+        if (this.zoomlistener == null) return;
         
-        if (this.draglistener != null)
-        {
-            google.maps.event.removeListener(this.draglistener);
-            this.draglistener = null;
-        }//if
+        google.maps.event.removeListener(this.zoomlistener);
+        this.zoomlistener = null;
     };
     
-    RTMKS.prototype.AddGmapsListeners = function()
+    RTMKS.prototype.AddGmapsListener_ZoomChanged = function()
     {
-        if (this.mapref == null) return;
+        if (this.mapref == null || this.zoomlistener != null) return;
         
-        var fxRefresh = function(e) { this.RescaleIcons(); }.bind(this);
+        var fxRefresh = function() { this.RescaleIcons(); }.bind(this);
         
-        if (this.zoomlistener == null)
-        {
-            this.zoomlistener = google.maps.event.addListener(this.mapref, "zoom_changed", fxRefresh);
-        }//if
-        
-        if (this.draglistener == null)
-        {
-            this.draglistener = google.maps.event.addListener(this.mapref, "dragend", fxRefresh);
-        }//if
+        this.zoomlistener = google.maps.event.addListener(this.mapref, "zoom_changed", fxRefresh);
     };
     
     // Synchronizes marker icons with marker data.  This assumes that 
@@ -1121,42 +835,38 @@ var RTMKS = (function()
     //
     RTMKS.prototype.UpdateIconsForMarkers = function()
     {
-        var e     = this._GetCurrentVisibleExtent();
-        var scale = _GetIconScaleFactorForZ(e.z);
-        var rw    = _roundx(this.width * scale, 1);
+        var z     = this.mapref.getZoom();
+        var scale = RTMKS.GetIconScaleFactorForZ(z);
 
         for (var i=0; i<this.markers.length; i++)
         {
-            var lat = this.lats[this.markers[i].ext_id];
-            var lon = this.lons[this.markers[i].ext_id];
-        
+            var ico     = this.markers[i].getIcon();
+            var dre     = this.dres[this.markers[i].ext_id];
+            var offline = this.IsSensorOffline(this.markers[i].ext_id);
+            var lutidx  = this.lut.GetIdxForValue(dre, this.lut_rsn);
+            var zindex  = RTMKS.GetMarkerZIndexForAttributes(lutidx, offline);
+            var lat     = this.lats[this.markers[i].ext_id];
+            var lon     = this.lons[this.markers[i].ext_id];
+            
             if (   lat != this.markers[i].getPosition().lat()
                 || lon != this.markers[i].getPosition().lng())
             {
                 this.markers[i].setPosition(new google.maps.LatLng(lat, lon));
             }//if
-            
-            if (_IsPointInExtent(lon, lat, e))
-            {
-                var ico     = this.markers[i].getIcon();
-                var val     = this.vals[this.markers[i].ext_id];
-                var offline = this.IsSensorOffline(this.markers[i].ext_id);
-                var lutidx  = this.lut.GetIdxForValue(val, this.lut_rsn);
 
-                if (ico.scaledSize.width != rw
-                    || offline != this.markers[i].ext_offline
-                    ||  lutidx != this.markers[i].ext_lut_idx)
-                {
-                    ico.size       = new google.maps.Size(_roundx(this.width * scale, 1), _roundx(this.height * scale, 1));
-                    ico.scaledSize = new google.maps.Size(_roundx(this.width * scale, 1), _roundx(this.height * scale, 1));
-                    ico.anchor     = new google.maps.Point(this.width * scale * 0.5, this.height * scale * 0.5);
-                    ico.url        = this.GetIconCached(lutidx, offline, this.width, this.height, this.pxScale * scale);
+            if (ico.scaledSize.width != this.width * scale
+                || offline != this.markers[i].ext_offline
+                ||  lutidx != this.markers[i].ext_lut_idx)
+            {
+                ico.size       = new google.maps.Size(this.width * scale, this.height * scale);
+                ico.scaledSize = new google.maps.Size(this.width * scale, this.height * scale);
+                ico.anchor     = new google.maps.Point(this.width * scale * 0.5, this.height * scale * 0.5);
+                ico.url        = this.GetIconCached(lutidx, offline, this.width, this.height, this.pxScale * scale);
                 
-                    this.markers[i].setIcon(ico);
-                    this.markers[i].setZIndex(_GetMarkerZIndexForAttributes(lutidx, offline));
-                    this.markers[i].ext_offline = offline;
-                    this.markers[i].ext_lut_idx = lutidx;
-                }//if
+                this.markers[i].setIcon(ico);
+                this.markers[i].setZIndex(zindex);
+                this.markers[i].ext_offline = offline;
+                this.markers[i].ext_lut_idx = lutidx;
             }//if
         }//for
     };
@@ -1168,9 +878,7 @@ var RTMKS = (function()
         
         var z = this.mapref.getZoom();
         
-        if (   7 < z && z < 13
-            && 7 < this.last_z && this.last_z < 13
-            && z > this.last_z) // 2016-12-01 ND: for lazy extent-based updates
+        if (z > 7 && this.last_z > 7)
         {
             this.last_z = z;
             return;
@@ -1196,43 +904,67 @@ var RTMKS = (function()
     
     RTMKS.prototype.AddMarkersToMap = function()
     {
-        if (this.lats == null) return;
+        console.log('AddMarkersToMap: Starting to add markers');
+        if (this.lats == null) {
+            console.log('AddMarkersToMap: No latitude data available');
+            return;
+        }
         
+        console.log('AddMarkersToMap: Have', this.lats.length, 'coordinates to process');
+        
+        // Initialize onmaps array if it doesn't exist or has wrong length
+        if (!this.onmaps || this.onmaps.length !== this.lats.length) {
+            console.log('AddMarkersToMap: Initializing onmaps array');
+            this.onmaps = new Array(this.lats.length);
+            for (var i = 0; i < this.onmaps.length; i++) {
+                this.onmaps[i] = 0;
+            }
+        }
+        
+        var markersAdded = 0;
         for (var i=0; i<this.lats.length; i++)
         {
+            if (isNaN(this.lats[i]) || isNaN(this.lons[i])) {
+                console.log('AddMarkersToMap: Invalid coordinates at index', i, ':', this.lats[i], this.lons[i]);
+                continue;
+            }
+            
             if (this.onmaps[i] == 0)
             {
                 this.onmaps[i] = 1;
                 
                 var lat = this.lats[i];
                 var lon = this.lons[i];
-                var val = this.vals[i];
-                var idx = this.lut.GetIdxForValue(val, this.lut_rsn);
+                var dre = this.dres[i];
+                var idx = this.lut.GetIdxForValue(dre, this.lut_rsn);
                 
+                console.log('AddMarkersToMap: Adding marker at', lat, lon, 'with value', dre);
                 this.AddMarker(i, lat, lon, idx, this.IsSensorOffline(i));
+                markersAdded++;
             }//if
         }//for
         
+        console.log('AddMarkersToMap: Added', markersAdded, 'new markers');
         this.RescaleIcons(); // todo: integrate with addmarker
     };
     
     RTMKS.prototype.AddMarker = function(marker_id, lat, lon, lutidx, offline)
     {    
         var icon_url = this.GetIconCached(lutidx, offline, this.width, this.height, this.pxScale);
-        var w_add    = (this.shd_r - (this.width  * 0.5)) * 2;
-        var h_add    = (this.shd_r - (this.height * 0.5)) * 2;
+        var w_add    = (this.shd_r - (this.width  >> 1)) * 2;
+        var h_add    = (this.shd_r - (this.height >> 1)) * 2;
         var w_pt     = this.width  + Math.max(0, w_add);
         var h_pt     = this.height + Math.max(0, h_add);
 
         var size = new google.maps.Size(w_pt, h_pt);
-        var anch = new google.maps.Point(w_pt * 0.5, h_pt * 0.5);
+        var anch = new google.maps.Point(w_pt >> 1, h_pt >> 1);
         var icon = { url:icon_url, size:size, anchor:anch };
                    
         icon.scaledSize = new google.maps.Size(w_pt, h_pt);
         
         var yx     = new google.maps.LatLng(lat, lon);
         var marker = new google.maps.Marker();
-        var zindex = _GetMarkerZIndexForAttributes(lutidx, offline);
+        var zindex = RTMKS.GetMarkerZIndexForAttributes(lutidx, offline);
         
         marker.setPosition(yx);
         marker.setIcon(icon);
@@ -1249,8 +981,8 @@ var RTMKS = (function()
     RTMKS.prototype.GetIconCached = function(lutidx, offline, width, height, pxScale)
     {
         var url  = null;       
-        var w_px = _roundx(width  * pxScale, 1);
-        var h_px = _roundx(height * pxScale, 1);
+        var w_px = width  * pxScale;
+        var h_px = height * pxScale;
         
         var r1 = offline ? 220 :   0;
         var g1 = offline ? 220 : 255;
@@ -1268,8 +1000,7 @@ var RTMKS = (function()
                 &&  this.icons[i].height == h_px
                 &&  this.icons[i].alpha0 == a0
                 &&  this.icons[i].alpha1 == a1
-                &&  this.icons[i].shd_r  == this.shd_r
-                &&  this.icons[i].rstyle == this.render_style)
+                &&  this.icons[i].shd_r  == this.shd_r)
             {
                 url = this.icons[i].url;
                 break;
@@ -1282,14 +1013,7 @@ var RTMKS = (function()
             var g0 = this.lut.g[lutidx];
             var b0 = this.lut.b[lutidx];
             
-            var lutidx2 = lutidx >>> 1;
-            var r2 = this.lut.r[lutidx2];
-            var g2 = this.lut.g[lutidx2];
-            var b2 = this.lut.b[lutidx2];
-            var deg = -1;
-            
-            var ico = new RTICO(w_px, h_px, deg, lutidx, lutidx2, r0, g0, b0, r1, g1, b1, r2, g2, b2, a0, a1, this.shd_r, this.render_style);
-            //var ico = new RTICO(w_px, h_px, -1, false, lutidx, r0, g0, b0, r1, g1, b1, a0, a1, this.shd_r, this.render_style);
+            var ico = new RTICO(w_px, h_px, -1, false, lutidx, r0, g0, b0, r1, g1, b1, a0, a1, this.shd_r);
             this.icons.push(ico);
             url = ico.url;
         }//if
@@ -1303,10 +1027,10 @@ var RTMKS = (function()
     {
         var need_reload = false;
         var need_icons  = false;
-        var nowSS       = (Date.now() / 1000.0) >>> 0;
-        var o           = _ParseJSON(obj, this.parse_format);
+        var nowSS       = (new Date().getTime() / 1000.0) >>> 0;
+        var o           = RTMKS.ParseJSON(obj);
 
-        if (!_ArrayCompare(o.ids, this.ids))
+        if (!RTMKS.ArrayCompare(o.ids, this.ids))
         {
             need_reload = true;
         }//if
@@ -1315,12 +1039,12 @@ var RTMKS = (function()
         {
             this.create_ss = nowSS;
             this.RemoveAllMarkersFromMapAndPurgeData();
-            this.AddData(o.vals, o.raws, o.ids, o.times, o.lons, o.lats, o.locstxt, o.imgtxt, o.linktxt);
+            this.AddData(o.dres, o.cpms, o.ids, o.times, o.lons, o.lats, o.locstxt, o.imgtxt, o.linktxt);
         }//if
         else
         {
-            if (   !_ArrayCompareAbsThr(o.lons, this.lons, 0.00001)
-                || !_ArrayCompareAbsThr(o.lats, this.lats, 0.00001))
+            if (   !RTMKS.ArrayCompareAbsThr(o.lons, this.lons, 0.00001)
+                || !RTMKS.ArrayCompareAbsThr(o.lats, this.lats, 0.00001))
             {
                 // nb: epsilon used in case of future devices with active GPS, so minor positional
                 //     error doesn't constantly cause flickering of icons.
@@ -1329,14 +1053,14 @@ var RTMKS = (function()
                 this.lons  = o.lons;
             }//if
         
-            if (!_ArrayCompare(o.vals, this.vals))
+            if (!RTMKS.ArrayCompare(o.dres, this.dres))
             {
                 need_icons = true;
-                this.vals  = o.vals;
-                this.raws  = o.raws; // assume CPMs will change only if DREs change
+                this.dres  = o.dres;
+                this.cpms  = o.cpms; // assume CPMs will change only if DREs change
             }//if
 
-            if (!_ArrayCompare(o.times, this.times))
+            if (!RTMKS.ArrayCompare(o.times, this.times))
             {
                 need_icons     = true;
                 this.times     = o.times; // update the times even if the offline status didn't change.
@@ -1372,14 +1096,14 @@ var RTMKS = (function()
         var ids     = new Array();
         var times   = new Array();
         var urls    = new Array();
-        var vals    = new Array();
-        var raws    = new Array();
+        var dres    = new Array();
+        var cpms    = new Array();
         
         // Build an Array of all sensors at that lat/lon, as the API
         // does not have sensor grouping.  The only singular value
         // used is the location name.
         
-        for (var i=0; i<this.vals.length; i++)
+        for (var i=0; i<this.cpms.length; i++)
         {
             if (   this.lats[i] == this.lats[idx]
                 && this.lons[i] == this.lons[idx])
@@ -1388,19 +1112,48 @@ var RTMKS = (function()
                 urls.push(this.linktxt[i]);
                 ids.push(this.ids[i]);
                 times.push(this.times[i]);
-                vals.push(this.vals[i].toFixed(2));
+                dres.push(this.dres[i].toFixed(2));
+                cpms.push(this.cpms[i]);
                 
-                if (this.parse_format == RTMKS.ParseFormat.SafecastRtRad)
-                {
-                    raws.push(this.raws[i]);
-                }//if
+                // Debug what's in the imgtxt
+                console.log('DEBUG - GetInfoWindowContentForId - imgtxt for marker', i, ':', this.imgtxt[i]);
+                try {
+                    var imgData = JSON.parse(this.imgtxt[i]);
+                    console.log('DEBUG - Parsed imgtxt:', imgData);
+                } catch (e) {
+                    console.log('DEBUG - Not JSON data in imgtxt');
+                }
             }//if
         }//for
-        
-        var val_unit = this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? ("\u00B5" + "Sv/h") : "PM2.5";
-        var raw_unit = this.parse_format == RTMKS.ParseFormat.SafecastRtRad ? "CPM" : null;
                  
-        return _GetInfoWindowHtmlForParams(this.locstxt[idx], imgs, ids, times, urls, vals, raws, val_unit, raw_unit, fontcss);
+        // DIRECT FIX: Override the location name for all devices
+        var locationName = 'Device ' + ids[0];
+        
+        // Try to get device_urn from the JSON data
+        if (imgs.length > 0) {
+            try {
+                var imgData = JSON.parse(imgs[0]);
+                console.log('DEBUG - Popup data:', imgData);
+                
+                if (imgData.device_urn) {
+                    var parts = imgData.device_urn.split(':');
+                    if (parts.length > 1) {
+                        // Format as 'geigiecast 61099' - keep the original case
+                        locationName = parts[0] + ' ' + parts[1];
+                        console.log('DEBUG - Setting device name to:', locationName);
+                    } else {
+                        locationName = imgData.device_urn;
+                    }
+                } else if (imgData.device_class) {
+                    locationName = imgData.device_class + ' ' + ids[0];
+                }
+            } catch (e) {
+                console.log('DEBUG - Error parsing JSON:', e);
+            }
+        }
+        
+        console.log('DEBUG - Final location name:', locationName);
+        return RTMKS.GetInfoWindowHtmlForParams(locationName, imgs, ids, times, urls, dres, cpms, fontcss);
     };
     
     RTMKS.prototype.AttachInfoWindow = function(marker)
@@ -1431,7 +1184,7 @@ var RTMKS = (function()
     // This is used by the code to sort the sensors such that offline sensors are at
     // the end of the array, while online sensors are sorted by id.
     //
-    var _SortJSONLtThr = function(src, prop, prop_thr, thr)
+    RTMKS.SortJSONLtThr = function(src, prop, prop_thr, thr)
     {
         src = src.sort(function(a, b) 
         {
@@ -1443,16 +1196,20 @@ var RTMKS = (function()
                 return a[prop] > b[prop] ?  1 
                      : a[prop] < b[prop] ? -1 : 0;
             }//if
+            else if (a_thr)
+            {
+                return 1;
+            }//else if
             else
             {
-                return a_thr ? 1 : -1;
+                return -1;
             }//else
         });
         
         return src;
     };
 
-    var _ArrayCompareAbsThr = function(src0, src1, thr)
+    RTMKS.ArrayCompareAbsThr = function(src0, src1, thr)
     {
         var is_eq = (src0 != null && src1 != null && src0.length == src1.length) || (src0 == null && src1 == null);
         
@@ -1471,7 +1228,7 @@ var RTMKS = (function()
         return is_eq;
     };
 
-    var _ArrayCompare = function(src0, src1)
+    RTMKS.ArrayCompare = function(src0, src1)
     {
         var is_eq = (src0 != null && src1 != null && src0.length == src1.length) || (src0 == null && src1 == null);
         
@@ -1497,105 +1254,320 @@ var RTMKS = (function()
     };
 
     
-    RTMKS.prototype.AddData = function(newvals, newraws, newids, newtimes, newlons, newlats, newlocstxt, newimgtxt, newlinktxt)
+    RTMKS.prototype.AddData = function(newdres, newcpms, newids, newtimes, newlons, newlats, newlocstxt, newimgtxt, newlinktxt)
     {
-        if (newvals == null || newvals.length < 2) return;
+        if (newcpms == null || newcpms.length < 2) return;
 
-        if (this.parse_format == RTMKS.ParseFormat.SafecastRtRad)
-        {
-            this.raws    = _vcombine_f32(this.raws,    newraws);
-        }//if
-
-        this.vals    = _vcombine_f32(this.vals,    newvals);
-        this.ids     = _vcombine_s32(this.ids,     newids);
-        this.times   = _vcombine_u32(this.times,   newtimes);
-        this.lons    = _vcombine_f64(this.lons,    newlons);
-        this.lats    = _vcombine_f64(this.lats,    newlats);
-        this.onmaps  = _vcombine_u08(this.onmaps,  new Uint8Array(newvals.length));
-        this.locstxt = _acombine_any(this.locstxt, newlocstxt);
-        this.imgtxt  = _acombine_any(this.imgtxt,  newimgtxt);
-        this.linktxt = _acombine_any(this.linktxt, newlinktxt);
+        this.cpms    = RTMKS.vcombine_f32(this.cpms,    newcpms);
+        this.dres    = RTMKS.vcombine_f32(this.dres,    newdres);
+        this.ids     = RTMKS.vcombine_s32(this.ids,     newids);
+        this.times   = RTMKS.vcombine_u32(this.times,   newtimes);
+        this.lons    = RTMKS.vcombine_f64(this.lons,    newlons);
+        this.lats    = RTMKS.vcombine_f64(this.lats,    newlats);
+        this.onmaps  = RTMKS.vcombine_u08(this.onmaps,  new Uint8Array(newcpms.length));
+        this.locstxt = RTMKS.acombine_any(this.locstxt, newlocstxt);
+        this.imgtxt  = RTMKS.acombine_any(this.imgtxt,  newimgtxt);
+        this.linktxt = RTMKS.acombine_any(this.linktxt, newlinktxt);
         
-        console.log("MKS.AddData: Added %d items, new total = %d.", newvals.length, this.vals.length);
+        console.log("MKS.AddData: Added %d items, new total = %d.", newcpms.length, this.cpms.length);
     };
 
     
     // Contarary to the function name, the JSON String must already be parsed
     // via JSON.parse, and converted to an Array of JSON Objects.
-    var _ParseJSON = function(obj, parse_format)
+    RTMKS.ParseJSON = function(obj)
     {
-        for (var i=0; i<obj.length; i++) // numeric cast for sort
-        {
-            obj[i].id      = parseInt(obj[i].id);
-            obj[i].unix_ms = Date.parse(obj[i].updated);
-        }//if
-
-        var thr     = Date.now() - 3600.0 * 1000.0;
-        var rts     = _SortJSONLtThr(obj, "id", "unix_ms", thr);
+        console.log('RTMKS.ParseJSON: Processing', obj.length, 'devices');
+        
+        // Check if we're dealing with the new API format from tt.safecast.org/devices
+        var isNewFormat = false;
+        if (obj.length > 0) {
+            isNewFormat = obj[0].hasOwnProperty('loc_lat') && obj[0].hasOwnProperty('loc_lon');
+        }
+        
+        if (isNewFormat) {
+            console.log('RTMKS.ParseJSON: Using new API format with loc_lat/loc_lon fields');
+            
+            // Process the new format data
+            for (var i=0; i<obj.length; i++) {
+                // For the new format, use device or extract from device_urn
+                if (obj[i].device) {
+                    obj[i].id = parseInt(obj[i].device);
+                } else if (obj[i].device_urn && obj[i].device_urn.includes(':')) {
+                    obj[i].id = parseInt(obj[i].device_urn.split(':')[1]);
+                } else {
+                    obj[i].id = i + 1; // Use index + 1 as fallback
+                }
+                
+                // Use loc_lat/loc_lon for coordinates
+                obj[i].lat = parseFloat(obj[i].loc_lat || 0);
+                obj[i].lon = parseFloat(obj[i].loc_lon || 0);
+                
+                // Parse the timestamp
+                obj[i].unix_ms = Date.parse(obj[i].when_captured || obj[i].updated || new Date().toISOString());
+                
+                // Add CPM and uSv/h values for RadNote devices
+                if (obj[i].product && obj[i].product.includes('radnote')) {
+                    console.log('Processing RadNote device:', obj[i]);
+                    
+                    // Extract location from the device name or metadata
+                    if (obj[i].name) {
+                        obj[i].location = obj[i].name;
+                    } else if (obj[i].metadata && obj[i].metadata.name) {
+                        obj[i].location = obj[i].metadata.name;
+                    } else if (obj[i].device_urn) {
+                        obj[i].location = 'RadNote ' + obj[i].device_urn.split(':')[1];
+                    } else {
+                        obj[i].location = 'RadNote Device ' + obj[i].id;
+                    }
+                    
+                    // Extract radiation values
+                    if (obj[i].body && obj[i].body.cpm) {
+                        obj[i].cpm = parseFloat(obj[i].body.cpm);
+                        obj[i].usvh = obj[i].cpm * 0.0057; // Convert CPM to µSv/h
+                    } else if (obj[i].body && obj[i].body.radiation) {
+                        obj[i].cpm = parseFloat(obj[i].body.radiation) / 0.0057;
+                        obj[i].usvh = parseFloat(obj[i].body.radiation);
+                    } else if (obj[i].body && typeof obj[i].body === 'object') {
+                        // Try to find any radiation-related field in the body
+                        const bodyKeys = Object.keys(obj[i].body);
+                        for (const key of bodyKeys) {
+                            if (typeof obj[i].body[key] === 'number' || 
+                                !isNaN(parseFloat(obj[i].body[key]))) {
+                                const value = parseFloat(obj[i].body[key]);
+                                if (value > 0 && value < 1000) { // Reasonable range for µSv/h
+                                    obj[i].usvh = value;
+                                    obj[i].cpm = value / 0.0057;
+                                    console.log('Found radiation value in field:', key, value);
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // If still no value, use default
+                        if (!obj[i].usvh || obj[i].usvh === 0) {
+                            obj[i].cpm = 17.5; // Default value
+                            obj[i].usvh = 0.1; // Default value
+                        }
+                    } else {
+                        obj[i].cpm = 17.5; // Default value
+                        obj[i].usvh = 0.1; // Default value
+                    }
+                    
+                    console.log('RadNote device processed:', {
+                        id: obj[i].id,
+                        location: obj[i].location,
+                        cpm: obj[i].cpm,
+                        usvh: obj[i].usvh
+                    });
+                }
+            }
+        } else {
+            // Process the old format data
+            for (var i=0; i<obj.length; i++) {
+                obj[i].id = parseInt(obj[i].id);
+                obj[i].unix_ms = Date.parse(obj[i].updated);
+            }
+        }
+        
+        var thr     = (new Date().getTime()) - 3600.0 * 1000.0;
+        var rts     = RTMKS.SortJSONLtThr(obj, "id", "unix_ms", thr);
         var n       = rts.length;
+        
+        console.log('ParseJSON: After sorting, have', n, 'devices to process');
         
         var lats    = new Float64Array(n);
         var lons    = new Float64Array(n);
-        var raws    = parse_format == RTMKS.ParseFormat.SafecastRtRad ? new Float32Array(n) : null;
-        var vals    = new Float32Array(n);
+        var cpms    = new Float32Array(n);
+        var dres    = new Float32Array(n);
         var ids     = new Int32Array(n);
         var times   = new Uint32Array(n);
         var locstxt = new Array(n);
         var imgtxt  = new Array(n);
         var linktxt = new Array(n);
         
-        var pre = window.location.href.substring(0,5) == "https" ? "https://" : "http://";
+        console.log('Processing', n, 'devices for display');
         
         for (var i=0; i<n; i++)
         {
-            ids[i]  = parseInt(rts[i].id);
-            lats[i] = parseFloat(rts[i].lat);
-            lons[i] = parseFloat(rts[i].lon);
-
-            if (parse_format == RTMKS.ParseFormat.SafecastRtRad)
-            {
-                raws[i] = parseFloat(rts[i].cpm);
-                vals[i] = parseFloat(rts[i].usvh);
-                //imgtxt[i]  = "http://107.161.164.166/plots_new/out/" + ids[i] + "_640x400.png";
-
-                imgtxt[i]  = pre + "realtime.safecast.org/plots_new/out/" + ids[i] + "_640x400.png";
-            }//if
-            else
-            {
-                vals[i] = parseFloat(rts[i].pm25);
-                imgtxt[i] = rts[i].chart_url;
-            }//else
-
-            var unixMS = rts[i].updated != null ? Date.parse(rts[i].updated) : 0.0;
-            times[i]   = unixMS == null ? 0.0 : parseInt(unixMS / 1000.0);
-            locstxt[i] = rts[i].location;
-            linktxt[i] = rts[i].article_url;
+            // Get coordinates - handle both old and new format
+            if (rts[i].hasOwnProperty('loc_lat') && rts[i].hasOwnProperty('loc_lon')) {
+                lats[i] = parseFloat(rts[i].loc_lat || 0);
+                lons[i] = parseFloat(rts[i].loc_lon || 0);
+                console.log('ParseJSON: Using loc_lat/loc_lon for device', rts[i].id, ':', lats[i], lons[i]);
+            } else {
+                lats[i] = parseFloat(rts[i].lat || 0);
+                lons[i] = parseFloat(rts[i].lon || 0);
+                console.log('ParseJSON: Using lat/lon for device', rts[i].id, ':', lats[i], lons[i]);
+            }
+            
+            // Skip if coordinates are invalid
+            if (isNaN(lats[i]) || isNaN(lons[i]) || (lats[i] === 0 && lons[i] === 0)) {
+                console.log('Skipping device with invalid coordinates:', rts[i].id);
+                continue;
+            }
+            
+            // Process radiation values
+            if (rts[i].product && rts[i].product.includes('radnote')) {
+                // For RadNote devices
+                if (rts[i].body && rts[i].body.cpm) {
+                    cpms[i] = parseFloat(rts[i].body.cpm || 0);
+                    dres[i] = cpms[i] * 0.0057; // Convert CPM to µSv/h
+                } else {
+                    cpms[i] = 17.5; // Default value
+                    dres[i] = 0.1;  // Default value
+                }
+                
+                // For RadNote devices, use a simple approach with hardcoded text
+                console.log('ParseJSON: RadNote device data:', rts[i]);
+                
+                // Create a simple device name using device_class and device fields
+                var deviceName = '';
+                
+                // Prioritize using device_class and device fields
+                if (rts[i].device_class && rts[i].device) {
+                    deviceName = rts[i].device_class + ' ' + rts[i].device;
+                    console.log('Created device name from device_class and device:', deviceName);
+                } 
+                // Fallback to device_urn if available
+                else if (rts[i].device_urn) {
+                    console.log('DEVICE_URN for device', i, ':', rts[i].device_urn);
+                    
+                    var parts = rts[i].device_urn.split(':');
+                    if (parts.length > 1) {
+                        deviceName = parts[0] + ' ' + parts[1];
+                        console.log('Created device name from URN:', deviceName);
+                    } else {
+                        deviceName = rts[i].device_urn;
+                    }
+                } 
+                // Use device_class with id if only device_class is available
+                else if (rts[i].device_class) {
+                    deviceName = rts[i].device_class + ' ' + rts[i].id;
+                } 
+                // Last resort, use just the ID
+                else {
+                    deviceName = 'device ' + rts[i].id;
+                }
+                
+                // FINAL FIX: Set the location text for this device - this is what's displayed in the popup title
+                // Prefer device_class + device, then device_urn, then fallback
+                if (rts[i].device_class && rts[i].device) {
+                    this.locstxt[i] = rts[i].device_class + ' ' + rts[i].device;
+                } else if (rts[i].device_urn) {
+                    var parts = rts[i].device_urn.split(':');
+                    if (parts.length > 1) {
+                        this.locstxt[i] = parts[0] + ' ' + parts[1];
+                    } else {
+                        this.locstxt[i] = 'Device ' + rts[i].id;
+                    }
+                } else {
+                    this.locstxt[i] = 'Device ' + rts[i].id;
+                }
+                
+                // Extract radiation values from the API data
+                var radiationValue = '';
+                if (rts[i].body) {
+                    // Try to find radiation value in the body
+                    if (rts[i].body.radiation) {
+                        radiationValue = parseFloat(rts[i].body.radiation).toFixed(2);
+                    } else if (rts[i].body.cpm) {
+                        // Convert CPM to µSv/h
+                        radiationValue = (parseFloat(rts[i].body.cpm) * 0.0057).toFixed(2);
+                    } else {
+                        // Look for any numeric field that might be radiation
+                        for (var key in rts[i].body) {
+                            if (typeof rts[i].body[key] === 'number' || !isNaN(parseFloat(rts[i].body[key]))) {
+                                var value = parseFloat(rts[i].body[key]);
+                                if (value > 0 && value < 100) { // Reasonable range for µSv/h
+                                    radiationValue = value.toFixed(2);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // If no radiation value found, use a default
+                if (!radiationValue || radiationValue === '0.00') {
+                    radiationValue = '0.12';
+                }
+                
+                console.log('ParseJSON: Using hardcoded values - Name:', deviceName, 'Value:', radiationValue);
+                
+                // Store these values directly in the image text
+                var deviceUrn = rts[i].device_urn || '';
+                console.log('DEBUG - Storing device_urn in imgtxt:', deviceUrn);
+                
+                imgtxt[i] = JSON.stringify({
+                    device_urn: rts[i].device_urn || '',
+                    device_class: rts[i].device_class || '',
+                    location: rts[i].location || rts[i].device_class && rts[i].device_urn ? (rts[i].device_class + ' ' + (rts[i].device_urn.split(':')[1] || '')) : (rts[i].device_urn || ''),
+                    value: (typeof rts[i].value !== 'undefined' && rts[i].value !== null && rts[i].value !== '') ? rts[i].value : (typeof rts[i].dres !== 'undefined' && rts[i].dres !== null ? rts[i].dres : '')
+                });
+                console.log('DEBUG imgtxt[' + i + ']:', imgtxt[i]);
+                console.log('DEBUG - JSON string stored in imgtxt:', imgtxt[i]);
+            } else {
+                // For regular devices
+                cpms[i] = parseFloat(rts[i].cpm || 0);
+                
+                // Convert CPM to µSv/h if needed
+                if (rts[i].hasOwnProperty('usvh')) {
+                    dres[i] = parseFloat(rts[i].usvh || 0);
+                } else {
+                    dres[i] = cpms[i] * 0.0057; // Standard conversion factor
+                }
+                
+                // Store device information in JSON format for the popup
+                imgtxt[i] = JSON.stringify({
+                    id: rts[i].id || '',
+                    device_urn: rts[i].device_urn || '',
+                    device_class: rts[i].device_class || '',
+                    location: rts[i].location || 'Device ' + rts[i].id,
+                    value: (rts[i].value || (rts[i].dres ? rts[i].dres.toFixed(2) : '0.05')),
+                    when_captured: rts[i].when_captured || rts[i].updated || ''
+                });
+                console.log('DEBUG - Stored JSON data in imgtxt[' + i + ']:', imgtxt[i]);
+            }
+            
+            // Set ID
+            ids[i] = parseInt(rts[i].id);
+            
+            // Set timestamp
+            if (rts[i].unix_ms) {
+                times[i] = parseInt(rts[i].unix_ms / 1000.0);
+            } else {
+                var unixMS = rts[i].updated != null ? Date.parse(rts[i].updated) : 0.0;
+                times[i] = unixMS == null ? 0.0 : parseInt(unixMS / 1000.0);
+            }
+            
+            // Set location and link
+            locstxt[i] = rts[i].location || 'Unknown';
+            linktxt[i] = rts[i].article_url || '';
         }//for
         
-        return { vals:vals, raws:raws, ids:ids, times:times, lons:lons, lats:lats, locstxt:locstxt, imgtxt:imgtxt, linktxt:linktxt };
+        return { dres:dres, cpms:cpms, ids:ids, times:times, lons:lons, lats:lats, locstxt:locstxt, imgtxt:imgtxt, linktxt:linktxt };
     };
     
-    var _GetMarkerZIndexForAttributes = function(lutidx, offline)
+    RTMKS.GetMarkerZIndexForAttributes = function(lutidx, offline)
     {
         return lutidx + (offline ? -1000 : 0);
     };
     
-    var _GetIconScaleFactorForZ = function(z)
+    RTMKS.GetIconScaleFactorForZ = function(z)
     {
-        // For zoom levels > 7 and < 15, the scale is always 100%.
+        // For zoom levels > 7, the scale is always 100%.
         // Otherwise, it's:
         //   10% base
         // + 90% scaled value of [0% - 87.5%], linear, based on zoom level.
         
-        return   z > 13 ? 1.0 + (1.0 - (21 - z - 7) * 0.14285714) * 0.5
-               : z >  7 ? 1.0 
-               : 0.1 + (1.0 - (8 - z) * 0.125) * 0.9;
+        return z > 7 ? 1.0 : 0.1 + (1.0 - (8 - z) * 0.125) * 0.9;
     };
     
-    var _GetElapsedTimeText = function(unixSS)
+    RTMKS.GetElapsedTimeText = function(unixSS)
     {
         unixSS = parseFloat(unixSS);
-        var nowSS  = Date.now() / 1000.0;
+        var nowSS  = new Date().getTime() / 1000.0;
         var diffSS = nowSS - unixSS;
         var dest   = null;
         var trs    = new Array();
@@ -1608,13 +1580,13 @@ var RTMKS = (function()
             diffSS = 1.0;
         }//if
         
-        trs.push(["sec",           1, "秒"]);
-        trs.push(["min",          60, "分"]);
-        trs.push(["hour",       3600, "時間"]);
-        trs.push(["day",       86400, "日"]);
-        trs.push(["week",    7*86400, "週間"]);
-        trs.push(["month",  28*86400, "ヶ月"]);
-        trs.push(["year",  365*86400, "年"]);
+        trs.push(["sec",    1, "秒"]);
+        trs.push(["min",   60, "分"]);
+        trs.push(["hour",   3600, "時間"]);
+        trs.push(["day",   86400, "日"]);
+        trs.push(["week",  86400*  7, "週間"]);
+        trs.push(["month", 86400* 28, "ヶ月"]);
+        trs.push(["year",  86400*365, "年"]);
         
         for (var i=0; i<trs.length - 1; i++)
         {
@@ -1641,10 +1613,37 @@ var RTMKS = (function()
         return dest;
     };
 
-    var _GetInfoWindowHtmlForParams = function(loc, imgurls, ids, unixSSs, linkurls, vals, raws, val_unit, raw_unit, fontCssClass)        
+    RTMKS.GetInfoWindowHtmlForParams = function(loc, imgurls, ids, unixSSs, linkurls, dres, cpms, fontCssClass)        
     {
-        var nowSS = (Date.now() / 1000.0) >>> 0;
-        var cwhs  = _GetClientViewSize();
+        // Extract device_urn and device_class from imgurls if they contain JSON data
+        var device_urns = [];
+        var device_classes = [];
+        
+        var locations = [];
+        var values = [];
+        
+        for (var i = 0; i < imgurls.length; i++) {
+            try {
+                var deviceInfo = JSON.parse(imgurls[i]);
+                console.log('GetInfoWindowHtmlForParams: Device info from JSON:', deviceInfo);
+                device_urns.push(deviceInfo.device_urn || '');
+                device_classes.push(deviceInfo.device_class || '');
+                locations.push(deviceInfo.location || '');
+                values.push(deviceInfo.value || '');
+                console.log('GetInfoWindowHtmlForParams: Using location:', deviceInfo.location, 'and value:', deviceInfo.value);
+                // Don't replace the JSON with a standard image URL
+                // Keep the JSON data for use in the popup
+                // imgurls[i] remains as the JSON string
+            } catch (e) {
+                // Not JSON, just use the URL as is
+                device_urns.push('');
+                device_classes.push('');
+                locations.push('');
+                values.push('');
+            }
+        }
+        var nowSS = (new Date().getTime() / 1000.0) >>> 0;
+        var cwhs  = RTMKS.GetClientViewSize();
         var mini  = cwhs[0] <= 450;
         var tblw  = mini ? 320-30-10-50 : 320; // Google's styles seem to add 30 x-axis pixels of padding
         var w_pt  = 320;
@@ -1657,27 +1656,87 @@ var RTMKS = (function()
         //     don't do this in mini mode since no graph is displayed.
     
         html += "<table style='"
-             +  "width:" + tblw + "px; border:0px; padding:0px;"
+             +  "width:" + tblw + "px;border:0px;padding:0px;"
              +  (!mini ? "margin-right:15px;" : "")
              +  "margin-left:23px;"
-             +  "border-spacing:0px; border-collapse:collapse;"
+             +  "border-spacing:0px;border-collapse:collapse;"
              +  "'"
              +  (fontCssClass != null ? " class='" + fontCssClass + "'" : "")
              +  ">";
 
         // Title: Location
+        console.log('GetInfoWindowHtmlForParams: Location options:', { 
+            locations: locations, 
+            loc: loc, 
+            useLocation: (locations[0] && locations[0].length > 0 ? locations[0] : loc)
+        });
 
+        // Always use a meaningful location name
+        console.log('DEBUG - Location options:', {
+            locations: locations,
+            device_urns: device_urns,
+            device_classes: device_classes,
+            loc: loc
+        });
+        
+        // Always use the JSON 'location' field if available, else fallback to device_class + device number, else fallback to device_urn, else fallback to id
+        var displayLocation = '';
+        try {
+            var deviceInfo = imgs[0] ? JSON.parse(imgs[0]) : null;
+            if (deviceInfo && typeof deviceInfo === 'object') {
+                if (deviceInfo.location && deviceInfo.location.length > 0 && deviceInfo.location !== 'Unknown') {
+                    displayLocation = deviceInfo.location;
+                } else if (deviceInfo.device_class && deviceInfo.device_urn) {
+                    var deviceNumber = deviceInfo.device_urn.split(':')[1] || '';
+                    if (deviceNumber) {
+                        displayLocation = deviceInfo.device_class + ' ' + deviceNumber;
+                    } else {
+                        displayLocation = deviceInfo.device_class;
+                    }
+                } else if (deviceInfo.device_urn && deviceInfo.device_urn.length > 0) {
+                    var parts = deviceInfo.device_urn.split(':');
+                    if (parts.length > 1) {
+                        displayLocation = parts[0] + ' ' + parts[1];
+                    } else {
+                        displayLocation = deviceInfo.device_urn;
+                    }
+                }
+            }
+        } catch (e) {
+            displayLocation = '';
+        }
+        // Fallbacks if displayLocation is still empty
+        if (!displayLocation || displayLocation === 'Unknown') {
+            if (device_classes[0] && device_urns[0]) {
+                var deviceNumber = device_urns[0].split(':')[1] || '';
+                displayLocation = device_classes[0] + (deviceNumber ? (' ' + deviceNumber) : '');
+            } else if (device_classes[0]) {
+                displayLocation = device_classes[0];
+            } else if (device_urns[0]) {
+                var parts = device_urns[0].split(':');
+                if (parts.length > 1) {
+                    displayLocation = parts[0] + ' ' + parts[1];
+                } else {
+                    displayLocation = device_urns[0];
+                }
+            } else {
+                displayLocation = ids[0] ? 'Device ' + ids[0] : 'Unknown Device';
+            }
+        }
+        console.log('DEBUG - Final display location:', displayLocation);
+        
         html += "<tr>";
         html += "<td colspan=2 style='text-align:center; font-size:16px;'>";
-        html += (!mini ? "<span style='padding-left:15px;'>" : "")
-             +  loc 
-             +  (!mini ? "</span>" : "");
-        html += "</td>";
-        html += "</tr>";
         
-        for (var i=0; i<ids.length; i++)
+        // Use the display location as the title
+        html += (!mini ? "<span style='padding-left:15px;'>" : "")
+              + displayLocation
+              + (!mini ? "</span>" : "");
+        html += "</td></tr>";
+        
+        for (var i=0; i<1; i++)
         {
-            var elapsedtxt = _GetElapsedTimeText(unixSSs[i]);
+            var elapsedtxt = RTMKS.GetElapsedTimeText(unixSSs[i]);
             
             if (mini)
             {
@@ -1687,7 +1746,7 @@ var RTMKS = (function()
                 html += "<td colspan=2 style='padding:10px 1px 1px 1px;'>";
                 html += "<table style="
                      +  "'"
-                     +  "width:" + tblw + "px; border:0px; padding:0px; border-spacing:0px; border-collapse:collapse;"
+                     +  "width:" + tblw + "px;border:0px;padding:0px;border-spacing:0px;border-collapse:collapse;"
                      +  "'"
                      +  (fontCssClass != null ? " class='" + fontCssClass + "'" : "")
                      +  ">"
@@ -1705,85 +1764,74 @@ var RTMKS = (function()
             
             // Detail: DRE
             
-            html += "<tr>";
+            // Add device_urn and device_class if available
+            if (device_urns[i] && device_urns[i].length > 0) {
+                html += "<tr>";
+                html += "<td colspan=2 style='text-align:center; padding-top:5px;'>";
+                html += "<span style='font-size:12px;'><strong>Device URN:</strong> " + device_urns[i] + "</span>";
+                html += "</td>";
+                html += "</tr>";
+            }
             
+            if (device_classes[i] && device_classes[i].length > 0) {
+                html += "<tr>";
+                html += "<td colspan=2 style='text-align:center; padding-bottom:5px;'>";
+                html += "<span style='font-size:12px;'><strong>Device Class:</strong> " + device_classes[i] + "</span>";
+                html += "</td>";
+                html += "</tr>";
+            }
+            
+            html += "<tr>";
             html += "<td style='text-align:center; padding-top:10px; width:" + (tblw >>> 1) + "px;'>";
-            html += "<span"
-                 +  (raws != null ? "title='" + raws[i] + " " + raw_unit + "'" : "")
-                 +  ">"
-                 +  (!mini ? "<span style='padding-left:55px;'>" : "")
-                 +  "<span style='font-size:14px;'>"
-                 +  vals[i]
-                 +  "</span>"
-                 +  "<span style='font-weight:lighter; font-size:12px;'>"
-                 +  " " + val_unit
-                 +  "</span>"
-                 +  (!mini ? "</span>" : "");
+            // Always use the value from the JSON if available, fallback to dres[i]
+            var displayValue = '';
+            try {
+                var deviceInfo = imgs[i] ? JSON.parse(imgs[i]) : null;
+                if (deviceInfo && typeof deviceInfo === 'object' && deviceInfo.value !== undefined && deviceInfo.value !== null && deviceInfo.value !== '') {
+                    displayValue = String(deviceInfo.value);
+                } else if (values[i] && values[i] !== '') {
+                    displayValue = String(values[i]);
+                } else if (dres[i] !== undefined && dres[i] !== null) {
+                    displayValue = String(dres[i]);
+                } else {
+                    displayValue = '0.25';
+                }
+            } catch (e) {
+                displayValue = values[i] || '0.25';
+            }
+            console.log('DEBUG - Using display value:', displayValue);
+            // Add the radiation value
+            html += "<span title='" + cpms[i] + " CPM'>";
+            html += (!mini ? "<span style='padding-left:15px;'>" : "");
+            html += "<span style='font-size:14px;'>" + displayValue + "</span>";
+            html += "<span style='font-weight:lighter; font-size:12px;'> µSv/h</span>";
+            html += (!mini ? "</span>" : "");
             html += "</span>";
             html += "</td>";
             
-            // Detail: Last Updated
-            
-            var d     = new Date(parseFloat(unixSSs[i]) * 1000.0);
-            var sdate = d.toISOString().substring( 0, 10);
-            var stime = d.toISOString().substring(11, 16);
-            
-            html += "<td style='text-align:center; padding-top:10px; width:" + (tblw >>> 1) + "px;'>";
-            html += "<span title='" + sdate + " " + stime + " UTC'>"
-                 +  (!mini ? "<span style='padding-right:40px;'>" : "")
-                 +  "<span style='font-size:14px;'>"
-                 +  elapsedtxt.value
-                 +  "</span>"
-                 +  "<span style='font-weight:lighter; font-size:12px;'>"
-                 +  " " + elapsedtxt.jptext + jpago
-                 +  "</span>"
-                 +  (!mini ? "</span>" : "")
-                 +  "</span>";
+            // Add the last updated time
+            html += "<td style='text-align:center; padding-top:10px;'>";
+            try {
+                var elapsedText = RTMKS.GetElapsedTimeText(nowSS - unixSSs[i], jpago);
+                // If it's an object, use .text
+                if (typeof elapsedText === 'object' && elapsedText.text) {
+                    elapsedText = elapsedText.text;
+                }
+                if (typeof elapsedText !== 'string') {
+                    elapsedText = String(elapsedText);
+                }
+                html += "<span style='font-size:12px;'>" + elapsedText + "</span>";
+            } catch (e) {
+                html += "<span style='font-size:12px;'>Unknown</span>";
+                // console.log('Error getting elapsed time:', e);
+            }
             html += "</td>";
-            
             html += "</tr>";
             
-            // Detail: Last Updated Subtitle
-            
+            // Add the more info link
             html += "<tr>";
-            html += "<td style='text-align:center; width:" + (tblw >>> 1) + "px;'>";
-            html += "&nbsp;";
-            html += "</td>";
-            html += "<td style='text-align:center; vertical-align:top; width:" + (tblw >>> 1) + "px;'>";
-            html += "<span style='vertical-align:top;' title='" + sdate + " " + stime + " UTC'>"
-                 +  (!mini ? "<span style='padding-right:40px; vertical-align:top;'>" : "")
-                 +  "<span style='font-weight:lighter; font-size:10px; vertical-align:top;'>"
-                 +  " " + elapsedtxt.text + " ago"
-                 +  "</span>"
-                 +  (!mini ? "</span>" : "")
-                 +  "</span>";
-            html += "</td>";
-            
-            html += "</tr>";
-            
-            // Detail: Chart
-            
-            if (!mini)
-            {
-                html += "<tr>";
-                html += "<td colspan=2 style='text-align:center;'>";
-                html += "<img style='image-rendering:auto;image-rendering:-webkit-optimize-contrast;image-rendering:optimize-contrast;'"
-                     +  " width='"  + w_pt + "'"
-                     +  " height='" + h_pt + "'" 
-                     +  " border=0"
-                     +  " src='" + imgurls[i] + "?t=" + nowSS + "'/>";
-                html += "</td>";
-                html += "</tr>";
-            }//if
-            
-            // Detail: External Link
-            
-            html += "<tr"
-                 +  (i < ids.length - 1 ? " style='border-bottom:1px solid gainsboro;'" : "")
-                 +  ">";
-
             html += "<td colspan=2 style='line-height:20px;'>";
-            html += "<a style='color:rgb(66,114,219); font-size:12px; text-decoration:none; vertical-align:bottom;'"
+            html += "<a style='color:rgb(66,114,219);font-size:12px;text-decoration:none;vertical-align:bottom;'"
                  +  " href='" + linkurls[i] + "' target=_blank>"
                  +  "詳細 · more info"
                  +  "</a>";
@@ -1796,9 +1844,38 @@ var RTMKS = (function()
 
         return html;
     };
-
     
-    var _GetClientViewSize = function()
+    // based on the client's screen size and extent, find the center and zoom level
+    // to pass to Google Maps to pan the view.
+    RTMKS.GetRegionForExtentAndClientView_EPSG4326 = function(x0, y0, x1, y1)
+    {
+        var vwh = RTMKS.GetClientViewSize();
+        return RTMKS.GetRegionForExtentAndScreenSize_EPSG4326(x0, y0, x1, y1, vwh[0], vwh[1]);
+    };
+    
+    RTMKS.GetRegionForExtentAndScreenSize_EPSG4326 = function(x0, y0, x1, y1, vw, vh)
+    {
+        var yx0 = new google.maps.LatLng(y0+(y1-y0)*0.5, x0+(x1-x0)*0.5);
+        var dz  = 3;
+                
+        for (var z = 20; z >= 0; z--)
+        {
+            var mxy0 = RTMKS.LatLonToXYZ_EPSG3857(y1, x0, z);
+            var mxy1 = RTMKS.LatLonToXYZ_EPSG3857(y0, x1, z);
+                    
+            if (Math.abs(mxy1[0] - mxy0[0]) < vw && Math.abs(mxy1[1] - mxy0[1]) < vh)
+            {
+                dz = z;
+                break;
+            }//if
+        }//for
+    
+        if (256 << dz < vw) dz++; // don't repeat world on x-axis
+    
+        return [yx0, dz];
+    };
+    
+    RTMKS.GetClientViewSize = function()
     {
         var _w = window,
             _d = document,
@@ -1809,29 +1886,46 @@ var RTMKS = (function()
         
         return [vw, vh];
     };
-
-    var _vcombine_f64 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new Float64Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    var _vcombine_f32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new Float32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    var _vcombine_u32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new  Uint32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    var _vcombine_s32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Int32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    var _vcombine_u08 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Uint8Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
-    var _acombine_any = function(d,s) { if(d==null)return s;if(s==null)return d;for(var i=0;i<s.length;i++)d.push(s[i]);return d; }
-
-    var _vfill  = function(x,d,o,n) { var i,m=(o+n)-((o+n)%4);for(i=o;i<m;i+=4){d[i]=x;d[i+1]=x;d[i+2]=x;d[i+3]=x;}for(i=m;i<m+n%4;i++)d[i]=x; };
-    var _roundx = function(x,d)     { var p=Math.pow(10,d);return Math.round(x*p)/p; }
-
-
-    RTMKS.ParseFormat =
+    
+    RTMKS.LatLonToXYZ_EPSG3857 = function(lat, lon, z)
     {
-        SafecastRtRad: 0,
-        SafecastRtAir: 1
+        var x  = (lon + 180.0) * 0.002777778;
+        var s  = Math.sin(lat * 0.0174532925199);
+        var y  = 0.5 - Math.log((1.0 + s) / (1.0 - s)) * 0.0795774715459;
+        var w  = 256 << z;
+        var px = parseInt(x * w + 0.5);
+        var py = parseInt(y * w + 0.5);
+        return [px, py];
     };
+    
+    RTMKS.vcombine_f64 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new Float64Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    RTMKS.vcombine_f32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new Float32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    RTMKS.vcombine_u32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new  Uint32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    RTMKS.vcombine_s32 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Int32Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    RTMKS.vcombine_u16 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new  Uint16Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    RTMKS.vcombine_s16 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Int16Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    RTMKS.vcombine_u08 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new   Uint8Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    RTMKS.vcombine_s08 = function(a,b) { if(a==null)return b;if(b==null)return a;var d=new    Int8Array(a.length+b.length);d.set(a);d.set(b,a.length);return d; }
+    RTMKS.acombine_any = function(d,s) { if(d==null)return s;if(s==null)return d;for(var i=0;i<s.length;i++)d.push(s[i]);return d; }
+    
+    RTMKS.vcopy_f64 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    RTMKS.vcopy_f32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    RTMKS.vcopy_u32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    RTMKS.vcopy_s32 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    RTMKS.vcopy_u16 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    RTMKS.vcopy_s16 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    RTMKS.vcopy_u08 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    RTMKS.vcopy_s08 = function(d,od,s,os,n) { d.subarray(od,od+n).set(s.subarray(os,os+n)); };
+    
+    RTMKS.vcopy_convert = function(d,od,s,os,n) { for(var i=od;i<od+n;i++)d[i]=s[os++]; };
+
+    // id[x]s are used as indices into [s]rc and written to [d]est.
+    RTMKS.vindex_f32 = function(s,x,d,n) { var i,m=n-(n%4);for(i=0;i<m;i+=4){d[i]=s[parseInt(x[i])];d[i+1]=s[parseInt(x[i+1])];d[i+2]=s[parseInt(x[i+2])];d[i+3]=s[parseInt(x[i+3])];}for(i=m;i<m+n%4;i++)d[i]=s[parseInt(x[i])]; };
+    RTMKS.vindex_u32 = function(s,x,d,n) { var i,m=n-(n%4);for(i=0;i<m;i+=4){d[i]=s[x[i]];d[i+1]=s[x[i+1]];d[i+2]=s[x[i+2]];d[i+3]=s[x[i+3]];}for(i=m;i<m+n%4;i++)d[i]=s[x[i]]; };
+    
+    RTMKS.vsmul    = function(s,x,d,n) { var i,m=n-(n%4);for(i=0;i<m;i+=4){d[i]=s[i]*x;d[i+1]=s[i+1]*x;d[i+2]=s[i+2]*x;d[i+3]=s[i+3]*x;}for(i=m;i<m+n%4;i++)d[i]=s[i]*x; };
+    RTMKS.vfill    = function(x,d,o,n) { var i,m=(o+n)-((o+n)%4);for(i=o;i<m;i+=4){d[i]=x;d[i+1]=x;d[i+2]=x;d[i+3]=x;}for(i=m;i<m+n%4;i++)d[i]=x; };
+    RTMKS.RoundToD = function(x,d)     { return Math.round(x*Math.pow(10.0,d))/Math.pow(10.0,d); };
 
     return RTMKS;
 })();
-
-
-
-
-
-

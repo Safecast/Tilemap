@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safecast Realtime Sensor Test</title>
+    <script src="api-proxy.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #3a87ad;
+        }
+        button {
+            background-color: #3a87ad;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        #results {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 500px;
+            overflow: auto;
+        }
+        .device {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .radnote {
+            background-color: #ffe6e6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Safecast Realtime Sensor Test</h1>
+    <button id="testButton">Test Realtime Sensors API</button>
+    <div id="results">Results will appear here...</div>
+    <div id="devices"></div>
+
+    <script>
+        document.getElementById('testButton').addEventListener('click', function() {
+            const resultsDiv = document.getElementById('results');
+            const devicesDiv = document.getElementById('devices');
+            
+            resultsDiv.textContent = 'Fetching data from tt.safecast.org/devices...';
+            devicesDiv.innerHTML = '';
+            
+            fetch('/tt-api/devices')
+                .then(response => {
+                    resultsDiv.textContent += `\nResponse status: ${response.status}`;
+                    return response.json();
+                })
+                .then(data => {
+                    resultsDiv.textContent += `\nReceived ${data.length} devices`;
+                    
+                    // Store the data globally
+                    window._lastDevicesResponse = data;
+                    
+                    // Look for RadNote devices
+                    let radnoteDevices = data.filter(device => 
+                        device.product && device.product.includes('radnote')
+                    );
+                    
+                    resultsDiv.textContent += `\nFound ${radnoteDevices.length} RadNote devices`;
+                    
+                    // Display the first 5 RadNote devices
+                    if (radnoteDevices.length > 0) {
+                        resultsDiv.textContent += `\n\nFirst RadNote device sample:`;
+                        resultsDiv.textContent += `\n${JSON.stringify(radnoteDevices[0], null, 2)}`;
+                        
+                        // Display devices
+                        radnoteDevices.slice(0, 5).forEach(device => {
+                            const deviceDiv = document.createElement('div');
+                            deviceDiv.className = 'device radnote';
+                            
+                            let html = `<h3>RadNote Device: ${device.device_urn || device.id}</h3>`;
+                            html += `<p><strong>Device Class:</strong> ${device.device_class || 'N/A'}</p>`;
+                            html += `<p><strong>Device ID:</strong> ${device.device || 'N/A'}</p>`;
+                            html += `<p><strong>Location:</strong> ${device.loc_lat || 'N/A'}, ${device.loc_lon || 'N/A'}</p>`;
+                            
+                            if (device.body) {
+                                html += `<p><strong>CPM:</strong> ${device.body.cpm || 'N/A'}</p>`;
+                                if (device.body.cpm) {
+                                    const usvh = parseFloat(device.body.cpm) * 0.0057;
+                                    html += `<p><strong>µSv/h (calculated):</strong> ${usvh.toFixed(4)}</p>`;
+                                }
+                            }
+                            
+                            html += `<p><strong>Last Updated:</strong> ${device.when_captured || device.updated || 'N/A'}</p>`;
+                            
+                            deviceDiv.innerHTML = html;
+                            devicesDiv.appendChild(deviceDiv);
+                        });
+                    }
+                    
+                    // Also display a few regular devices
+                    let regularDevices = data.filter(device => 
+                        !(device.product && device.product.includes('radnote'))
+                    );
+                    
+                    resultsDiv.textContent += `\n\nFound ${regularDevices.length} regular devices`;
+                    
+                    if (regularDevices.length > 0) {
+                        resultsDiv.textContent += `\n\nFirst regular device sample:`;
+                        resultsDiv.textContent += `\n${JSON.stringify(regularDevices[0], null, 2)}`;
+                        
+                        // Display devices
+                        regularDevices.slice(0, 5).forEach(device => {
+                            const deviceDiv = document.createElement('div');
+                            deviceDiv.className = 'device';
+                            
+                            let html = `<h3>Device: ${device.device_urn || device.id}</h3>`;
+                            html += `<p><strong>Device Class:</strong> ${device.device_class || 'N/A'}</p>`;
+                            html += `<p><strong>Device ID:</strong> ${device.device || 'N/A'}</p>`;
+                            html += `<p><strong>Location:</strong> ${device.loc_lat || 'N/A'}, ${device.loc_lon || 'N/A'}</p>`;
+                            html += `<p><strong>Last Updated:</strong> ${device.when_captured || device.updated || 'N/A'}</p>`;
+                            
+                            deviceDiv.innerHTML = html;
+                            devicesDiv.appendChild(deviceDiv);
+                        });
+                    }
+                })
+                .catch(error => {
+                    resultsDiv.textContent += `\nError: ${error.message}`;
+                });
+        });
+    </script>
+</body>
+</html>
