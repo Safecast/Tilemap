@@ -455,12 +455,21 @@
   
   // Function to show the loading spinner
   function showSpinner() {
-    // Remove any existing spinner first
+    console.log('Showing spinner...');
+    
+    // First, make sure all existing spinners are removed
     hideSpinner();
+    
+    // Double-check for any remaining spinners (especially important for Chrome)
+    const existingSpinners = document.querySelectorAll('#radiation-spinner-container');
+    for (let i = 0; i < existingSpinners.length; i++) {
+      existingSpinners[i].remove();
+    }
     
     // Clear any existing timeout
     if (window.spinnerTimeout) {
       clearTimeout(window.spinnerTimeout);
+      window.spinnerTimeout = null;
     }
     
     // Set a safety timeout to hide the spinner after 15 seconds
@@ -491,17 +500,22 @@
   
   // Function to hide the spinner
   function hideSpinner() {
+    console.log('Hiding spinner...');
+    
     // Clear any spinner timeout
     if (window.spinnerTimeout) {
       clearTimeout(window.spinnerTimeout);
       window.spinnerTimeout = null;
     }
     
-    // Remove the spinner element
-    const spinnerContainer = document.getElementById('radiation-spinner-container');
-    if (spinnerContainer) {
-      spinnerContainer.remove();
-    }
+    // Remove all spinner elements (important for Chrome which might have multiple)
+    const spinnerContainers = document.querySelectorAll('#radiation-spinner-container');
+    console.log('Found', spinnerContainers.length, 'spinner containers to remove');
+    
+    // Remove each spinner container
+    spinnerContainers.forEach(function(container) {
+      container.remove();
+    });
   }
   
   // Function to fetch real-time sensor data
