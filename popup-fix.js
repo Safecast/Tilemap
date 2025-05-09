@@ -22,7 +22,11 @@
       applyFixes();
     }
     
+    // Call the check and apply fix function when the script loads
     checkAndApplyFix();
+    
+    // Set up force reload after page load
+    forceReloadAfterPageLoad();
   });
   
   function applyFixes() {
@@ -233,6 +237,97 @@
     }, 3000);
   }
   
+  // Function to force reload data after page load
+  function forceReloadAfterPageLoad() {
+    console.log('Setting up force reload after page load...');
+    
+    // Detect Firefox browser
+    const isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+    
+    // Wait for the page to be fully loaded
+    if (document.readyState === 'complete') {
+      console.log('Page already loaded, checking radiation sensors state...');
+      checkRadiationSensorsState(isFirefox);
+    } else {
+      console.log('Waiting for page to load completely...');
+      window.addEventListener('load', function() {
+        console.log('Page fully loaded, checking radiation sensors state...');
+        setTimeout(function() {
+          checkRadiationSensorsState(isFirefox);
+        }, 1000);
+      });
+    }
+    
+    // For Firefox, add special handling for CORS issues
+    if (isFirefox) {
+      console.log('Firefox detected, adding special handling for CORS...');
+      // Add a global error handler for Firefox CORS issues
+      window.addEventListener('error', function(e) {
+        if (e && e.target && e.target.tagName === 'SCRIPT') {
+          console.log('Script error detected in Firefox, might be CORS related');
+        }
+      }, true);
+    }
+  }
+  
+  // Function to check radiation sensors state and force reload if needed
+  function checkRadiationSensorsState(isFirefox) {
+    // Check if we have a saved state in localStorage
+    const savedState = localStorage.getItem('radiationSensorsEnabled');
+    
+    // Find the radiation sensors switch
+    const radiationSwitch = findRadiationSensorsSwitch();
+    
+    if (radiationSwitch) {
+      // If we have a saved state, use it
+      if (savedState !== null) {
+        const shouldBeEnabled = savedState === 'true';
+        console.log('Found saved radiation sensors state:', shouldBeEnabled);
+        
+        // Update the checkbox if needed
+        if (radiationSwitch.checked !== shouldBeEnabled) {
+          console.log('Setting radiation switch to saved state:', shouldBeEnabled);
+          radiationSwitch.checked = shouldBeEnabled;
+          
+          // Trigger the change event
+          const event = new Event('change', { bubbles: true });
+          radiationSwitch.dispatchEvent(event);
+        }
+        
+        // Update our global state
+        window.radiationSensorsEnabled = shouldBeEnabled;
+      }
+      
+      // If radiation sensors are enabled, force reload the data
+      if (radiationSwitch.checked) {
+        console.log('Radiation sensors are enabled on page load, forcing data reload...');
+        window.radiationSensorsEnabled = true;
+        
+        // Force reload the data with special handling for Firefox
+        setTimeout(function() {
+          if (isFirefox) {
+            console.log('Using Firefox-specific data loading approach...');
+            // For Firefox, we'll use a more direct approach with the tube-specific conversion factors
+            if (typeof RTVM !== 'undefined' && typeof RTVM.InitMarkersAsync === 'function') {
+              console.log('Using RTVM.InitMarkersAsync for Firefox...');
+              RTVM.InitMarkersAsync();
+            } else {
+              console.log('Using fetchRealSensorData with Firefox optimizations...');
+              window.fetchRealSensorData(true);
+            }
+          } else {
+            // For other browsers, use the standard approach
+            window.fetchRealSensorData(true);
+          }
+        }, isFirefox ? 2500 : 1500); // Longer delay for Firefox
+      } else {
+        console.log('Radiation sensors are disabled on page load, no need to force reload.');
+      }
+    } else {
+      console.log('Could not find radiation sensors switch.');
+    }
+  }
+  
   // Function to hook into the existing Radiation Sensors switch in the left panel
   function hookIntoRadiationSensorsSwitch() {
     console.log('Looking for the existing Radiation Sensors switch in the left panel...');
@@ -304,39 +399,41 @@
   window.toggleRadiationSensors = function() {
     console.log('Toggling radiation sensors visibility: ' + (window.radiationSensorsEnabled ? 'enabled' : 'disabled'));
     
-    // Always clear existing markers first
-    if (window.allMarkers && window.allMarkers.length > 0) {
-      console.log('Clearing existing markers:', window.allMarkers.length);
-      for (var i = 0; i < window.allMarkers.length; i++) {
-        if (window.allMarkers[i].marker) {
-          window.allMarkers[i].marker.setMap(null);
-        }
-        if (window.allMarkers[i].recentCircle) {
-          window.allMarkers[i].recentCircle.setMap(null);
-        }
+    // Find the original checkbox that controls the radiation sensors layer
+    const originalCheckbox = document.querySelector('input[type="checkbox"][data-layer="radiation"]');
+    
+    // Store the current state before reloading
+    localStorage.setItem('radiationSensorsEnabled', window.radiationSensorsEnabled);
+    
+    // Just show the spinner without a message
+    showSpinner();
+    
+    if (originalCheckbox) {
+      console.log('Found original radiation checkbox:', originalCheckbox);
+      
+      // Set the checked state to match our state
+      if (originalCheckbox.checked !== window.radiationSensorsEnabled) {
+        console.log('Setting original checkbox to:', window.radiationSensorsEnabled);
+        originalCheckbox.checked = window.radiationSensorsEnabled;
+        
+        // Trigger the original change event
+        const event = new Event('change', { bubbles: true });
+        originalCheckbox.dispatchEvent(event);
       }
-      window.allMarkers = [];
     }
     
-    // Reload markers if enabled
-    if (window.radiationSensorsEnabled) {
-      console.log('Radiation sensors enabled, fetching data...');
-      // Use a slight delay to ensure UI updates first
-      setTimeout(function() {
-        fetchRealSensorData();
-      }, 100);
-    } else {
-      console.log('Radiation sensors disabled, hiding spinner...');
-      // If disabled, hide the spinner after a short delay
-      setTimeout(hideSpinner, 500);
-    }
-    
-    // Update the switch state if needed
-    const radiationSwitch = findRadiationSensorsSwitch();
-    if (radiationSwitch && radiationSwitch.checked !== window.radiationSensorsEnabled) {
-      console.log('Updating switch state to match:', window.radiationSensorsEnabled);
-      radiationSwitch.checked = window.radiationSensorsEnabled;
-    }
+    // Wait a moment to show the message, then reload the page
+    setTimeout(function() {
+      // Preserve the current URL parameters
+      const currentUrl = window.location.href;
+      // Add a cache-busting parameter
+      const reloadUrl = currentUrl.includes('?') 
+        ? currentUrl + '&reload=' + new Date().getTime() 
+        : currentUrl + '?reload=' + new Date().getTime();
+      
+      // Reload the page
+      window.location.href = reloadUrl;
+    }, 1000);
   };
   
   // Function to find the radiation sensors switch
@@ -407,29 +504,16 @@
     }
   }
   
-  // Function to fetch real sensor data from the API
-  function fetchRealSensorData() {
-    // Skip if radiation sensors are disabled
-    if (!window.radiationSensorsEnabled) {
+  // Function to fetch real-time sensor data
+  window.fetchRealSensorData = function(forceReload) {
+    // Skip if radiation sensors are disabled and not forcing reload
+    if (!window.radiationSensorsEnabled && !forceReload) {
       console.log('Radiation sensors are disabled, skipping fetch');
       hideSpinner();
       return;
     }
     
     console.log('Fetching real sensor data from API...');
-    
-    // Make sure any previous data is cleared
-    if (window.allMarkers && window.allMarkers.length > 0) {
-      for (var i = 0; i < window.allMarkers.length; i++) {
-        if (window.allMarkers[i].marker) {
-          window.allMarkers[i].marker.setMap(null);
-        }
-        if (window.allMarkers[i].recentCircle) {
-          window.allMarkers[i].recentCircle.setMap(null);
-        }
-      }
-      window.allMarkers = [];
-    }
     
     // Show the loading spinner while fetching data
     showSpinner();
@@ -450,10 +534,30 @@
     
     // Add cache-busting parameter to prevent caching
     var timestamp = new Date().getTime();
-    var url = '/tt-api/devices?t=' + timestamp;
+    var random = Math.floor(Math.random() * 1000000);
+    // Use the correct endpoint with strong cache-busting
+    var url = '/tt-api/devices?t=' + timestamp + '&r=' + random + '&nocache=true';
     
-    // Fetch data from API
-    fetch(url)
+    // Detect Firefox browser
+    const isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+    
+    // Add Firefox-specific headers and options
+    const fetchOptions = {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+      // For Firefox, we need to explicitly set these options
+      mode: 'cors',
+      credentials: 'same-origin',
+      redirect: 'follow'
+    };
+    
+    // Fetch data from API with browser-specific options
+    fetch(url, fetchOptions)
       .then(response => {
         if (!response.ok) {
           throw new Error('Network response was not ok: ' + response.status);
@@ -462,6 +566,7 @@
       })
       .then(text => {
         console.log('Received response from API, length:', text.length);
+        console.log('Response sample:', text.substring(0, 200) + '...');
         
         // Try to parse the response as JSON
         try {
@@ -473,8 +578,10 @@
           let jsonEnd = cleanedText.lastIndexOf(']') + 1;
           
           if (jsonStart >= 0 && jsonEnd > jsonStart) {
+            console.log('Found JSON array from index', jsonStart, 'to', jsonEnd);
             cleanedText = cleanedText.substring(jsonStart, jsonEnd);
           } else {
+            console.error('Could not find JSON array in response');
             throw new Error('Could not find JSON array in response');
           }
           
@@ -490,6 +597,11 @@
           const devices = JSON.parse(cleanedText);
           console.log('Successfully parsed device data, count:', devices.length);
           
+          // Log a sample device for debugging
+          if (devices.length > 0) {
+            console.log('Sample device:', JSON.stringify(devices[0], null, 2));
+          }
+          
           // Filter out devices without location data
           const validDevices = devices.filter(device => 
             device && 
@@ -503,9 +615,13 @@
           
           if (validDevices.length > 0) {
             // Create markers for these devices
+            console.log('Creating markers for real devices');
             createMarkersFromDevices(validDevices);
+            // Hide spinner after creating markers
+            hideSpinner();
             return;
           } else {
+            console.error('No valid devices with location data found');
             throw new Error('No valid devices with location data found');
           }
         } catch (error) {
@@ -513,6 +629,7 @@
           // Hide spinner on error
           hideSpinner();
           // Only use mock data if we couldn't get real data
+          console.log('Falling back to mock data due to processing error');
           useMockData();
         }
       })
@@ -520,42 +637,25 @@
         console.error('Error fetching device data:', error);
         // Hide spinner on error
         hideSpinner();
+        console.log('Falling back to no data due to fetch error');
         useMockData();
       });
   }
   
-  // Function to use mock data as a fallback
+  // Function when no real data is available
   function useMockData() {
-    console.log('Using mock device data');
-    // Make sure spinner is hidden when using mock data
+    console.log('No real device data available');
+    // Make sure spinner is hidden
     hideSpinner();
-    const mockDevices = [
-      {
-        "device_urn": "safecast:4007513236",
-        "device_class": "safecast",
-        "device": 4007513236,
-        "when_captured": "2021-06-13T10:32:46Z",
-        "loc_lat": 35.6695,
-        "loc_lon": 139.7117,
-        "lnd_7318u": 28,
-        "lnd_7128ec": 9,
-        "service_uploaded": "2021-06-13T10:32:46Z"
-      },
-      {
-        "device_urn": "safecast:2651380949",
-        "device_class": "safecast",
-        "device": 2651380949,
-        "when_captured": "2024-04-15T22:49:45Z",
-        "loc_lat": 35.6595,
-        "loc_lon": 139.7217,
-        "lnd_7318u": 696,
-        "lnd_7128ec": 249,
-        "service_uploaded": "2024-04-15T22:49:45Z"
-      }
-    ];
     
-    // Create markers for the mock devices
-    createMarkersFromDevices(mockDevices);
+    // Instead of using mock data, we'll just show a message
+    console.log('No devices loaded - API unavailable');
+    
+    // Try to find the original RTVM implementation and use it if available
+    if (typeof RTVM !== 'undefined' && typeof RTVM.InitMarkersAsync === 'function') {
+      console.log('Trying to use original RTVM implementation...');
+      RTVM.InitMarkersAsync();
+    }
   }
   
   // Function to create markers from device data

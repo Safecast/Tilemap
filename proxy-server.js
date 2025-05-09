@@ -6,8 +6,21 @@ const util = require('util');
 
 const app = express();
 
-// Enable CORS for all routes
-app.use(cors());
+// Enable CORS for all routes with more permissive settings
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
+}));
+
+// Add cache control middleware to prevent caching
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
 
 // Serve static files from the current directory
 app.use(express.static(path.join(__dirname)));

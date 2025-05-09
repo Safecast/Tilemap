@@ -200,13 +200,62 @@
               
               // Check if this is a devices request
               if (originalUrl && (originalUrl.includes('/devices') || originalUrl.includes('devices.json'))) {
-                  responseClone.json().then(data => {
-                      // Store the device data globally
-                      window._lastDevicesResponse = data;
-                      
-                      console.log('Stored', data.length, 'devices from fetch response');
+                  // First try to get the text response
+                  responseClone.text().then(text => {
+                      try {
+                          // Try to find where the JSON actually starts and ends
+                          let jsonStart = text.indexOf('[');
+                          let jsonEnd = text.lastIndexOf(']') + 1;
+                          
+                          if (jsonStart >= 0 && jsonEnd > jsonStart) {
+                              // Extract the JSON array
+                              let jsonText = text.substring(jsonStart, jsonEnd);
+                              
+                              // Clean the JSON text
+                              jsonText = jsonText
+                                  .replace(/[^\x20-\x7E]/g, '') // Remove non-printable ASCII
+                                  .replace(/\\u0000/g, '') // Remove null bytes
+                                  .replace(/[\r\n]+/g, '') // Remove newlines
+                                  .replace(/,\s*}/g, '}') // Fix trailing commas in objects
+                                  .replace(/,\s*\]/g, ']'); // Fix trailing commas in arrays
+                              
+                              try {
+                                  // Parse the cleaned JSON
+                                  const data = JSON.parse(jsonText);
+                                  
+                                  // Store the device data globally
+                                  window._lastDevicesResponse = data;
+                                  
+                                  console.log('Successfully parsed and stored', data.length, 'devices from fetch response');
+                              } catch (parseError) {
+                                  console.error('JSON parse error:', parseError);
+                                  console.log('JSON text that caused error (first 200 chars):', jsonText.substring(0, 200));
+                                  
+                                  // Try a more aggressive cleaning approach
+                                  try {
+                                      // More aggressive cleaning
+                                      const cleanerJson = jsonText
+                                          .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove all control characters
+                                          .replace(/[^\[\]\{\}\,\:\"\-\d\.a-zA-Z_]/g, '') // Only allow valid JSON characters
+                                          .replace(/\,(?=\s*[\}\]])/g, ''); // Remove trailing commas
+                                          
+                                      console.log('Attempting more aggressive cleaning...');
+                                      const data = JSON.parse(cleanerJson);
+                                      window._lastDevicesResponse = data;
+                                      console.log('Successfully parsed with aggressive cleaning, devices:', data.length);
+                                  } catch (finalError) {
+                                      console.error('Final JSON parse error after aggressive cleaning:', finalError);
+                                  }
+                              }
+                          } else {
+                              console.error('Could not find JSON array in response');
+                          }
+                      } catch (err) {
+                          console.error('Error processing fetch response text:', err);
+                          console.log('Response text sample:', text.substring(0, 200) + '...');
+                      }
                   }).catch(err => {
-                      console.error('Error processing fetch response:', err);
+                      console.error('Error getting response text:', err);
                   });
               }
               
@@ -220,10 +269,68 @@
     fetch('/tt-api/devices')
       .then(response => {
         console.log('Realtime sensors API response status:', response.status);
-        return response.json();
+        return response.text();
       })
-      .then(data => {
-        console.log('Realtime sensors API data:', data);
+      .then(text => {
+        console.log('Response length:', text.length);
+        console.log('Response sample:', text.substring(0, 200) + '...');
+        
+        try {
+          // Try to find where the JSON actually starts and ends
+          let jsonStart = text.indexOf('[');
+          let jsonEnd = text.lastIndexOf(']') + 1;
+          
+          if (jsonStart >= 0 && jsonEnd > jsonStart) {
+            console.log('Found JSON array from index', jsonStart, 'to', jsonEnd);
+            // Extract the JSON array
+            let jsonText = text.substring(jsonStart, jsonEnd);
+            
+            // Clean the JSON text
+            jsonText = jsonText
+              .replace(/[^\x20-\x7E]/g, '') // Remove non-printable ASCII
+              .replace(/\\u0000/g, '') // Remove null bytes
+              .replace(/[\r\n]+/g, '') // Remove newlines
+              .replace(/,\s*}/g, '}') // Fix trailing commas in objects
+              .replace(/,\s*\]/g, ']'); // Fix trailing commas in arrays
+            
+            try {
+              // Parse the cleaned JSON
+              const data = JSON.parse(jsonText);
+              console.log('Realtime sensors API data count:', data.length);
+              if (data.length > 0) {
+                console.log('Sample device:', data[0]);
+              }
+              
+              // Store the data globally for debugging
+              window._testDevicesResponse = data;
+              console.log('Data stored in window._testDevicesResponse for debugging');
+            } catch (parseError) {
+              console.error('JSON parse error:', parseError);
+              
+              // Try a more aggressive cleaning approach
+              try {
+                // More aggressive cleaning
+                const cleanerJson = jsonText
+                  .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove all control characters
+                  .replace(/[^\[\]\{\}\,\:\"\-\d\.a-zA-Z_]/g, '') // Only allow valid JSON characters
+                  .replace(/\,(?=\s*[\}\]])/g, ''); // Remove trailing commas
+                
+                console.log('Attempting more aggressive cleaning...');
+                const data = JSON.parse(cleanerJson);
+                console.log('Successfully parsed with aggressive cleaning, devices:', data.length);
+                window._testDevicesResponse = data;
+              } catch (finalError) {
+                console.error('Final JSON parse error after aggressive cleaning:', finalError);
+              }
+            }
+          } else {
+            console.error('Could not find JSON array in response');
+            console.log('Response text sample:', text.substring(0, 200) + '...');
+          }
+        } catch (error) {
+          console.error('Error processing response text:', error);
+          console.log('Response text sample:', text.substring(0, 200) + '...');
+        }
       })
       .catch(error => {
         console.error('Error fetching realtime sensors data:', error);
