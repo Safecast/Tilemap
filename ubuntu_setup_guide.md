@@ -514,3 +514,48 @@ The real-time sensor data display is handled by the `rt_viewer.js` component, wh
 - `107.161.164.166` for chart images
 
 No additional configuration is needed for the real-time data display as it's handled client-side and doesn't depend on the tile generation process.
+
+## 13. Running the Map Locally with Proxy Server
+
+### Installing Node.js and Dependencies
+
+To run the map locally with proper API access and tube-specific conversion factors, you should use the proxy server instead of a simple Python HTTP server:
+
+```bash
+# Install Node.js and npm if not already installed
+sudo apt update
+sudo apt install -y nodejs npm
+
+# Install required Node.js packages
+cd /path/to/Tilemap
+npm install express http-proxy-middleware cors path
+```
+
+### Starting the Proxy Server
+
+The proxy server handles API requests correctly and resolves cross-browser compatibility issues:
+
+```bash
+# Start the proxy server
+node proxy-server.js
+```
+
+This will start the server on port 8010. You can now access the map at:
+
+```
+http://localhost:8010/
+```
+
+> **Important Note**: Always use the proxy server (port 8010) instead of a simple Python HTTP server (port 8000) for local development. The proxy server properly handles API requests to Safecast servers and ensures cross-browser compatibility for Internet Explorer, Firefox, and Chrome.
+
+### Tube-Specific Conversion Factors
+
+The implementation includes accurate tube-specific conversion factors from CPM to µSv/h:
+
+- LND-7318u: 0.0057 µSv/h per CPM
+- LND-7128ec: 0.0063 µSv/h per CPM
+- LND-712u: 0.0051 µSv/h per CPM
+- LND-7318c: 0.0059 µSv/h per CPM
+
+These conversion factors ensure accurate radiation readings based on each device's specific tube type, which is crucial for precise measurements.
+
