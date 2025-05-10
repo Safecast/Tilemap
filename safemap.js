@@ -5207,15 +5207,22 @@ var MenuHelper = (function()
         }, false);
     };
 
+    
     // requires binds for layers and basemaps 
     var _InitLabelsFromStrings = function(s)
     {
+
+        // console.log("Executing _InitLabelsFromStrings. Is jQuery ($) defined?", (typeof $ !== 'undefined'));
+        // if (typeof $ !== 'undefined') {
+        //     console.log("Is $.ajax a function?", (typeof $.ajax === 'function'));
+        // }
+        
         ElGet("address").placeholder             = s.MENU_ADDRESS_PLACEHOLDER;
         ElGet("lblMenuToggleReticle").innerHTML  = s.MENU_TOGGLE_RETICLE_LABEL;
         ElGet("lblMenuUserLoc").innerHTML        = s.MENU_USER_LOCATION_LABEL;
         ElGet("lblMenuLayersTitle").innerHTML    = s.MENU_LAYERS_TITLE;
         ElGet("lblMenuLayersMore").innerHTML     = s.MENU_LAYERS_MORE_LABEL;
-        ElGet("lblMenuBasemapMore").innerHTML    = s.MENU_LAYERS_MORE_LABEL;
+        ElGet("lblMenuBasemapMore").innerHTML    = s.MENU_LAYERS_MORE_LABEL; // Note: Uses MENU_LAYERS_MORE_LABEL
         ElGet("lblMenuLogsTitle").innerHTML      = s.MENU_LOGS_TITLE;
         ElGet("aMenuDonate").innerHTML           = s.MENU_DONATE_LABEL;
         ElGet("aMenuBlog").innerHTML             = s.MENU_BLOG_LABEL;
@@ -5264,9 +5271,12 @@ var MenuHelper = (function()
         
         if (PrefHelper.GetEffectiveLanguagePref() != "ja")
         {
-            ElGet("tsPanelContentTitle").innerHTML      = s.SNAPSHOTS_CONTENT_TITLE;
-            ElGet("tsPanelStartDateSubLabel").innerHTML = s.SNAPSHOTS_START_DATE_SUBTITLE;
-            ElGet("tsPanelEndDateSubLabel").innerHTML   = s.SNAPSHOTS_END_DATE_SUBTITLE;
+            var tsPanelTitle = ElGet("tsPanelContentTitle");
+            if (tsPanelTitle) tsPanelTitle.innerHTML = s.SNAPSHOTS_CONTENT_TITLE;
+            var tsPanelStart = ElGet("tsPanelStartDateSubLabel");
+            if (tsPanelStart) tsPanelStart.innerHTML = s.SNAPSHOTS_START_DATE_SUBTITLE;
+            var tsPanelEnd = ElGet("tsPanelEndDateSubLabel");
+            if (tsPanelEnd) tsPanelEnd.innerHTML = s.SNAPSHOTS_END_DATE_SUBTITLE;
         }//if
 
         // layers    
@@ -5274,19 +5284,61 @@ var MenuHelper = (function()
 
         for (var i=0; i<a.length; i++)
         {
-            ElGet("menu_layers_"+a[i]+"_label").innerHTML = s["MENU_LAYERS_"+a[i]+"_LABEL"];
+            var currentLayerIndex = a[i];
+            var labelElement = ElGet("menu_layers_"+currentLayerIndex+"_label");
+            if (labelElement && s["MENU_LAYERS_"+currentLayerIndex+"_LABEL"]) { 
+                labelElement.innerHTML = s["MENU_LAYERS_"+currentLayerIndex+"_LABEL"];
+            }
             
-            var dls =     s["MENU_LAYERS_"+a[i]+"_DATE_LABEL"];
-            var dle = ElGet("menu_layers_"+a[i]+"_date_label");
+            var dls = s["MENU_LAYERS_"+currentLayerIndex+"_DATE_LABEL"]; 
+            var dle = ElGet("menu_layers_"+currentLayerIndex+"_date_label"); 
 
-            if (dls != null)
-            {
-                if (dls.length > 0) dle.innerHTML = dls;
-            }//if
-            else
-            {
-                dle.style.display = "none";
-            }//else
+            if (dle) { 
+                if (dls != null)
+                {
+                    if (dls.length > 0) 
+                    {
+                        dle.innerHTML = "(" + dls + ")"; 
+                    }
+                    else 
+                    {
+                        
+                        if (currentLayerIndex === 0 || currentLayerIndex === 1 || currentLayerIndex === 2) { 
+                            dle.innerHTML = "(...)"; 
+                            
+                            (function(layerIdx, dateElement) {
+                                if (typeof $ !== 'undefined' && typeof $.ajax === 'function') {
+                                    $.ajax({
+                                        url: '/api/last_update', 
+                                        dataType: 'json',
+                                        success: function(data) {
+                                            if (data && data.last_update) {
+                                                dateElement.innerHTML = "(" + data.last_update + ")";
+                                            } else {
+                                                dateElement.innerHTML = "()"; 
+                                            }
+                                        },
+                                        error: function() {
+                                            console.error("Failed to fetch last_update date for layer " + layerIdx);
+                                            dateElement.innerHTML = "()"; 
+                                        }
+                                    });
+                                } else {
+                                    console.warn("jQuery or jQuery.ajax not available for dynamic date fetching for layer " + layerIdx + ". Ensure jQuery is loaded.");
+                                    dateElement.innerHTML = "()";
+                                }
+                            })(currentLayerIndex, dle);
+                        } else {
+                            
+                            dle.innerHTML = "()"; 
+                        }
+                    }
+                }
+                else 
+                {
+                    dle.style.display = "none"; 
+                }
+            }
         }//for
 
         // basemaps
@@ -5294,7 +5346,10 @@ var MenuHelper = (function()
 
         for (var i=0; i<b.length; i++)
         {
-            ElGet("menu_basemap_"+b[i]).innerHTML = s["MENU_BASEMAP_"+b[i]+"_LABEL"];
+            var basemapLabelElement = ElGet("menu_basemap_"+b[i]);
+            if (basemapLabelElement && s["MENU_BASEMAP_"+b[i]+"_LABEL"]) { 
+                basemapLabelElement.innerHTML = s["MENU_BASEMAP_"+b[i]+"_LABEL"];
+            }
         }//for
 
         // logs
@@ -5302,17 +5357,22 @@ var MenuHelper = (function()
 
         for (var i=0; i<c.length; i++)
         {
-            if (ElGet("menu_logs_"+c[i]) != null)
-            {
-                ElGet("menu_logs_"+c[i]).innerHTML = s["MENU_LOGS_"+c[i]+"_LABEL"];
-            }//if
+            var logLabelElement = ElGet("menu_logs_"+c[i]);
+            if (logLabelElement && s["MENU_LOGS_"+c[i]+"_LABEL"]) { 
+                logLabelElement.innerHTML = s["MENU_LOGS_"+c[i]+"_LABEL"];
+            }
         }//for
         
         // areas
-        _RebindPolyLabels(_mapPolysProxy.GetEncodedPolygons());
-        _RebindGroupLabels(_mapPolysProxy.GetGroups());
+        if (typeof _mapPolysProxy !== 'undefined' && _mapPolysProxy &&
+            typeof _mapPolysProxy.GetEncodedPolygons === 'function' &&
+            typeof _mapPolysProxy.GetGroups === 'function' &&
+            typeof _RebindPolyLabels === 'function' &&
+            typeof _RebindGroupLabels === 'function') {
+            _RebindPolyLabels(_mapPolysProxy.GetEncodedPolygons());
+            _RebindGroupLabels(_mapPolysProxy.GetGroups());
+        }
     };
-
 
     var _InitBasemap_ApplyVisibilityStyles = function()
     {

@@ -23,7 +23,7 @@
               if (url.includes('realtime.safecast.org')) {
                   url = url.replace('http://realtime.safecast.org', '');
                   url = url.replace('https://realtime.safecast.org', '');
-                  url = '/api' + url;
+                  url = '/rt-api' + url;
               } else if (url.includes('tt.safecast.org')) {
                   url = url.replace('http://tt.safecast.org', '');
                   url = url.replace('https://tt.safecast.org', '');
@@ -183,7 +183,7 @@
           if (url.includes('realtime.safecast.org')) {
               url = url.replace('http://realtime.safecast.org', '');
               url = url.replace('https://realtime.safecast.org', '');
-              url = '/api' + url;
+              url = '/rt-api' + url;
           } else if (url.includes('tt.safecast.org')) {
               url = url.replace('http://tt.safecast.org', '');
               url = url.replace('https://tt.safecast.org', '');

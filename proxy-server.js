@@ -3,6 +3,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const cors = require('cors');
 const path = require('path');
 const util = require('util');
+const fs = require('fs');
 
 const app = express();
 
@@ -27,6 +28,26 @@ app.use(express.static(path.join(__dirname)));
 
 // Serve local tiles from TileGriddata
 app.use('/tiles', express.static(path.join(__dirname, 'TileGriddata')));
+
+// New route for last update date - MUST BE BEFORE THE GENERAL /api proxy
+app.get('/api/last_update', (req, res) => {
+  const dateFilePath = path.join(__dirname, 'last_update.txt');
+  fs.readFile(dateFilePath, 'utf8', (err, data) => {
+    let lastUpdateDate = 'N/A'; // Default if file read fails or file is empty
+    if (err) {
+      console.error(`[API Local] Error reading ${dateFilePath}:`, err);
+      // Keep default 'N/A' or could send a specific error status
+    } else if (data && data.trim().length > 0) {
+      lastUpdateDate = data.trim(); 
+      console.log(`[API Local] Read date from ${dateFilePath}: ${lastUpdateDate}`);
+    } else {
+      console.warn(`[API Local] ${dateFilePath} was empty or contained only whitespace.`);
+      // Keep default 'N/A' or set to a specific value indicating empty file
+    }
+    console.log(`[API Local] Request to /api/last_update, sending date: ${lastUpdateDate}`);
+    res.json({ last_update: lastUpdateDate });
+  });
+});
 
 // API proxy middleware options
 const apiProxyOptions = {
@@ -135,6 +156,24 @@ const s3TileProxy = createProxyMiddleware({
 app.use('/api', apiProxy);
 app.use('/tt-api', ttApiProxy);
 app.use('/s3-tiles', s3TileProxy);
+
+// New API proxy middleware options for realtime.safecast.org
+const rtApiProxyOptions = {
+  target: 'https://realtime.safecast.org/', // Target the realtime server
+  changeOrigin: true,
+  secure: true,
+  pathRewrite: { '^/rt-api': '' }, // remove /rt-api prefix
+  logLevel: 'debug',
+  onProxyRes: function (proxyRes, req, res) {
+    // console.log(`[API Proxy - realtime.safecast.org] Original headers for ${req.url}:`, JSON.stringify(proxyRes.headers));
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept';
+    // console.log(`[API Proxy - realtime.safecast.org] Modified headers for ${req.url}:`, JSON.stringify(proxyRes.headers));
+  }
+};
+const rtApiProxy = createProxyMiddleware(rtApiProxyOptions);
+app.use('/rt-api', rtApiProxy); // Use /rt-api for these requests
 
 // Fallback - serve index.html for any other request
 app.get('*', (req, res) => {
