@@ -25,6 +25,9 @@ app.use((req, res, next) => {
 // Serve static files from the current directory
 app.use(express.static(path.join(__dirname)));
 
+// Serve local tiles from TileGriddata
+app.use('/tiles', express.static(path.join(__dirname, 'TileGriddata')));
+
 // API proxy middleware options
 const apiProxyOptions = {
   target: 'https://api.safecast.org',
@@ -32,7 +35,14 @@ const apiProxyOptions = {
   pathRewrite: {
     '^/api': '' // remove /api prefix
   },
-  logLevel: 'debug'
+  logLevel: 'debug',
+  onProxyRes: function (proxyRes, req, res) {
+    console.log(`[API Proxy onProxyRes] Original ACAO header for ${req.url}:`, proxyRes.headers['access-control-allow-origin']);
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*'; // Override with wildcard
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    console.log(`[API Proxy onProxyRes] Modified ACAO header for ${req.url}:`, proxyRes.headers['access-control-allow-origin']);
+    // You might want to add other headers like Access-Control-Allow-Headers if needed
+  }
 };
 
 // Create the proxy middleware for Safecast API
