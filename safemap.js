@@ -1165,7 +1165,7 @@ var ClientZoomHelper = (function()
     var _GetUrlTemplateForS3Bucket = function(isJ, isS, us_bucket_prefix)
 {
     // Use our local proxy for S3 tiles to avoid HTTPS-Only Mode errors
-    var url = "http://localhost:8010/s3-tiles/" + "/{z}/{x}/{y}.png";
+    var url = "http://localhost:8010/tiles/{z}/{x}/{y}.png";
     return url;
 };
 
@@ -1185,8 +1185,8 @@ var ClientZoomHelper = (function()
         var c_url    = _GetUrlTemplateForS3Bucket(isJ, isS, "cosmic");
         var ts       = _fxGetTimeSliceDates();
 
-        x.push( _InitGmapsLayers_Create( 0, 2,  false, 17, 1.0, 512, te512url) );
-        x.push( _InitGmapsLayers_Create( 1, 2,  false, 17, 1.0, 512, te512url) );
+        x.push( _InitGmapsLayers_Create( 0, 2,  false, 17, 1.0, 256, te512url) );
+        x.push( _InitGmapsLayers_Create( 1, 2,  false, 17, 1.0, 256, te512url) );
         x.push( _InitGmapsLayers_Create( 2, 8,  false, 15, 0.5, 512, tg512url) );
 
         x.push( _InitGmapsLayers_Create( 3, 3,  false, 16, 1.0, 512, nnsa_url) );

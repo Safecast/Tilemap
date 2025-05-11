@@ -26,8 +26,14 @@ app.use((req, res, next) => {
 // Serve static files from the current directory
 app.use(express.static(path.join(__dirname)));
 
+// Add a logger for the /tiles path
+app.use('/tiles', (req, res, next) => {
+  console.log(`[Tiles Route Logger] Attempting to serve: ${req.originalUrl}`);
+  next(); // Pass control to the next middleware (express.static)
+});
+
 // Serve local tiles from TileGriddata
-app.use('/tiles', express.static(path.join(__dirname, 'TileGriddata')));
+app.use('/tiles', express.static(path.join(__dirname, 'TilesOutput')));
 
 // New route for last update date - MUST BE BEFORE THE GENERAL /api proxy
 app.get('/api/last_update', (req, res) => {
