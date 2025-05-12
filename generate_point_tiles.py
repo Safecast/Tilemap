@@ -171,7 +171,8 @@ def main():
                     y1 = py - args.dot_radius
                     x2 = px + args.dot_radius
                     y2 = py + args.dot_radius
-                    draw.ellipse([x1, y1, x2, y2], fill=color, outline=(0,0,0,255)) # Use outline=color for bordered dots
+                    draw.ellipse([x1, y1, x2, y2], fill=color, outline=None) # Use outline=color for bordered dots
+
 
             tile_path = os.path.join(tile_col_dir, f"{ytile}.png")
             try:
