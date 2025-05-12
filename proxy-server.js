@@ -33,7 +33,7 @@ app.use('/tiles', (req, res, next) => {
 });
 
 // Serve local tiles from TileGriddata
-app.use('/tiles', express.static(path.join(__dirname, 'TilesOutput')));
+app.use('/tiles', express.static(path.join(__dirname, 'TileGriddata')));
 
 // New route for last update date - MUST BE BEFORE THE GENERAL /api proxy
 app.get('/api/last_update', (req, res) => {

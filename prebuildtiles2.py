@@ -4,6 +4,7 @@ from PIL import Image, ImageDraw
 import os
 import math
 from tqdm import tqdm
+import sys
 
 def num_to_deg(xtile, ytile, zoom):
     """Converts tile numbers to NW-corner latitude and longitude."""
@@ -22,19 +23,19 @@ def deg_to_num(lat_deg, lon_deg, zoom):
     return (xtile, ytile)
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Generate map tiles from an NPY grid file.')
-    parser.add_argument('input_npy', help='Path to the input NPY grid file.')
-    parser.add_argument('output_dir', help='Directory to save the generated tiles.')
-    parser.add_argument('--zoom', type=int, default=13, help='Zoom level to generate tiles for.')
-    parser.add_argument('--tile_size', type=int, default=256, help='Size of the tiles in pixels (e.g., 256).')
-    parser.add_argument('--grid_min_lon', type=float, required=True, help='Minimum longitude of the NPY grid.')
-    parser.add_argument('--grid_max_lon', type=float, required=True, help='Maximum longitude of the NPY grid.')
-    parser.add_argument('--grid_min_lat', type=float, required=True, help='Minimum latitude of the NPY grid.')
-    parser.add_argument('--grid_max_lat', type=float, required=True, help='Maximum latitude of the NPY grid.')
-    parser.add_argument('--nodata_val', type=float, default=np.nan, help='Value in NPY to treat as no data (becomes transparent).')
-    # Add options for normalization, e.g., min/max cutoff or percentile
-    parser.add_argument('--min_display_val', type=float, help='Minimum value for display normalization. Defaults to data min. Currently overridden by fixed color legend.')
-    parser.add_argument('--max_display_val', type=float, help='Maximum value for display normalization. Defaults to data max. Currently overridden by fixed color legend.')
+    parser = argparse.ArgumentParser(description="Generate map tiles from a .npy or .npz grid file.")
+    parser.add_argument("input_file", help="Path to the input .npy or .npz grid file.")
+    parser.add_argument("output_dir", help="Directory to save the generated tiles.")
+    parser.add_argument("--zoom", "-z", type=int, default=8, help="Zoom level for tiles (default: 8)")
+    parser.add_argument("--tile_size", type=int, default=256, help="Pixel size of tiles (default: 256)")
+    # Boundaries are now optional, can be read from .npz
+    parser.add_argument("--grid_min_lon", type=float, help="Longitude of the western edge of the grid.")
+    parser.add_argument("--grid_max_lon", type=float, help="Longitude of the eastern edge of the grid.")
+    parser.add_argument("--grid_min_lat", type=float, help="Latitude of the southern edge of the grid.")
+    parser.add_argument("--grid_max_lat", type=float, help="Latitude of the northern edge of the grid.")
+    parser.add_argument("--nodata_val", type=float, default=np.nan, help="Value representing no data in the grid (default: np.nan)")
+    parser.add_argument("--min_display_val", type=float, default=0, help="Minimum value for colormap scaling (default: 0, after log1p)")
+    parser.add_argument("--max_display_val", type=float, default=255, help="Maximum value for colormap scaling (default: 255, after log1p and normalization)")
 
     return parser.parse_args()
 
@@ -67,55 +68,68 @@ def get_color_for_value(usvh_value):
 def main():
     args = parse_arguments()
 
+    grid_data = None
+    loaded_min_lon, loaded_max_lon, loaded_min_lat, loaded_max_lat = None, None, None, None
+
+    print(f"Loading grid data from: {args.input_file}")
+    try:
+        # Try loading as .npz first (which can also load .npy if it's just an array)
+        with np.load(args.input_file, allow_pickle=True) as data:
+            if isinstance(data, np.lib.npyio.NpzFile):
+                print("Detected .npz file, attempting to load 'grid' array and boundaries.")
+                grid_data = data['grid']
+                loaded_min_lon = data.get('grid_min_lon')
+                loaded_max_lon = data.get('grid_max_lon')
+                loaded_min_lat = data.get('grid_min_lat')
+                loaded_max_lat = data.get('grid_max_lat')
+                print(f"Loaded boundaries from npz: LON({loaded_min_lon}, {loaded_max_lon}), LAT({loaded_min_lat}, {loaded_max_lat})")
+            elif isinstance(data, np.ndarray):
+                 # If np.load on a .npy file returns the array directly
+                print("Detected .npy file (loaded as ndarray).")
+                grid_data = data
+            else:
+                # This case might occur if a .npz file doesn't contain 'grid'
+                # or if allow_pickle=True loads something unexpected for a bare .npy
+                print("Warning: Could not determine structure of loaded data. Assuming it is the grid itself.")
+                grid_data = data # Assume the loaded object is the grid array
+
+    except FileNotFoundError:
+        print(f"Error: Input file {args.input_file} not found.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error loading grid data from {args.input_file}: {e}")
+        sys.exit(1)
+
+    if grid_data is None:
+        print("Error: Grid data could not be loaded.")
+        sys.exit(1)
+
+    print(f"Grid shape: {grid_data.shape}")
+
+    # Determine grid boundaries
+    grid_min_lon = args.grid_min_lon if args.grid_min_lon is not None else loaded_min_lon
+    grid_max_lon = args.grid_max_lon if args.grid_max_lon is not None else loaded_max_lon
+    grid_min_lat = args.grid_min_lat if args.grid_min_lat is not None else loaded_min_lat
+    grid_max_lat = args.grid_max_lat if args.grid_max_lat is not None else loaded_max_lat
+
+    if None in [grid_min_lon, grid_max_lon, grid_min_lat, grid_max_lat]:
+        print("Error: Grid boundaries not found in .npz and not all provided as arguments.")
+        print("Please provide --grid_min_lon, --grid_max_lon, --grid_min_lat, --grid_max_lat or use an .npz file with these fields.")
+        sys.exit(1)
+
+    print(f"Using grid boundaries: LON ({grid_min_lon} to {grid_max_lon}), LAT ({grid_min_lat} to {grid_max_lat})")
+
     print(f"Starting tile generation for zoom {args.zoom}...")
-    print(f"Input NPY: {args.input_npy}")
+    print(f"Input NPY: {args.input_file}")
     print(f"Output Directory: {args.output_dir}")
     print(f"Tile Size: {args.tile_size}x{args.tile_size}")
-    print(f"Grid Extent: Lon({args.grid_min_lon}, {args.grid_max_lon}), Lat({args.grid_min_lat}, {args.grid_max_lat})")
+    print(f"Grid Extent: Lon({grid_min_lon}, {grid_max_lon}), Lat({grid_min_lat}, {grid_max_lat})")
     print(f"NOTE: Using fixed Safecast-like color legend. --min_display_val and --max_display_val are currently not used for color scaling.")
 
-    # 1. Load the NPY grid
-    print(f"Loading NPY grid from {args.input_npy}...")
-    try:
-        grid_data = np.load(args.input_npy)
-        print(f"Grid loaded. Shape: {grid_data.shape}")
-    except Exception as e:
-        print(f"Error loading NPY file: {e}")
-        return
-
-    # Make sure output directory for the zoom level exists
-    zoom_output_dir = os.path.join(args.output_dir, str(args.zoom))
-    # os.makedirs(zoom_output_dir, exist_ok=True) # Will be created per tile column
-
-    # 2. Determine normalization parameters - THIS SECTION IS NOW BYPASSED FOR COLORING
-    # print("Determining normalization parameters...")
-    # valid_data = grid_data[~np.isnan(grid_data) if np.isnan(args.nodata_val) else grid_data != args.nodata_val]
-    
-    # if args.min_display_val is not None:
-    #     min_val = args.min_display_val
-    # elif len(valid_data) > 0:
-    #     min_val = np.min(valid_data)
-    # else:
-    #     min_val = 0 # Default if no valid data or all nodata
-
-    # if args.max_display_val is not None:
-    #     max_val = args.max_display_val
-    # elif len(valid_data) > 0:
-    #     max_val = np.max(valid_data)
-    # else:
-    #     max_val = 1 # Default if no valid data or all nodata, avoid division by zero with min_val=0
-
-    # if max_val == min_val: # Avoid division by zero if all valid data is the same
-    #     max_val = min_val + 1e-6 # Add a tiny epsilon, or handle as single color
-    #     if max_val == min_val: # if min_val was also 0, then max_val might still be 0
-    #          max_val = 1.0
-
-    # print(f"Normalization range (for reference, not used for coloring): {min_val} to {max_val}")
-    
     # 3. Calculate the range of tiles that cover the grid_data extent for the given zoom
     print("Calculating tile range for the given extent...")
-    xtile_min, ytile_min = deg_to_num(args.grid_max_lat, args.grid_min_lon, args.zoom) # NW corner for min tile index
-    xtile_max, ytile_max = deg_to_num(args.grid_min_lat, args.grid_max_lon, args.zoom) # SE corner for max tile index
+    xtile_min, ytile_min = deg_to_num(grid_max_lat, grid_min_lon, args.zoom) # NW corner for min tile index
+    xtile_max, ytile_max = deg_to_num(grid_min_lat, grid_max_lon, args.zoom) # SE corner for max tile index
 
     # Ensure ytile_max is greater than ytile_min, as y tile numbers increase downwards
     # The deg_to_num for ytile_min uses grid_max_lat (top) and for ytile_max uses grid_min_lat (bottom)
@@ -125,8 +139,8 @@ def main():
     # 4. Loop through tiles, extract data, normalize, create image, save
     print("Starting tile generation loop...")
     grid_rows, grid_cols = grid_data.shape
-    lon_px_res = (args.grid_max_lon - args.grid_min_lon) / grid_cols
-    lat_px_res = (args.grid_max_lat - args.grid_min_lat) / grid_rows
+    lon_px_res = (grid_max_lon - grid_min_lon) / grid_cols
+    lat_px_res = (grid_max_lat - grid_min_lat) / grid_rows
 
     if lon_px_res <= 0 or lat_px_res <= 0:
         print("Error: Pixel resolution is zero or negative. Check grid extent arguments.")
@@ -150,12 +164,12 @@ def main():
             # Note: grid y-axis is inverted compared to latitude
             
             # Calculate pixel coordinates (top-left of the region to extract)
-            x_start_px = int(math.floor((tile_nw_lon - args.grid_min_lon) / lon_px_res))
-            y_start_px = int(math.floor((args.grid_max_lat - tile_nw_lat) / lat_px_res))
+            x_start_px = int(math.floor((tile_nw_lon - grid_min_lon) / lon_px_res))
+            y_start_px = int(math.floor((grid_max_lat - tile_nw_lat) / lat_px_res))
             
             # Calculate pixel coordinates (bottom-right of the region to extract)
-            x_end_px = int(math.ceil((tile_se_lon - args.grid_min_lon) / lon_px_res))
-            y_end_px = int(math.ceil((args.grid_max_lat - tile_se_lat) / lat_px_res))
+            x_end_px = int(math.ceil((tile_se_lon - grid_min_lon) / lon_px_res))
+            y_end_px = int(math.ceil((grid_max_lat - tile_se_lat) / lat_px_res))
 
             tile_image = None
 

@@ -54,6 +54,8 @@ def PreCompute(safecastDataset, safecastDatasetCPMThreashold, safecastGridsize, 
     xil = []
     yil = []
     missing = None # Initialize missing
+    # Initialize grid boundary variables in case they are not set in the 'else' branch
+    x_min, x_max, y_min, y_max = np.nan, np.nan, np.nan, np.nan
 
     if highResolution:
       # In high res mode, original script doesn't produce a grid for interpolation, 
@@ -93,8 +95,8 @@ def PreCompute(safecastDataset, safecastDatasetCPMThreashold, safecastGridsize, 
       # Create the grid
       print("Create the grid")
       t1 = time.time()
-      x_min, x_max = x.min(), x.max()
-      y_min, y_max = y.min(), y.max()
+      x_min, x_max = x.min(), x.max() # These are the actual data extents
+      y_min, y_max = y.min(), y.max() # These are the actual data extents
       if x_min == x_max: # Handle cases with single point longitude
           x_max += 1e-6
       if y_min == y_max: # Handle cases with single point latitude
@@ -120,12 +122,19 @@ def PreCompute(safecastDataset, safecastDatasetCPMThreashold, safecastGridsize, 
           grid = zi # griddata already returns it in the right shape if xi, yi are meshes
       print(f"done in {time.time()-t1:.2f} seconds.")
 
-    # Save the interpolated grid as .npy
+    # Save the interpolated grid and its boundaries as .npz
     if grid is not None:
-        np.save(output_npy_file, grid)
-        print(f"Interpolated grid saved to {output_npy_file}")
-    else:
-        print(f"Grid was not generated. {output_npy_file} not saved.")
+        # Ensure boundaries are available; they should be if grid is not None
+        # and not in highResolution mode.
+        if not (np.isnan(x_min) or np.isnan(x_max) or np.isnan(y_min) or np.isnan(y_max)):
+            np.savez(output_npy_file, grid=grid, 
+                     grid_min_lon=x_min, grid_max_lon=x_max, 
+                     grid_min_lat=y_min, grid_max_lat=y_max)
+            print(f"Interpolated grid and boundaries saved to {output_npy_file} (as .npz)")
+        else:
+            # Fallback for safety, though this case should ideally not be hit if grid is generated
+            np.save(output_npy_file, grid)
+            print(f"Interpolated grid saved to {output_npy_file} (boundaries missing). Please check logic.")
 
     # Original pickling logic (commented out, replaced by .npy saving of grid)
     # toSave = [npts, x, y, z, zraw, zcount, xil, yil, grid, missing]
@@ -273,7 +282,7 @@ def LoadSafecastData(filename, CPMclip, latmin, latmax, lonmin, lonmax, highReso
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Precompute griddata interpolation from Safecast CSV file.") # Changed to argparse
     parser.add_argument("input_csv", help="Path to the Safecast CSV input file")
-    parser.add_argument("-o", "--output_npy", default="interpolated_grid.npy", help="Output .npy file name for the interpolated grid (default: interpolated_grid.npy)")
+    parser.add_argument("-o", "--output_npy", default="interpolated_grid.npz", help="Output .npz file name for the interpolated grid and boundaries (default: interpolated_grid.npz)")
     parser.add_argument("-g", "--gridsize", type=int, default=256, help="Square grid size (default: 256)")
     parser.add_argument("-t", "--cpmThreashold", type=int, default=35000, help="CPM threashold for clipping input values (default: 35000)") # Increased default based on typical Safecast data
     parser.add_argument("-H", "--highResolution", action="store_true", default=False, help="Process data at higher spatial resolution (less aggregation), currently does not produce an interpolated grid directly.")
