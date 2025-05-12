@@ -23,17 +23,20 @@ def deg_to_num(lat_deg, lon_deg, zoom):
 
 # --- Color Legend and Conversion Factor (from prebuildtiles2.py) ---
 SAFECAST_COLOR_LEGEND = [
-    (0.03, (75, 0, 130)),    # Indigo/Dark Purple
-    (0.05, (0, 0, 139)),     # Dark Blue
-    (0.075, (0, 0, 205)),    # Medium Blue
-    (0.1, (0, 100, 255)),    # Lighter Blue / Dodger Blue
-    (0.15, (0, 191, 255)),   # Deep Sky Blue / Cyanish
-    (0.25, (0, 255, 255)),   # Cyan
-    (0.5, (0, 128, 0)),     # Dark Green
-    (1.0, (255, 255, 0)),   # Yellow
-    (5.0, (255, 165, 0)),   # Orange
-    (20.0, (255, 0, 0)),    # Red
-    (float('inf'), (139, 0, 0)) # Dark Red
+    (0.03, (50, 0, 100)),    # UI: Darkest Blue/Purple
+    (0.05, (0, 0, 139)),     # UI: Dark Blue
+    (0.08, (0, 0, 205)),     # UI: Medium Blue
+    (0.12, (0, 100, 255)),   # UI: Lighter Blue
+    (0.16, (0, 191, 255)),   # UI: Sky Blue / Cyanish
+    (0.23, (0, 255, 255)),   # UI: Cyan / Turquoise
+    (0.31, (173, 127, 217)), # UI: Light Purple
+    (0.43, (200, 0, 200)),   # UI: Magenta
+    (0.60, (255, 105, 180)), # UI: Pink
+    (0.87, (255, 0, 127)),   # UI: Hot Pink / Reddish-Pink
+    (1.31, (255, 69, 0)),    # UI: Red-Orange
+    (2.13, (255, 165, 0)),   # UI: Orange
+    (10.0, (255, 255, 0)),   # UI: Yellow (covering up to ~10 µSv/h)
+    (float('inf'), (255, 255, 150)) # UI: Brighter Yellow for very high (above 10 µSv/h)
 ]
 CPM_TO_USVH_FACTOR = 350.0
 
@@ -168,7 +171,7 @@ def main():
                     y1 = py - args.dot_radius
                     x2 = px + args.dot_radius
                     y2 = py + args.dot_radius
-                    draw.ellipse([x1, y1, x2, y2], fill=color, outline=None) # Use outline=color for bordered dots
+                    draw.ellipse([x1, y1, x2, y2], fill=color, outline=(0,0,0,255)) # Use outline=color for bordered dots
 
             tile_path = os.path.join(tile_col_dir, f"{ytile}.png")
             try:

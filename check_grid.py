@@ -23,10 +23,10 @@ else:
             print(f"Percentage of non-NaN cells: {(num_non_nan_cells / total_cells) * 100:.2f}%")
 
         if num_non_nan_cells > 0:
-            print(f"Min non-NaN value: {np.min(non_nan_values)}")
-            print(f"Max non-NaN value: {np.max(non_nan_values)}")
-            print(f"Mean non-NaN value: {np.mean(non_nan_values)}")
-            print(f"Median non-NaN value: {np.median(non_nan_values)}")
+                print(f"Min non-NaN value: {np.min(non_nan_values)}")
+                print(f"Max non-NaN value: {np.max(non_nan_values)}")
+                print(f"Mean non-NaN value: {np.mean(non_nan_values)}")
+                print(f"Median non-NaN value: {np.median(non_nan_values)}")
 
             # Find coordinates of first few non-NaN values
             non_nan_indices = np.argwhere(~nan_mask)
@@ -43,8 +43,8 @@ else:
                     c_start = max(0, c - 2)
                     c_end = min(grid.shape[1], c + 3)
                     print(grid[r_start:r_end, c_start:c_end])
-        else:
+            else:
             print("No non-NaN data found in the grid.")
-            
+        
     except Exception as e:
         print(f"Error processing file: {e}")

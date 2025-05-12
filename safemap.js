@@ -1185,8 +1185,8 @@ var ClientZoomHelper = (function()
         var c_url    = _GetUrlTemplateForS3Bucket(isJ, isS, "cosmic");
         var ts       = _fxGetTimeSliceDates();
 
-        x.push( _InitGmapsLayers_Create( 0, 2,  false, 17, 1.0, 256, te512url) );
-        x.push( _InitGmapsLayers_Create( 1, 2,  false, 17, 1.0, 256, te512url) );
+        x.push( _InitGmapsLayers_Create( 0, 2,  false, 21, 1.0, 256, te512url) );
+        x.push( _InitGmapsLayers_Create( 1, 2,  false, 21, 1.0, 256, te512url) );
         x.push( _InitGmapsLayers_Create( 2, 8,  false, 15, 0.5, 512, tg512url) );
 
         x.push( _InitGmapsLayers_Create( 3, 3,  false, 16, 1.0, 512, nnsa_url) );
