@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" itemscope itemtype="http://schema.org/map" style="height:100%">
+<head>
+    <meta charset="UTF-8"> 
+    <meta name=viewport content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="referrer" content="origin">
+    <meta http-equiv="refresh" content="86400">
+    <link rel="shortcut icon" href="//map.safecast.org/favicon.png" />
+    <link href="webicons/apple-touch-icon-152x152.png" rel="apple-touch-icon" sizes="152x152">
+    <link href="webicons/apple-touch-icon-144x144.png" rel="apple-touch-icon" sizes="144x144">
+    <link href="webicons/apple-touch-icon-76x76.png" rel="apple-touch-icon" sizes="76x76">
+    <link href="webicons/apple-touch-icon-72x72.png" rel="apple-touch-icon" sizes="72x72">
+    <link href="webicons/apple-touch-icon-57x57.png" rel="apple-touch-icon">
+
+    <title>Safecast Map - OpenStreetMap Edition</title>
+    
+    <!-- Leaflet CSS and JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- jQuery (used by original Safecast) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <style>
+        html, body, #map_canvas {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: Futura, "Century Gothic", Arial, sans-serif;
+        }
+        
+        /* SIDEBAR STYLES */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 220px;
+            height: 100%;
+            background-color: #f8f8f8;
+            z-index: 1000;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+        
+        .sidebar-header {
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-bottom: 1px solid #e6e6e6;
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar-header img {
+            height: 20px;
+        }
+        
+        .sidebar-toggle {
+            background: #fff;
+            border: none;
+            font-size: 24px;
+            margin-left: auto;
+            padding: 0 10px;
+            cursor: pointer;
+            height: 36px;
+            width: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            border: 1px solid #e6e6e6;
+        }
+        
+        .search-container {
+            padding: 10px;
+            border-bottom: 1px solid #e6e6e6;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .search-button {
+            position: absolute;
+            right: 15px;
+            top: 67px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        /* Toggle switches */
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #e6e6e6;
+        }
+        
+        .toggle-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+        }
+        
+        .toggle-label {
+            flex-grow: 1;
+            font-size: 14px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            border-radius: 20px;
+            transition: .4s;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            border-radius: 50%;
+            transition: .4s;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #6ca6bd;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+        
+        /* Section styles */
+        .section-header {
+            padding: 10px;
+            background-color: #f0f0f0;
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #666;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .section-header::after {
+            content: "▼";
+            font-size: 10px;
+        }
+        
+        .section-header.collapsed::after {
+            content: "►";
+        }
+        
+        .section-content {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .section-content.collapsed {
+            max-height: 0;
+        }
+        
+        /* Layer items */
+        .layer-item {
+            padding: 10px 10px 10px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        
+        .layer-item:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .layer-item.selected {
+            background-color: #e6e6e6;
+        }
+        
+        .layer-date {
+            background-color: #e6e6e6;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+        
+        /* Legend Styles */
+        #map-legend {
+            position: fixed;
+            right: 10px;
+            bottom: 30px;
+            z-index: 1000;
+            width: 30px;
+            background: transparent;
+        }
+        
+        .legend-bar {
+            width: 30px;
+            height: 500px;
+            background: linear-gradient(to bottom, 
+                #ff0000, /* 0.43 μSv/h */
+                #ff00ff, /* 0.31 μSv/h */
+                #9600c8, /* 0.16 μSv/h */
+                #0000ff, /* 0.08 μSv/h */
+                #00b7ff, /* 0.05 μSv/h */
+                #31f3ff  /* 0.03 μSv/h */
+            );
+            border: 1px solid #999;
+        }
+        
+        .legend-labels {
+            position: absolute;
+            top: 0;
+            left: -45px;
+            width: 40px;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: #333;
+            font-size: 12px;
+            text-align: right;
+        }
+        
+        .legend-labels div {
+            padding: 3px 5px;
+            background-color: rgba(255, 255, 255, 0.7);
+            margin: 2px 0;
+            border-radius: 2px;
+        }
+        
+        .legend-unit {
+            position: absolute;
+            top: 515px;
+            left: -45px;
+            width: 80px;
+            color: #333;
+            font-size: 10px;
+            text-align: center;
+        }
+        
+        /* Map controls */
+        .leaflet-control-zoom {
+            margin-top: 10px !important;
+        }
+        
+        .leaflet-control-attribution {
+            background-color: rgba(255, 255, 255, 0.8) !important;
+            font-size: 10px !important;
+        }
+        
+        /* Crosshair */
+        #map-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin-left: -10px;
+            margin-top: -10px;
+            z-index: 1000;
+            pointer-events: none;
+            display: none;
+        }
+        
+        #map-crosshair::before,
+        #map-crosshair::after {
+            content: "";
+            position: absolute;
+            background-color: rgba(255, 0, 0, 0.7);
+        }
+        
+        #map-crosshair::before {
+            top: 9px;
+            left: 0;
+            width: 20px;
+            height: 2px;
+        }
+        
+        #map-crosshair::after {
+            top: 0;
+            left: 9px;
+            width: 2px;
+            height: 20px;
+        }
+        
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-220px);
+                transition: transform 0.3s ease-out;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .map-container {
+                margin-left: 0;
+            }
+            
+            .sidebar-toggle-mobile {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                z-index: 999;
+                background: white;
+                border: none;
+                border-radius: 4px;
+                padding: 5px 10px;
+                font-size: 20px;
+                box-shadow: 0 0 5px rgba(0,0,0,0.3);
+                cursor: pointer;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map_canvas"></div>
+    
+    <!-- Mobile menu toggle -->
+    <button class="sidebar-toggle-mobile" id="sidebar-toggle-mobile">☰</button>
+    
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="schoriz_767x84.png" alt="Safecast">
+            <button class="sidebar-toggle" id="sidebar-toggle">≡</button>
+        </div>
+        
+        <div class="search-container">
+            <input type="text" class="search-box" id="search-box" placeholder="Find Address">
+            <button class="search-button" id="search-button">🔍</button>
+        </div>
+        
+        <div class="toggle-item">
+            <div class="toggle-icon">⌖</div>
+            <div class="toggle-label">Crosshair</div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="crosshair-toggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        
+        <div class="toggle-item">
+            <div class="toggle-icon">📍</div>
+            <div class="toggle-label">Location</div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="location-toggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        
+        <div class="section-header" id="layers-header">LAYERS</div>
+        <div class="section-content" id="layers-content">
+            <div class="toggle-item">
+                <div class="toggle-label">List All</div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="list-all-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            
+            <div class="layer-item">None</div>
+            
+            <div class="layer-item selected">
+                Safecast <span class="layer-date">2023-08-04</span>
+            </div>
+            
+            <div class="layer-item">
+                Points <span class="layer-date">2023-08-04</span>
+            </div>
+            
+            <div class="layer-item">
+                Interpolation <span class="layer-date">2023-08-19</span>
+            </div>
+            
+            <div class="layer-item">
+                Safecast Snapshots...
+            </div>
+            
+            <div class="layer-item">
+                Safecast Cosmic <span class="layer-date">2019-04-07</span>
+            </div>
+            
+            <div class="layer-item">
+                Safecast Points <span class="layer-date">2019-04-15</span>
+            </div>
+            
+            <div class="layer-item">
+                Safecast Points <span class="layer-date">2014-03-11</span>
+            </div>
+            
+            <div class="layer-item">
+                NNSA Japan <span class="layer-date">2011-06-30</span>
+            </div>
+            
+            <div class="layer-item">
+                USGS/GSC NURE <span class="layer-date">1980</span>
+            </div>
+            
+            <div class="layer-item">
+                Geoscience Australia <span class="layer-date">2010</span>
+            </div>
+            
+            <div class="layer-item">
+                AIST/GSJ Natural Bkg
+            </div>
+        </div>
+        
+        <div class="section-header" id="bgeigie-header">BGEIGIE LOGS</div>
+        <div class="section-content collapsed" id="bgeigie-content">
+            <div class="layer-item">Search...</div>
+            <div class="layer-item">Remove All</div>
+            <div class="layer-item">Options</div>
+        </div>
+        
+        <div class="section-header" id="realtime-header">REALTIME</div>
+        <div class="section-content collapsed" id="realtime-content">
+            <div class="toggle-item">
+                <div class="toggle-label">Radiation Sensors</div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="radiation-sensors-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            
+            <div class="toggle-item">
+                <div class="toggle-label">Air Sensors</div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="air-sensors-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="section-header" id="areas-header">AREAS</div>
+        <div class="section-content collapsed" id="areas-content">
+            <div class="toggle-item">
+                <div class="toggle-label">Fukushima Zone</div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="fukushima-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Map Legend -->
+    <div id="map-legend">
+        <div class="legend-bar"></div>
+        <div class="legend-labels">
+            <div>65.54</div>
+            <div>10.09</div>
+            <div>3.99</div>
+            <div>2.13</div>
+            <div>1.31</div>
+            <div>0.87</div>
+            <div>0.60</div>
+            <div>0.43</div>
+            <div>0.31</div>
+            <div>0.23</div>
+            <div>0.16</div>
+            <div>0.12</div>
+            <div>0.08</div>
+            <div>0.05</div>
+            <div>0.03</div>
+        </div>
+        <div class="legend-unit">μSv/h</div>
+    </div>
+    
+    <!-- Crosshair -->
+    <div id="map-crosshair"></div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize map
+            var map = L.map('map_canvas', {
+                center: [48.5, 10],  // Center on Europe as in the screenshot
+                zoom: 6,
+                zoomControl: true,
+                attributionControl: true
+            });
+            
+            // Add OpenStreetMap tiles
+            var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Add Safecast radiation tile layer
+            var radiationLayer = L.tileLayer('http://localhost:8010/s3-tiles/t/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                opacity: 0.8,
+                attribution: '&copy; <a href="https://safecast.org">Safecast</a>'
+            }).addTo(map);
+            
+            // Initialize sidebar functionality
+            var sidebarToggle = document.getElementById('sidebar-toggle');
+            var sidebarToggleMobile = document.getElementById('sidebar-toggle-mobile');
+            var sidebar = document.getElementById('sidebar');
+            
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('open');
+            });
+            
+            sidebarToggleMobile.addEventListener('click', function() {
+                sidebar.classList.toggle('open');
+            });
+            
+            // Initialize section headers
+            function initializeSection(headerId, contentId) {
+                var header = document.getElementById(headerId);
+                var content = document.getElementById(contentId);
+                
+                header.addEventListener('click', function() {
+                    header.classList.toggle('collapsed');
+                    content.classList.toggle('collapsed');
+                });
+            }
+            
+            initializeSection('layers-header', 'layers-content');
+            initializeSection('bgeigie-header', 'bgeigie-content');
+            initializeSection('realtime-header', 'realtime-content');
+            initializeSection('areas-header', 'areas-content');
+            
+            // Initialize layer selection
+            var layers = document.querySelectorAll('.layer-item');
+            layers.forEach(function(layer) {
+                layer.addEventListener('click', function() {
+                    // Remove selected class from all layers
+                    layers.forEach(function(l) {
+                        l.classList.remove('selected');
+                    });
+                    
+                    // Add selected class to clicked layer
+                    this.classList.add('selected');
+                    
+                    // Handle layer selection
+                    var layerName = this.textContent.trim();
+                    
+                    if (layerName.includes('None')) {
+                        // Hide all data layers
+                        if (map.hasLayer(radiationLayer)) {
+                            map.removeLayer(radiationLayer);
+                        }
+                    } else if (layerName.includes('Safecast Cosmic')) {
+                        // Switch to cosmic layer
+                        if (map.hasLayer(radiationLayer)) {
+                            map.removeLayer(radiationLayer);
+                        }
+                        
+                        // Would add cosmic layer here
+                        alert('Cosmic layer would be shown here');
+                    } else if (layerName.includes('Safecast') && !layerName.includes('Snapshots') && !layerName.includes('Points')) {
+                        // Show the radiation layer
+                        if (!map.hasLayer(radiationLayer)) {
+                            map.addLayer(radiationLayer);
+                        }
+                    } else {
+                        // For other layers that aren't implemented in the demo
+                        alert('Layer: "' + layerName + '" is not implemented in this demo');
+                    }
+                });
+            });
+            
+            // Handle search
+            var searchBox = document.getElementById('search-box');
+            var searchButton = document.getElementById('search-button');
+            
+            searchButton.addEventListener('click', function() {
+                geocodeAddress();
+            });
+            
+            searchBox.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    geocodeAddress();
+                    e.preventDefault();
+                }
+            });
+            
+            function geocodeAddress() {
+                var address = searchBox.value;
+                if (!address) return;
+                
+                // Use Nominatim for geocoding
+                fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(address))
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.length > 0) {
+                            var result = data[0];
+                            var latlng = L.latLng(result.lat, result.lon);
+                            map.setView(latlng, 13);
+                            
+                            L.popup()
+                                .setLatLng(latlng)
+                                .setContent(result.display_name)
+                                .openOn(map);
+                        } else {
+                            alert('Address not found');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error geocoding address:', error);
+                        alert('Error searching for address');
+                    });
+            }
+            
+            // Handle crosshair toggle
+            var crosshairToggle = document.getElementById('crosshair-toggle');
+            var crosshair = document.getElementById('map-crosshair');
+            
+            crosshairToggle.addEventListener('change', function() {
+                crosshair.style.display = this.checked ? 'block' : 'none';
+            });
+            
+            // Handle location toggle
+            var locationToggle = document.getElementById('location-toggle');
+            var userLocationMarker = null;
+            
+            locationToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    // Get user location
+                    map.locate({setView: true, maxZoom: 16});
+                    
+                    map.on('locationfound', function(e) {
+                        if (userLocationMarker) {
+                            map.removeLayer(userLocationMarker);
+                        }
+                        
+                        userLocationMarker = L.circle(e.latlng, {
+                            radius: e.accuracy / 2,
+                            weight: 2,
+                            color: '#4285F4',
+                            fillColor: '#4285F4',
+                            fillOpacity: 0.15
+                        }).addTo(map);
+                    });
+                    
+                    map.on('locationerror', function(e) {
+                        alert("Location access denied or unavailable");
+                        locationToggle.checked = false;
+                    });
+                } else {
+                    // Remove user location
+                    if (userLocationMarker) {
+                        map.removeLayer(userLocationMarker);
+                        userLocationMarker = null;
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

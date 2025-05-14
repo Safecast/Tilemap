@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" itemscope itemtype="http://schema.org/map" style="height:100%">
+<head>
+<meta charset="UTF-8"> 
+<meta name=viewport content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="referrer" content="origin">
+<meta http-equiv="refresh" content="86400">
+<link rel="shortcut icon" href="//map.safecast.org/favicon.png" />
+<link href="webicons/apple-touch-icon-152x152.png" rel="apple-touch-icon" sizes="152x152">
+<link href="webicons/apple-touch-icon-144x144.png" rel="apple-touch-icon" sizes="144x144">
+<link href="webicons/apple-touch-icon-76x76.png" rel="apple-touch-icon" sizes="76x76">
+<link href="webicons/apple-touch-icon-72x72.png" rel="apple-touch-icon" sizes="72x72">
+<link href="webicons/apple-touch-icon-57x57.png" rel="apple-touch-icon">
+
+<title>Safecast Map</title>
+
+<script type="text/javascript">
+var PLATFORM_IS_TEST        =    window.location.href.indexOf("test2")     > -1;
+var PLATFORM_IS_LOCAL       =    window.location.href.indexOf("localhost") > -1 
+                              || window.location.href.indexOf("127.0.0.1") > -1;
+var PLATFORM_DISABLE_INGEST = false;
+var _ls                     = { gmaps:false, safemaps:false, ui:false, css:false, init:false, spinner:false };
+function _nua(s)           { return navigator.userAgent.indexOf(s) > -1; }
+function ElCr(n)           { return document.createElement(n); }
+function ElGet(id)         { return document.getElementById(id); }
+function AList(el,ev,fx)   { return el.addEventListener(ev, fx, false); }
+function AListId(id,ev,fx) { return AList(ElGet(id), ev, fx); }
+
+function TestAirToggle()
+{
+    _meta_content_idx++;
+    if (_meta_content_idx > 1) _meta_content_idx = 0;
+
+    var es = ["ul_menu_layers", "ul_menu_logs", "ul_menu_realtime", "menu_scale", "menu_hdpi", "menu_nn_scaler", "menu_tile_shadow", "menu_apiquery", "hud_btnToggle"];
+
+    if (_meta_content_idx == 0)
+    {
+        if (_igProxyAir != null)
+        {
+            _igProxyAir.SetEnabled(false);
+            _igProxyAir = null;
+        }//if
+
+        MenuHelper.OptionsClearSelection("ul_menu_layers");
+        MenuHelper.OptionsSetSelection("ul_menu_layers", 0);
+        _ui_layer_idx = 0;
+        PrefHelper.SetLayerUiIndexPref(0);
+        LayersHelper.UiLayers_OnChange();
+
+        for (var i=0; i<es.length; i++)
+        {
+            ElGet(es[i]).parentElement.removeAttribute("display");
+        }//for
+    }//if (meta is radiation)
+    else if (_meta_content_idx == 1)
+    {
+        for (var i=0; i<es.length; i++)
+        {
+            ElGet(es[i]).parentElement.style.display = "none";
+        }//for
+
+        if (hudProxy._hud != null && _hudProxy._btnToggleStateOn)
+        {
+            MenuHelper.Hud_btnToggle_Click();
+        }//if
+
+        if (_bvProxy != null && _bvProxy.GetLogCount() > 0) 
+        {
+            _bvProxy.btnRemoveLogsOnClick();
+        }//if        
+
+        MenuHelper.OptionsClearSelection("ul_menu_layers");
+        MenuHelper.OptionsSetSelection("ul_menu_layers", 11);
+        _ui_layer_idx = 11;
+        PrefHelper.SetLayerUiIndexPref(11);
+        LayersHelper.UiLayers_OnChange();
+
+        if (_igProxyAir != null)
+        {
+            _igProxyAir.SetEnabled(_rt_ingest_enabled);
+        }//if
+        else
+        {
+            _igProxyAir = new IgProxy(map);
+        }//if
+    }//else if (meta is air)
+
+    PrefHelper.SetMetaContentIdxPref(_meta_content_idx);
+}
+
+function FinishLoadIfPossible()
+{
+    if (_ls.css && _ls.ui && !_ls.spinner)
+    {
+        _ls.spinner = true;
+        var d = ElCr("div");
+        d.id = "div_sc_ls_wb";
+        d.className = "loading-spinner white bigspinner";
+        document.body.appendChild(d);
+    }//if
+
+    if (_ls.gmaps && _ls.safemaps && _ls.css && _ls.ui && !_ls.init)
+    {
+        _ls.init = true;
+        ElGet("tsPanel").style.removeProperty("display");
+        SafemapInit.Init();
+        
+        var a, f = function() {
+            document.body.removeChild(ElGet("div_sc_ls_wb")); 
+            google.maps.event.removeListener(a);
+        };
+
+        a = google.maps.event.addListenerOnce(map, "tilesloaded", f);
+    }//if
+}
+
+function InitGmaps()
+{
+    _ls.gmaps = true;
+    FinishLoadIfPossible();
+}
+
+function LoadGmaps()
+{
+    var p = localStorage.getItem("PREF_LANGUAGE") || "";
+    var j = p == "ja" || (p == "" && (new Date()).getTimezoneOffset() == -540);
+    var l = j ? "&language=ja&region=JP" : p == "cs" ? "&language=cs&region=CZ" : p == "es" ? "&language=es&region=MX" : p == "pt" ? "&language=pt&region=BR" : "";
+    var s = ElCr("script");
+    s.async = true;
+    s.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyAC5-_YqoGgLWli64OHZ1HUL2XHgMJel_g&v=3.exp&libraries=geometry&callback=InitGmaps" + l;
+    document.head.appendChild(s);
+}
+
+function LoadSafemap()
+{
+    var f,s = ElCr("script");
+    s.async = true;
+    s.type  = "text/javascript";
+    f = function(e) { 
+        s.removeEventListener("load", f); 
+        _ls.safemaps = true;
+        FinishLoadIfPossible();
+    };
+    AList(s, "load", f);
+    s.src = (!PLATFORM_IS_LOCAL ? "safemap_min.js?" : "safemap.js?") + Date.now();
+    document.head.appendChild(s);
+}
+
+function LoadCSS()
+{
+    var p = parseInt(localStorage.getItem("CSS_LAST_GET") || 0);
+    var u = Date.now() - p > 86400*1000 || PLATFORM_IS_TEST || PLATFORM_IS_LOCAL ? "?" + Date.now() : "";
+    var r = new XMLHttpRequest();
+    r.open("GET", (!PLATFORM_IS_LOCAL ? "safemap_min.css" : "safemap.css") + u, true);
+    r.onreadystatechange = function() { 
+        if (r.readyState != 4 || r.status != 200) return;
+        var s = ElCr("style");
+        s.type = "text/css";
+        s.innerHTML = r.response || r.responseText;
+        document.head.appendChild(s);
+        _ls.css = true;
+        FinishLoadIfPossible();
+        if (u.length > 0) localStorage.setItem("CSS_LAST_GET", Date.now());
+    };
+    r.send(null);
+}
+
+LoadGmaps();
+LoadSafemap();
+LoadCSS();
+</script>
+
+<script type="text/javascript">
+function ShowBrowserWarningWindowIfNeeded()
+{
+    var ua   = window.navigator.userAgent;
+    var msie = ua.indexOf("MSIE ");
+    var old_ie = msie <= 0 ? false : parseInt(ua.substring(msie + 5, ua.indexOf(".", msie)), 10) < 10;
+    if (!old_ie && "ArrayBuffer" in window && "bind" in Function.prototype && ("EventTarget" in window || "addEventListener" in window)) return false;
+    document.write("<b>Error:</b> Your browser is not supported by this webpage or the Google Maps API.<br/>");
+    return true;
+}
+
+function Init() 
+{
+    if (PLATFORM_IS_TEST || PLATFORM_IS_LOCAL) { document.title = (PLATFORM_IS_TEST ? "[TEST2] " : "[LOCAL] ") + document.title; }
+    if (ShowBrowserWarningWindowIfNeeded()) return;
+    _ls.ui = true;
+    FinishLoadIfPossible();
+}
+
+if ((navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i)) 
+    && window.innerHeight != document.documentElement.clientHeight) 
+{
+    var f = function() {
+        document.documentElement.style.height = window.innerHeight + "px";
+        if (document.body.scrollTop !== 0) window.scrollTo(0, 0);
+    }.bind(this);
+    AList(window, "scroll", f);
+    AList(window, "orientationchange", f);
+    f();
+}
+</script>
+
+</head>
+<body onload="Init();">
+<div id="map_canvas" class="noblur"></div>
+<form onSubmit="SafemapUI.GeocodeAddress(); return false;">
+<nav id="menu" class="menu" draggable="false" style="display:none;">
+    <header class="menu-header" id="menu-header">
+        <span class="menu-header-title"></span>
+    </header>
+
+    <section class="menu-section">
+        <ul class="menu-section-list">
+            <li><div id="pnlAddress"><input id="address" type="textbox" placeholder="Find Address..."></div></li>
+            <li>
+                <div id="hud_btnToggle" class="menu-prefs-chk-item" onclick="MenuHelper.Hud_btnToggle_Click();">
+                    <img id="imgMenuReticle" draggable="false" width="34" height="25" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFQAAAA+CAAAAACQb2MhAAAAAnRSTlMA/1uRIrUAAALxSURBVFjDvZhZoewgDECPCxwgAQk4qIU6wEId1EE1oKASsBAb5H10pbd06F0efzOUQ8hGCFobkuI09GGY5iT6bnD/9xwMp2FD+in0QnzP/Qqd/c5xHXRu36FL34SmFelHUVUFVdU0+FfYEiodAH3M2/Q2L9M6JW+hswHoTuvgegib3kEnADcX08Wm0QImvoGGmxUlVPNkgLEd2gH2qjG+GNIAoRUaAJ/1E1TFAVMbdAL6rJ+hmj0wt0DnWzlvoZodGPkMFQMuaxtUxYDNH6Fdbe9bqCbzbKwlDKtauofqBMgHqAevb6DZQv8MnYH0CqqxvmSF+vq2NejTGlVU5wcPqULTk1ZRDQ+mrEK1e8gBqJqHAKlDJ3B16AxG30Pl4fxoeFR5Faq+fn7UVJOOBAd+qATkUD8/Atwvi+s1auea/WtqI4Gt+vc6UkU1FWmUWDmFGLBjSkMtgampWooJuruJsKU3MRWLuKorMlRc3+32GyrbdlUL01MdslvEVr4YfwI1lS+G/3n8PzHUk0uZ1aW6agL4vvM/3pzfDVPRBFxziwzeuP6ovWJncX1qTyj+Cs37lmGRSPzJIZpS36qJM3PclbMUNt3+OzYmaRGRMzTrDLgpxbDKFoF+lujAvLhOyuP7rewMS5BsviwGUvvFV0CPkiZbGFT7zTAeYvsVXUBPt94IXnU8SSrtxUQBHY6wF7CL6H3K0YF9UfYU0P7khgbyolsATHpRoBVQD7vX20Uif8qGzaVkAe1OUAdJD78184uit4CG6/EFsDGlAYy0l+dXQ4XDUEY1bmkngmt/SFxdyhYudbiDg9T85CmgwqbUbCGo9mdobH6cbVDZ8kcRpuPp+EjzM7KM/QS4KHNgCZwE2CgympNOV+0/PHhXqDgzbh+f74UjFZpUPs3Nw9N8hQ5g8v4x0OVDJFaxmpsIKzRZs16tqbcYf9yzqbPggrxod5wS9G81Zn7c7LprIf1CB+1rs+tP2nK/A1VVSfM0hG81EP8BIV8XJEcCH9kAAAAASUVORK5CYII=" />
+                    <span id="lblMenuToggleReticle">Crosshair</span>
+                    <div><input type=checkbox id="chkMenuToggleReticle" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-bottom">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_reticle_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_reticle_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li>
+                <div id="menu_userloc" class="menu-prefs-chk-item">
+                    <img id="imgMenuUserLoc" draggable="false" width="25" height="25" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAD4AAAA+BAMAAACB77V3AAAAMFBMVEX/AP8BAQEXFxcnJyc3NzdHR0dYWFhqamp5eXmKioqYmJimpqa3t7fIyMjY2Njo6OidJuT4AAAAAXRSTlMAQObYZgAAAXJJREFUOMullT9OAkEUh6n8E3Q3D40hWm2vxV6AZDmACXsBAl5AAxcw8QDEiL2NNTbaGhsoiZXQ2rkNBVQuxh2YYXZ23vwS49d+gdn55mWmVPoP6SvUk7gHrPcYVsZu/d0hOnJafxQR0YlL7/eDTNO5Q3+1acUl/98v4VpX2O2lNyQ5nDE/nsRKU5XbdLDRdGbppEM5muymNYW6y35g6AOz7rRNJkZd7zksaKNu2iWLmtYfdVvrul7hwySqbnLBWVXXH0aslnX9O3JwKg+z7vCq7vI+ZL2uO+0y35+v641iy5uzm1qLHBfOtrhIzRodcxFmdo2dDLjZTRpodjPewOwK5mZdi23X7ErKjtndbDJkZ1fT4urmeGDrat4ddRULdDNk7IC6gr0A1BXnHIG6gitQV/AE6go+QV3BlrjYwL27i+qKqzUAdcUGG6Cu4BrUlSM4QH4O6q5HsApfpTKquxrBJn71Wj3sb8fYD2fY//zhBf4FwsJtiRYOig0AAAAASUVORK5CYII=" />
+                    <span id="lblMenuUserLoc">Location</span>
+                    <div><input type=checkbox id="chkMenuUserLoc" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-top">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_tooltips_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_tooltips_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+        </ul>
+    </section>
+
+    <hr/>
+
+    <section class="menu-section">
+        <h3 class="menu-section-title"><span id="lblMenuLayersTitle" class="btn_accordion">Layers</span></h3>
+        <div class="div_accordion">
+        <ul class="menu-section-list" id="ul_menu_layers"></ul>
+        </div>
+    </section>
+
+    <section class="menu-section" id="sectionMenuLogs">
+        <h3 class="menu-section-title"><span id="lblMenuLogsTitle" class="btn_accordion" style="letter-spacing:2px;">bGeigie Logs</span></h3>
+        <div class="div_accordion">
+        <ul class="menu-section-list" id="ul_menu_logs">
+            <li>
+                <div id="menu_logs_0">Search Logs...</div>
+                <span class="tooltiptext-bottom">
+                    <div style="position:relative;">
+                        <span id="menu_tooltip_logs_0_off" class="tooltiptext-off"></span>
+                        <span id="menu_tooltip_logs_0_on"  class="tooltiptext-on"></span>
+                    </div>
+                </span>
+            </li>
+            <li>
+                <div id="menu_logs_2">Remove All</div>
+                <span class="tooltiptext-bottom">
+                    <div style="position:relative;">
+                        <span id="menu_tooltip_logs_2_off" class="tooltiptext-off"></span>
+                        <span id="menu_tooltip_logs_2_on"  class="tooltiptext-on"></span>
+                    </div>
+                </span>
+            </li>
+            <li>
+                <div id="menu_logs_3">Options</div>
+                <span class="tooltiptext-bottom">
+                    <div style="position:relative;">
+                        <span id="menu_tooltip_logs_3_off" class="tooltiptext-off"></span>
+                        <span id="menu_tooltip_logs_3_on"  class="tooltiptext-on"></span>
+                    </div>
+                </span>
+            </li>
+        </ul>
+        </div>
+    </section>
+
+    <section class="menu-section" id="sectionMenuRealtime">
+        <h3 class="menu-section-title"><span id="lblMenuRealtimeTitle" class="btn_accordion">Realtime</span></h3>
+        <div class="div_accordion">
+        <ul class="menu-section-list" id="ul_menu_realtime">
+            <li>
+                <div id="menu_realtime_0" class="menu-prefs-chk-item">
+                    <span id="menu_realtime_0_label">Radiation Sensors</span>
+                    <div><input type=checkbox id="chkMenuRealtime0" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-bottom">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_realtime_0_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_realtime_0_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li>
+                <div id="menu_realtime_1" class="menu-prefs-chk-item">
+                    <span id="menu_realtime_1_label">Ingest Sensors</span>
+                    <div><input type=checkbox id="chkMenuRealtime1" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-bottom">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_realtime_1_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_realtime_1_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+                <div>
+                    <select id="ddlRealtime1Unit" style="visibility:hidden;" onchange="_igProxy.ddlUnits_OnChange();">
+                    </select>
+                </div>
+            </li>
+        </ul>
+        </div>
+    </section>
+
+    <hr id="muh_insert_before_menu_layers_node" style="width:100%;" />
+
+    <section class="menu-section">
+        <ul class="menu-section-list">
+            <li>
+                <div>言語 · Language · Idioma<br/>
+                    <select id="ddlLanguage" onchange="MenuHelper.ddlLanguage_OnChange();">
+                        <option value="ja">日本語</option>
+                        <option value="en" selected>English</option>
+                        <option value="es">Español</option>
+                        <option value="pt">Português</option>
+                        <option value="cs">Čeština</option>
+                        <option value="uk">Українська</option>
+                    </select>
+                </div>
+            </li>
+            <li>
+                <div id="aMenuAbout" onclick="MenuHelper.CloseAnimationHack(); slideout.close();">About this project...</div>
+            </li>
+            <li>
+                <a id="aMenuDonate" href="http://blog.safecast.org/donate/" target="_blank">Support this project</a>
+            </li>
+            <li>
+                <a id="aMenuBlog" href="http://blog.safecast.org" target="_blank">Safecast blog</a>
+            </li>
+        </ul>
+    </section>
+
+    <hr/>
+
+    <section class="menu-section">
+        <h3 class="menu-section-title"><span id="lblMenuBasemapTitle" class="btn_accordion">Basemap</span></h3>
+        <div class="div_accordion">
+        <ul class="menu-section-list" id="ul_menu_basemap"></ul>
+        </div>
+    </section>
+
+    <hr/>
+
+    <section class="menu-section">
+        <h3 class="menu-section-title"><span id="lblMenuAdvancedTitle" class="btn_accordion">Advanced</span></h3>
+        <div class="div_accordion">
+        <ul class="menu-section-list">
+            <li>
+                <div id="menu_scale" class="menu-prefs-chk-item">
+                    <span id="lblMenuScale">Map Scale</span>
+                    <div><input type=checkbox id="chkMenuScale" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-bottom">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_scale_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_scale_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li>
+                <div id="menu_legend" class="menu-prefs-chk-item">
+                    <span id="lblMenuLegend">Map Legend</span>
+                    <div><input type=checkbox id="chkMenuLegend" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-bottom">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_scale_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_scale_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li>
+                <div id="menu_zoom_buttons" class="menu-prefs-chk-item">
+                    <span id="lblMenuZoomButtons">Zoom Buttons</span>
+                    <div><input type=checkbox id="chkMenuZoomButtons" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-bottom">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_zoom_buttons_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_zoom_buttons_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li>
+                <div id="menu_hdpi" class="menu-prefs-chk-item">
+                    <span id="lblMenuHdpi">HDPI Tiles</span>
+                    <div><input type=checkbox id="chkMenuHdpi" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-bottom">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_hdpi_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_hdpi_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li>
+                <div id="menu_nnscaler" class="menu-prefs-chk-item">
+                    <span id="lblMenuNnScaler">NN Tile Scaler</span>
+                    <div><input type=checkbox id="chkMenuNnScaler" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-top">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_nnscaler_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_nnscaler_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li>
+                <div id="menu_tile_shadow" class="menu-prefs-chk-item">
+                    <span id="lblMenuTileShadow">Tile Shadow</span>
+                    <div><input type=checkbox id="chkMenuTileShadow" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-top">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_tile_shadow_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_tile_shadow_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li>
+                <div id="menu_tooltips" class="menu-prefs-chk-item">
+                    <span id="lblMenuTooltips">Tooltips</span>
+                    <div><input type=checkbox id="chkMenuTooltips" class="ios-switch scgreen bigswitch"><div><div></div></div></div>
+                    <span class="tooltiptext-top">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_tooltips_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_tooltips_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+            <li>
+                <div id="menu_theme">
+                    <span id="lblMenuTheme">Theme</span><br/>
+                    <select id="ddlMenuTheme" onchange="MenuHelper.ddlMenuTheme_OnChange();">
+                        <option value="0" selected>⬜️ 銀 Gin</option>
+                        <option value="1">⬛️ 黒 Kuro</option>
+                    </select>
+                </div>
+            </li>
+            <li>
+                <div id="menu_apiquery">
+                    <span id="lblMenuApiQuery">Query API @ Center</span>
+                    <span class="tooltiptext-top">
+                        <div style="position:relative;">
+                            <span id="menu_tooltip_apiquery_off" class="tooltiptext-off"></span>
+                            <span id="menu_tooltip_apiquery_on"  class="tooltiptext-on"></span>
+                        </div>
+                    </span>
+                </div>
+            </li>
+        </ul>
+        </div>
+    </section>
+</nav>
+
+    <div id="map-layers"> 
+        <div id="scale" style="display:none;"></div>
+        <div id="logo2" style="visibility:hidden;">
+            <main id="panel" class="panel">
+                <header>
+                    <div class="js-slideout-toggle">
+                        <div>☰</div>
+                        <img id="imgMenuSafecastIcon" draggable="false" width="44" height="43" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFgAAABWBAMAAAC5sUx3AAAAMFBMVEUAAQAZHR0uMjFHSEU0TFZHbH9lZmRXhpqBg4COkI1ppLukpqLGxsPc3tvr7On9//zJUo6KAAABe0lEQVRIx+3VvUrDUBjG8ZNUS0DQuOpgZxHxAhy6CU7OTt6AH4uLU+/AXoSlcCbjDQh1N6AX0K04pYIgljY9mqTvKaTkzfOiIkjO1MJvSP7nKVWqOt8+XiDBpiXB8YkAm0lDgM3YF2DzIsHmWYJNT4JNIMFQbouh3NekkdzOPWkkdy0kjeSuD0kjuT2rkdybhKHcO4SnSMBTm3vvp3I7C7lHxbm93kLuAbONAM/tzfdmN2XuirHNNc/dLp7ohHLt2yTMnu3ezkjfMuP/yOd+434pg1zumN3+Qy53g91+LneL3z7l2mXe0D425a6xmC6DcocspssYZ291zmO6jFH6ZasE02U8JZ/XyvAsdwxh5Ya2XzlW9X5iXjGc5X4HcZoMxisS7EqwGkpwv8K/itdx7B7rbhPFh1rrro/hZZ2cCwxvp7iD4asUax/BTmZ1E8HuDB/9LVaSZ6YaWLqN1N5geMk+MrqNDjzRA32Z7kg9RlHyf7gafZ22qs6/OZ9x2r0Fl6xzBQAAAABJRU5ErkJggg==" />
+                    </div>
+                </header>
+            </main>
+        </div>
+    </div> 
+</form>
+
+
+<div id="tsPanel" class="FuturaFont" style="display:none;">
+    <div id="tsPanelTitle">スナップショット</div>
+    <div id="tsPanelContent">
+        <div id="tsPanelContentTitle">SAFECAST SNAPSHOTS</div>
+        <table id="tsPanelContentTable">
+            <tr>
+                <td class="tsInfoTd">
+                    <span class="tsInfoLabel">開始日</span><br/> 
+                    <span id="tsPanelStartDateSubLabel" class="tsInfoSubLabel">START DATE</span>
+                </td>
+                <td class="tsInfoTd">
+                    <span class="tsInfoLabel">終了日</span><br/>
+                    <span id="tsPanelEndDateSubLabel" class="tsInfoSubLabel">&nbsp;END DATE</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="tsDateTd"><span id="tsStartDate">2011-03-11</span></td>
+                <td class="tsDateTd"><span id="tsEndDate">2011-09-10</span></td>
+            </tr>
+            <tr>
+                <td colspan="2" class="tsSliderTd">
+                    <div id="tsSliderContainer">
+                            
+                        <img id="tsTickImage" width="200" height="4" style="display:none;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAAABCAQAAABa+zAVAAAAHUlEQVQoz2NgwANm/Z/1n4EEQGv1o24adRO93QQAPPkzIaB0ezEAAAAASUVORK5CYII=" />
+                        <div id="tsSliderSubcontainer">
+                            <input type="range" id="tsSlider" list="tsSliderList" value="13" min="13" max="30" step="1" onChange="TimeSliceUI.tsSlider_OnChange();">
+                            <datalist id="tsSliderList">
+                                <option>13</option>
+                                <option>14</option>
+                                <option>15</option>
+                                <option>16</option>
+                                <option>17</option>
+                                <option>18</option>
+                                <option>19</option>
+                                <option>20</option>
+                                <option>21</option>
+                                <option>22</option>
+                                <option>23</option>
+                                <option>24</option>
+                                <option>25</option>
+                                <option>26</option>
+                                <option>27</option>
+                                <option>28</option>
+                                <option>29</option>
+                                <option>30</option>
+                            </datalist>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+
+<div id="about_content" style="display:none;"></div>
+<div id="hud_canvas"></div>
+<div id="bv_transferBar" class="bv_transferBarHidden"></div>
+<div id="whatsnew"></div>
+<div id="warning_message"></div>
+<div id="map_legend" class="FuturaFont" style="display:none;"></div>
+
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+    <defs>
+        <filter id="sc_colorize" color-interpolation-filters="sRGB" x="0" y="0" height="100%" width="100%">
+        <feColorMatrix type="matrix"
+                     values="0.0 0 0 0  0.42 
+                             0.0 0 0 0  0.65  
+                             0.0 0 0 0  0.74 
+                               0 0 0 1  0"></feColorMatrix>
+        </filter>
+    </defs>
+</svg>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+

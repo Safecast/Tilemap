@@ -1,76 +1,73 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Safecast Map - OpenStreetMap Edition</title>
+    <title>Safecast Map with OpenStreetMap</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- Leaflet CSS and JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    
     <style>
         html, body, #map {
             height: 100%;
             margin: 0;
             padding: 0;
         }
-        
         .legend {
             background: white;
             padding: 10px;
             border-radius: 5px;
             box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            font-family: Arial, sans-serif;
         }
-        
-        .legend h4 {
-            margin: 0 0 10px 0;
-        }
-        
         .color-box {
             width: 20px;
             height: 20px;
             display: inline-block;
             margin-right: 5px;
+            vertical-align: middle;
+        }
+        .legend-item {
+            margin-bottom: 5px;
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
-    
     <script>
-        // Initialize map
         var map = L.map('map').setView([37.316113, 140.515516], 9);
         
-        // Add OpenStreetMap tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
         
-        // Add custom tile layer for Safecast radiation data
         var radiationLayer = L.tileLayer('http://localhost:8010/s3-tiles/t/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; <a href="https://safecast.org">Safecast</a>'
         }).addTo(map);
         
-        // Add cosmic radiation layer if available
         var cosmicLayer = L.tileLayer('http://localhost:8010/TilesOutput/{z}/{x}/{y}.png', {
             maxZoom: 14,
             attribution: 'Cosmic Radiation &copy; <a href="https://safecast.org">Safecast</a>'
-        }).addTo(map);
+        });
         
-        // Add legend
+        var baseLayers = {
+            "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
+        };
+        
+        var overlays = {
+            "Radiation Data": radiationLayer,
+            "Cosmic Radiation": cosmicLayer
+        };
+        
+        L.control.layers(baseLayers, overlays).addTo(map);
+        
         var legend = L.control({position: 'bottomright'});
-        
         legend.onAdd = function(map) {
             var div = L.DomUtil.create('div', 'legend');
             div.innerHTML = '<h4>Radiation Levels</h4>';
             
-            // Add legend items (example color scale)
             var colors = [
                 {color: 'rgb(49, 243, 255)', label: '0.03-0.05 µSv/h'},
                 {color: 'rgb(16, 181, 255)', label: '0.05-0.08 µSv/h'},
@@ -84,27 +81,17 @@
             
             for (var i = 0; i < colors.length; i++) {
                 div.innerHTML += 
-                    '<div><span class="color-box" style="background:' + 
+                    '<div class="legend-item"><span class="color-box" style="background:' + 
                     colors[i].color + '"></span>' + 
                     colors[i].label + '</div>';
             }
             
             return div;
         };
-        
         legend.addTo(map);
         
-        // Layer control
-        var baseLayers = {
-            "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
-        };
-        
-        var overlays = {
-            "Radiation Data": radiationLayer,
-            "Cosmic Radiation": cosmicLayer
-        };
-        
-        L.control.layers(baseLayers, overlays).addTo(map);
+        // Add scale control
+        L.control.scale().addTo(map);
     </script>
 </body>
 </html> 
