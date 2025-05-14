@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Safecast Map Cache Clearer</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 20px 0;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        #status {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Safecast Map Cache Clearer</h1>
+    <p>This tool will clear your browser cache and load the Safecast map with OpenStreetMap.</p>
+    
+    <button id="clearCacheBtn">Clear Cache & Load Map</button>
+    
+    <div id="status">Ready to clear cache...</div>
+    
+    <script>
+        document.getElementById('clearCacheBtn').addEventListener('click', function() {
+            var status = document.getElementById('status');
+            status.innerHTML = "Clearing cache...";
+            
+            // Clear localStorage
+            try {
+                localStorage.clear();
+                status.innerHTML += "<br>✅ Local storage cleared";
+                
+                // Set OpenStreetMap as default
+                localStorage.setItem("PREF_BASEMAP_UIDX", 9);
+                status.innerHTML += "<br>✅ Set OpenStreetMap as default";
+            } catch (e) {
+                status.innerHTML += "<br>❌ Error clearing local storage: " + e.message;
+            }
+            
+            // Generate timestamp for cache busting
+            var timestamp = new Date().getTime();
+            
+            // Wait a moment and redirect
+            status.innerHTML += "<br>Redirecting to map...";
+            
+            setTimeout(function() {
+                window.location.href = "index.html?nocache=" + timestamp;
+            }, 2000);
+        });
+    </script>
+</body>
+</html> 
