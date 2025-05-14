@@ -27,6 +27,13 @@
             margin: 0;
             padding: 0;
             font-family: Futura, "Century Gothic", Arial, sans-serif;
+            position: relative;
+        }
+        
+        /* Map controls */
+        .leaflet-control-zoom {
+            margin-top: 10px !important;
+            margin-left: 60px !important; /* Move zoom controls to the right to avoid overlap */
         }
         
         /* SIDEBAR STYLES */
@@ -37,7 +44,7 @@
             width: 220px;
             height: 100%;
             background-color: #f8f8f8;
-            z-index: 1000;
+            z-index: 1010;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             overflow-y: auto;
         }
@@ -48,26 +55,35 @@
             border-bottom: 1px solid #e6e6e6;
             display: flex;
             align-items: center;
+            justify-content: space-between;
         }
         
         .sidebar-header img {
-            height: 20px;
+            height: 16px;
+            width: auto;
+            max-width: 160px;
         }
         
         .sidebar-toggle {
             background: #fff;
-            border: none;
-            font-size: 24px;
-            margin-left: auto;
-            padding: 0 10px;
+            border: 1px solid #aaa;
+            font-size: 22px;
+            padding: 0;
             cursor: pointer;
-            height: 36px;
-            width: 36px;
+            height: 32px;
+            width: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 4px;
-            border: 1px solid #e6e6e6;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .sidebar-toggle:hover {
+            background-color: #f0f0f0;
+            border-color: #888;
         }
         
         .search-container {
@@ -272,10 +288,6 @@
         }
         
         /* Map controls */
-        .leaflet-control-zoom {
-            margin-top: 10px !important;
-        }
-        
         .leaflet-control-attribution {
             background-color: rgba(255, 255, 255, 0.8) !important;
             font-size: 10px !important;
@@ -316,11 +328,39 @@
             height: 20px;
         }
         
-        /* Mobile adjustments */
+        /* Mobile menu button - completely separate from map */
+        .sidebar-toggle-mobile {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 9999; /* Extremely high z-index */
+            background-color: #fff;
+            color: #333;
+            width: 36px;
+            height: 36px;
+            font-size: 22px;
+            font-weight: bold;
+            border-radius: 4px;
+            border: 2px solid #666;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            display: none; /* Hide by default, show only at mobile widths */
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .sidebar-toggle-mobile:hover {
+            background-color: #f0f0f0;
+        }
+        
+        /* Media queries for mobile view */
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-220px);
                 transition: transform 0.3s ease-out;
+                position: fixed;
+                left: 0;
+                top: 0;
             }
             
             .sidebar.open {
@@ -332,33 +372,27 @@
             }
             
             .sidebar-toggle-mobile {
-                position: absolute;
-                top: 10px;
-                left: 10px;
-                z-index: 999;
-                background: white;
-                border: none;
-                border-radius: 4px;
-                padding: 5px 10px;
-                font-size: 20px;
-                box-shadow: 0 0 5px rgba(0,0,0,0.3);
-                cursor: pointer;
+                display: flex; /* Show only on mobile */
+            }
+            
+            .sidebar.open .sidebar-toggle-mobile {
+                display: none;
             }
         }
     </style>
 </head>
 
 <body>
-    <div id="map_canvas"></div>
-    
-    <!-- Mobile menu toggle -->
+    <!-- Mobile menu toggle - moved to top of body to ensure proper rendering -->
     <button class="sidebar-toggle-mobile" id="sidebar-toggle-mobile">☰</button>
+    
+    <div id="map_canvas"></div>
     
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <img src="schoriz_767x84.png" alt="Safecast">
-            <button class="sidebar-toggle" id="sidebar-toggle">≡</button>
+            <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Close sidebar">☰</button>
         </div>
         
         <div class="search-container">
@@ -515,6 +549,67 @@
                 attributionControl: true
             });
             
+            // Initialize sidebar functionality
+            var sidebarToggle = document.getElementById('sidebar-toggle');
+            var sidebarToggleMobile = document.getElementById('sidebar-toggle-mobile');
+            var sidebar = document.getElementById('sidebar');
+            
+            // At startup, make sure the sidebar is open by default on desktop, closed on mobile
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('open');
+                // Make sure mobile button is visible on mobile when sidebar is closed
+                sidebarToggleMobile.style.display = 'flex';
+            } else {
+                sidebar.classList.add('open');
+                // Hide mobile button on desktop
+                sidebarToggleMobile.style.display = 'none';
+            }
+            
+            // Function to close sidebar (used by X button)
+            function closeSidebar() {
+                sidebar.classList.remove('open');
+                if (window.innerWidth <= 768) {
+                    sidebarToggleMobile.style.display = 'flex';
+                }
+                console.log("Sidebar closed");
+            }
+            
+            // Function to open sidebar (used by hamburger button)
+            function openSidebar() {
+                sidebar.classList.add('open');
+                sidebarToggleMobile.style.display = 'none';
+                console.log("Sidebar opened");
+            }
+            
+            // Attach event listeners
+            sidebarToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                closeSidebar();
+                console.log("Close button clicked");
+            });
+            
+            sidebarToggleMobile.addEventListener('click', function(e) {
+                e.preventDefault();
+                openSidebar();
+                console.log("Mobile button clicked");
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth <= 768) {
+                    // On mobile
+                    if (!sidebar.classList.contains('open')) {
+                        sidebarToggleMobile.style.display = 'flex';
+                    } else {
+                        sidebarToggleMobile.style.display = 'none';
+                    }
+                } else {
+                    // On desktop
+                    sidebarToggleMobile.style.display = 'none';
+                    sidebar.classList.add('open');
+                }
+            });
+            
             // Add OpenStreetMap tiles
             var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
@@ -527,19 +622,6 @@
                 opacity: 0.8,
                 attribution: '&copy; <a href="https://safecast.org">Safecast</a>'
             }).addTo(map);
-            
-            // Initialize sidebar functionality
-            var sidebarToggle = document.getElementById('sidebar-toggle');
-            var sidebarToggleMobile = document.getElementById('sidebar-toggle-mobile');
-            var sidebar = document.getElementById('sidebar');
-            
-            sidebarToggle.addEventListener('click', function() {
-                sidebar.classList.toggle('open');
-            });
-            
-            sidebarToggleMobile.addEventListener('click', function() {
-                sidebar.classList.toggle('open');
-            });
             
             // Initialize section headers
             function initializeSection(headerId, contentId) {

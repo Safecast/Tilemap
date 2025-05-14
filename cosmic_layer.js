@@ -190,8 +190,16 @@
     // Initialize when the map is ready
     function initialize() {
         console.log('Checking for Cosmic layer initialization...');
+
+        // If SafemapInit is not available, assume this is a simplified environment
+        // and do not proceed with the old integration logic.
+        // index.html will handle the layer directly.
+        if (typeof window.SafemapInit === 'undefined' || typeof window.LayersHelper === 'undefined' || typeof window.MenuHelper === 'undefined') {
+            console.log('CosmicLayer: SafemapInit, LayersHelper, or MenuHelper not found. Assuming simplified environment. Initialization deferred to main page.');
+            return; 
+        }
         
-        // Check if the map is ready
+        // Check if the map is ready (original logic)
         if (!window.map || !window.SafemapInit || !window.SafemapInit.IsInitComplete()) {
             console.log('Map not ready, waiting...');
             setTimeout(initialize, 1000);

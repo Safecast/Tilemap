@@ -145,7 +145,7 @@ const ttApiProxy = createProxyMiddleware({
 
 // Create a proxy for the S3 tile server
 const s3TileProxy = createProxyMiddleware({
-  target: 'https://te512jp.safecast.org.s3-ap-northeast-1.amazonaws.com',
+  target: 'https://s3-us-west-2.amazonaws.com/safecast-tiles',
   changeOrigin: true,
   pathRewrite: {
     '^/s3-tiles': '' // remove /s3-tiles prefix

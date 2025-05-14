@@ -1,110 +1,1071 @@
 <!DOCTYPE html>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" itemscope itemtype="http://schema.org/map" style="height:100%">
 <head>
-    <title>Safecast Map - OpenStreetMap Edition</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+<meta charset="UTF-8"> 
+<meta name=viewport content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="referrer" content="origin">
+<meta http-equiv="refresh" content="86400">
+    <link rel="shortcut icon" href="favicon.png" />
+<link href="webicons/apple-touch-icon-152x152.png" rel="apple-touch-icon" sizes="152x152">
+<link href="webicons/apple-touch-icon-144x144.png" rel="apple-touch-icon" sizes="144x144">
+<link href="webicons/apple-touch-icon-76x76.png" rel="apple-touch-icon" sizes="76x76">
+<link href="webicons/apple-touch-icon-72x72.png" rel="apple-touch-icon" sizes="72x72">
+<link href="webicons/apple-touch-icon-57x57.png" rel="apple-touch-icon">
+
+<title>Safecast Map</title>
+
     <!-- Leaflet CSS and JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- jQuery -->
+    <!-- jQuery (used by original Safecast) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     
     <style>
-        html, body, #map {
+        html, body, #map_canvas {
             height: 100%;
             margin: 0;
             padding: 0;
+            font-family: Futura, "Century Gothic", Arial, sans-serif;
+            position: relative;
         }
         
-        .legend {
-            background: white;
+        /* SIDEBAR STYLES */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 220px;
+            height: 100%;
+            background-color: #f8f8f8;
+            z-index: 1010;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+        
+        .sidebar-header {
+            background-color: #f8f8f8;
             padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-bottom: 1px solid #e6e6e6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         
-        .legend h4 {
-            margin: 0 0 10px 0;
+        .sidebar-header img {
+            height: 16px;
+            width: auto;
+            max-width: 160px;
         }
         
-        .color-box {
+        .sidebar-toggle {
+            background: #fff;
+            border: 1px solid #aaa;
+            font-size: 22px;
+            padding: 0;
+            cursor: pointer;
+            height: 32px;
+            width: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .sidebar-toggle:hover {
+            background-color: #f0f0f0;
+            border-color: #888;
+        }
+        
+        .search-container {
+            padding: 10px;
+            border-bottom: 1px solid #e6e6e6;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .search-button {
+            position: absolute;
+            right: 15px;
+            top: 67px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        /* Toggle switches */
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #e6e6e6;
+        }
+        
+        .toggle-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+        }
+        
+        .toggle-label {
+            flex-grow: 1;
+            font-size: 14px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            border-radius: 20px;
+            transition: .4s;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            border-radius: 50%;
+            transition: .4s;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #6ca6bd;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+        
+        /* Section styles */
+        .section-header {
+            padding: 10px;
+            background-color: #f0f0f0;
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #666;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .section-header::after {
+            content: "▼";
+            font-size: 10px;
+        }
+        
+        .section-header.collapsed::after {
+            content: "►";
+        }
+        
+        .section-content {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .section-content.collapsed {
+            max-height: 0;
+        }
+        
+        /* Layer items */
+        .layer-item {
+            padding: 10px 10px 10px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        
+        .layer-item:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .layer-item.selected {
+            background-color: #e6e6e6;
+        }
+        
+        .layer-date {
+            background-color: #e6e6e6;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+        
+        /* Legend Styles */
+        #map-legend {
+            position: fixed;
+            right: 10px;
+            bottom: 30px;
+            z-index: 1000;
+            width: 30px;
+            background: transparent;
+        }
+        
+        .legend-bar {
+            width: 30px;
+            height: 500px;
+            background: linear-gradient(to bottom, 
+                #ff0000, /* 0.43 μSv/h */
+                #ff00ff, /* 0.31 μSv/h */
+                #9600c8, /* 0.16 μSv/h */
+                #0000ff, /* 0.08 μSv/h */
+                #00b7ff, /* 0.05 μSv/h */
+                #31f3ff  /* 0.03 μSv/h */
+            );
+            border: 1px solid #999;
+        }
+        
+        .legend-labels {
+            position: absolute;
+            top: 0;
+            left: -45px;
+            width: 40px;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: #333;
+            font-size: 12px;
+            text-align: right;
+        }
+        
+        .legend-labels div {
+            padding: 3px 5px;
+            background-color: rgba(255, 255, 255, 0.7);
+            margin: 2px 0;
+            border-radius: 2px;
+        }
+        
+        .legend-unit {
+            position: absolute;
+            top: 515px;
+            left: -45px;
+            width: 80px;
+            color: #333;
+            font-size: 10px;
+            text-align: center;
+        }
+        
+        /* Map controls */
+        .leaflet-control-zoom {
+            margin-top: 10px !important;
+            margin-left: 60px !important; /* Move zoom controls to the right to avoid overlap */
+        }
+        
+        .leaflet-control-attribution {
+            background-color: rgba(255, 255, 255, 0.8) !important;
+            font-size: 10px !important;
+        }
+        
+        /* Crosshair */
+        #map-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
             width: 20px;
             height: 20px;
-            display: inline-block;
-            margin-right: 5px;
+            margin-left: -10px;
+            margin-top: -10px;
+            z-index: 1000;
+            pointer-events: none;
+            display: none;
+        }
+        
+        #map-crosshair::before,
+        #map-crosshair::after {
+            content: "";
+            position: absolute;
+            background-color: rgba(255, 0, 0, 0.7);
+        }
+        
+        #map-crosshair::before {
+            top: 9px;
+            left: 0;
+            width: 20px;
+            height: 2px;
+        }
+        
+        #map-crosshair::after {
+            top: 0;
+            left: 9px;
+            width: 2px;
+            height: 20px;
+        }
+        
+        /* Mobile menu button - completely separate from map */
+        .sidebar-toggle-mobile {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 9999; /* Extremely high z-index */
+            background-color: #fff;
+            color: #333;
+            width: 36px;
+            height: 36px;
+            font-size: 22px;
+            font-weight: bold;
+            border-radius: 4px;
+            border: 2px solid #666;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            display: none; /* Hide by default, show only at mobile widths */
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .sidebar-toggle-mobile:hover {
+            background-color: #f0f0f0;
+        }
+        
+        /* Media queries for mobile view */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-220px);
+                transition: transform 0.3s ease-out;
+                position: fixed;
+                left: 0;
+                top: 0;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .map-container {
+                margin-left: 0;
+            }
+            
+            .sidebar-toggle-mobile {
+                display: flex; /* Show only on mobile */
+            }
+            
+            .sidebar.open .sidebar-toggle-mobile {
+                display: none;
+            }
+        }
+
+        /* Loading Spinner Styles */
+        .spinner {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none; /* Hidden by default */
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
+
 <body>
-    <div id="map"></div>
+    <!-- Mobile menu toggle - moved to top of body to ensure proper rendering -->
+    <button class="sidebar-toggle-mobile" id="sidebar-toggle-mobile">☰</button>
+    
+    <div id="map_canvas"></div>
+    
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="schoriz_767x84.png" alt="Safecast">
+            <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Close sidebar">☰</button>
+        </div>
+        
+        <div class="search-container">
+            <input type="text" class="search-box" id="search-box" placeholder="Find Address">
+            <button class="search-button" id="search-button">🔍</button>
+        </div>
+        
+        <div class="toggle-item">
+            <div class="toggle-icon">⌖</div>
+            <div class="toggle-label">Crosshair</div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="crosshair-toggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        
+        <div class="toggle-item">
+            <div class="toggle-icon">📍</div>
+            <div class="toggle-label">Location</div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="location-toggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        
+        <div class="section-header" id="layers-header">LAYERS</div>
+        <div class="section-content" id="layers-content">
+            <div class="toggle-item">
+                <div class="toggle-label">List All</div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="list-all-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            
+            <div class="layer-item" data-layer="none">None</div>
+            
+            <div class="layer-item selected" data-layer="safecast">
+                Safecast <span class="layer-date" id="safecast-date">Loading...</span>
+            </div>
+            
+            <div class="layer-item" data-layer="points">
+                Points <span class="layer-date">2023-08-04</span>
+                </div>
+            
+            <div class="layer-item" data-layer="interpolation">
+                Interpolation <span class="layer-date">2023-08-19</span>
+                        </div>
+            
+            <div class="layer-item" data-layer="snapshots">
+                Safecast Snapshots...
+                </div>
+            
+            <div class="layer-item" data-layer="cosmic">
+                Safecast Cosmic <span class="layer-date">2019-04-07</span>
+                        </div>
+            
+            <div class="layer-item" data-layer="points-2019">
+                Safecast Points <span class="layer-date">2019-04-15</span>
+                </div>
+            
+            <div class="layer-item" data-layer="points-2014">
+                Safecast Points <span class="layer-date">2014-03-11</span>
+                        </div>
+            
+            <div class="layer-item" data-layer="nnsa">
+                NNSA Japan <span class="layer-date">2011-06-30</span>
+                </div>
+            
+            <div class="layer-item" data-layer="nure">
+                USGS/GSC NURE <span class="layer-date">1980</span>
+                        </div>
+            
+            <div class="layer-item" data-layer="geoscience">
+                Geoscience Australia <span class="layer-date">2010</span>
+                </div>
+            
+            <div class="layer-item" data-layer="aist">
+                AIST/GSJ Natural Bkg
+                        </div>
+                </div>
+        
+        <div class="section-header" id="bgeigie-header">BGEIGIE LOGS</div>
+        <div class="section-content collapsed" id="bgeigie-content">
+            <div class="layer-item">Search...</div>
+            <div class="layer-item">Remove All</div>
+            <div class="layer-item">Options</div>
+                        </div>
+        
+        <div class="section-header" id="realtime-header">REALTIME <div class="spinner" id="realtime-spinner"></div></div>
+        <div class="section-content collapsed" id="realtime-content">
+            <div class="toggle-item">
+                <div class="toggle-label">Radiation Sensors</div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="radiation-sensors-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                </div>
+            
+            <div class="toggle-item">
+                <div class="toggle-label">Air Sensors</div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="air-sensors-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                </div>
+        </div>
+        
+        <div class="section-header" id="areas-header">AREAS</div>
+        <div class="section-content collapsed" id="areas-content">
+            <div class="toggle-item">
+                <div class="toggle-label">Fukushima Zone</div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="fukushima-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                    </div>
+        </div>
+    </div> 
+    
+    <!-- Map Legend -->
+    <div id="map-legend">
+        <div class="legend-bar"></div>
+        <div class="legend-labels">
+            <div>65.54</div>
+            <div>10.09</div>
+            <div>3.99</div>
+            <div>2.13</div>
+            <div>1.31</div>
+            <div>0.87</div>
+            <div>0.60</div>
+            <div>0.43</div>
+            <div>0.31</div>
+            <div>0.23</div>
+            <div>0.16</div>
+            <div>0.12</div>
+            <div>0.08</div>
+            <div>0.05</div>
+            <div>0.03</div>
+                        </div>
+        <div class="legend-unit">μSv/h</div>
+    </div>
+    
+    <!-- Crosshair -->
+    <div id="map-crosshair"></div>
     
     <script>
-        // Initialize map
-        var map = L.map('map').setView([37.316113, 140.515516], 9);
-        
-        // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-        
-        // Add custom tile layer for Safecast radiation data
-        var radiationLayer = L.tileLayer('http://localhost:8010/s3-tiles/t/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; <a href="https://safecast.org">Safecast</a>'
-        }).addTo(map);
-        
-        // Add cosmic radiation layer if available
-        var cosmicLayer = L.tileLayer('http://localhost:8010/TilesOutput/{z}/{x}/{y}.png', {
-            maxZoom: 14,
-            attribution: 'Cosmic Radiation &copy; <a href="https://safecast.org">Safecast</a>'
-        }).addTo(map);
-        
-        // Add legend
-        var legend = L.control({position: 'bottomright'});
-        
-        legend.onAdd = function(map) {
-            var div = L.DomUtil.create('div', 'legend');
-            div.innerHTML = '<h4>Radiation Levels</h4>';
+        document.addEventListener('DOMContentLoaded', function() {
+            // Fetch the last update date
+            fetch('last_update.txt')
+                .then(response => response.text())
+                .then(date => {
+                    // Update the date in the UI
+                    var safecastDate = document.getElementById('safecast-date');
+                    if (safecastDate) {
+                        safecastDate.textContent = date.trim();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching last update date:', error);
+                });
             
-            // Add legend items (example color scale)
-            var colors = [
-                {color: 'rgb(49, 243, 255)', label: '0.03-0.05 µSv/h'},
-                {color: 'rgb(16, 181, 255)', label: '0.05-0.08 µSv/h'},
-                {color: 'rgb(12, 92, 212)', label: '0.08-0.12 µSv/h'},
-                {color: 'rgb(89, 0, 170)', label: '0.12-0.16 µSv/h'},
-                {color: 'rgb(197, 0, 197)', label: '0.16-0.23 µSv/h'},
-                {color: 'rgb(255, 0, 152)', label: '0.23-0.31 µSv/h'},
-                {color: 'rgb(255, 0, 72)', label: '0.31-0.43 µSv/h'},
-                {color: 'rgb(255, 0, 0)', label: '0.43-0.60 µSv/h'}
-            ];
+            // Initialize map
+            var initialZoom = 8;
+            var initialCenter = [37.316113, 140.515516]; // Default: Fukushima
+
+            // Check for location in URL hash
+            var hash = window.location.hash;
+            if (hash) {
+                var parts = hash.substring(1).split('/'); // Remove # and split
+                if (parts.length === 3) {
+                    var zoom = parseInt(parts[0], 10);
+                    var lat = parseFloat(parts[1]);
+                    var lng = parseFloat(parts[2]);
+
+                    if (!isNaN(zoom) && !isNaN(lat) && !isNaN(lng)) {
+                        initialZoom = zoom;
+                        initialCenter = [lat, lng];
+                        console.log('Setting initial view from URL hash:', initialZoom, initialCenter);
+                    }
+                }
+            }
+
+            var map = L.map('map_canvas', {
+                center: initialCenter, 
+                zoom: initialZoom,
+                zoomControl: true,
+                attributionControl: true
+            });
             
-            for (var i = 0; i < colors.length; i++) {
-                div.innerHTML += 
-                    '<div><span class="color-box" style="background:' + 
-                    colors[i].color + '"></span>' + 
-                    colors[i].label + '</div>';
+            // Initialize sidebar functionality
+            var sidebarToggle = document.getElementById('sidebar-toggle');
+            var sidebarToggleMobile = document.getElementById('sidebar-toggle-mobile');
+            var sidebar = document.getElementById('sidebar');
+            
+            // At startup, make sure the sidebar is open by default on desktop, closed on mobile
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('open');
+                // Make sure mobile button is visible on mobile when sidebar is closed
+                sidebarToggleMobile.style.display = 'flex';
+            } else {
+                sidebar.classList.add('open');
+                // Hide mobile button on desktop
+                sidebarToggleMobile.style.display = 'none';
             }
             
-            return div;
-        };
-        
-        legend.addTo(map);
-        
-        // Layer control
-        var baseLayers = {
-            "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
-        };
-        
-        var overlays = {
-            "Radiation Data": radiationLayer,
-            "Cosmic Radiation": cosmicLayer
-        };
-        
-        L.control.layers(baseLayers, overlays).addTo(map);
+            // Function to close sidebar (used by hamburger button in the sidebar)
+            function closeSidebar() {
+                sidebar.classList.remove('open');
+                if (window.innerWidth <= 768) {
+                    sidebarToggleMobile.style.display = 'flex';
+                }
+                console.log("Sidebar closed");
+            }
+            
+            // Function to open sidebar (used by hamburger button in mobile view)
+            function openSidebar() {
+                sidebar.classList.add('open');
+                sidebarToggleMobile.style.display = 'none';
+                console.log("Sidebar opened");
+            }
+            
+            // Attach event listeners
+            sidebarToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                closeSidebar();
+                console.log("Close button clicked");
+            });
+            
+            sidebarToggleMobile.addEventListener('click', function(e) {
+                e.preventDefault();
+                openSidebar();
+                console.log("Mobile button clicked");
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth <= 768) {
+                    // On mobile
+                    if (!sidebar.classList.contains('open')) {
+                        sidebarToggleMobile.style.display = 'flex';
+                    } else {
+                        sidebarToggleMobile.style.display = 'none';
+                    }
+                } else {
+                    // On desktop
+                    sidebarToggleMobile.style.display = 'none';
+                    sidebar.classList.add('open');
+                }
+            });
+            
+            // Add OpenStreetMap tiles
+            var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Add Safecast radiation tile layer
+            var safecastLayer = L.tileLayer('http://localhost:8010/tiles/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                opacity: 0.8,
+                attribution: '&copy; <a href="https://safecast.org">Safecast</a>'
+            }).addTo(map);
+            
+            // Add Cosmic radiation tile layer
+            var cosmicLayer = L.tileLayer('http://localhost:8010/s3-tiles/c/{z}/{x}/{y}.png', {
+                maxZoom: 14,
+                opacity: 0.7,
+                attribution: 'Cosmic Radiation &copy; <a href="https://safecast.org">Safecast</a>'
+            });
+            
+            // Define layers for different data sources
+            var layers = {
+                none: null,
+                safecast: safecastLayer,
+                cosmic: cosmicLayer,
+                points: null,
+                interpolation: null,
+                snapshots: null,
+                'points-2019': null,
+                'points-2014': null,
+                nnsa: null,
+                nure: null,
+                geoscience: null,
+                aist: null
+            };
+            
+            // Make sure Safecast layer is visible by default
+            if (!map.hasLayer(safecastLayer)) {
+                map.addLayer(safecastLayer);
+            }
+            
+            // Initialize section headers
+            function initializeSection(headerId, contentId) {
+                var header = document.getElementById(headerId);
+                var content = document.getElementById(contentId);
+                
+                header.addEventListener('click', function() {
+                    header.classList.toggle('collapsed');
+                    content.classList.toggle('collapsed');
+                });
+            }
+            
+            initializeSection('layers-header', 'layers-content');
+            initializeSection('bgeigie-header', 'bgeigie-content');
+            initializeSection('realtime-header', 'realtime-content');
+            initializeSection('areas-header', 'areas-content');
+            
+            // Initialize layer selection
+            var layerItems = document.querySelectorAll('.layer-item');
+            
+            function selectLayer(layerName) {
+                // Remove all current layers
+                Object.values(layers).forEach(function(layer) {
+                    if (layer) {
+                        map.removeLayer(layer);
+                    }
+                });
+                
+                // Add the selected layer
+                if (layers[layerName] && layerName !== 'none') {
+                    map.addLayer(layers[layerName]);
+                }
+                
+                // Update UI
+                layerItems.forEach(function(item) {
+                    item.classList.remove('selected');
+                    if (item.getAttribute('data-layer') === layerName) {
+                        item.classList.add('selected');
+                    }
+                });
+            }
+            
+            layerItems.forEach(function(item) {
+                item.addEventListener('click', function() {
+                    var layerName = this.getAttribute('data-layer');
+                    
+                    if (layerName) {
+                        selectLayer(layerName);
+                    } else if (this.textContent.includes('Safecast Cosmic')) {
+                        selectLayer('cosmic');
+                    } else if (this.textContent.includes('Safecast') && !this.textContent.includes('Snapshots') && !this.textContent.includes('Points')) {
+                        selectLayer('safecast');
+                    } else if (this.textContent.includes('None')) {
+                        selectLayer('none');
+                    } else {
+                        console.log('Layer not implemented yet: ' + this.textContent.trim());
+                        alert('Layer: "' + this.textContent.trim() + '" is not implemented in this demo');
+                    }
+                });
+            });
+            
+            // Handle search
+            var searchBox = document.getElementById('search-box');
+            var searchButton = document.getElementById('search-button');
+            
+            searchButton.addEventListener('click', function() {
+                geocodeAddress();
+            });
+            
+            searchBox.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    geocodeAddress();
+                    e.preventDefault();
+                }
+            });
+            
+            function geocodeAddress() {
+                var address = searchBox.value;
+                if (!address) return;
+                
+                // Use Nominatim for geocoding
+                fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(address))
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.length > 0) {
+                            var result = data[0];
+                            var latlng = L.latLng(result.lat, result.lon);
+                            map.setView(latlng, 13);
+                            
+                            L.popup()
+                                .setLatLng(latlng)
+                                .setContent(result.display_name)
+                                .openOn(map);
+                        } else {
+                            alert('Address not found');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error geocoding address:', error);
+                        alert('Error searching for address');
+                    });
+            }
+            
+            // Handle crosshair toggle
+            var crosshairToggle = document.getElementById('crosshair-toggle');
+            var crosshair = document.getElementById('map-crosshair');
+            
+            crosshairToggle.addEventListener('change', function() {
+                crosshair.style.display = this.checked ? 'block' : 'none';
+            });
+            
+            // Handle location toggle
+            var locationToggle = document.getElementById('location-toggle');
+            var userLocationMarker = null;
+            var radiationSensorsLayerGroup = L.layerGroup(); // Layer group for radiation sensors
+            var realtimeSpinner = document.getElementById('realtime-spinner');
+
+            // Function to create a custom SVG icon for sensors
+            function createSensorIcon(sensor, isActive) {
+                const iconSize = [28, 28]; // Increased size
+                const viewboxSize = 28;    // Match iconSize for simplicity
+                const center = viewboxSize / 2; // 14
+                const outerRadius = 11;         // Adjusted for new size (was 8 for 20px)
+                const innerRadius = 5;          // Adjusted for new size (was 4 for 20px)
+
+                const outerStrokeWidth = 2.5;   // Slightly bolder (was 2)
+                const blackOutlineStrokeWidth = 1; // Keep this thin
+
+                // Determine colors and properties based on active status (mimicking rt_viewer.js)
+                // The 'isActive' boolean is now pre-calculated in fetchRadiationSensors
+                const displayOnline = isActive;
+
+                const outerRingColor = displayOnline ? 'green' : 'grey'; 
+                const mainOpacity = displayOnline ? '1.0' : '0.7';
+                const dashArray = displayOnline ? 'none' : '4,2'; // Dash if offline
+
+                const centerDotFillColor = '#3388ff'; // Default blue
+
+                // SVG structure:
+                // 1. The main colored ring (green/grey, dashed or solid, with opacity)
+                // 2. A thin black outline for that ring (dashed or solid, with opacity)
+                // 3. The central blue dot (with opacity)
+                // 4. A thin black outline for the central dot (with opacity)
+                // The opacity is applied to the whole SVG container.
+                const svgHtml = `
+                    <svg width="${iconSize[0]}" height="${iconSize[1]}" viewBox="0 0 ${viewboxSize} ${viewboxSize}" xmlns="http://www.w3.org/2000/svg" style="opacity: ${mainOpacity};">
+                        <!-- Main colored outer ring -->
+                        <circle cx="${center}" cy="${center}" r="${outerRadius}" 
+                                stroke="${outerRingColor}" stroke-width="${outerStrokeWidth}" 
+                                fill="none" 
+                                stroke-dasharray="${dashArray}" />
+                        <!-- Black outline for outer ring -->
+                        <circle cx="${center}" cy="${center}" r="${outerRadius}" 
+                                stroke="black" stroke-width="${blackOutlineStrokeWidth}" 
+                                fill="none" 
+                                stroke-dasharray="${dashArray}" />
+
+                        <!-- Central blue dot -->
+                        <circle cx="${center}" cy="${center}" r="${innerRadius}" 
+                                fill="${centerDotFillColor}" />
+                        <!-- Black outline for central dot -->
+                        <circle cx="${center}" cy="${center}" r="${innerRadius}" 
+                                stroke="black" stroke-width="${blackOutlineStrokeWidth}" 
+                                fill="none" />
+                    </svg>`;
+
+                return L.divIcon({
+                    html: svgHtml,
+                    className: '', 
+                    iconSize: iconSize,
+                    iconAnchor: [iconSize[0] / 2, iconSize[1] / 2]
+                });
+            }
+
+            locationToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    // Get user location
+                    map.locate({setView: true, maxZoom: 16});
+                    
+                    map.on('locationfound', function(e) {
+                        if (userLocationMarker) {
+                            map.removeLayer(userLocationMarker);
+                        }
+                        
+                        userLocationMarker = L.circle(e.latlng, {
+                            radius: e.accuracy / 2,
+                            weight: 2,
+                            color: '#4285F4',
+                            fillColor: '#4285F4',
+                            fillOpacity: 0.15
+                        }).addTo(map);
+                    });
+                    
+                    map.on('locationerror', function(e) {
+                        alert("Location access denied or unavailable");
+                        locationToggle.checked = false;
+                    });
+                } else {
+                    // Remove user location
+                    if (userLocationMarker) {
+                        map.removeLayer(userLocationMarker);
+                        userLocationMarker = null;
+                    }
+                }
+            });
+
+            // Handle Radiation Sensors toggle
+            var radiationSensorsToggle = document.getElementById('radiation-sensors-toggle');
+
+            // Load saved state for Radiation Sensors toggle
+            var savedRadiationState = localStorage.getItem('safecast_radiationSensorsEnabled');
+            if (savedRadiationState === 'true') {
+                radiationSensorsToggle.checked = true;
+                setTimeout(() => radiationSensorsToggle.dispatchEvent(new Event('change')), 100);
+            } else {
+                radiationSensorsToggle.checked = false; 
+            }
+
+            radiationSensorsToggle.addEventListener('change', async function() {
+                if (this.checked) {
+                    console.log("Radiation sensors toggled ON");
+                    if(realtimeSpinner) realtimeSpinner.style.display = 'inline-block';
+                    
+                    try {
+                        const response = await fetch('/tt-api/devices');
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok: ' + response.statusText);
+                        }
+                        const geoJsonData = await response.json(); // Expect GeoJSON
+                        
+                        if(realtimeSpinner) realtimeSpinner.style.display = 'none';
+                        console.log("Fetched radiation sensors (first 5 features if available):", geoJsonData.features ? geoJsonData.features.slice(0,5) : geoJsonData);
+                        
+                        radiationSensorsLayerGroup.clearLayers(); 
+                        var validSensorsCount = 0;
+
+                        if (geoJsonData && geoJsonData.features) {
+                            geoJsonData.features.forEach(sensorFeature => {
+                                const properties = sensorFeature.properties;
+                                const geometry = sensorFeature.geometry;
+
+                                if (geometry && geometry.type === 'Point' && geometry.coordinates && properties) {
+                                    const [lon, lat] = geometry.coordinates;
+
+                                    if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) {
+                                        console.warn('Skipping sensor with invalid coordinates:', properties);
+                                        return; // Skip this feature
+                                    }
+
+                                    let finalIsActive = false;
+                                    const SENSOR_OFFLINE_THRESHOLD_MS = 3600 * 1000; // 1 hour
+
+                                    if (properties.status && properties.status.toLowerCase() === 'online') {
+                                        finalIsActive = true;
+                                    } else if (properties.last_seen) {
+                                        const lastSeenDate = new Date(properties.last_seen);
+                                        const now = new Date();
+                                        if (!isNaN(lastSeenDate.getTime())) { // Check if date is valid
+                                            if ((now.getTime() - lastSeenDate.getTime()) < SENSOR_OFFLINE_THRESHOLD_MS) {
+                                                finalIsActive = true; // Online if within 1 hour (or is a future date)
+                                            } else {
+                                                finalIsActive = false; // Offline if older than 1 hour
+                                            }
+                                        } else {
+                                            finalIsActive = false; // Invalid last_seen date, consider offline unless status was 'online'
+                                        }
+                                    } else {
+                                        finalIsActive = false; // No status 'online' and no last_seen, consider offline
+                                    }
+                                    
+                                    const icon = createSensorIcon(properties, finalIsActive);
+                                    
+                                    let popupTitle = 'Device N/A';
+                                    if (properties.device_urn) {
+                                        popupTitle = properties.device_urn.replace(':', ' ');
+                                    }
+
+                                    let popupContent = `<b>${popupTitle}</b><hr>
+                                                      <b>Device</b><br>
+                                                      &nbsp;&nbsp;Device URN: ${properties.device_urn || 'N/A'}<br>
+                                                      &nbsp;&nbsp;Device Class: ${properties.device_class || 'N/A'}<br>
+                                                      <b>Status:</b> ${properties.status || 'N/A'} (Displaying as: ${finalIsActive ? 'Online' : 'Offline'})<br>
+                                                      <b>Radiation</b><br>`;
+                                    
+                                    const lm = properties.last_measurement || {}; // Handle if last_measurement is missing
+                                    const uSvh = lm.usvh != null ? parseFloat(lm.usvh).toFixed(3) : 'N/A';
+                                    const cpm = lm.cpm != null ? lm.cpm : 'N/A';
+                                    
+                                    popupContent += `&nbsp;&nbsp;${uSvh} µSv/h<br>
+                                                     &nbsp;&nbsp;CPM: ${cpm}<br>`;
+                                    const indIdentifier = properties.id || 'value'; 
+                                    popupContent += `&nbsp;&nbsp;Ind_${indIdentifier}: ${cpm} CPM (${uSvh} µSv/h)<br>`;
+                                    
+                                    let measuredAtTimestamp = 'N/A';
+                                    const rawTimestamp = lm.captured_at || properties.when_captured || properties.last_seen;
+                                    if (rawTimestamp) {
+                                        var dateObj = new Date(rawTimestamp);
+                                        if (!isNaN(dateObj.getTime())) {
+                                            measuredAtTimestamp = dateObj.getUTCFullYear() + '-' +
+                                                                ('0' + (dateObj.getUTCMonth() + 1)).slice(-2) + '-' +
+                                                                ('0' + dateObj.getUTCDate()).slice(-2) + ' ' +
+                                                                ('0' + dateObj.getUTCHours()).slice(-2) + ':' +
+                                                                ('0' + dateObj.getUTCMinutes()).slice(-2) + ':' +
+                                                                ('0' + dateObj.getUTCSeconds()).slice(-2) + ' UTC';
+                                        }
+                                    }
+                                    popupContent += `Measured at: ${measuredAtTimestamp}<br>`;
+                                    
+                                    const moreInfoLink = properties.dev_dashboard || (properties.id ? `https://www.safecast.org/devices/${properties.id}`: '#');
+                                    popupContent += `<a href="${moreInfoLink}" target="_blank">More info</a>`;
+
+                                    const marker = L.marker([lat, lon], { icon: icon }).bindPopup(popupContent);
+                                    radiationSensorsLayerGroup.addLayer(marker);
+                                    validSensorsCount++;
+                                } else {
+                                    console.warn('Sensor feature missing geometry, coordinates, or properties:', sensorFeature);
+                                }
+                            });
+                        }
+
+                        console.log(`Processed ${geoJsonData.features ? geoJsonData.features.length : 0} sensor features. Added ${validSensorsCount} markers to the map.`);
+                        if (validSensorsCount > 0) {
+                            if (!map.hasLayer(radiationSensorsLayerGroup)) { // Ensure layer is on map
+                                map.addLayer(radiationSensorsLayerGroup);
+                            }
+                            console.log("Radiation sensors layer group updated/added to map.");
+                        } else {
+                            console.log("No valid radiation sensors with coordinates found to display.");
+                        }
+                    } catch (error) {
+                        if(realtimeSpinner) realtimeSpinner.style.display = 'none';
+                        console.error('Error fetching or processing radiation sensors:', error);
+                        alert('Could not load radiation sensor data. ' + error.message);
+                        this.checked = false; 
+                        localStorage.setItem('safecast_radiationSensorsEnabled', 'false'); // Save toggle state on error
+                    }
+                } else {
+                    console.log("Radiation sensors toggled OFF");
+                    if(realtimeSpinner) realtimeSpinner.style.display = 'none'; 
+                    map.removeLayer(radiationSensorsLayerGroup); // Keep this if you want them gone when toggled off
+                    radiationSensorsLayerGroup.clearLayers(); // Clear layers regardless
+                    localStorage.setItem('safecast_radiationSensorsEnabled', 'false');
+                }
+            });
+
+            // Function to update URL hash with map view
+            function updateURLHash() {
+                if (!map) return;
+                var zoom = map.getZoom();
+                var center = map.getCenter();
+                var lat = center.lat.toFixed(5);
+                var lng = center.lng.toFixed(5);
+                // Update the hash without adding to browser history, to avoid back-button clutter
+                window.history.replaceState(null, '', '#' + zoom + '/' + lat + '/' + lng);
+            }
+
+            // Update hash when map moves or zooms
+            map.on('moveend', updateURLHash);
+            map.on('zoomend', updateURLHash);
+
+            // Initial URL hash update
+            updateURLHash();
+        });
     </script>
+    
+    <!-- Include cosmic layer functionality -->
+    <script src="cosmic_layer.js"></script>
 </body>
-</html> 
+</html>
