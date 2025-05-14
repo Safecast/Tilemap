@@ -925,17 +925,26 @@
             radiationSensorsToggle.addEventListener('change', async function() {
                 if (this.checked) {
                     console.log("Radiation sensors toggled ON");
+                    localStorage.setItem('safecast_radiationSensorsEnabled', 'true');
                     if(realtimeSpinner) realtimeSpinner.style.display = 'inline-block';
                     
                     try {
                         const response = await fetch('/tt-api/devices');
-                        console.log('Sensor API Response Status:', response.status); // Log status
-                        const responseText = await response.text(); // Get response as text first
+                        console.log('Sensor API Response Status:', response.status);
+                        if (!response.ok) {
+                            console.error(`Sensor API request failed with status: ${response.status}`);
+                            if(realtimeSpinner) realtimeSpinner.style.display = 'none';
+                            this.checked = false;
+                            localStorage.setItem('safecast_radiationSensorsEnabled', 'false');
+                            alert(`Error: Could not fetch sensor data (status: ${response.status}). Check console.`);
+                            return;
+                        }
+                        const responseText = await response.text();
                         console.log('Sensor API Response Text (first 500 chars):', responseText.substring(0, 500));
 
                         let geoJsonData;
                         try {
-                            geoJsonData = JSON.parse(responseText); // Try to parse
+                            geoJsonData = JSON.parse(responseText);
                         } catch (e) {
                             console.error('Failed to parse sensor API response as JSON:', e);
                             console.error('Response text that failed to parse (first 500 chars):', responseText.substring(0,500));
@@ -947,7 +956,6 @@
                         }
                         
                         if(realtimeSpinner) realtimeSpinner.style.display = 'none';
-                        // This log line is the one that was showing blank for you
                         console.log("Fetched radiation sensors data object:", geoJsonData);
                         console.log("Attempting to access geoJsonData.features (first 5 if available):", geoJsonData && geoJsonData.features ? geoJsonData.features.slice(0,5) : "geoJsonData.features is not available or geoJsonData is null/undefined");
                         
@@ -1001,7 +1009,7 @@
                                 // Pass the whole sensor object to createSensorIcon, as it might need other properties
                                 const icon = createSensorIcon(sensor, finalIsActive);
                                 
-                                const readings = getBestSensorReadings(sensor); // 'sensor' is the sensor object
+                                const readingsArray = getBestSensorReadings(sensor);
 
                                 let popupContent = `<strong>${sensor.device_urn ? sensor.device_urn.replace(':', ' ') : 'Unknown Sensor'}</strong><hr>`;
                                 popupContent += `<b>Device URN:</b> ${sensor.device_urn || 'N/A'}<br>`;
@@ -1019,9 +1027,29 @@
                                     popupContent += `<b>Measured at:</b> N/A<br>`;
                                 }
 
-                                popupContent += `<b>CPM:</b> ${readings.cpm !== null ? readings.cpm.toFixed(2) : 'N/A'}<br>`;
-                                popupContent += `<b>µSv/h:</b> ${readings.usvh !== null ? readings.usvh.toFixed(3) : 'N/A'}<br>`;
-                                popupContent += `<b>Tube/Source:</b> ${readings.conversion_source || 'N/A'}<br>`;
+                                if (readingsArray && readingsArray.length > 0) {
+                                    if (readingsArray.length > 1 && readingsArray.some(r => r.conversion_source !== "No valid radiation data found")) {
+                                        popupContent += `<hr><b>Radiation Readings:</b><br>`;
+                                    }
+                                    readingsArray.forEach((reading, index) => {
+                                        if (reading.conversion_source === "No valid radiation data found") {
+                                            popupContent += `<b>CPM:</b> N/A<br>`;
+                                            popupContent += `<b>µSv/h:</b> N/A<br>`;
+                                            popupContent += `<b>Tube/Source:</b> No valid radiation data found<br>`;
+                                        } else {
+                                            if (readingsArray.length > 1 && readingsArray.some(r => r.conversion_source !== "No valid radiation data found")) {
+                                                 popupContent += `<em><u>Reading ${index + 1}</u></em><br>`;
+                                            }
+                                            popupContent += `&nbsp;&nbsp;<b>CPM:</b> ${reading.cpm !== null ? reading.cpm.toFixed(2) : 'N/A'}<br>`;
+                                            popupContent += `&nbsp;&nbsp;<b>µSv/h:</b> ${reading.usvh !== null ? reading.usvh.toFixed(3) : 'N/A'}<br>`;
+                                            popupContent += `&nbsp;&nbsp;<b>Tube/Source:</b> ${reading.conversion_source || 'N/A'}<br>`;
+                                        }
+                                    });
+                                } else {
+                                    popupContent += `<b>CPM:</b> N/A<br>`;
+                                    popupContent += `<b>µSv/h:</b> N/A<br>`;
+                                    popupContent += `<b>Tube/Source:</b> No data<br>`;
+                                }
                                 
                                 const statusString = finalIsActive ? 'Online' : 'Offline';
                                 popupContent += `<em>(Displaying as: ${statusString})</em><br>`;
@@ -1086,7 +1114,7 @@
             // Define RTLUT_TBL_CONV, getTypeConfigFromStr, and getBestSensorReadings
             const RTLUT_TBL_CONV = [
                 { tube_type: "LND_7318", factor_usvh: (1/132), field_name: "lnd_7318u" },
-                { tube_type: "LND_712", factor_usvh: (1/1200), field_name: "lnd_712u" },
+                { tube_type: "LND_712", factor_usvh: (1/1200), field_names: ["lnd_712u", "lnd_7128ec"] },
                 { tube_type: "LND_78017", factor_usvh: (1/132), field_name: "lnd_78017w" },
                 { tube_type: "SBM_20", factor_usvh: (1/151), field_name: "sbm_20u" },
                 { tube_type: "SI_29BG", factor_usvh: (1/151), field_name: "si_29bgu" },
@@ -1101,59 +1129,92 @@
             }
             
             function getBestSensorReadings(sensor) {
-                let cpm_val = null;
-                let usvh_val = null;
-                let tubeType = "UNKNOWN";
-                let conversion_source = "N/A";
+                const allReadings = [];
             
-                // Check for direct µSv/h values first (e.g., from inspector_usvh or value_usvh)
-                if (typeof sensor.value_usvh === 'number' && sensor.value_usvh > 0) {
-                    usvh_val = sensor.value_usvh;
-                    tubeType = "GEN_USVH"; // Mark as directly provided uSv/h
-                    conversion_source = "Direct value_usvh";
-                } else if (typeof sensor.inspector_usvh === 'number' && sensor.inspector_usvh > 0) {
-                    usvh_val = sensor.inspector_usvh;
-                    tubeType = "GEN_USVH"; // Mark as directly provided uSv/h
-                    conversion_source = "Direct inspector_usvh";
-                } else {
-                    // If no direct µSv/h, check known CPM fields in order of precedence
-                    const cpm_fields_precedence = [
-                        { field: "lnd_7318u", type: "LND_7318" },
-                        { field: "lnd_712u", type: "LND_712" },
-                        { field: "lnd_78017w", type: "LND_78017" }, // Matches rt_viewer.js logic
-                        { field: "sts_5u", type: "STS_5" },
-                        { field: "sbm_20u", type: "SBM_20" },
-                        { field: "si_29bgu", type: "SI_29BG" },
-                        { field: "value_cpm", type: "GEN_CPM" } // Fallback generic CPM
-                    ];
-            
-                    let original_cpm_field = null;
-                    for (const cpm_field_info of cpm_fields_precedence) {
-                        if (typeof sensor[cpm_field_info.field] === 'number') { // Check if the CPM field exists and is a number
-                            cpm_val = sensor[cpm_field_info.field];
-                            tubeType = cpm_field_info.type;
-                            original_cpm_field = cpm_field_info.field;
-                            break; // Found a CPM value, use it
-                        }
+                // Check for direct µSv/h values first
+                if (typeof sensor.value_usvh === 'number' && sensor.value_usvh >= 0) { 
+                    allReadings.push({
+                        cpm: null, 
+                        usvh: sensor.value_usvh,
+                        tubeType: "GEN_USVH",
+                        conversion_source: "Direct value_usvh"
+                    });
+                }
+                if (typeof sensor.inspector_usvh === 'number' && sensor.inspector_usvh >= 0) {
+                    if (!allReadings.some(r => r.conversion_source === "Direct value_usvh" && r.usvh === sensor.inspector_usvh)) {
+                        allReadings.push({
+                            cpm: null,
+                            usvh: sensor.inspector_usvh,
+                            tubeType: "GEN_USVH",
+                            conversion_source: "Direct inspector_usvh"
+                        });
                     }
+                }
             
-                    if (cpm_val !== null) { // If a CPM value was found
-                        const tube_config = getTypeConfigFromStr(tubeType);
-                        // tube_config should always be found due to UNKNOWN fallback in getTypeConfigFromStr
-                        usvh_val = cpm_val * tube_config.factor_usvh;
-                        conversion_source = `${tubeType} (via ${original_cpm_field})`;
-                    } else {
-                        // No direct uSv/h, and no known CPM fields with numeric values were found
-                        conversion_source = "No valid CPM or µSv/h field found";
+                // Check known CPM fields
+                const cpm_fields_precedence = [
+                    { field: "lnd_7318u", type: "LND_7318" },
+                    { fields: ["lnd_712u", "lnd_7128ec"], type: "LND_712" },
+                    { field: "lnd_78017w", type: "LND_78017" },
+                    { field: "sts_5u", type: "STS_5" },
+                    { field: "sbm_20u", type: "SBM_20" },
+                    { field: "si_29bgu", type: "SI_29BG" },
+                    { field: "value_cpm", type: "GEN_CPM" } 
+                ];
+            
+                for (const cpm_field_info of cpm_fields_precedence) {
+                    // Handle entries that might have multiple field names
+                    const field_names_to_check = cpm_field_info.fields || [cpm_field_info.field]; 
+                    for (const field_name of field_names_to_check) {
+                        if (typeof sensor[field_name] === 'number') {
+                            const cpm_val = sensor[field_name];
+                            const tube_config = getTypeConfigFromStr(cpm_field_info.type);
+                            let usvh_val = null;
+                            if (tube_config && typeof tube_config.factor_usvh === 'number') {
+                                usvh_val = cpm_val * tube_config.factor_usvh;
+                            }
+                            // Avoid adding duplicate readings if multiple field_names point to the same data that's already processed
+                            if (!allReadings.some(r => r.tubeType === cpm_field_info.type && r.cpm === cpm_val)) {
+                                allReadings.push({
+                                    cpm: cpm_val,
+                                    usvh: usvh_val,
+                                    tubeType: cpm_field_info.type,
+                                    conversion_source: `${cpm_field_info.type} (via ${field_name})`
+                                });
+                            }
+                            break; // Found a value for this tube type, move to the next in precedence
+                        }
                     }
                 }
                 
-                return {
-                    cpm: cpm_val,
-                    usvh: usvh_val,
-                    tubeType: tubeType, // The determined tube type string
-                    conversion_source: conversion_source // How the value was derived
-                };
+                // If after all checks, allReadings is empty, and there was a value_cpm with GEN_CPM but it was 0 (so not pushed by previous logic)
+                // and no other readings, this indicates a device that only reports generic CPM which might be 0.
+                if (allReadings.length === 0 && typeof sensor.value_cpm === 'number') {
+                     const cpm_val = sensor.value_cpm;
+                     const tube_config = getTypeConfigFromStr("GEN_CPM");
+                     let usvh_val = null;
+                     if (tube_config && typeof tube_config.factor_usvh === 'number') {
+                         usvh_val = cpm_val * tube_config.factor_usvh;
+                     }
+                     allReadings.push({
+                         cpm: cpm_val,
+                         usvh: usvh_val,
+                         tubeType: "GEN_CPM",
+                         conversion_source: `GEN_CPM (via value_cpm)`
+                     });
+                }
+
+                // Fallback if no readings at all after all checks
+                if (allReadings.length === 0) {
+                    allReadings.push({
+                        cpm: null,
+                        usvh: null,
+                        tubeType: "UNKNOWN",
+                        conversion_source: "No valid radiation data found"
+                    });
+                }
+
+                return allReadings;
             }
         });
     </script>
