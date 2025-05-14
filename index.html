@@ -819,58 +819,62 @@
 
             // Function to create a custom SVG icon for sensors
             function createSensorIcon(sensor, isActive) {
-                const iconSize = [28, 28]; // Increased size
-                const viewboxSize = 28;    // Match iconSize for simplicity
-                const center = viewboxSize / 2; // 14
-                const outerRadius = 11;         // Adjusted for new size (was 8 for 20px)
-                const innerRadius = 5;          // Adjusted for new size (was 4 for 20px)
+                const iconSize = [28, 28];
+                const viewboxSize = 28;
+                const center = viewboxSize / 2;
 
-                const outerStrokeWidth = 2.5;   // Slightly bolder (was 2)
-                const blackOutlineStrokeWidth = 1; // Keep this thin
-
-                // Determine colors and properties based on active status (mimicking rt_viewer.js)
-                // The 'isActive' boolean is now pre-calculated in fetchRadiationSensors
                 const displayOnline = isActive;
 
-                const outerRingColor = displayOnline ? 'green' : 'grey'; 
-                const mainOpacity = displayOnline ? '1.0' : '0.7';
-                const dashArray = displayOnline ? 'none' : '4,2'; // Dash if offline
+                // Define radii for the center-lines of strokes
+                const rOuterColored = 11.5; // Adjusted slightly to accommodate thicker stroke
+                const rMiddleBlack = 8.5;  // Adjusted slightly
+                const rInnerDot = 6.5;    // Was 7.5, adjusted with thicker outer
 
-                const centerDotFillColor = '#3388ff'; // Default blue
+                // Define stroke widths
+                const swOuterColored = 4;  // Thicker green line
+                const swMiddleBlack = 1.5;
+                const swInnerDotOutline = 1;
 
-                // SVG structure:
-                // 1. The main colored ring (green/grey, dashed or solid, with opacity)
-                // 2. A thin black outline for that ring (dashed or solid, with opacity)
-                // 3. The central blue dot (with opacity)
-                // 4. A thin black outline for the central dot (with opacity)
-                // The opacity is applied to the whole SVG container.
+                // Colors
+                const onlineOuterRingColor = '#32CD32'; // Lime Green (a bit lighter/softer than pure 'lime')
+                const offlineOuterRingColor = '#9E9E9E';
+                const onlineInnerDotColor = '#2E8B57'; // SeaGreen (a noticeable green, distinct from outer)
+                const offlineInnerDotColor = '#448AFF'; // Blue for offline inner dot
+
+                const outerRingColor = displayOnline ? onlineOuterRingColor : offlineOuterRingColor;
+                const centerDotFillColor = displayOnline ? onlineInnerDotColor : offlineInnerDotColor;
+                
+                const mainOpacity = displayOnline ? '1.0' : '0.8';
+                const dashArray = displayOnline ? 'none' : '4,2';
+
                 const svgHtml = `
                     <svg width="${iconSize[0]}" height="${iconSize[1]}" viewBox="0 0 ${viewboxSize} ${viewboxSize}" xmlns="http://www.w3.org/2000/svg" style="opacity: ${mainOpacity};">
-                        <!-- Main colored outer ring -->
-                        <circle cx="${center}" cy="${center}" r="${outerRadius}" 
-                                stroke="${outerRingColor}" stroke-width="${outerStrokeWidth}" 
-                                fill="none" 
-                                stroke-dasharray="${dashArray}" />
-                        <!-- Black outline for outer ring -->
-                        <circle cx="${center}" cy="${center}" r="${outerRadius}" 
-                                stroke="black" stroke-width="${blackOutlineStrokeWidth}" 
+                        <!-- 1. Outermost Colored Ring (Green/Gray) -->
+                        <circle cx="${center}" cy="${center}" r="${rOuterColored}" 
+                                stroke="${outerRingColor}" stroke-width="${swOuterColored}" 
                                 fill="none" 
                                 stroke-dasharray="${dashArray}" />
 
-                        <!-- Central blue dot -->
-                        <circle cx="${center}" cy="${center}" r="${innerRadius}" 
+                        <!-- 2. Middle Black Ring -->
+                        <circle cx="${center}" cy="${center}" r="${rMiddleBlack}" 
+                                stroke="black" stroke-width="${swMiddleBlack}" 
+                                fill="none" 
+                                stroke-dasharray="${dashArray}" />
+
+                        <!-- 3. Innermost Dot (Green/Blue) -->
+                        <circle cx="${center}" cy="${center}" r="${rInnerDot}" 
                                 fill="${centerDotFillColor}" />
-                        <!-- Black outline for central dot -->
-                        <circle cx="${center}" cy="${center}" r="${innerRadius}" 
-                                stroke="black" stroke-width="${blackOutlineStrokeWidth}" 
+                        <!-- 4. Black Outline for Inner Dot -->
+                        <circle cx="${center}" cy="${center}" r="${rInnerDot}" 
+                                stroke="black" stroke-width="${swInnerDotOutline}" 
                                 fill="none" />
                     </svg>`;
 
                 return L.divIcon({
                     html: svgHtml,
-                    className: '', 
+                    className: '',
                     iconSize: iconSize,
-                    iconAnchor: [iconSize[0] / 2, iconSize[1] / 2]
+                    iconAnchor: [center, center]
                 });
             }
 
@@ -925,102 +929,130 @@
                     
                     try {
                         const response = await fetch('/tt-api/devices');
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok: ' + response.statusText);
+                        console.log('Sensor API Response Status:', response.status); // Log status
+                        const responseText = await response.text(); // Get response as text first
+                        console.log('Sensor API Response Text (first 500 chars):', responseText.substring(0, 500));
+
+                        let geoJsonData;
+                        try {
+                            geoJsonData = JSON.parse(responseText); // Try to parse
+                        } catch (e) {
+                            console.error('Failed to parse sensor API response as JSON:', e);
+                            console.error('Response text that failed to parse (first 500 chars):', responseText.substring(0,500));
+                            if(realtimeSpinner) realtimeSpinner.style.display = 'none';
+                            this.checked = false;
+                            localStorage.setItem('safecast_radiationSensorsEnabled', 'false');
+                            alert('Error: Could not parse sensor data. Check console for details.');
+                            return;
                         }
-                        const geoJsonData = await response.json(); // Expect GeoJSON
                         
                         if(realtimeSpinner) realtimeSpinner.style.display = 'none';
-                        console.log("Fetched radiation sensors (first 5 features if available):", geoJsonData.features ? geoJsonData.features.slice(0,5) : geoJsonData);
+                        // This log line is the one that was showing blank for you
+                        console.log("Fetched radiation sensors data object:", geoJsonData);
+                        console.log("Attempting to access geoJsonData.features (first 5 if available):", geoJsonData && geoJsonData.features ? geoJsonData.features.slice(0,5) : "geoJsonData.features is not available or geoJsonData is null/undefined");
                         
                         radiationSensorsLayerGroup.clearLayers(); 
                         var validSensorsCount = 0;
 
-                        if (geoJsonData && geoJsonData.features) {
-                            geoJsonData.features.forEach(sensorFeature => {
-                                const properties = sensorFeature.properties;
-                                const geometry = sensorFeature.geometry;
+                        // **** MODIFICATION START ****
+                        // Check if geoJsonData is an array and not empty
+                        if (Array.isArray(geoJsonData) && geoJsonData.length > 0) {
+                            geoJsonData.forEach(sensor => { // Iterate directly over the array of sensors
+                                // Access properties directly on the sensor object
+                                const lat = sensor.loc_lat;
+                                const lon = sensor.loc_lon;
 
-                                if (geometry && geometry.type === 'Point' && geometry.coordinates && properties) {
-                                    const [lon, lat] = geometry.coordinates;
+                                if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) {
+                                    console.warn('Skipping sensor with invalid coordinates:', sensor);
+                                    return; // Skip this sensor
+                                }
 
-                                    if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) {
-                                        console.warn('Skipping sensor with invalid coordinates:', properties);
-                                        return; // Skip this feature
-                                    }
+                                let finalIsActive = false;
+                                const SENSOR_OFFLINE_THRESHOLD_MS = 3600 * 1000; // 1 hour
 
-                                    let finalIsActive = false;
-                                    const SENSOR_OFFLINE_THRESHOLD_MS = 3600 * 1000; // 1 hour
+                                if (sensor.status && sensor.status.toLowerCase() === 'online') {
+                                    finalIsActive = true;
+                                } else {
+                                    // Determine the most relevant timestamp for activity check
+                                    const lm = sensor.last_measurement || {};
+                                    const activityTimestampStr = sensor.when_captured || lm.captured_at || sensor.last_seen;
 
-                                    if (properties.status && properties.status.toLowerCase() === 'online') {
-                                        finalIsActive = true;
-                                    } else if (properties.last_seen) {
-                                        const lastSeenDate = new Date(properties.last_seen);
+                                    if (activityTimestampStr) {
+                                        const activityDate = new Date(activityTimestampStr);
                                         const now = new Date();
-                                        if (!isNaN(lastSeenDate.getTime())) { // Check if date is valid
-                                            if ((now.getTime() - lastSeenDate.getTime()) < SENSOR_OFFLINE_THRESHOLD_MS) {
-                                                finalIsActive = true; // Online if within 1 hour (or is a future date)
+                                        if (!isNaN(activityDate.getTime())) { // Check if date is valid
+                                            // Online if timestamp is within the threshold (e.g., less than 1 hour old)
+                                            // or if it's a future date (which also satisfies < SENSOR_OFFLINE_THRESHOLD_MS).
+                                            if ((now.getTime() - activityDate.getTime()) < SENSOR_OFFLINE_THRESHOLD_MS) {
+                                                finalIsActive = true;
                                             } else {
                                                 finalIsActive = false; // Offline if older than 1 hour
                                             }
                                         } else {
-                                            finalIsActive = false; // Invalid last_seen date, consider offline unless status was 'online'
+                                            finalIsActive = false; // Invalid activity timestamp
+                                            console.warn(`Sensor ID ${sensor.id || sensor.device_urn} has invalid activity timestamp: ${activityTimestampStr}`);
                                         }
                                     } else {
-                                        finalIsActive = false; // No status 'online' and no last_seen, consider offline
+                                        finalIsActive = false; // No relevant timestamp found, and status wasn't 'online'
+                                        console.warn(`Sensor ID ${sensor.id || sensor.device_urn} has no status 'online' and no relevant activity timestamp (when_captured, last_measurement.captured_at, or last_seen).`);
                                     }
-                                    
-                                    const icon = createSensorIcon(properties, finalIsActive);
-                                    
-                                    let popupTitle = 'Device N/A';
-                                    if (properties.device_urn) {
-                                        popupTitle = properties.device_urn.replace(':', ' ');
-                                    }
-
-                                    let popupContent = `<b>${popupTitle}</b><hr>
-                                                      <b>Device</b><br>
-                                                      &nbsp;&nbsp;Device URN: ${properties.device_urn || 'N/A'}<br>
-                                                      &nbsp;&nbsp;Device Class: ${properties.device_class || 'N/A'}<br>
-                                                      <b>Status:</b> ${properties.status || 'N/A'} (Displaying as: ${finalIsActive ? 'Online' : 'Offline'})<br>
-                                                      <b>Radiation</b><br>`;
-                                    
-                                    const lm = properties.last_measurement || {}; // Handle if last_measurement is missing
-                                    const uSvh = lm.usvh != null ? parseFloat(lm.usvh).toFixed(3) : 'N/A';
-                                    const cpm = lm.cpm != null ? lm.cpm : 'N/A';
-                                    
-                                    popupContent += `&nbsp;&nbsp;${uSvh} µSv/h<br>
-                                                     &nbsp;&nbsp;CPM: ${cpm}<br>`;
-                                    const indIdentifier = properties.id || 'value'; 
-                                    popupContent += `&nbsp;&nbsp;Ind_${indIdentifier}: ${cpm} CPM (${uSvh} µSv/h)<br>`;
-                                    
-                                    let measuredAtTimestamp = 'N/A';
-                                    const rawTimestamp = lm.captured_at || properties.when_captured || properties.last_seen;
-                                    if (rawTimestamp) {
-                                        var dateObj = new Date(rawTimestamp);
-                                        if (!isNaN(dateObj.getTime())) {
-                                            measuredAtTimestamp = dateObj.getUTCFullYear() + '-' +
-                                                                ('0' + (dateObj.getUTCMonth() + 1)).slice(-2) + '-' +
-                                                                ('0' + dateObj.getUTCDate()).slice(-2) + ' ' +
-                                                                ('0' + dateObj.getUTCHours()).slice(-2) + ':' +
-                                                                ('0' + dateObj.getUTCMinutes()).slice(-2) + ':' +
-                                                                ('0' + dateObj.getUTCSeconds()).slice(-2) + ' UTC';
-                                        }
-                                    }
-                                    popupContent += `Measured at: ${measuredAtTimestamp}<br>`;
-                                    
-                                    const moreInfoLink = properties.dev_dashboard || (properties.id ? `https://www.safecast.org/devices/${properties.id}`: '#');
-                                    popupContent += `<a href="${moreInfoLink}" target="_blank">More info</a>`;
-
-                                    const marker = L.marker([lat, lon], { icon: icon }).bindPopup(popupContent);
-                                    radiationSensorsLayerGroup.addLayer(marker);
-                                    validSensorsCount++;
-                                } else {
-                                    console.warn('Sensor feature missing geometry, coordinates, or properties:', sensorFeature);
                                 }
-                            });
-                        }
+                                
+                                // Pass the whole sensor object to createSensorIcon, as it might need other properties
+                                const icon = createSensorIcon(sensor, finalIsActive);
+                                
+                                let popupTitle = 'Device N/A';
+                                if (sensor.device_urn) {
+                                    popupTitle = sensor.device_urn.replace(':', ' ');
+                                }
 
-                        console.log(`Processed ${geoJsonData.features ? geoJsonData.features.length : 0} sensor features. Added ${validSensorsCount} markers to the map.`);
+                                let popupContent = `<b>${popupTitle}</b><hr>
+                                                  <b>Device</b><br>
+                                                  &nbsp;&nbsp;Device URN: ${sensor.device_urn || 'N/A'}<br>
+                                                  &nbsp;&nbsp;Device Class: ${sensor.device_class || 'N/A'}<br>
+                                                  <b>Status:</b> ${sensor.status || 'N/A'} (Displaying as: ${finalIsActive ? 'Online' : 'Offline'})<br>
+                                                  <b>Radiation</b><br>`;
+                                
+                                const lm = sensor.last_measurement || {}; 
+                                const uSvh = lm.usvh != null ? parseFloat(lm.usvh).toFixed(3) : 'N/A';
+                                const cpm = lm.cpm != null ? lm.cpm : 'N/A';
+                                
+                                popupContent += `&nbsp;&nbsp;${uSvh} µSv/h<br>
+                                                 &nbsp;&nbsp;CPM: ${cpm}<br>`;
+                                const indIdentifier = sensor.id || sensor.device || 'value'; // Use sensor.device as another fallback for ID
+                                popupContent += `&nbsp;&nbsp;Ind_${indIdentifier}: ${cpm} CPM (${uSvh} µSv/h)<br>`;
+                                
+                                let measuredAtTimestamp = 'N/A';
+                                // Use sensor.when_captured or sensor.last_measurement.captured_at or sensor.last_seen
+                                const rawTimestamp = sensor.when_captured || (lm && lm.captured_at) || sensor.last_seen;
+                                if (rawTimestamp) {
+                                    var dateObj = new Date(rawTimestamp);
+                                    if (!isNaN(dateObj.getTime())) {
+                                        measuredAtTimestamp = dateObj.getUTCFullYear() + '-' +
+                                                            ('0' + (dateObj.getUTCMonth() + 1)).slice(-2) + '-' +
+                                                            ('0' + dateObj.getUTCDate()).slice(-2) + ' ' +
+                                                            ('0' + dateObj.getUTCHours()).slice(-2) + ':' +
+                                                            ('0' + dateObj.getUTCMinutes()).slice(-2) + ':' +
+                                                            ('0' + dateObj.getUTCSeconds()).slice(-2) + ' UTC';
+                                    }
+                                }
+                                popupContent += `Measured at: ${measuredAtTimestamp}<br>`;
+                                
+                                // Use sensor.id or sensor.device for the link
+                                const deviceIdForLink = sensor.id || sensor.device;
+                                const moreInfoLink = sensor.dev_dashboard || (deviceIdForLink ? `https://www.safecast.org/devices/${deviceIdForLink}`: '#');
+                                popupContent += `<a href="${moreInfoLink}" target="_blank">More info</a>`;
+
+                                const marker = L.marker([lat, lon], { icon: icon }).bindPopup(popupContent);
+                                radiationSensorsLayerGroup.addLayer(marker);
+                                validSensorsCount++;
+                            });
+                        } else {
+                            console.warn('Sensor data is not an array or is empty:', geoJsonData);
+                        }
+                        // **** MODIFICATION END ****
+
+                        console.log(`Processed ${Array.isArray(geoJsonData) ? geoJsonData.length : 0} sensor objects. Added ${validSensorsCount} markers to the map.`);
                         if (validSensorsCount > 0) {
                             if (!map.hasLayer(radiationSensorsLayerGroup)) { // Ensure layer is on map
                                 map.addLayer(radiationSensorsLayerGroup);

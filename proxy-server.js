@@ -5,6 +5,18 @@ const path = require('path');
 const util = require('util');
 const fs = require('fs');
 
+// Global Error Handlers for Debugging
+process.on('uncaughtException', (err) => {
+  console.error('PROXY SERVER UNCAUGHT EXCEPTION:', err);
+  // Consider if you want to exit or if logging is enough for debugging
+  // process.exit(1); 
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('PROXY SERVER UNHANDLED PROMISE REJECTION:', reason);
+  // process.exit(1); 
+});
+
 const app = express();
 
 // Enable CORS for all routes with more permissive settings
@@ -39,19 +51,35 @@ app.use('/tiles', express.static(path.join(__dirname, 'TileGriddata')));
 app.get('/api/last_update', (req, res) => {
   const dateFilePath = path.join(__dirname, 'last_update.txt');
   fs.readFile(dateFilePath, 'utf8', (err, data) => {
-    let lastUpdateDate = 'N/A'; // Default if file read fails or file is empty
-    if (err) {
-      console.error(`[API Local] Error reading ${dateFilePath}:`, err);
-      // Keep default 'N/A' or could send a specific error status
-    } else if (data && data.trim().length > 0) {
-      lastUpdateDate = data.trim(); 
-      console.log(`[API Local] Read date from ${dateFilePath}: ${lastUpdateDate}`);
-    } else {
-      console.warn(`[API Local] ${dateFilePath} was empty or contained only whitespace.`);
-      // Keep default 'N/A' or set to a specific value indicating empty file
+    try {
+      let lastUpdateDate = 'N/A'; 
+      if (err) {
+        console.error(`[API Local] Error reading ${dateFilePath}:`, err);
+        if (!res.headersSent) {
+          res.json({ last_update: 'N/A (Error Reading File)' }); 
+        }
+        return; 
+      }
+      if (data && data.trim().length > 0) {
+        lastUpdateDate = data.trim(); 
+        console.log(`[API Local] Read date from ${dateFilePath}: ${lastUpdateDate}`);
+      } else {
+        console.warn(`[API Local] ${dateFilePath} was empty or contained only whitespace.`);
+      }
+      console.log(`[API Local] Request to /api/last_update, sending date: ${lastUpdateDate}`);
+      if (!res.headersSent) {
+        res.json({ last_update: lastUpdateDate });
+      }
+    } catch (e) {
+      console.error(`[API Local] Exception in /api/last_update callback for ${dateFilePath}:`, e);
+      if (!res.headersSent) {
+        try {
+          res.status(500).json({ error: "Internal server error processing update date" });
+        } catch (resError) {
+          console.error("[API Local] Error sending 500 response:", resError);
+        }
+      }
     }
-    console.log(`[API Local] Request to /api/last_update, sending date: ${lastUpdateDate}`);
-    res.json({ last_update: lastUpdateDate });
   });
 });
 
@@ -69,6 +97,15 @@ const apiProxyOptions = {
     proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
     console.log(`[API Proxy onProxyRes] Modified ACAO header for ${req.url}:`, proxyRes.headers['access-control-allow-origin']);
     // You might want to add other headers like Access-Control-Allow-Headers if needed
+  },
+  onError: function(err, req, res, target) {
+    console.error(`[API Proxy Error] Proxy error for ${req.method} ${req.url} to ${target}:`, err);
+    if (res && !res.headersSent) {
+      res.writeHead(500, {
+        'Content-Type': 'text/plain'
+      });
+      res.end('Proxy error occurred while connecting to API.');
+    }
   }
 };
 
@@ -88,6 +125,17 @@ const ttApiProxy = createProxyMiddleware({
     console.log('Realtime Sensor Request:', req.method, req.url);
   },
   onProxyRes: (proxyRes, req, res) => {
+    // Temporarily comment out all logic here to see if it stabilizes the server
+    // If the original response from tt.safecast.org is valid GeoJSON,
+    // no cleaning should be necessary for the client.
+    console.log(`[ttApiProxy onProxyRes] Passing through response for ${req.url} (status: ${proxyRes.statusCode}) without modification.`);
+    // Ensure original headers that allow CORS are still respected or re-added if necessary
+    // For example, if the origin tt.safecast.org sends appropriate CORS headers, they might pass through.
+    // If not, you might need to add:
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'; // Adding this back just in case
+
+    /*
     // Handle the response from the tt.safecast.org endpoint
     if (req.url.includes('/devices')) {
       const _end = res.end;
@@ -140,6 +188,16 @@ const ttApiProxy = createProxyMiddleware({
         _end.call(res, body);
       };
     }
+    */
+  },
+  onError: function(err, req, res, target) {
+    console.error(`[ttApiProxy Error] Proxy error for ${req.method} ${req.url} to ${target}:`, err);
+    if (res && !res.headersSent) {
+      res.writeHead(500, {
+        'Content-Type': 'text/plain'
+      });
+      res.end('Proxy error occurred while connecting to Realtime API.');
+    }
   }
 });
 
@@ -155,6 +213,15 @@ const s3TileProxy = createProxyMiddleware({
   onProxyReq: (proxyReq, req, res) => {
     // Log the request URL
     console.log('S3 Tile Request:', req.method, req.url);
+  },
+  onError: function(err, req, res, target) {
+    console.error(`[S3 Tile Proxy Error] Proxy error for ${req.method} ${req.url} to ${target}:`, err);
+    if (res && !res.headersSent) {
+      res.writeHead(500, {
+        'Content-Type': 'text/plain'
+      });
+      res.end('Proxy error occurred while connecting to S3 Tiles.');
+    }
   }
 });
 
@@ -176,6 +243,15 @@ const rtApiProxyOptions = {
     proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
     proxyRes.headers['Access-Control-Allow-Headers'] = 'Origin, X-Requested-With, Content-Type, Accept';
     // console.log(`[API Proxy - realtime.safecast.org] Modified headers for ${req.url}:`, JSON.stringify(proxyRes.headers));
+  },
+  onError: function(err, req, res, target) {
+    console.error(`[rtApiProxy Error] Proxy error for ${req.method} ${req.url} to ${target}:`, err);
+    if (res && !res.headersSent) {
+      res.writeHead(500, {
+        'Content-Type': 'text/plain'
+      });
+      res.end('Proxy error occurred while connecting to rt-api.');
+    }
   }
 };
 const rtApiProxy = createProxyMiddleware(rtApiProxyOptions);
