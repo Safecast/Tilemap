@@ -1001,44 +1001,32 @@
                                 // Pass the whole sensor object to createSensorIcon, as it might need other properties
                                 const icon = createSensorIcon(sensor, finalIsActive);
                                 
-                                let popupTitle = 'Device N/A';
-                                if (sensor.device_urn) {
-                                    popupTitle = sensor.device_urn.replace(':', ' ');
+                                const readings = getBestSensorReadings(sensor); // 'sensor' is the sensor object
+
+                                let popupContent = `<strong>${sensor.device_urn ? sensor.device_urn.replace(':', ' ') : 'Unknown Sensor'}</strong><hr>`;
+                                popupContent += `<b>Device URN:</b> ${sensor.device_urn || 'N/A'}<br>`;
+                                popupContent += `<b>Device ID:</b> ${sensor.device || 'N/A'}<br>`;
+                                
+                                const measuredAt = sensor.when_captured || (sensor.last_measurement && sensor.last_measurement.captured_at) || sensor.last_seen;
+                                if (measuredAt) {
+                                    const date = new Date(measuredAt);
+                                    if (!isNaN(date.getTime())) {
+                                        popupContent += `<b>Measured at:</b> ${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')} ${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}:${String(date.getUTCSeconds()).padStart(2, '0')} UTC<br>`;
+                                    } else {
+                                        popupContent += `<b>Measured at:</b> Invalid Date (${measuredAt})<br>`;
+                                    }
+                                } else {
+                                    popupContent += `<b>Measured at:</b> N/A<br>`;
                                 }
 
-                                let popupContent = `<b>${popupTitle}</b><hr>
-                                                  <b>Device</b><br>
-                                                  &nbsp;&nbsp;Device URN: ${sensor.device_urn || 'N/A'}<br>
-                                                  &nbsp;&nbsp;Device Class: ${sensor.device_class || 'N/A'}<br>
-                                                  <b>Status:</b> ${sensor.status || 'N/A'} (Displaying as: ${finalIsActive ? 'Online' : 'Offline'})<br>
-                                                  <b>Radiation</b><br>`;
+                                popupContent += `<b>CPM:</b> ${readings.cpm !== null ? readings.cpm.toFixed(2) : 'N/A'}<br>`;
+                                popupContent += `<b>µSv/h:</b> ${readings.usvh !== null ? readings.usvh.toFixed(3) : 'N/A'}<br>`;
+                                popupContent += `<b>Tube/Source:</b> ${readings.conversion_source || 'N/A'}<br>`;
                                 
-                                const lm = sensor.last_measurement || {}; 
-                                const uSvh = lm.usvh != null ? parseFloat(lm.usvh).toFixed(3) : 'N/A';
-                                const cpm = lm.cpm != null ? lm.cpm : 'N/A';
-                                
-                                popupContent += `&nbsp;&nbsp;${uSvh} µSv/h<br>
-                                                 &nbsp;&nbsp;CPM: ${cpm}<br>`;
-                                const indIdentifier = sensor.id || sensor.device || 'value'; // Use sensor.device as another fallback for ID
-                                popupContent += `&nbsp;&nbsp;Ind_${indIdentifier}: ${cpm} CPM (${uSvh} µSv/h)<br>`;
-                                
-                                let measuredAtTimestamp = 'N/A';
-                                // Use sensor.when_captured or sensor.last_measurement.captured_at or sensor.last_seen
-                                const rawTimestamp = sensor.when_captured || (lm && lm.captured_at) || sensor.last_seen;
-                                if (rawTimestamp) {
-                                    var dateObj = new Date(rawTimestamp);
-                                    if (!isNaN(dateObj.getTime())) {
-                                        measuredAtTimestamp = dateObj.getUTCFullYear() + '-' +
-                                                            ('0' + (dateObj.getUTCMonth() + 1)).slice(-2) + '-' +
-                                                            ('0' + dateObj.getUTCDate()).slice(-2) + ' ' +
-                                                            ('0' + dateObj.getUTCHours()).slice(-2) + ':' +
-                                                            ('0' + dateObj.getUTCMinutes()).slice(-2) + ':' +
-                                                            ('0' + dateObj.getUTCSeconds()).slice(-2) + ' UTC';
-                                    }
-                                }
-                                popupContent += `Measured at: ${measuredAtTimestamp}<br>`;
-                                
-                                // Use sensor.id or sensor.device for the link
+                                const statusString = finalIsActive ? 'Online' : 'Offline';
+                                popupContent += `<em>(Displaying as: ${statusString})</em><br>`;
+
+                                // Link for more info
                                 const deviceIdForLink = sensor.id || sensor.device;
                                 const moreInfoLink = sensor.dev_dashboard || (deviceIdForLink ? `https://www.safecast.org/devices/${deviceIdForLink}`: '#');
                                 popupContent += `<a href="${moreInfoLink}" target="_blank">More info</a>`;
@@ -1094,6 +1082,79 @@
 
             // Initial URL hash update
             updateURLHash();
+
+            // Define RTLUT_TBL_CONV, getTypeConfigFromStr, and getBestSensorReadings
+            const RTLUT_TBL_CONV = [
+                { tube_type: "LND_7318", factor_usvh: (1/132), field_name: "lnd_7318u" },
+                { tube_type: "LND_712", factor_usvh: (1/1200), field_name: "lnd_712u" },
+                { tube_type: "LND_78017", factor_usvh: (1/132), field_name: "lnd_78017w" },
+                { tube_type: "SBM_20", factor_usvh: (1/151), field_name: "sbm_20u" },
+                { tube_type: "SI_29BG", factor_usvh: (1/151), field_name: "si_29bgu" },
+                { tube_type: "STS_5", factor_usvh: (1/480), field_name: "sts_5u" },
+                { tube_type: "GEN_CPM", factor_usvh: (1/334), field_name: "value_cpm" }, // Default for generic CPM
+                { tube_type: "GEN_USVH", factor_usvh: 1, field_name: "value_usvh" },    // For direct uSv/h values
+                { tube_type: "UNKNOWN", factor_usvh: (1/334), field_name: null } // Fallback if tube type is unknown
+            ];
+            
+            function getTypeConfigFromStr(type_str) {
+                return RTLUT_TBL_CONV.find(t => t.tube_type === type_str) || RTLUT_TBL_CONV.find(t => t.tube_type === "UNKNOWN");
+            }
+            
+            function getBestSensorReadings(sensor) {
+                let cpm_val = null;
+                let usvh_val = null;
+                let tubeType = "UNKNOWN";
+                let conversion_source = "N/A";
+            
+                // Check for direct µSv/h values first (e.g., from inspector_usvh or value_usvh)
+                if (typeof sensor.value_usvh === 'number' && sensor.value_usvh > 0) {
+                    usvh_val = sensor.value_usvh;
+                    tubeType = "GEN_USVH"; // Mark as directly provided uSv/h
+                    conversion_source = "Direct value_usvh";
+                } else if (typeof sensor.inspector_usvh === 'number' && sensor.inspector_usvh > 0) {
+                    usvh_val = sensor.inspector_usvh;
+                    tubeType = "GEN_USVH"; // Mark as directly provided uSv/h
+                    conversion_source = "Direct inspector_usvh";
+                } else {
+                    // If no direct µSv/h, check known CPM fields in order of precedence
+                    const cpm_fields_precedence = [
+                        { field: "lnd_7318u", type: "LND_7318" },
+                        { field: "lnd_712u", type: "LND_712" },
+                        { field: "lnd_78017w", type: "LND_78017" }, // Matches rt_viewer.js logic
+                        { field: "sts_5u", type: "STS_5" },
+                        { field: "sbm_20u", type: "SBM_20" },
+                        { field: "si_29bgu", type: "SI_29BG" },
+                        { field: "value_cpm", type: "GEN_CPM" } // Fallback generic CPM
+                    ];
+            
+                    let original_cpm_field = null;
+                    for (const cpm_field_info of cpm_fields_precedence) {
+                        if (typeof sensor[cpm_field_info.field] === 'number') { // Check if the CPM field exists and is a number
+                            cpm_val = sensor[cpm_field_info.field];
+                            tubeType = cpm_field_info.type;
+                            original_cpm_field = cpm_field_info.field;
+                            break; // Found a CPM value, use it
+                        }
+                    }
+            
+                    if (cpm_val !== null) { // If a CPM value was found
+                        const tube_config = getTypeConfigFromStr(tubeType);
+                        // tube_config should always be found due to UNKNOWN fallback in getTypeConfigFromStr
+                        usvh_val = cpm_val * tube_config.factor_usvh;
+                        conversion_source = `${tubeType} (via ${original_cpm_field})`;
+                    } else {
+                        // No direct uSv/h, and no known CPM fields with numeric values were found
+                        conversion_source = "No valid CPM or µSv/h field found";
+                    }
+                }
+                
+                return {
+                    cpm: cpm_val,
+                    usvh: usvh_val,
+                    tubeType: tubeType, // The determined tube type string
+                    conversion_source: conversion_source // How the value was derived
+                };
+            }
         });
     </script>
     

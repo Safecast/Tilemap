@@ -17,6 +17,17 @@ process.on('unhandledRejection', (reason, promise) => {
   // process.exit(1); 
 });
 
+// Listen to exit events for more clues
+process.on('beforeExit', (code) => {
+  console.log(`PROXY SERVER 'beforeExit' event with code: ${code}`);
+});
+
+process.on('exit', (code) => {
+  console.log(`PROXY SERVER 'exit' event with code: ${code}`);
+  // IMPORTANT: Only synchronous operations can be done here.
+  // fs.writeFileSync('proxy_exit_log.txt', `Exited with code ${code} at ${new Date().toISOString()}\n`);
+});
+
 const app = express();
 
 // Enable CORS for all routes with more permissive settings
