@@ -409,6 +409,7 @@ var SafemapInit = (function () {
 
 
     SafemapInit.Init = function () {
+        console.log("SafemapInit.Init() CALLED"); // <-- ADDED THIS LINE
         if (document == null || document.body == null) return;  // real old browsers that are going to break on everything
 
         _cached_ext.baseurl = SafemapUI.GetBaseWindowURL();
@@ -5246,6 +5247,10 @@ var MenuHelperStub = (function () {
 
     var _BindMore = function (ul_name, li_id, div_id, s0_id, chk_id, chk_checked, cb) {
         var ul = ElGet(ul_name);
+        if (!ul) {
+            console.warn("_BindMore: Target UL element '" + ul_name + "' not found. Skipping.");
+            return; 
+        }
         var li = ElCr("li"), div = ElCr("div"), s0 = ElCr("span"), d0 = ElCr("div");
         var c = ElCr("input"), cd0 = ElCr("div"), cd1 = ElCr("div");
 

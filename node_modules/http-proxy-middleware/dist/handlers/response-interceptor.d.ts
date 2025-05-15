@@ -1,6 +1,5 @@
-/// <reference types="node" />
 import type * as http from 'http';
-declare type Interceptor = (buffer: Buffer, proxyRes: http.IncomingMessage, req: http.IncomingMessage, res: http.ServerResponse) => Promise<Buffer | string>;
+type Interceptor<TReq = http.IncomingMessage, TRes = http.ServerResponse> = (buffer: Buffer, proxyRes: TReq, req: TReq, res: TRes) => Promise<Buffer | string>;
 /**
  * Intercept responses from upstream.
  * Automatically decompress (deflate, gzip, brotli).
@@ -8,5 +7,5 @@ declare type Interceptor = (buffer: Buffer, proxyRes: http.IncomingMessage, req:
  *
  * NOTE: must set options.selfHandleResponse=true (prevent automatic call of res.end())
  */
-export declare function responseInterceptor(interceptor: Interceptor): (proxyRes: http.IncomingMessage, req: http.IncomingMessage, res: http.ServerResponse) => Promise<void>;
+export declare function responseInterceptor<TReq extends http.IncomingMessage = http.IncomingMessage, TRes extends http.ServerResponse = http.ServerResponse>(interceptor: Interceptor<TReq, TRes>): (proxyRes: TReq, req: TReq, res: TRes) => Promise<void>;
 export {};

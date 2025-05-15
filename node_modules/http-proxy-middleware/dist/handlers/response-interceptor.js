@@ -1,7 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.responseInterceptor = void 0;
+exports.responseInterceptor = responseInterceptor;
 const zlib = require("zlib");
+const debug_1 = require("../debug");
+const function_1 = require("../utils/function");
+const debug = debug_1.Debug.extend('response-interceptor');
 /**
  * Intercept responses from upstream.
  * Automatically decompress (deflate, gzip, brotli).
@@ -10,7 +13,8 @@ const zlib = require("zlib");
  * NOTE: must set options.selfHandleResponse=true (prevent automatic call of res.end())
  */
 function responseInterceptor(interceptor) {
-    return async function proxyRes(proxyRes, req, res) {
+    return async function proxyResResponseInterceptor(proxyRes, req, res) {
+        debug('intercept proxy response');
         const originalProxyRes = proxyRes;
         let buffer = Buffer.from('', 'utf8');
         // decompress proxy response
@@ -21,9 +25,12 @@ function responseInterceptor(interceptor) {
             // copy original headers
             copyHeaders(proxyRes, res);
             // call interceptor with intercepted response (buffer)
+            debug('call interceptor function: %s', (0, function_1.getFunctionName)(interceptor));
             const interceptedBuffer = Buffer.from(await interceptor(buffer, originalProxyRes, req, res));
             // set correct content-length (with double byte character support)
+            debug('set content-length: %s', Buffer.byteLength(interceptedBuffer, 'utf8'));
             res.setHeader('content-length', Buffer.byteLength(interceptedBuffer, 'utf8'));
+            debug('write intercepted response');
             res.write(interceptedBuffer);
             res.end();
         });
@@ -32,7 +39,6 @@ function responseInterceptor(interceptor) {
         });
     };
 }
-exports.responseInterceptor = responseInterceptor;
 /**
  * Streaming decompression of proxy response
  * source: https://github.com/apache/superset/blob/9773aba522e957ed9423045ca153219638a85d2f/superset-frontend/webpack.proxy-config.js#L116
@@ -54,6 +60,7 @@ function decompress(proxyRes, contentEncoding) {
             break;
     }
     if (decompress) {
+        debug(`decompress proxy response with 'content-encoding': %s`, contentEncoding);
         _proxyRes.pipe(decompress);
         _proxyRes = decompress;
     }
@@ -64,6 +71,7 @@ function decompress(proxyRes, contentEncoding) {
  * https://github.com/apache/superset/blob/9773aba522e957ed9423045ca153219638a85d2f/superset-frontend/webpack.proxy-config.js#L78
  */
 function copyHeaders(originalResponse, response) {
+    debug('copy original response headers');
     response.statusCode = originalResponse.statusCode;
     response.statusMessage = originalResponse.statusMessage;
     if (response.setHeader) {

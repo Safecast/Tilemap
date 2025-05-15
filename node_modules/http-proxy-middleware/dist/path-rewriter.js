@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createPathRewriter = void 0;
-const isPlainObj = require("is-plain-obj");
+exports.createPathRewriter = createPathRewriter;
+const is_plain_object_1 = require("is-plain-object");
 const errors_1 = require("./errors");
-const logger_1 = require("./logger");
-const logger = (0, logger_1.getInstance)();
+const debug_1 = require("./debug");
+const debug = debug_1.Debug.extend('path-rewriter');
 /**
  * Create rewrite function, to cache parsed rewrite rules.
  *
@@ -29,19 +29,18 @@ function createPathRewriter(rewriteConfig) {
         for (const rule of rulesCache) {
             if (rule.regex.test(path)) {
                 result = result.replace(rule.regex, rule.value);
-                logger.debug('[HPM] Rewriting path from "%s" to "%s"', path, result);
+                debug('rewriting path from "%s" to "%s"', path, result);
                 break;
             }
         }
         return result;
     }
 }
-exports.createPathRewriter = createPathRewriter;
 function isValidRewriteConfig(rewriteConfig) {
     if (typeof rewriteConfig === 'function') {
         return true;
     }
-    else if (isPlainObj(rewriteConfig)) {
+    else if ((0, is_plain_object_1.isPlainObject)(rewriteConfig)) {
         return Object.keys(rewriteConfig).length !== 0;
     }
     else if (rewriteConfig === undefined || rewriteConfig === null) {
@@ -53,13 +52,13 @@ function isValidRewriteConfig(rewriteConfig) {
 }
 function parsePathRewriteRules(rewriteConfig) {
     const rules = [];
-    if (isPlainObj(rewriteConfig)) {
-        for (const [key] of Object.entries(rewriteConfig)) {
+    if ((0, is_plain_object_1.isPlainObject)(rewriteConfig)) {
+        for (const [key, value] of Object.entries(rewriteConfig)) {
             rules.push({
                 regex: new RegExp(key),
-                value: rewriteConfig[key],
+                value: value,
             });
-            logger.info('[HPM] Proxy rewrite rule created: "%s" ~> "%s"', key, rewriteConfig[key]);
+            debug('rewrite rule created: "%s" ~> "%s"', key, value);
         }
     }
     return rules;

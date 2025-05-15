@@ -1,0 +1,1931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bGeigie Log Test Page</title>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <style>
+        html, body, #map {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        #controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        input, button {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        #status {
+            margin-top: 10px;
+            padding: 5px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: #3498db;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .success {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .info {
+            color: #3498db;
+        }
+        
+        /* Safecast popup styling */
+        .safecast-popup .leaflet-popup-content-wrapper {
+            border-radius: 4px;
+            padding: 0;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+            background: white;
+        }
+        .safecast-popup .leaflet-popup-content {
+            margin: 10px;
+            line-height: 1.4;
+            font-size: 14px;
+            min-width: 120px;
+            white-space: nowrap;
+            font-family: Arial, sans-serif;
+        }
+        .safecast-popup .leaflet-popup-close-button {
+            color: #333;
+            font-size: 16px;
+            top: 4px;
+            right: 4px;
+        }
+        .safecast-popup .leaflet-popup-tip {
+            background: white;
+        }
+        /* Override any default popup styles */
+        .leaflet-popup-content-wrapper {
+            border-radius: 4px;
+        }
+        .leaflet-popup-content {
+            margin: 10px;
+        }
+        
+        /* Legend styling */
+        .radiation-legend {
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+            line-height: 1.4;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 3px;
+        }
+        .color-box {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div id="controls">
+        <h3>bGeigie Log Tester</h3>
+        <div>
+            <label for="logId">Log ID:</label>
+            <input type="text" id="logId" value="67908">
+            <button id="loadButton">Load Log</button>
+            <button id="clearButton">Clear Logs</button>
+        </div>
+        <div>
+            <button id="directFetch">Direct Fetch</button>
+            <button id="forceInit">Force Init</button>
+            <button id="showDirectMarkers">Show Direct Markers</button>
+            <button id="testPopup">Test Popup</button>
+            <button id="loadSampleData">Load Sample Data</button>
+            <button id="fetchDirectKML">Fetch KML</button>
+            <span id="loading" class="loading" style="display: none;"></span>
+        </div>
+        <div id="status">Status: Ready</div>
+    </div>
+    
+    <!-- Create the transfer bar needed by BVM -->
+    <div id="bv_transferBar" class="bv_transferBarHidden" style="position: fixed; bottom: 0; left: 0; width: 100%; height: 20px; background-color: #f0f0f0; display: none;"></div>
+    
+    <!-- Define BvProxy class directly to ensure it's available -->
+    <script>
+        // Define BvProxy class
+        function BvProxy() {
+            this._bvm = null;
+            
+            // Init method will be overridden later
+            this.Init = function() {
+                console.log("BvProxy.Init() called");
+            };
+            
+            // These will be overridden later
+            this.AddLogsByQueryFromString = function(logId) {
+                console.log("BvProxy.AddLogsByQueryFromString called with logId:", logId);
+            };
+            
+            this.AddLogsCSV = function(logId) {
+                console.log("BvProxy.AddLogsCSV called with logId:", logId);
+            };
+            
+            this.RemoveAllMarkersFromMapAndPurgeData = function() {
+                console.log("BvProxy.RemoveAllMarkersFromMapAndPurgeData called");
+            };
+        }
+    </script>
+    
+    <!-- Load the original bGeigie viewer JS files -->
+    <script src="bgeigie_viewer.js"></script>
+    <script src="bgeigie_viewer_worker_min.js"></script>
+    
+    <script>
+        // Status logger with support for message types
+        function log(message, type) {
+            const status = document.getElementById('status');
+            const entry = document.createElement('div');
+            
+            // Apply styling based on message type
+            if (type === 'success') {
+                entry.className = 'success';
+            } else if (type === 'error') {
+                entry.className = 'error';
+            } else if (type === 'info') {
+                entry.className = 'info';
+            }
+            
+            // Support both text and HTML messages
+            if (message.includes('<') && message.includes('>')) {
+                entry.innerHTML = message;
+            } else {
+                entry.textContent = message;
+            }
+            
+            status.appendChild(entry);
+            status.scrollTop = status.scrollHeight;
+            console.log(message);
+        }
+        
+        // Show/hide loading indicator
+        function showLoading() {
+            document.getElementById('loading').style.display = 'inline-block';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        // Initialize Leaflet map
+        const map = L.map('map').setView([37.6, 140.9], 10);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+        
+        // Initialize BvProxy and BVM
+        let _bvProxy = null;
+        let bvmInitialized = false;
+        
+        function initBVM() {
+            try {
+                if (!window.BvProxy) {
+                    log("BvProxy class not available!", 'error');
+                    return false;
+                } else {
+                    log("BvProxy class found!", 'success');
+                }
+                
+                _bvProxy = new BvProxy();
+                log("Created BvProxy instance", 'success');
+                
+                // Create a wrapper for the Leaflet map to provide Google Maps compatibility
+                const mapWrapper = {
+                    getBounds: function() {
+                        const bounds = map.getBounds();
+                        return {
+                            getSouthWest: function() {
+                                return {
+                                    lat: function() { return bounds.getSouth(); },
+                                    lng: function() { return bounds.getWest(); }
+                                };
+                            },
+                            getNorthEast: function() {
+                                return {
+                                    lat: function() { return bounds.getNorth(); },
+                                    lng: function() { return bounds.getEast(); }
+                                };
+                            }
+                        };
+                    },
+                    getZoom: function() { return map.getZoom(); },
+                    panTo: function(latLng) { 
+                        map.panTo([latLng.lat(), latLng.lng()]); 
+                    },
+                    setZoom: function(zoom) { map.setZoom(zoom); },
+                    getStreetView: function() {
+                        return {
+                            getVisible: function() { return false; },
+                            getPosition: function() { return null; }
+                        };
+                    },
+                    // Fix getDiv method to properly handle both behaviors
+                    getDiv: function() {
+                        const mapDiv = document.getElementById('map');
+                        if (!mapDiv) {
+                            console.warn('Map div not found, returning dummy element');
+                            return {
+                                clientWidth: 800,
+                                clientHeight: 600
+                            };
+                        }
+                        
+                        // Add clientWidth and clientHeight properties to the div element
+                        // This makes it possible to use the same object for both use cases
+                        mapDiv.clientWidth = mapDiv.clientWidth || mapDiv.offsetWidth || 800;
+                        mapDiv.clientHeight = mapDiv.clientHeight || mapDiv.offsetHeight || 600;
+                        
+                        return mapDiv;
+                    }
+                };
+                
+                // Add Google Maps event compatibility
+                if (!window.google) {
+                    window.google = {
+                        maps: {
+                            event: {
+                                addListener: function(instance, eventName, handler) {
+                                    if (eventName === 'idle') {
+                                        map.on('moveend', handler);
+                                    }
+                                    // Return dummy listener to satisfy BVM
+                                    return { remove: function() {} };
+                                },
+                                clearInstanceListeners: function() {}
+                            },
+                            LatLng: function(lat, lng) {
+                                return {
+                                    lat: function() { return lat !== undefined ? lat : 0; },
+                                    lng: function() { return lng !== undefined ? lng : 0; },
+                                    equals: function(other) { 
+                                        return other && this.lat() === other.lat() && this.lng() === other.lng(); 
+                                    },
+                                    toJSON: function() {
+                                        return { lat: this.lat(), lng: this.lng() };
+                                    },
+                                    toString: function() {
+                                        return this.lat() + "," + this.lng();
+                                    }
+                                };
+                            },
+                            Marker: function(options) {
+                                // Fix: Add null check for options parameter
+                                options = options || {};
+                                
+                                // Fix: Ensure position exists and has valid lat/lng methods
+                                if (!options.position) {
+                                    options.position = {
+                                        lat: function() { return 0; },
+                                        lng: function() { return 0; }
+                                    };
+                                    console.warn("Creating marker with default position (0,0)");
+                                }
+                                
+                                // Create color-coded marker based on radiation level
+                                let markerColor = '#0000ff'; // Default blue
+                                let radiationLevel = 0;
+                                
+                                // Extract radiation data from options if available
+                                if (options.data) {
+                                    // Get radiation value in μSv/h
+                                    if (typeof options.data.usvh === 'number') {
+                                        radiationLevel = options.data.usvh;
+                                    } else if (typeof options.data.radiation === 'number') {
+                                        radiationLevel = options.data.radiation;
+                                    } else if (typeof options.data.value === 'number') {
+                                        radiationLevel = options.data.value;
+                                    } else if (typeof options.data.cpm === 'number') {
+                                        // Convert CPM to μSv/h using Safecast conversion factor
+                                        // Default LND-7317 conversion: 1 μSv/h = 334 CPM
+                                        radiationLevel = options.data.cpm / 334;
+                                    } else if (typeof options.data.CPM === 'number') {
+                                        radiationLevel = options.data.CPM / 334;
+                                    } else if (options.data.Z !== undefined) {
+                                        radiationLevel = options.data.Z;
+                                    }
+                                    
+                                    // Set color based on radiation level (Safecast tilemap color scale)
+                                    if (radiationLevel >= 65.0) {
+                                        markerColor = '#ff0000'; // Red for very high levels
+                                    } else if (radiationLevel >= 10.0) {
+                                        markerColor = '#ff0000'; // Red for high levels
+                                    } else if (radiationLevel >= 4.0) {
+                                        markerColor = '#ff0000'; // Red for high levels
+                                    } else if (radiationLevel >= 2.0) {
+                                        markerColor = '#ff0000'; // Red for high levels
+                                    } else if (radiationLevel >= 1.3) {
+                                        markerColor = '#ff0000'; // Red for high levels
+                                    } else if (radiationLevel >= 0.87) {
+                                        markerColor = '#ff0000'; // Red for high levels
+                                    } else if (radiationLevel >= 0.6) {
+                                        markerColor = '#ff0000'; // Red for high levels
+                                    } else if (radiationLevel >= 0.43) {
+                                        markerColor = '#ff0000'; // Red for high levels
+                                    } else if (radiationLevel >= 0.31) {
+                                        markerColor = '#ff00ff'; // Purple for medium-high levels
+                                    } else if (radiationLevel >= 0.23) {
+                                        markerColor = '#9600c8'; // Purple for medium levels
+                                    } else if (radiationLevel >= 0.16) {
+                                        markerColor = '#9600c8'; // Purple for medium levels
+                                    } else if (radiationLevel >= 0.12) {
+                                        markerColor = '#0000ff'; // Blue for medium-low levels
+                                    } else if (radiationLevel >= 0.08) {
+                                        markerColor = '#0000ff'; // Blue for medium-low levels
+                                    } else if (radiationLevel >= 0.05) {
+                                        markerColor = '#00b7ff'; // Light blue for low levels
+                                    } else {
+                                        markerColor = '#31f3ff'; // Very light blue for very low levels
+                                    }
+                                }
+                                
+                                // Create custom icon with color based on radiation level
+                                const icon = L.divIcon({
+                                    html: `<div style="
+                                        background-color: ${markerColor};
+                                        width: 8px;
+                                        height: 8px;
+                                        border-radius: 50%;
+                                        box-shadow: 0 0 2px rgba(0,0,0,0.3);
+                                    "></div>`,
+                                    className: '',
+                                    iconSize: [8, 8],
+                                    iconAnchor: [4, 4]
+                                });
+                                
+                                const marker = L.marker([options.position.lat(), options.position.lng()], {
+                                    icon: icon
+                                });
+                                
+                                // Create detailed popup content if data is available
+                                if (options.data) {
+                                    const data = options.data;
+                                    const usvh = typeof data.usvh === 'number' ? data.usvh : 
+                                            (typeof data.radiation === 'number' ? data.radiation : 
+                                            (typeof data.value === 'number' ? data.value : 0));
+                                    
+                                    const cpm = typeof data.cpm === 'number' ? data.cpm : Math.round(usvh * 334); // Approx conversion
+                                    const logCpm = typeof data.logCpm === 'number' ? data.logCpm : cpm;
+                                    const logCps = typeof data.logCps === 'number' ? data.logCps : Math.round(logCpm / 60);
+                                    const altitude = typeof data.altitude === 'number' ? data.altitude : 
+                                                  (typeof data.alt === 'number' ? data.alt : null);
+                                    const heading = typeof data.heading === 'number' ? data.heading : null;
+                                    const timestamp = data.timestamp || data.time || new Date().toISOString();
+                                    
+                                    // Format date similar to screenshot
+                                    let dateStr = "";
+                                    try {
+                                        const date = new Date(timestamp);
+                                        dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}
+${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}:${String(date.getSeconds()).padStart(2,'0')}
+UTC`;
+                                    } catch (e) {
+                                        dateStr = timestamp;
+                                    }
+                                    
+                                    // Create popup content to exactly match the screenshot
+                                    const popupContent = `
+                                        <div style="text-align: center; font-family: Arial, sans-serif; min-width: 120px; line-height: 1.4;">
+                                            <div>${usvh.toFixed(2)} μSv/h</div>
+                                            <div>${cpm} CPM</div>
+                                            <div>${logCpm} Log CPM</div>
+                                            <div>${logCps} Log CPS</div>
+                                            ${altitude !== null ? `<div>${altitude} m alt</div>` : ''}
+                                            ${heading !== null ? `<div>${heading}° heading</div>` : ''}
+                                            <div>${dateStr}</div>
+                                        </div>
+                                    `;
+                                    
+                                    marker.bindPopup(popupContent, {
+                                        closeButton: true,
+                                        className: 'safecast-popup',
+                                        offset: [0, 0]
+                                    });
+                                }
+                                
+                                // Original code from compatibility layer
+                                if (options.icon && options.icon.url) {
+                                    const iconOptions = {
+                                        iconUrl: options.icon.url,
+                                        iconSize: [options.icon.size ? options.icon.size.width : 20, options.icon.size ? options.icon.size.height : 20],
+                                        iconAnchor: [options.icon.anchor ? options.icon.anchor.x : 10, options.icon.anchor ? options.icon.anchor.y : 10]
+                                    };
+                                    // Only override if explicitly requested
+                                    if (options.useOriginalIcon) {
+                                        marker.setIcon(L.icon(iconOptions));
+                                    }
+                                }
+                                
+                                marker.setZIndexOffset(options.zIndex || 0);
+                                
+                                // Add Google Maps compatibility methods
+                                marker.setMap = function(m) {
+                                    if (m === null) {
+                                        this.remove();
+                                    } else {
+                                        this.addTo(map);
+                                    }
+                                };
+                                marker.setPosition = function(pos) {
+                                    if (!pos) return;
+                                    this.setLatLng([pos.lat(), pos.lng()]);
+                                };
+                                marker.setIcon = function(icon) {
+                                    if (icon && icon.url) {
+                                        const iconOptions = {
+                                            iconUrl: icon.url,
+                                            iconSize: [icon.size ? icon.size.width : 20, icon.size ? icon.size.height : 20],
+                                            iconAnchor: [icon.anchor ? icon.anchor.x : 10, icon.anchor ? icon.anchor.y : 10]
+                                        };
+                                        this.setIcon(L.icon(iconOptions));
+                                    }
+                                };
+                                marker.setZIndex = function(z) {
+                                    this.setZIndexOffset(z || 0);
+                                };
+                                
+                                return marker;
+                            },
+                            InfoWindow: function(options) {
+                                // Fix: Add null check for options
+                                options = options || {};
+                                
+                                const popup = L.popup(options);
+                                
+                                // Add Google Maps compatibility methods
+                                popup.setContent = function(content) {
+                                    if (content === undefined || content === null) {
+                                        content = '';
+                                    }
+                                    L.Popup.prototype.setContent.call(this, content);
+                                };
+                                popup.open = function(map, marker) {
+                                    if (marker) {
+                                        marker.bindPopup(this).openPopup();
+                                    } else if (map) {
+                                        this.openOn(map);
+                                    }
+                                };
+                                popup.close = function() {
+                                    map.closePopup(this);
+                                };
+                                
+                                return popup;
+                            },
+                            Size: function(width, height) {
+                                return { 
+                                    width: width || 0, 
+                                    height: height || 0,
+                                    equals: function(other) { return other && this.width === other.width && this.height === other.height; }
+                                };
+                            },
+                            Point: function(x, y) {
+                                return { 
+                                    x: x || 0, 
+                                    y: y || 0,
+                                    equals: function(other) { return other && this.x === other.x && this.y === other.y; }
+                                };
+                            }
+                        }
+                    };
+                }
+                
+                // Initialize BVM with our map wrapper
+                if (!_bvProxy._bvm) {
+                    try {
+                        log("Creating BVM instance with mapWrapper", 'info');
+                        _bvProxy._bvm = new BVM(mapWrapper);
+                        log("BVM instance created", 'success');
+                        
+                        // Add methods to BvProxy for compatibility
+                        _bvProxy.AddLogsByQueryFromString = function(logId) {
+                            if (_bvProxy._bvm) {
+                                log("Calling _bvProxy._bvm.AddLogsByQueryFromString with " + logId, 'info');
+                                _bvProxy._bvm.AddLogsByQueryFromString(logId);
+                            }
+                        };
+                        
+                        _bvProxy.RemoveAllMarkersFromMapAndPurgeData = function() {
+                            if (_bvProxy._bvm) {
+                                log("Calling _bvProxy._bvm.RemoveAllMarkersFromMapAndPurgeData", 'info');
+                                _bvProxy._bvm.RemoveAllMarkersFromMapAndPurgeData();
+                            }
+                        };
+                        
+                        bvmInitialized = true;
+                        log("BVM initialized successfully", 'success');
+                        return true;
+                    } catch (e) {
+                        log("Error creating BVM instance: " + e.message, 'error');
+                        console.error(e);
+                        return false;
+                    }
+                } else {
+                    log("BVM instance already exists", 'info');
+                    bvmInitialized = true;
+                    return true;
+                }
+            } catch (e) {
+                log("Error initializing BVM: " + e.message, 'error');
+                console.error(e);
+                return false;
+            }
+        }
+        
+        // Load bGeigie log by ID
+        function loadLog(logId) {
+            showLoading();
+            
+            if (!bvmInitialized && !initBVM()) {
+                log("Cannot load log, BVM not initialized", 'error');
+                hideLoading();
+                return false;
+            }
+            
+            try {
+                log("Loading log ID: " + logId, 'info');
+                _bvProxy._bvm.AddLogsByQueryFromString(logId);
+                setTimeout(() => {
+                    hideLoading();
+                    log("Log loading initiated", 'success');
+                }, 1000);
+                return true;
+            } catch (e) {
+                log("Error loading log: " + e.message, 'error');
+                console.error(e);
+                hideLoading();
+                return false;
+            }
+        }
+        
+        // Clear all logs
+        function clearLogs() {
+            showLoading();
+            
+            if (!bvmInitialized && !initBVM()) {
+                log("Cannot clear logs, BVM not initialized", 'error');
+                hideLoading();
+                return false;
+            }
+            
+            try {
+                log("Clearing all logs", 'info');
+                _bvProxy._bvm.RemoveAllMarkersFromMapAndPurgeData();
+                setTimeout(() => {
+                    hideLoading();
+                    log("Logs cleared successfully", 'success');
+                }, 500);
+                return true;
+            } catch (e) {
+                log("Error clearing logs: " + e.message, 'error');
+                console.error(e);
+                hideLoading();
+                return false;
+            }
+        }
+        
+        // Add a direct CORS proxy for easier testing
+        const PROXY_URL = 'https://api.safecast.org';
+
+        // Function to make a direct request to Safecast API (with or without proxy)
+        async function fetchSafecastAPI(endpoint, useProxy = false) {
+            try {
+                // Try to fetch directly from Safecast API first
+                const url = useProxy ? 
+                    `http://localhost:8010/api/${endpoint}` : 
+                    `https://api.safecast.org/${endpoint}`;
+                    
+                log(`Fetching API data from: ${url}`, 'info');
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors',  // Try CORS mode first
+                    cache: 'no-cache'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API responded with status ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                log(`API fetch error: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+        
+        // Direct fetch from Safecast API via our local proxy
+        function directFetch(logId) {
+            log("Directly fetching log " + logId, 'info');
+            showLoading();
+            
+            // Try to fetch without proxy first
+            fetchSafecastAPI(`bgeigie_imports/${logId}.json`, false)
+                .then(data => processLogData(data, logId))
+                .catch(error => {
+                    log("Direct API fetch failed, trying with proxy...", 'error');
+                    
+                    // Fallback to proxy
+                    fetchSafecastAPI(`bgeigie_imports/${logId}.json`, true)
+                        .then(data => processLogData(data, logId))
+                        .catch(finalError => {
+                            log("All API fetch attempts failed: " + finalError.message, 'error');
+                            hideLoading();
+                            
+                            // Still try to load with basic method
+                            if (window._bvProxy && window._bvProxy._bvm) {
+                                log("Trying basic method with logId only", 'info');
+                                window._bvProxy._bvm.AddLogsByQueryFromString(logId);
+                            }
+                        });
+                });
+        }
+        
+        // Process log data from API response
+        function processLogData(data, logId) {
+            log("API response received", 'success');
+            log("Log source data (first properties): " + Object.keys(data).slice(0, 5).join(", "), 'info');
+            
+            if (data && data.source && data.source.url) {
+                const sourceUrl = data.source.url;
+                log("Log source URL: " + sourceUrl, 'info');
+                
+                if (!bvmInitialized && !initBVM()) {
+                    log("Cannot load log content, BVM not initialized", 'error');
+                    hideLoading();
+                    return;
+                }
+                
+                try {
+                    // Try handling both direct load and local load
+                    if (sourceUrl.includes('http')) {
+                        log("Using direct source URL: " + sourceUrl, 'info');
+                        // First try GetLogFileDirectFromUrlAsync - which is what the original implementation used
+                        if (typeof _bvProxy._bvm.GetLogFileDirectFromUrlAsync === 'function') {
+                            log("Using GetLogFileDirectFromUrlAsync method", 'info');
+                            _bvProxy._bvm.GetLogFileDirectFromUrlAsync(sourceUrl, logId);
+                            log("Log source loading started", 'info');
+                        } else {
+                            // Fallback to AddLogsByQueryFromString
+                            log("GetLogFileDirectFromUrlAsync not found, using AddLogsByQueryFromString", 'info');
+                            _bvProxy._bvm.AddLogsByQueryFromString(logId);
+                        }
+                    } else {
+                        // Local file path, try to load it directly if available
+                        log("Using local file path: " + sourceUrl, 'info');
+                        if (typeof _bvProxy._bvm.GetLogFileDirectFromUrlAsync === 'function') {
+                            _bvProxy._bvm.GetLogFileDirectFromUrlAsync(sourceUrl, logId);
+                        } else {
+                            _bvProxy._bvm.AddLogsByQueryFromString(logId);
+                        }
+                    }
+                } catch (e) {
+                    log("Error loading log source: " + e.message, 'error');
+                    log("Stack: " + e.stack, 'error');
+                    console.error(e);
+                    
+                    // Fallback if direct method fails
+                    try {
+                        log("Trying fallback method AddLogsByQueryFromString", 'info');
+                        _bvProxy._bvm.AddLogsByQueryFromString(logId);
+                    } catch (e2) {
+                        log("Fallback also failed: " + e2.message, 'error');
+                        console.error(e2);
+                    }
+                }
+            } else {
+                log("Log data doesn't contain a valid source URL", 'info');
+                // Try the basic method anyway
+                try {
+                    log("Trying basic method AddLogsByQueryFromString", 'info');
+                    _bvProxy._bvm.AddLogsByQueryFromString(logId);
+                } catch (e) {
+                    log("Basic method failed: " + e.message, 'error');
+                    console.error(e);
+                }
+            }
+            hideLoading();
+        }
+        
+        // Set up event handlers
+        document.getElementById('loadButton').addEventListener('click', function() {
+            const logId = document.getElementById('logId').value.trim();
+            if (logId) {
+                loadLog(logId);
+            } else {
+                log("Please enter a log ID", 'error');
+            }
+        });
+        
+        document.getElementById('clearButton').addEventListener('click', function() {
+            clearLogs();
+        });
+        
+        document.getElementById('directFetch').addEventListener('click', function() {
+            const logId = document.getElementById('logId').value.trim();
+            if (logId) {
+                directFetch(logId);
+            } else {
+                log("Please enter a log ID", 'error');
+            }
+        });
+        
+        document.getElementById('forceInit').addEventListener('click', function() {
+            initBVM();
+        });
+        
+        document.getElementById('showDirectMarkers').addEventListener('click', function() {
+            showDirectMarkers();
+        });
+        
+        document.getElementById('testPopup').addEventListener('click', function() {
+            testPopupFunctionality();
+        });
+        
+        document.getElementById('loadSampleData').addEventListener('click', function() {
+            loadSampleData();
+        });
+        
+        document.getElementById('fetchDirectKML').addEventListener('click', function() {
+            fetchKMLData();
+        });
+        
+        // Initialize on load
+        window.addEventListener('load', function() {
+            log("Page loaded, initializing BVM");
+            showLoading();
+            if (initBVM()) {
+                log("BVM initialization successful", 'success');
+                
+                // Add legend to the map
+                addRadiationLegend();
+                
+                // Add MapListener to monitor data loading and marker creation
+                map.on('zoomend moveend', function() {
+                    log("Map view changed, checking for markers...", 'info');
+                    
+                    // Delay to allow BVM to update markers
+                    setTimeout(function() {
+                        // Check if any markers were added
+                        const markersVisible = document.querySelectorAll('.leaflet-marker-icon').length;
+                        log(`Current visible markers: ${markersVisible}`, (markersVisible > 0) ? 'success' : 'info');
+                    }, 1000);
+                });
+                
+                // Listen for BVM data loaded events to create path lines
+                window.addEventListener('bgeigieDataLoaded', function(e) {
+                    if (e.detail && e.detail.points && e.detail.points.length > 0) {
+                        log(`BgeigiE log data loaded with ${e.detail.points.length} points`, 'success');
+                        createMarkersFromPoints(e.detail.points);
+                    }
+                });
+                
+                // Add a debug test button for creating markers directly
+                const addTestMarkerButton = document.createElement('button');
+                addTestMarkerButton.textContent = 'Add Test Marker';
+                addTestMarkerButton.onclick = function() {
+                    addTestMarker();
+                };
+                
+                const controls = document.getElementById('controls');
+                const buttonContainer = controls.querySelector('div:nth-child(2)');
+                buttonContainer.appendChild(addTestMarkerButton);
+            } else {
+                log("BVM initialization failed", 'error');
+            }
+            hideLoading();
+        });
+        
+        // Function to create markers from loaded data points
+        function createMarkersFromPoints(points) {
+            log("Creating markers from " + points.length + " data points", 'info');
+            showLoading();
+            
+            try {
+                if (!points || !points.length) {
+                    log("No points data provided", 'error');
+                    hideLoading();
+                    return;
+                }
+                
+                // Clear any existing markers
+                map.eachLayer(function(layer) {
+                    if (layer instanceof L.Marker) {
+                        map.removeLayer(layer);
+                    }
+                });
+                
+                // Sample points for performance (don't try to show all 2900+ points)
+                const maxMarkers = 300; // Limit for performance
+                const step = Math.max(1, Math.floor(points.length / maxMarkers));
+                let validPoints = 0;
+                const markers = [];
+                const latlngs = [];
+                
+                // Track radiation ranges
+                let minRad = Number.MAX_VALUE;
+                let maxRad = Number.MIN_VALUE;
+                
+                // Process each point
+                for (let i = 0; i < points.length; i += step) {
+                    const point = points[i];
+                    
+                    // Extract coordinates and radiation value
+                    let lat, lng, value;
+                    
+                    if (typeof point.X === 'number' && typeof point.Y === 'number') {
+                        lng = point.X;
+                        lat = point.Y;
+                        value = typeof point.Z === 'number' ? point.Z : 0.1;
+                    } else if (typeof point.lat === 'number' && typeof point.lng === 'number') {
+                        lat = point.lat;
+                        lng = point.lng;
+                        value = typeof point.value === 'number' ? point.value : 
+                               (typeof point.radiation === 'number' ? point.radiation : 
+                               (typeof point.usvh === 'number' ? point.usvh : 0.1));
+                    } else if (point.location && typeof point.location.latitude === 'number' && typeof point.location.longitude === 'number') {
+                        lat = point.location.latitude;
+                        lng = point.location.longitude;
+                        value = typeof point.value === 'number' ? point.value : 0.1;
+                    } else if (typeof point.latitude === 'number' && typeof point.longitude === 'number') {
+                        // Support direct lat/long format
+                        lat = point.latitude;
+                        lng = point.longitude;
+                        value = typeof point.value === 'number' ? point.value : 
+                               (typeof point.radiation === 'number' ? point.radiation : 
+                               (typeof point.usvh === 'number' ? point.usvh : 0.1));
+                    } else {
+                        continue; // Skip points without valid coordinates
+                    }
+                    
+                    // Validate coordinates
+                    if (!lat || !lng || isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+                        continue;
+                    }
+                    
+                    // Track radiation ranges
+                    if (value > 0) {
+                        minRad = Math.min(minRad, value);
+                        maxRad = Math.max(maxRad, value);
+                    }
+                    
+                    // Determine color based on radiation value (Safecast tilemap color scale)
+                    let color;
+                    if (value >= 65.0) {
+                        color = '#ff0000'; // Red for very high levels
+                    } else if (value >= 10.0) {
+                        color = '#ff0000'; // Red for high levels
+                    } else if (value >= 4.0) {
+                        color = '#ff0000'; // Red for high levels
+                    } else if (value >= 2.0) {
+                        color = '#ff0000'; // Red for high levels
+                    } else if (value >= 1.3) {
+                        color = '#ff0000'; // Red for high levels
+                    } else if (value >= 0.87) {
+                        color = '#ff0000'; // Red for high levels
+                    } else if (value >= 0.6) {
+                        color = '#ff0000'; // Red for high levels
+                    } else if (value >= 0.43) {
+                        color = '#ff0000'; // Red for high levels
+                    } else if (value >= 0.31) {
+                        color = '#ff00ff'; // Purple for medium-high levels
+                    } else if (value >= 0.23) {
+                        color = '#9600c8'; // Purple for medium levels
+                    } else if (value >= 0.16) {
+                        color = '#9600c8'; // Purple for medium levels
+                    } else if (value >= 0.12) {
+                        color = '#0000ff'; // Blue for medium-low levels
+                    } else if (value >= 0.08) {
+                        color = '#0000ff'; // Blue for medium-low levels
+                    } else if (value >= 0.05) {
+                        color = '#00b7ff'; // Light blue for low levels
+                    } else {
+                        color = '#31f3ff'; // Very light blue for very low levels
+                    }
+                    
+                    // Create marker with colored dot - make size match official map (6px)
+                    const markerIcon = L.divIcon({
+                        html: `<div style="background-color: ${color}; width: 6px; height: 6px; border-radius: 50%; box-shadow: 0 0 1px rgba(0,0,0,0.2);"></div>`,
+                        className: '',
+                        iconSize: [6, 6],
+                        iconAnchor: [3, 3]
+                    });
+                    
+                    // Create marker
+                    const marker = L.marker([lat, lng], { icon: markerIcon });
+                    
+                    // Extract additional data for popup
+                    const cpm = typeof point.cpm === 'number' ? point.cpm : Math.round(value * 334);
+                    const logCpm = typeof point.logCpm === 'number' ? point.logCpm : cpm;
+                    const logCps = typeof point.logCps === 'number' ? point.logCps : Math.round(logCpm / 60);
+                    const altitude = typeof point.altitude === 'number' ? point.altitude : 
+                                   (typeof point.alt === 'number' ? point.alt : null);
+                    const heading = typeof point.heading === 'number' ? point.heading : 
+                                  (typeof point.bearing === 'number' ? point.bearing : null);
+                    
+                    // Create timestamp
+                    let timestampStr = '';
+                    if (point.timestamp) {
+                        timestampStr = point.timestamp;
+                    } else if (point.captured_at) {
+                        timestampStr = point.captured_at;
+                    } else if (point.created_at) {
+                        timestampStr = point.created_at;
+                    } else {
+                        // Use current date for demo purposes
+                        const now = new Date();
+                        timestampStr = now.toISOString();
+                    }
+                    
+                    // Format the timestamp for display
+                    let dateStr = '';
+                    try {
+                        // Try to parse the timestamp
+                        const date = new Date(timestampStr);
+                        if (!isNaN(date.getTime())) {
+                            dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}:${String(date.getSeconds()).padStart(2,'0')} UTC`;
+                        } else {
+                            dateStr = timestampStr;
+                        }
+                    } catch (e) {
+                        dateStr = timestampStr;
+                    }
+                    
+                    // Build popup content
+                    const popupContent = `
+                        <div style="text-align: center; font-family: Arial, sans-serif; min-width: 120px; line-height: 1.4;">
+                            <div>${value.toFixed(2)} μSv/h</div>
+                            <div>${cpm} CPM</div>
+                            <div>${logCpm} Log CPM</div>
+                            <div>${logCps} Log CPS</div>
+                            ${altitude !== null ? `<div>${altitude} m alt</div>` : ''}
+                            ${heading !== null ? `<div>${heading}° heading</div>` : ''}
+                            <div>${dateStr}</div>
+                        </div>
+                    `;
+                    
+                    // Create popup
+                    const popup = L.popup({
+                        closeButton: true,
+                        className: 'safecast-popup',
+                        offset: [0, 0],
+                        autoPan: true  // Changed to true for better UX
+                    }).setContent(popupContent);
+                    
+                    // Attach popup to marker
+                    marker.bindPopup(popup);
+                    
+                    // Add marker to map with explicit event binding
+                    marker.addTo(map);
+                    
+                    // Ensure popup events are bound
+                    marker.on('click', function(e) {
+                        if (e.originalEvent) {
+                            e.originalEvent.stopPropagation();
+                        }
+                        this.openPopup();
+                    });
+                    
+                    // Add additional mouseover behavior for better UX
+                    marker.on('mouseover', function() {
+                        this.setZIndexOffset(1000); // Bring to front
+                    });
+                    
+                    markers.push(marker);
+                    latlngs.push([lat, lng]);
+                    validPoints++;
+                }
+                
+                log(`Created ${validPoints} markers with radiation data`, 'success');
+                
+                // Log radiation range information
+                if (minRad !== Number.MAX_VALUE && maxRad !== Number.MIN_VALUE) {
+                    log(`Radiation range: ${minRad.toFixed(3)} - ${maxRad.toFixed(3)} μSv/h`, 'info');
+                }
+                
+                // Open a popup on a random marker for demonstration
+                if (markers.length > 0) {
+                    // Choose a marker with higher radiation for better visibility
+                    let markerToOpen = markers[0];
+                    
+                    // Try to find a marker with higher radiation (above 0.1)
+                    for (let i = 0; i < markers.length; i++) {
+                        if (points[i * step] && 
+                            ((typeof points[i * step].Z === 'number' && points[i * step].Z > 0.1) ||
+                             (typeof points[i * step].value === 'number' && points[i * step].value > 0.1) ||
+                             (typeof points[i * step].radiation === 'number' && points[i * step].radiation > 0.1) ||
+                             (typeof points[i * step].usvh === 'number' && points[i * step].usvh > 0.1))) {
+                            markerToOpen = markers[i];
+                            break;
+                        }
+                    }
+                    
+                    setTimeout(() => {
+                        markerToOpen.openPopup();
+                    }, 1000);
+                }
+                
+                hideLoading();
+            } catch (error) {
+                log(`Error creating markers: ${error.message}`, 'error');
+                console.error(error);
+                hideLoading();
+            }
+        }
+        
+        // Override BVM's marker creation to send data loaded event
+        const originalGetLogFileDirectFromUrlAsync = BVM.prototype.GetLogFileDirectFromUrlAsync;
+        if (originalGetLogFileDirectFromUrlAsync) {
+            BVM.prototype.GetLogFileDirectFromUrlAsync = function(url, logId) {
+                log(`Overriding GetLogFileDirectFromUrlAsync to capture data`, 'info');
+                
+                // Call original method
+                const result = originalGetLogFileDirectFromUrlAsync.apply(this, arguments);
+                
+                // Monitor for data being added
+                const originalAddData = this.mks.AddData;
+                if (originalAddData) {
+                    this.mks.AddData = function(points) {
+                        // Call original method
+                        const result = originalAddData.apply(this, arguments);
+                        
+                        // Analyze data to understand format
+                        if (points && points.length) {
+                            const samplePoint = points[0];
+                            log(`Data point format: ${JSON.stringify(samplePoint)}`, 'info');
+                            
+                            // Check for radiation values in different formats
+                            let radiationLabel = '';
+                            if (typeof samplePoint.Z === 'number') radiationLabel += ' Z';
+                            if (typeof samplePoint.usvh === 'number') radiationLabel += ' usvh';
+                            if (typeof samplePoint.value === 'number') radiationLabel += ' value';
+                            if (typeof samplePoint.radiation === 'number') radiationLabel += ' radiation';
+                            if (typeof samplePoint.cpm === 'number') radiationLabel += ' cpm';
+                            if (typeof samplePoint.CPM === 'number') radiationLabel += ' CPM';
+                            
+                            log(`Radiation values found in:${radiationLabel}`, 'info');
+                            
+                            // Log radiation range
+                            let minRad = Number.MAX_VALUE;
+                            let maxRad = Number.MIN_VALUE;
+                            let sumRad = 0;
+                            let countRad = 0;
+                            
+                            for (let i = 0; i < Math.min(points.length, 100); i++) {
+                                let rad = 0;
+                                const p = points[i];
+                                
+                                // Extract radiation in μSv/h
+                                if (typeof p.Z === 'number') rad = p.Z;
+                                else if (typeof p.usvh === 'number') rad = p.usvh;
+                                else if (typeof p.value === 'number') rad = p.value;
+                                else if (typeof p.radiation === 'number') rad = p.radiation;
+                                else if (typeof p.cpm === 'number') rad = p.cpm / 334;
+                                else if (typeof p.CPM === 'number') rad = p.CPM / 334;
+                                
+                                if (rad > 0) {
+                                    minRad = Math.min(minRad, rad);
+                                    maxRad = Math.max(maxRad, rad);
+                                    sumRad += rad;
+                                    countRad++;
+                                }
+                            }
+                            
+                            if (countRad > 0) {
+                                log(`Radiation range: min=${minRad.toFixed(3)}, max=${maxRad.toFixed(3)}, avg=${(sumRad/countRad).toFixed(3)} μSv/h`, 'info');
+                            }
+                            
+                            // Create markers from the loaded points
+                            createMarkersFromPoints(points);
+                        }
+                        
+                        // Dispatch event with loaded data
+                        if (points && points.length) {
+                            window.dispatchEvent(new CustomEvent('bgeigieDataLoaded', {
+                                detail: {
+                                    logId: logId,
+                                    points: points
+                                }
+                            }));
+                        }
+                        
+                        return result;
+                    };
+                }
+                
+                return result;
+            };
+        }
+        
+        // Add a test marker to verify Leaflet is working correctly
+        function addTestMarker() {
+            const center = map.getCenter();
+            log(`Adding test radiation markers around ${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`, 'info');
+            
+            // Create multiple markers with different radiation levels
+            const radiationLevels = [
+                { usvh: 0.03, cpm: 10, logCpm: 10, logCps: 0 },  // Very low (very light blue)
+                { usvh: 0.07, cpm: 23, logCpm: 23, logCps: 0 },  // Low (light blue)
+                { usvh: 0.11, cpm: 36, logCpm: 36, logCps: 1 },  // Low-medium (blue)
+                { usvh: 0.18, cpm: 60, logCpm: 60, logCps: 1 },  // Medium (blue)
+                { usvh: 0.35, cpm: 117, logCpm: 117, logCps: 2 }, // Medium-high (purple)
+                { usvh: 0.50, cpm: 167, logCpm: 167, logCps: 3 }  // High (purple)
+            ];
+            
+            // Create a marker for each level in a circular pattern
+            const markers = [];
+            
+            radiationLevels.forEach((data, index) => {
+                // Calculate position in a circle around the center
+                const angle = (index / radiationLevels.length) * 2 * Math.PI;
+                const radius = 0.01; // Approximately 1km
+                const lat = center.lat + radius * Math.sin(angle);
+                const lng = center.lng + radius * Math.cos(angle);
+                
+                // Add timestamp, altitude and heading like in the screenshot
+                const testData = {
+                    ...data,
+                    altitude: 834,
+                    heading: 68,
+                    timestamp: new Date().toISOString()
+                };
+                
+                // FIXED: Use proper color coding based on radiation level
+                let color;
+                if (data.usvh >= 0.31) {
+                    color = '#ff00ff'; // Purple for medium-high levels
+                } else if (data.usvh >= 0.16) {
+                    color = '#9600c8'; // Purple for medium levels
+                } else if (data.usvh >= 0.08) {
+                    color = '#0000ff'; // Blue for medium-low levels
+                } else if (data.usvh >= 0.05) {
+                    color = '#00b7ff'; // Light blue for low levels
+                } else {
+                    color = '#31f3ff'; // Very light blue for very low levels
+                }
+                
+                const markerIcon = L.divIcon({
+                    html: `<div style="background-color: ${color}; width: 6px; height: 6px; border-radius: 50%; box-shadow: 0 0 1px rgba(0,0,0,0.2);"></div>`,
+                    className: '',
+                    iconSize: [6, 6],
+                    iconAnchor: [3, 3]
+                });
+                
+                const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+                
+                // Create popup content
+                const popupContent = `
+                    <div style="text-align: center; font-family: Arial, sans-serif; min-width: 120px; line-height: 1.4;">
+                        <div>${data.usvh.toFixed(2)} μSv/h</div>
+                        <div>${data.cpm} CPM</div>
+                        <div>${data.logCpm} Log CPM</div>
+                        <div>${data.logCps} Log CPS</div>
+                        <div>${testData.altitude} m alt</div>
+                        <div>${testData.heading}° heading</div>
+                        <div>${testData.timestamp.replace('T', ' ').split('.')[0]} UTC</div>
+                    </div>
+                `;
+                
+                // Create a popup directly
+                const popup = L.popup({
+                    closeButton: true,
+                    className: 'safecast-popup',
+                    offset: [0, 0],
+                    autoPan: true
+                })
+                .setContent(popupContent);
+                
+                // Bind popup to marker
+                marker.bindPopup(popup);
+                
+                // Add marker to map with explicit event binding
+                marker.addTo(map);
+                
+                // Ensure popup events are bound
+                marker.on('click', function(e) {
+                    if (e.originalEvent) {
+                        e.originalEvent.stopPropagation();
+                    }
+                    this.openPopup();
+                });
+                
+                // Add additional mouseover behavior for better UX
+                marker.on('mouseover', function() {
+                    this.setZIndexOffset(1000); // Bring to front
+                });
+                
+                markers.push(marker);
+                
+                // Open the popup for the middle radiation level (the one matching screenshot)
+                if (index === 2) {
+                    setTimeout(() => {
+                        marker.openPopup();
+                    }, 500);
+                }
+            });
+            
+            log(`Added ${markers.length} direct radiation test markers with different levels`, 'success');
+            
+            // Zoom out slightly to show all markers
+            map.setZoom(12);
+        }
+        
+        // Function to create direct Leaflet markers from data
+        function showDirectMarkers() {
+            log("Creating direct Leaflet markers for log data...", 'info');
+            showLoading();
+            
+            try {
+                // Get data from _bvProxy if available
+                if (!window._bvProxy || !window._bvProxy._bvm || !window._bvProxy._bvm.mks) {
+                    log("BVM or point data not available", 'error');
+                    hideLoading();
+                    return;
+                }
+                
+                // Access the loaded data points
+                const mks = window._bvProxy._bvm.mks;
+                if (!mks.data || !mks.data.length) {
+                    log("No data points found in BVM", 'error');
+                    hideLoading();
+                    return;
+                }
+                
+                const points = mks.data;
+                log(`Found ${points.length} data points in BVM`, 'success');
+                
+                // Get a sample of points for clarity
+                const maxMarkers = 100;
+                const step = Math.max(1, Math.floor(points.length / maxMarkers));
+                let validPoints = 0;
+                
+                for (let i = 0; i < points.length; i += step) {
+                    const point = points[i];
+                    
+                    if (!point || (typeof point.X !== 'number' && typeof point.lat !== 'number')) {
+                        continue;
+                    }
+                    
+                    // Try to get coordinates - BVM uses different structures
+                    let lat, lng, value;
+                    
+                    if (typeof point.X === 'number' && typeof point.Y === 'number') {
+                        lng = point.X;
+                        lat = point.Y;
+                        
+                        // Extract radiation value - BVM uses Z for μSv/h value
+                        if (typeof point.Z === 'number') {
+                            value = point.Z; // Already in μSv/h
+                        } else if (typeof point.CPM === 'number') {
+                            // Convert CPM to μSv/h using Safecast conversion factor
+                            // Default LND-7317 conversion: 1 μSv/h = 334 CPM
+                            value = point.CPM / 334; 
+                        } else {
+                            value = 0.1; // Default value
+                        }
+                    } else if (typeof point.lat === 'number' && typeof point.lng === 'number') {
+                        lat = point.lat;
+                        lng = point.lng;
+                        
+                        // Extract radiation value
+                        if (typeof point.usvh === 'number') {
+                            value = point.usvh; // Already in μSv/h
+                        } else if (typeof point.value === 'number') {
+                            value = point.value; // Likely in μSv/h
+                        } else if (typeof point.radiation === 'number') {
+                            value = point.radiation; // Likely in μSv/h
+                        } else if (typeof point.cpm === 'number') {
+                            // Convert CPM to μSv/h
+                            value = point.cpm / 334;
+                        } else {
+                            value = 0.1; // Default value
+                        }
+                    } else {
+                        continue;
+                    }
+                    
+                    // Ensure coordinates are valid
+                    if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+                        continue;
+                    }
+                    
+                    // Determine color based on radiation value (Safecast scale)
+                    let color;
+                    if (value >= 65.0) {
+                        color = '#ff0000'; // Red for very high levels
+                    } else if (value >= 10.0) {
+                        color = '#ff0000'; // Red for high levels
+                    } else if (value >= 4.0) {
+                        color = '#ff0000'; // Red for high levels
+                    } else if (value >= 2.0) {
+                        color = '#ff0000'; // Red for high levels
+                    } else if (value >= 1.3) {
+                        color = '#ff0000'; // Red for high levels
+                    } else if (value >= 0.87) {
+                        color = '#ff0000'; // Red for high levels
+                    } else if (value >= 0.6) {
+                        color = '#ff0000'; // Red for high levels
+                    } else if (value >= 0.43) {
+                        color = '#ff0000'; // Red for high levels
+                    } else if (value >= 0.31) {
+                        color = '#ff00ff'; // Purple for medium-high levels
+                    } else if (value >= 0.23) {
+                        color = '#9600c8'; // Purple for medium levels
+                    } else if (value >= 0.16) {
+                        color = '#9600c8'; // Purple for medium levels
+                    } else if (value >= 0.12) {
+                        color = '#0000ff'; // Blue for medium-low levels
+                    } else if (value >= 0.08) {
+                        color = '#0000ff'; // Blue for medium-low levels
+                    } else if (value >= 0.05) {
+                        color = '#00b7ff'; // Light blue for low levels
+                    } else {
+                        color = '#31f3ff'; // Very light blue for very low levels
+                    }
+                    
+                    // Create marker with colored dot - make size match official map (6px)
+                    const markerIcon = L.divIcon({
+                        html: `<div style="background-color: ${color}; width: 6px; height: 6px; border-radius: 50%; box-shadow: 0 0 1px rgba(0,0,0,0.2);"></div>`,
+                        className: '',
+                        iconSize: [6, 6],
+                        iconAnchor: [3, 3]
+                    });
+                    
+                    const marker = L.marker([lat, lng], { icon: markerIcon }).addTo(map);
+                    
+                    // Create popup content
+                    const cpm = Math.round(value * 334); // Convert μSv/h to CPM
+                    const popupContent = `
+                        <div style="text-align: center; font-family: Arial, sans-serif; min-width: 120px; line-height: 1.4;">
+                            <div>${value.toFixed(2)} μSv/h</div>
+                            <div>${cpm} CPM</div>
+                            <div>${cpm} Log CPM</div>
+                            <div>${Math.round(cpm / 60)} Log CPS</div>
+                            ${point.alt ? `<div>${point.alt} m alt</div>` : ''}
+                            ${point.heading ? `<div>${point.heading}° heading</div>` : ''}
+                            <div>${new Date().toISOString().replace('T', ' ').split('.')[0]} UTC</div>
+                        </div>
+                    `;
+                    
+                    // Create popup with explicit open method
+                    const popup = L.popup({
+                        closeButton: true,
+                        className: 'safecast-popup',
+                        offset: [0, 0],
+                        autoPan: true
+                    })
+                    .setContent(popupContent);
+                    
+                    // Attach popup to marker but don't open yet
+                    marker.bindPopup(popup);
+                    
+                    // Add explicit click handler for the popup
+                    marker.on('click', function(e) {
+                        // Explicitly stop propagation
+                        e.originalEvent.stopPropagation();
+                        this.openPopup();
+                    });
+                    
+                    // Open the first popup automatically
+                    if (validPoints === 0) {
+                        setTimeout(() => {
+                            marker.openPopup();
+                        }, 1000);
+                    }
+                    
+                    validPoints++;
+                }
+                
+                // Try to get extent and fit map if data is available
+                if (mks.GetCurrentVisibleExtent && typeof mks.GetCurrentVisibleExtent === 'function') {
+                    try {
+                        const extent = mks.GetCurrentVisibleExtent();
+                        if (extent && extent.length > 3) {
+                            const sw = L.latLng(extent[1], extent[0]);
+                            const ne = L.latLng(extent[3], extent[2]);
+                            const bounds = L.latLngBounds(sw, ne);
+                            
+                            if (bounds.isValid()) {
+                                map.fitBounds(bounds);
+                                log("Map fitted to data bounds", 'success');
+                            }
+                        }
+                    } catch (e) {
+                        log("Error getting visible extent: " + e.message, 'error');
+                    }
+                }
+                
+                log(`Created ${validPoints} direct markers from data`, 'success');
+                hideLoading();
+            } catch (error) {
+                log("Error creating direct markers: " + error.message, 'error');
+                console.error(error);
+                hideLoading();
+            }
+        }
+        
+        // Test popup functionality
+        function testPopupFunctionality() {
+            log("Testing popup functionality...", 'info');
+            
+            // Create a test marker at the center of the map
+            const center = map.getCenter();
+            const testData = {
+                usvh: 0.11,
+                cpm: 36,
+                logCpm: 36,
+                logCps: 1,
+                altitude: 834,
+                heading: 68,
+                timestamp: new Date().toISOString()
+            };
+            
+            // Create marker directly with Leaflet
+            const color = '#0066FF'; // Standard Safecast blue
+            
+            const markerIcon = L.divIcon({
+                html: `<div style="background-color: ${color}; width: 6px; height: 6px; border-radius: 50%; box-shadow: 0 0 1px rgba(0,0,0,0.2);"></div>`,
+                className: '',
+                iconSize: [6, 6],
+                iconAnchor: [3, 3]
+            });
+            
+            const marker = L.marker([center.lat, center.lng], { icon: markerIcon }).addTo(map);
+            
+            // Create popup with exact format from screenshot
+            const popupContent = `
+                <div style="text-align: center; font-family: Arial, sans-serif; min-width: 120px; line-height: 1.4;">
+                    <div>${testData.usvh.toFixed(2)} μSv/h</div>
+                    <div>${testData.cpm} CPM</div>
+                    <div>${testData.logCpm} Log CPM</div>
+                    <div>${testData.logCps} Log CPS</div>
+                    <div>${testData.altitude} m alt</div>
+                    <div>${testData.heading}° heading</div>
+                    <div>${testData.timestamp.replace('T', ' ').split('.')[0]} UTC</div>
+                </div>
+            `;
+            
+            // Apply popup to marker
+            const popup = L.popup({
+                closeButton: true,
+                className: 'safecast-popup',
+                offset: [0, 0],
+                autoPan: true  // Changed to true for better UX
+            })
+            .setLatLng([center.lat, center.lng])
+            .setContent(popupContent)
+            .openOn(map);
+            
+            // Ensure popup is visible by explicitly panning to it
+            setTimeout(() => {
+                map.panTo([center.lat, center.lng]);
+            }, 100);
+            
+            // Log success message
+            log("Test popup created and opened", 'success');
+        }
+        
+        // Function to load sample data directly (without API)
+        function loadSampleData() {
+            log("Loading sample bGeigie log data...", 'info');
+            showLoading();
+            
+            // Create sample data points similar to real log data
+            // This is based on the structure of actual bGeigie logs
+            const samplePoints = createSampleDataPoints();
+            
+            // Process the sample data
+            setTimeout(() => {
+                log(`Created ${samplePoints.length} sample data points`, 'success');
+                createMarkersFromPoints(samplePoints);
+                hideLoading();
+            }, 500);
+        }
+        
+        // Create sample data points for demonstration
+        function createSampleDataPoints() {
+            // Create sample data points - simulating a path in Japan
+            const centerLat = 37.6;
+            const centerLng = 140.9;
+            const points = [];
+            
+            // Use lower radiation values similar to the Safecast log in the screenshot (mostly in the 0.05-0.12 range)
+            const radiationLevels = [0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.09, 0.08, 0.07, 0.06];
+            
+            // Create a route by adding points in a meandering pattern
+            const numPoints = 200;
+            let lat = centerLat;
+            let lng = centerLng;
+            let altitude = 800;
+            let heading = 90; // Start heading east
+            
+            for (let i = 0; i < numPoints; i++) {
+                // Small random variations in path
+                const latOffset = (Math.random() - 0.5) * 0.002;
+                const lngOffset = (Math.random() - 0.5) * 0.002 + 0.001; // Bias eastward
+                
+                // Change direction occasionally
+                if (i % 20 === 0) {
+                    // Sharp turn
+                    heading = (heading + 60 + Math.random() * 30) % 360;
+                } else {
+                    // Gentle meandering
+                    heading = (heading + (Math.random() - 0.5) * 10) % 360;
+                }
+                
+                // Update position based on heading
+                const headingRad = heading * Math.PI / 180;
+                lat += Math.sin(headingRad) * 0.001;
+                lng += Math.cos(headingRad) * 0.001;
+                
+                // Vary altitude
+                altitude += (Math.random() - 0.5) * 5;
+                
+                // Create timestamp
+                const date = new Date();
+                date.setMinutes(date.getMinutes() - (numPoints - i));
+                const timestamp = date.toISOString();
+                
+                // Choose radiation level - mostly low values like in the screenshot
+                let radiationValue;
+                if (i % 50 === 0) {
+                    // Very occasional medium value (rare)
+                    radiationValue = 0.18 + Math.random() * 0.05;
+                } else if (i % 30 === 0) {
+                    // Occasional slightly elevated value
+                    radiationValue = 0.12 + Math.random() * 0.03;
+                } else {
+                    // Normal range with small variations - mainly in the blue range
+                    radiationValue = radiationLevels[i % radiationLevels.length] + (Math.random() - 0.5) * 0.01;
+                    // Ensure we don't go negative
+                    radiationValue = Math.max(0.03, radiationValue);
+                }
+                
+                // Create the data point
+                points.push({
+                    latitude: lat,
+                    longitude: lng,
+                    value: radiationValue,
+                    cpm: Math.round(radiationValue * 334),
+                    alt: Math.round(altitude),
+                    heading: Math.round(heading),
+                    timestamp: timestamp
+                });
+            }
+            
+            // Add a few specific points with slightly higher radiation
+            points.push({
+                latitude: centerLat - 0.01,
+                longitude: centerLng + 0.02,
+                value: 0.15, // Blue in Safecast scale
+                cpm: Math.round(0.15 * 334),
+                alt: Math.round(altitude),
+                heading: Math.round(heading),
+                timestamp: new Date().toISOString()
+            });
+            
+            points.push({
+                latitude: centerLat + 0.01,
+                longitude: centerLng + 0.03,
+                value: 0.20, // Purple in Safecast scale
+                cpm: Math.round(0.20 * 334),
+                alt: Math.round(altitude),
+                heading: Math.round(heading),
+                timestamp: new Date().toISOString()
+            });
+            
+            return points;
+        }
+        
+        // Function to make a direct request to Safecast API with JSONP
+        function fetchSafecastAPIWithJSONP(logId, callback) {
+            log("Attempting JSONP request for log data...", 'info');
+            
+            // Create a script element to make a JSONP request
+            const script = document.createElement('script');
+            const callbackName = 'safecastCallback_' + Date.now();
+            
+            // Create global callback function
+            window[callbackName] = function(data) {
+                // Clean up
+                document.head.removeChild(script);
+                delete window[callbackName];
+                
+                // Process data
+                callback(data);
+            };
+            
+            // Set up the JSONP URL - note some APIs might not support JSONP
+            script.src = `https://api.safecast.org/bgeigie_imports/${logId}.json?callback=${callbackName}`;
+            script.onerror = function() {
+                // Clean up
+                document.head.removeChild(script);
+                delete window[callbackName];
+                
+                // Fall back to sample data
+                log("JSONP request failed, using sample data instead", 'error');
+                loadSampleData();
+            };
+            
+            // Add to document to start request
+            document.head.appendChild(script);
+            
+            // Set a timeout
+            setTimeout(function() {
+                if (window[callbackName]) {
+                    // Still waiting for response, assume failure
+                    delete window[callbackName];
+                    document.head.removeChild(script);
+                    log("JSONP request timed out, using sample data instead", 'error');
+                    loadSampleData();
+                }
+            }, 5000);
+        }
+        
+        // Direct fetch from Safecast API or fall back to sample data
+        function directFetch(logId) {
+            log("Attempting to fetch log " + logId, 'info');
+            showLoading();
+            
+            try {
+                // First try a direct fetch with CORS
+                fetch(`https://api.safecast.org/bgeigie_imports/${logId}.json`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`API responded with status ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => processLogData(data, logId))
+                .catch(error => {
+                    log("Direct CORS request failed: " + error.message, 'error');
+                    
+                    // Try JSONP as a fallback
+                    fetchSafecastAPIWithJSONP(logId, data => {
+                        processLogData(data, logId);
+                    });
+                });
+            } catch (error) {
+                log("Error in fetch attempt: " + error.message, 'error');
+                // If all else fails, use sample data
+                loadSampleData();
+            }
+        }
+        
+        // Function to fetch KML data directly
+        function fetchKMLData() {
+            const logId = document.getElementById('logId').value.trim();
+            if (!logId) {
+                log("Please enter a log ID", 'error');
+                return;
+            }
+            
+            log(`Attempting to fetch KML data for log ${logId}...`, 'info');
+            showLoading();
+            
+            // Direct KML URL (this is public and doesn't require authentication)
+            const kmlUrl = `https://api.safecast.org/system/bgeigie_imports/${logId}/kml`;
+            log(`Fetching KML from: ${kmlUrl}`, 'info');
+            
+            fetch(kmlUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch KML: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(kmlText => {
+                    log(`Received KML data (${kmlText.length} bytes)`, 'success');
+                    processKMLData(kmlText);
+                })
+                .catch(error => {
+                    log(`Error fetching KML: ${error.message}`, 'error');
+                    hideLoading();
+                });
+        }
+        
+        // Process KML data
+        function processKMLData(kmlText) {
+            log("Processing KML data...", 'info');
+            
+            try {
+                // Parse KML
+                const parser = new DOMParser();
+                const kmlDoc = parser.parseFromString(kmlText, "text/xml");
+                
+                // Find Placemarks (points)
+                const placemarks = kmlDoc.querySelectorAll("Placemark");
+                log(`Found ${placemarks.length} placemarks in KML`, 'info');
+                
+                if (placemarks.length === 0) {
+                    log("No placemarks found in KML data", 'error');
+                    hideLoading();
+                    return;
+                }
+                
+                // Extract data points with coordinates and values
+                const points = [];
+                
+                placemarks.forEach(placemark => {
+                    try {
+                        // Get coordinates
+                        const coordinates = placemark.querySelector("Point coordinates");
+                        if (!coordinates || !coordinates.textContent) {
+                            return; // Skip if no coordinates
+                        }
+                        
+                        // Parse coordinates (format: lng,lat,alt)
+                        const coordsStr = coordinates.textContent.trim();
+                        const coordParts = coordsStr.split(',');
+                        if (coordParts.length < 2) return;
+                        
+                        const lng = parseFloat(coordParts[0]);
+                        const lat = parseFloat(coordParts[1]);
+                        const alt = coordParts.length > 2 ? parseFloat(coordParts[2]) : 0;
+                        
+                        if (isNaN(lat) || isNaN(lng)) return;
+                        
+                        // Get description with radiation info
+                        const description = placemark.querySelector("description");
+                        if (!description) return;
+                        
+                        const descText = description.textContent;
+                        
+                        // Extract radiation value
+                        let value = 0.1; // Default value
+                        let cpm = 0;
+                        
+                        // Try to extract μSv/h value
+                        const usvMatch = descText.match(/(\d+\.\d+)\s*μSv\/h/);
+                        if (usvMatch && usvMatch[1]) {
+                            value = parseFloat(usvMatch[1]);
+                        }
+                        
+                        // Try to extract CPM value
+                        const cpmMatch = descText.match(/(\d+)\s*CPM/);
+                        if (cpmMatch && cpmMatch[1]) {
+                            cpm = parseInt(cpmMatch[1]);
+                        }
+                        
+                        // Get timestamp
+                        const name = placemark.querySelector("name");
+                        let timestamp = new Date().toISOString();
+                        
+                        if (name && name.textContent) {
+                            // Try to parse date from name
+                            const dateMatch = name.textContent.match(/(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})/);
+                            if (dateMatch && dateMatch[1]) {
+                                timestamp = dateMatch[1];
+                            }
+                        }
+                        
+                        // Create point object
+                        points.push({
+                            latitude: lat,
+                            longitude: lng,
+                            value: value,
+                            cpm: cpm || Math.round(value * 334),
+                            alt: alt,
+                            timestamp: timestamp
+                        });
+                    } catch (e) {
+                        console.error("Error processing placemark:", e);
+                    }
+                });
+                
+                log(`Extracted ${points.length} data points from KML`, 'success');
+                
+                // Display markers
+                if (points.length > 0) {
+                    createMarkersFromPoints(points);
+                } else {
+                    log("No valid data points extracted from KML", 'error');
+                }
+            } catch (error) {
+                log(`Error processing KML: ${error.message}`, 'error');
+                console.error(error);
+            }
+            
+            hideLoading();
+        }
+        
+        // Function to add a legend explaining the radiation color scale
+        function addRadiationLegend() {
+            // Create a custom legend control
+            const legend = L.control({ position: 'bottomright' });
+            
+            legend.onAdd = function(map) {
+                const div = L.DomUtil.create('div', 'radiation-legend');
+                div.innerHTML = `
+                    <div class="legend-title">Radiation Levels (μSv/h)</div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #ff0000;"></div>
+                        <span>≥ 0.43 (High)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #ff00ff;"></div>
+                        <span>0.31 - 0.43 (Medium-High)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #9600c8;"></div>
+                        <span>0.16 - 0.31 (Medium)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #0000ff;"></div>
+                        <span>0.08 - 0.16 (Medium-Low)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #00b7ff;"></div>
+                        <span>0.05 - 0.08 (Low)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #31f3ff;"></div>
+                        <span>< 0.05 (Very Low)</span>
+                    </div>
+                `;
+                
+                // Prevent click events from propagating to the map
+                L.DomEvent.disableClickPropagation(div);
+                return div;
+            };
+            
+            legend.addTo(map);
+            
+            // Make legend toggleable
+            const legendToggle = L.control({ position: 'bottomright' });
+            legendToggle.onAdd = function(map) {
+                const div = L.DomUtil.create('div', 'legend-toggle');
+                div.style.cssText = 'background: white; padding: 5px; margin-bottom: 5px; border-radius: 4px; cursor: pointer; box-shadow: 0 1px 5px rgba(0,0,0,0.2);';
+                div.innerHTML = 'Toggle Legend';
+                
+                L.DomEvent.on(div, 'click', function() {
+                    const legendEl = document.querySelector('.radiation-legend');
+                    if (legendEl) {
+                        legendEl.style.display = legendEl.style.display === 'none' ? 'block' : 'none';
+                    }
+                });
+                
+                L.DomEvent.disableClickPropagation(div);
+                return div;
+            };
+            
+            legendToggle.addTo(map);
+        }
+    </script>
+</body>
+</html> 

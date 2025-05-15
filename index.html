@@ -396,6 +396,10 @@
             100% { transform: rotate(360deg); }
         }
     </style>
+
+    <!-- Safemap and bGeigie viewer scripts MUST be loaded before the inline script that uses them -->
+    <script src="bgeigie_viewer.js"></script>
+    <script src="safemap.js"></script>
 </head>
 
 <body>
@@ -493,10 +497,10 @@
         
         <div class="section-header" id="bgeigie-header">BGEIGIE LOGS</div>
         <div class="section-content collapsed" id="bgeigie-content">
-            <div class="layer-item">Search...</div>
-            <div class="layer-item">Remove All</div>
-            <div class="layer-item">Options</div>
-                        </div>
+            <div class="layer-item" id="menu_logs_0">Search...</div>
+            <div class="layer-item" id="menu_logs_2">Remove All</div>
+            <div class="layer-item" id="menu_logs_3">Options</div>
+        </div>
         
         <div class="section-header" id="realtime-header">REALTIME <div class="spinner" id="realtime-spinner"></div></div>
         <div class="section-content collapsed" id="realtime-content">
@@ -746,6 +750,30 @@
                 item.addEventListener('click', function() {
                     var layerName = this.getAttribute('data-layer');
                     
+                    // If the clicked item is within bgeigie-content, let safemap.js handle it.
+                    if (this.parentElement && this.parentElement.id === 'bgeigie-content') {
+                        // Check if safemap.js's LayersHelper is available and call it
+                        // This assumes LayersHelper and its methods are globally accessible
+                        // or that the original event listener from safemap.js for these IDs will pick it up.
+                        if (this.id === "menu_logs_0") {
+                            if (typeof LayersHelper !== 'undefined' && LayersHelper.ShowAddLogPanel) {
+                                // LayersHelper.ShowAddLogPanel(); // safemap.js should already have a listener for this ID
+                                return; // Prevent falling through to the "not implemented" alert
+                            }
+                        } else if (this.id === "menu_logs_2") {
+                            // Potentially call _bvProxy.btnRemoveLogsOnClick(); if it can be accessed
+                            // Or rely on safemap.js's listener
+                            return;
+                        } else if (this.id === "menu_logs_3") {
+                            // Potentially trigger options logic if it can be accessed
+                            // Or rely on safemap.js's listener
+                            return;
+                        }
+                        // For other .layer-item within bgeigie-content that aren't Search/Remove/Options,
+                        // they might still fall through if not explicitly handled by safemap.js via ID.
+                        // However, for "Search...", "Remove All", "Options", we assume safemap.js handles them by ID.
+                    }
+                    
                     if (layerName) {
                         selectLayer(layerName);
                     } else if (this.textContent.includes('Safecast Cosmic')) {
@@ -755,8 +783,11 @@
                     } else if (this.textContent.includes('None')) {
                         selectLayer('none');
                     } else {
-                        console.log('Layer not implemented yet: ' + this.textContent.trim());
-                        alert('Layer: "' + this.textContent.trim() + '" is not implemented in this demo');
+                        // Only show alert if it's not one of the bgeigie items handled by ID
+                        if (!(this.parentElement && this.parentElement.id === 'bgeigie-content' && (this.id === "menu_logs_0" || this.id === "menu_logs_2" || this.id === "menu_logs_3"))) {
+                            console.log('Layer not implemented yet: ' + this.textContent.trim());
+                            alert('Layer: \"' + this.textContent.trim() + '\" is not implemented in this demo');
+                        }
                     }
                 });
             });
@@ -1119,9 +1150,9 @@
                 { tube_type: "SBM_20", factor_usvh: (1/151), field_name: "sbm_20u" },
                 { tube_type: "SI_29BG", factor_usvh: (1/151), field_name: "si_29bgu" },
                 { tube_type: "STS_5", factor_usvh: (1/480), field_name: "sts_5u" },
-                { tube_type: "GEN_CPM", factor_usvh: (1/334), field_name: "value_cpm" }, // Default for generic CPM
-                { tube_type: "GEN_USVH", factor_usvh: 1, field_name: "value_usvh" },    // For direct uSv/h values
-                { tube_type: "UNKNOWN", factor_usvh: (1/334), field_name: null } // Fallback if tube type is unknown
+                { tube_type: "GEN_CPM", factor_usvh: (1/334), field_name: "value_cpm" }, 
+                { tube_type: "GEN_USVH", factor_usvh: 1, field_name: "value_usvh" },
+                { tube_type: "UNKNOWN", factor_usvh: (1/334), field_name: null } 
             ];
             
             function getTypeConfigFromStr(type_str) {
@@ -1130,8 +1161,6 @@
             
             function getBestSensorReadings(sensor) {
                 const allReadings = [];
-            
-                // Check for direct µSv/h values first
                 if (typeof sensor.value_usvh === 'number' && sensor.value_usvh >= 0) { 
                     allReadings.push({
                         cpm: null, 
@@ -1150,8 +1179,6 @@
                         });
                     }
                 }
-            
-                // Check known CPM fields
                 const cpm_fields_precedence = [
                     { field: "lnd_7318u", type: "LND_7318" },
                     { fields: ["lnd_712u", "lnd_7128ec"], type: "LND_712" },
@@ -1161,9 +1188,7 @@
                     { field: "si_29bgu", type: "SI_29BG" },
                     { field: "value_cpm", type: "GEN_CPM" } 
                 ];
-            
                 for (const cpm_field_info of cpm_fields_precedence) {
-                    // Handle entries that might have multiple field names
                     const field_names_to_check = cpm_field_info.fields || [cpm_field_info.field]; 
                     for (const field_name of field_names_to_check) {
                         if (typeof sensor[field_name] === 'number') {
@@ -1173,7 +1198,6 @@
                             if (tube_config && typeof tube_config.factor_usvh === 'number') {
                                 usvh_val = cpm_val * tube_config.factor_usvh;
                             }
-                            // Avoid adding duplicate readings if multiple field_names point to the same data that's already processed
                             if (!allReadings.some(r => r.tubeType === cpm_field_info.type && r.cpm === cpm_val)) {
                                 allReadings.push({
                                     cpm: cpm_val,
@@ -1182,13 +1206,10 @@
                                     conversion_source: `${cpm_field_info.type} (via ${field_name})`
                                 });
                             }
-                            break; // Found a value for this tube type, move to the next in precedence
+                            break; 
                         }
                     }
                 }
-                
-                // If after all checks, allReadings is empty, and there was a value_cpm with GEN_CPM but it was 0 (so not pushed by previous logic)
-                // and no other readings, this indicates a device that only reports generic CPM which might be 0.
                 if (allReadings.length === 0 && typeof sensor.value_cpm === 'number') {
                      const cpm_val = sensor.value_cpm;
                      const tube_config = getTypeConfigFromStr("GEN_CPM");
@@ -1203,8 +1224,6 @@
                          conversion_source: `GEN_CPM (via value_cpm)`
                      });
                 }
-
-                // Fallback if no readings at all after all checks
                 if (allReadings.length === 0) {
                     allReadings.push({
                         cpm: null,
@@ -1213,13 +1232,55 @@
                         conversion_source: "No valid radiation data found"
                     });
                 }
-
                 return allReadings;
             }
+
+            // Safecast specific initializations
+            if (typeof SafemapInit !== 'undefined' && typeof SafemapInit.Init === 'function') {
+                console.log("Attempting to call SafemapInit.Init(map)..."); // For debugging
+                SafemapInit.Init(map); // Pass the Leaflet map instance
+            } else {
+                console.error("SafemapInit or SafemapInit.Init is not defined. Check script loading order and safemap.js content.");
+            }
         });
+
+    // Helper function to create element (from original Safecast map)
+    function ElCr(n) { 
+        return document.createElement(n); 
+    }
+
+    // Helper function to get element by ID (from original Safecast map)
+    function ElGet(id) { 
+        return document.getElementById(id); 
+    }
+
+    // Helper function for user agent sniffing (from original Safecast map) - MOVED TO GLOBAL SCOPE
+    function _nua(s) {
+        return navigator.userAgent.indexOf(s) > -1;
+    }
     </script>
     
+    <!-- No, bgeigie_viewer.js and safemap.js should be up in the <head> or at least before the inline script -->
+    <!-- <script src="bgeigie_viewer.js"></script> -->
+    <!-- <script src="safemap.js"></script> -->
+    
     <!-- Include cosmic layer functionality -->
-    <script src="cosmic_layer.js"></script>
+    <!-- Temporarily disabled cosmic layer to focus on bGeigie log viewer -->
+    <!-- <script src="cosmic_layer.js"></script> -->
+    
+    <!-- Compatibility layer for safemap.js -->
+    <script src="safemap_compat.js"></script>
+    
+    <!-- Script to disable cosmic layer and ensure bGeigie viewer works -->
+    <script src="disable_cosmic.js"></script>
+    
+    <!-- Helper functions for bGeigie viewer testing -->
+    <script src="bgeigie_helpers.js"></script>
+    
+    <!-- Direct fix for bGeigie initialization issues -->
+    <script src="bgeigie_fix.js"></script>
+    
+    <!-- Diagnostic tool for bGeigie viewer status -->
+    <script src="bgeigie_viewer_status.js"></script>
 </body>
 </html>
