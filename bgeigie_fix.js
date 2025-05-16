@@ -22,7 +22,21 @@
             var transferBar = document.createElement('div');
             transferBar.id = 'bv_transferBar';
             transferBar.className = 'bv_transferBarHidden';
-            transferBar.style.cssText = 'position: fixed; bottom: 0; left: 0; width: 100%; height: 20px; background-color: #f0f0f0; display: none;';
+            transferBar.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 60%;
+                max-height: 70%;
+                background: white;
+                overflow-y: auto;
+                padding: 10px;
+                border-radius: 4px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                display: none;
+                z-index: 2000;
+            `;
             document.body.appendChild(transferBar);
             console.log("Created missing bv_transferBar element");
         }
@@ -317,8 +331,33 @@
                         };
                         
                         popup.close = function() {
-                            map.closePopup(this);
+                            // Try internal close, then remove the popup layer
+                            if (typeof this._close === 'function') {
+                                this._close();
+                            }
+                            if (typeof this.remove === 'function') {
+                                this.remove();
+                            }
                         };
+                        
+                        // Ensure Leaflet popup close button actually closes the popup
+                        (function() {
+                            const originalOnAdd = popup.onAdd.bind(popup);
+                            popup.onAdd = function(mapArg) {
+                                originalOnAdd(mapArg);
+                                const container = this.getElement ? this.getElement() : this._container;
+                                if (container) {
+                                    const btn = container.querySelector('.leaflet-popup-close-button');
+                                    if (btn) {
+                                        btn.addEventListener('click', () => {
+                                            // ensure the popup is closed
+                                            if (typeof this._close === 'function') this._close();
+                                            if (typeof this.remove === 'function') this.remove();
+                                        });
+                                    }
+                                }
+                            };
+                        })();
                         
                         return popup;
                     },
@@ -418,8 +457,25 @@
                     }
                     console.log("Turned on Safecast layer");
                 }
+                // Persist selected layer in a cookie for 1 year
+                document.cookie = 'selectedLayer=' + encodeURIComponent(layerType || layerName) + '; path=/; max-age=31536000';
             });
         });
+        // Restore saved layer selection from cookie
+        (function() {
+            const match = document.cookie.match(/(?:^|; )selectedLayer=([^;]+)/);
+            if (match) {
+                const saved = decodeURIComponent(match[1]);
+                const items = document.querySelectorAll('.layer-item');
+                items.forEach(function(item) {
+                    const lt = item.getAttribute('data-layer') || '';
+                    const name = item.textContent.trim();
+                    if (lt === saved || name === saved) {
+                        item.click();
+                    }
+                });
+            }
+        })();
     }
 
     // Initialize BvProxy and BVM with our map wrapper
@@ -516,11 +572,11 @@
             // Override the initialize function to prevent it from running
             window.CosmicLayer.initialize = function() { 
                 console.log("CosmicLayer.initialize prevented");
-                return false; 
+        return false;
             };
             window.CosmicLayer.enable = function() { 
                 console.log("CosmicLayer.enable prevented");
-                return false; 
+            return false;
             };
             
             // Hide UI elements related to cosmic layer
@@ -531,6 +587,21 @@
                 }
                 console.log("Cosmic layer UI elements hidden");
             }
+        }
+    }
+    
+    // Load logs from URL parameters
+    function checkUrlForLogIds() {
+        const url = new URL(window.location.href);
+        const param = url.searchParams.get('logids') || url.searchParams.get('log');
+        if (param) {
+            console.log('Found log IDs in URL:', param);
+            param.split(',').forEach(id => {
+                const logId = id.trim();
+                if (logId && window._bvProxy && window._bvProxy._bvm) {
+                    window._bvProxy.AddLogsByQueryFromString(logId);
+                }
+            });
         }
     }
     
@@ -556,6 +627,14 @@
         
         // Check if the API proxy is running on startup
         setTimeout(checkApiProxyStatus, 2000);
+        // Hide the Check BGeigie Status button if present
+        setTimeout(function() {
+            document.querySelectorAll('button').forEach(function(btn) {
+                if (btn.textContent.trim() === 'Check BGeigie Status') {
+                    btn.style.display = 'none';
+                }
+            });
+        }, 2500);
     }
 
     // Initialize when window is loaded

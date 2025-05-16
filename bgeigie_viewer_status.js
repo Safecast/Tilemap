@@ -347,8 +347,8 @@
     
     // Initialize on page load
     if (document.readyState === 'complete') {
-        addCheckButton();
+        // addCheckButton(); // disabled to remove the status button
     } else {
-        window.addEventListener('load', addCheckButton);
+        // window.addEventListener('load', addCheckButton); // disabled to remove the status button
     }
 })(); 
