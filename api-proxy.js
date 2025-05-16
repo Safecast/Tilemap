@@ -7,14 +7,14 @@
  * To use:
  * 1. Install required packages: npm install express cors axios
  * 2. Run: node api-proxy.js
- * 3. Access the proxy via http://localhost:3000/api/path/to/resource
+ * 3. Access the proxy via http://localhost:8010/api/path/to/resource
  */
 
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const app = express();
-const port = 3000;
+const port = 8010;
 
 // Enable CORS for all routes
 app.use(cors());

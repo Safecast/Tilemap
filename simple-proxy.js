@@ -3,14 +3,14 @@
  *
  * This proxy forwards all requests to api.safecast.org and handles CORS
  * To run: node simple-proxy.js
- * Access at: http://localhost:3000/api/...
+ * Access at: http://localhost:8010/api/...
  */
 
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
 const app = express();
-const port = 3000;
+const port = 8010;
 
 // Enable CORS for all routes
 app.use(cors());

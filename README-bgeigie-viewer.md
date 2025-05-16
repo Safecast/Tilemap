@@ -81,7 +81,7 @@ If you encounter CORS issues when accessing the Safecast API, use the included p
 
 1. Install dependencies: `npm install`
 2. Start the proxy: `npm run proxy`
-3. Access the API via: `http://localhost:3000/api/*`
+3. Access the API via: `http://localhost:8010/api/*`
 
 ## Test Page
 
