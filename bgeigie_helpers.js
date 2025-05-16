@@ -127,14 +127,11 @@
         removeAllButton.textContent = 'Remove All';
         removeAllButton.style.cssText = 'width: 48%; padding: 5px;';
         removeAllButton.onclick = function() {
-            if (typeof clearBGeigieLogs === 'function') {
-                clearBGeigieLogs();
-                updateStatus('All logs cleared');
-            } else if (window._bvProxy && window._bvProxy._bvm && window._bvProxy._bvm.RemoveAllMarkersFromMapAndPurgeData) {
-                window._bvProxy._bvm.RemoveAllMarkersFromMapAndPurgeData();
+            if (window._bvProxy && typeof window._bvProxy.btnRemoveLogsOnClick === 'function') {
+                window._bvProxy.btnRemoveLogsOnClick();
                 updateStatus('All logs cleared');
             } else {
-                updateStatus('Error: Could not clear logs - BVM not initialized', true);
+                updateStatus('Error: Could not clear logs', true);
             }
         };
         optionsRow.appendChild(removeAllButton);
