@@ -103,11 +103,19 @@
                 maps: {
                     event: {
                         addListener: function(instance, eventName, handler) {
-                            if (eventName === 'idle') {
+                            const en = eventName.toLowerCase();
+                            if (en === 'idle') {
                                 map.on('moveend', handler);
+                            } else if (instance && typeof instance.on === 'function') {
+                                instance.on(en, handler);
                             }
-                            // Return dummy listener to satisfy BVM
-                            return { remove: function() {} };
+                            return {
+                                remove: function() {
+                                    if (instance && typeof instance.off === 'function') {
+                                        instance.off(en, handler);
+                                    }
+                                }
+                            };
                         },
                         clearInstanceListeners: function() {}
                     },
@@ -264,16 +272,22 @@
                             this.setLatLng([pos.lat(), pos.lng()]);
                         };
                         
-                        marker.setIcon = function(icon) {
-                            if (icon && icon.url) {
-                                const iconOptions = {
-                                    iconUrl: icon.url,
-                                    iconSize: [icon.size ? icon.size.width : 20, icon.size ? icon.size.height : 20],
-                                    iconAnchor: [icon.anchor ? icon.anchor.x : 10, icon.anchor ? icon.anchor.y : 10]
-                                };
-                                this.setIcon(L.icon(iconOptions));
-                            }
-                        };
+                        // Override setIcon to support Google Maps Icon objects without recursion
+                        (function() {
+                            const originalSetIcon = marker.setIcon.bind(marker);
+                            marker.setIcon = function(icon) {
+                                if (icon && icon.url) {
+                                    const opts = {
+                                        iconUrl: icon.url,
+                                        iconSize: [icon.size.width, icon.size.height],
+                                        iconAnchor: [icon.anchor.x, icon.anchor.y]
+                                    };
+                                    originalSetIcon(L.icon(opts));
+                                } else {
+                                    originalSetIcon(icon);
+                                }
+                            };
+                        })();
                         
                         marker.setZIndex = function(z) {
                             this.setZIndexOffset(z || 0);
