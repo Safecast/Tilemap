@@ -625,6 +625,13 @@
         // Disable cosmic layer if present
         disableCosmicLayer();
         
+        // Function to check if the API proxy is running
+        function checkApiProxyStatus() {
+            // This is a placeholder - in a real implementation, you would check if the proxy is running
+            // For now, we'll just log a message
+            console.log("API proxy status check is not fully implemented yet");
+        }
+        
         // Check if the API proxy is running on startup
         setTimeout(checkApiProxyStatus, 2000);
         // Hide the Check BGeigie Status button if present

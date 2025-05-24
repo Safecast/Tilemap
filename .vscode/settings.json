@@ -1,0 +1,10 @@
+{
+  "files.exclude": {
+    "TilesOutput": true,
+    "TileGriddata": true
+  },
+  "search.exclude": {
+    "TilesOutput": true,
+    "TileGriddata": true
+  }
+} 

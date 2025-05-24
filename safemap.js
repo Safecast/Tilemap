@@ -436,37 +436,41 @@ var SafemapInit = (function () {
             }//if
         }//if
 
-        // ************************** GMAPS **************************
+        // ************************** LEAFLET **************************
 
         var yxz = SafemapUI.GetUserLocationFromQuerystring();
         var yx = yxz.yx != null ? yxz.yx : new google.maps.LatLng(PrefHelper.GetVisibleExtentYPref(), PrefHelper.GetVisibleExtentXPref());
         var z = yxz.z != -1 ? yxz.z : PrefHelper.GetVisibleExtentZPref();
 
-        var map_options = 
-        {
-                                zoom: z,
-                             maxZoom: 21,
-                              center: yx,
-                         scrollwheel: true,
-                         zoomControl: PrefHelper.GetZoomButtonsEnabledPref(),
-                          panControl: false,
-                        scaleControl: true,
-                      mapTypeControl: false,
-                   streetViewControl: true,
-                   navigationControl: true,
-                  overviewMapControl: false,
-                     gestureHandling: "greedy",
-            streetViewControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
-                  zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
-                rotateControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
-            navigationControlOptions: { style: google.maps.NavigationControlStyle.DEFAULT },
-               mapTypeControlOptions: {
-                                         position: google.maps.ControlPosition.TOP_RIGHT,
-                                            style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
-                                       mapTypeIds: BasemapHelper.basemaps
-                                      },
-                           mapTypeId: _GetDefaultBasemapOrOverrideFromQuerystring()
+        // Map options for Leaflet with Google Maps compatibility
+        var map_options = {
+            zoom: z,
+            center: yx,
+            zoomControl: true,
+            zoomControlOptions: { 
+                position: google.maps.ControlPosition.RIGHT_BOTTOM 
+            },
+            streetViewControl: false, // Disable street view for now
+            mapTypeControl: false,
+            mapTypeControlOptions: {
+                mapTypeIds: BasemapHelper.basemaps || []
+            },
+            mapTypeId: _GetDefaultBasemapOrOverrideFromQuerystring() || 'roadmap'
         };
+        
+        // Add basemaps if available
+        if (BasemapHelper.basemaps) {
+            map_options.mapTypeControl = true;
+            map_options.mapTypeControlOptions = {
+                position: google.maps.ControlPosition.TOP_RIGHT,
+                style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+                mapTypeIds: BasemapHelper.basemaps
+            };
+        }
+        
+        // Store basemap info for later use
+        var basemapIds = BasemapHelper.basemaps;
+        var defaultBasemap = _GetDefaultBasemapOrOverrideFromQuerystring();
 
         if (PrefHelper.GetMenuThemePref() == 1) {
             map_options.backgroundColor = "#444";
@@ -2229,6 +2233,11 @@ var BitsProxy = (function () {
 
     var _GetUrlTemplateForLayerId = function (layer_id) {
         var d = null;
+        
+        if (!overlayMaps) {
+            console.warn("overlayMaps is not yet initialized");
+            return d;
+        }
 
         for (var i = 0; i < overlayMaps.length; i++) {
             if (overlayMaps[i] != null
@@ -2652,9 +2661,9 @@ var HudProxy = (function () {
         this._btnToggleStateOn = !this._btnToggleStateOn;
     };
     
-    HudProxy.elGet = function (id) { return document.getElementById(id); };
-    HudProxy.aList = function (el, ev, fx) { el.addEventListener(ev, fx, false); };
-    HudProxy.aListId = function (id, ev, fx) { HudProxy.aList(HudProxy.elGet(id), ev, fx); }
+    HudProxy.elGet = function (id) { return id ? document.getElementById(id) : null; };
+    HudProxy.aList = function (el, ev, fx) { if (el) el.addEventListener(ev, fx, false); };
+    HudProxy.aListId = function (id, ev, fx) { var el = HudProxy.elGet(id); if (el) HudProxy.aList(el, ev, fx); }
 
     HudProxy.CheckRequirements = function () {
         return "bind" in Function.prototype && "ArrayBuffer" in window;

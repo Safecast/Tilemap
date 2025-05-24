@@ -397,6 +397,9 @@
         }
     </style>
 
+    <!-- Leaflet compatibility layer for Google Maps API -->
+    <script src="leaflet-compat.js"></script>
+    
     <!-- Safemap and bGeigie viewer scripts MUST be loaded before the inline script that uses them -->
     <script src="bgeigie_viewer.js"></script>
     <script src="safemap.js"></script>
@@ -988,9 +991,9 @@
                         
                         if(realtimeSpinner) realtimeSpinner.style.display = 'none';
                         console.log("Fetched radiation sensors data object:", geoJsonData);
-                        console.log("Attempting to access geoJsonData.features (first 5 if available):", geoJsonData && geoJsonData.features ? geoJsonData.features.slice(0,5) : "geoJsonData.features is not available or geoJsonData is null/undefined");
+                        console.log("Attempting to access geoJsonData as array (first 5 if available):", Array.isArray(geoJsonData) && geoJsonData.length > 0 ? geoJsonData.slice(0,5) : "geoJsonData is not an array or is empty");
                         
-                        radiationSensorsLayerGroup.clearLayers(); 
+                        radiationSensorsLayerGroup.clearLayers();
                         var validSensorsCount = 0;
 
                         // **** MODIFICATION START ****
