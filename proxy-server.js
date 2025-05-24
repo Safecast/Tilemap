@@ -55,8 +55,14 @@ app.use('/tiles', (req, res, next) => {
   next(); // Pass control to the next middleware (express.static)
 });
 
-// Serve local tiles from TileGriddata
-app.use('/tiles', express.static(path.join(__dirname, 'TileGriddata')));
+// Serve local tiles from TilesOutput
+console.log('Serving tiles from:', path.join(__dirname, 'TilesOutput'));
+app.use('/tiles', express.static(path.join(__dirname, 'TilesOutput'), {
+  setHeaders: (res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  }
+}));
 
 // New route for last update date - MUST BE BEFORE THE GENERAL /api proxy
 app.get('/api/last_update', (req, res) => {
