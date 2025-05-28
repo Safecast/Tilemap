@@ -80,7 +80,7 @@
                 return this._leafletMap.getZoom(); 
             },
             panTo: function(latLng) { 
-                this._leafletMap.panTo([latLng.lat(), latLng.lng()]); 
+                this._leafletMap.panTo([latLng.lat, latLng.lng]); 
             },
             setZoom: function(zoom) { 
                 this._leafletMap.setZoom(zoom); 
@@ -213,7 +213,7 @@
                             iconAnchor: [4, 4]
                         });
                         
-                        const marker = L.marker([options.position.lat(), options.position.lng()], {
+                        const marker = L.marker([options.position.lat, options.position.lng], {
                             icon: icon
                         });
                         
@@ -283,7 +283,7 @@
                         
                         marker.setPosition = function(pos) {
                             if (!pos) return;
-                            this.setLatLng([pos.lat(), pos.lng()]);
+                            this.setLatLng([pos.lat, pos.lng]);
                         };
                         
                         // Override setIcon to support Google Maps Icon objects without recursion

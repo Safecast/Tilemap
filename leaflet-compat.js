@@ -142,19 +142,118 @@ if (typeof google === 'undefined') {
             
             // Stub for Marker
             Marker: function(options) {
-                var marker = L.marker([options.position.lat(), options.position.lng()], {
-                    icon: options.icon ? L.icon({
-                        iconUrl: options.icon.url,
-                        iconSize: [options.icon.scaledSize.width, options.icon.scaledSize.height],
-                        iconAnchor: [options.icon.anchor.x, options.icon.anchor.y]
-                    }) : null,
-                    title: options.title
+                console.log("Marker created with options:", options);
+                if (!options) {
+                    console.warn("Marker called without options, using default empty object.");
+                    options = {};
+                }
+
+                // Default position
+                var lat = 0, lng = 0;
+                if (options.position) {
+                    if (typeof options.position.lat === 'function') {
+                        lat = options.position.lat();
+                        lng = options.position.lng();
+                    } else {
+                        lat = options.position.lat;
+                        lng = options.position.lng;
+                    }
+                } else {
+                    console.warn("Marker created without a valid position, using (0,0)");
+                }
+
+                // Determine radiation level and color (Safecast legend)
+                let usvh = 0, cpm = 0, markerColor = '#31f3ff';
+                if (options.data) {
+                    if (typeof options.data.usvh === 'number') usvh = options.data.usvh;
+                    if (typeof options.data.cpm === 'number') cpm = options.data.cpm;
+                    // Safecast color legend
+                    if (usvh >= 2.13) markerColor = '#ffa500'; // orange
+                    else if (usvh >= 1.31) markerColor = '#ff4500'; // orange-red
+                    else if (usvh >= 0.87) markerColor = '#ff007f'; // pink
+                    else if (usvh >= 0.60) markerColor = '#ff69b4'; // hot pink
+                    else if (usvh >= 0.43) markerColor = '#c800c8'; // purple
+                    else if (usvh >= 0.31) markerColor = '#ad7fd9'; // light purple
+                    else if (usvh >= 0.23) markerColor = '#00ffff'; // cyan
+                    else if (usvh >= 0.16) markerColor = '#00bfff'; // deep sky blue
+                    else if (usvh >= 0.12) markerColor = '#0064ff'; // blue
+                    else if (usvh >= 0.08) markerColor = '#0000cd'; // medium blue
+                    else if (usvh >= 0.05) markerColor = '#00008b'; // dark blue
+                    else if (usvh >= 0.03) markerColor = '#320064'; // indigo
+                    else markerColor = '#31f3ff'; // very light blue
+                }
+
+                // Create custom spot icon
+                const icon = L.divIcon({
+                    html: `<div style="background-color: ${markerColor}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 2px #0006;"></div>`,
+                    className: '',
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
                 });
-                
+
+                var marker = L.marker([lat, lng], { icon: icon, title: options.title });
+
+                // Add popup with data
+                if (options.data) {
+                    marker.bindPopup(
+                        `<b>μSv/h:</b> ${usvh.toFixed(3)}<br><b>CPM:</b> ${cpm}`
+                    );
+                }
+
                 if (options.map) {
                     marker.addTo(options.map);
                 }
-                
+
+                // Add Google Maps API compatibility methods
+                marker.setPosition = function(latLng) {
+                    if (latLng && typeof latLng.lat === 'function') {
+                        this.setLatLng([latLng.lat(), latLng.lng()]);
+                    } else if (latLng && typeof latLng.lat === 'number') {
+                        this.setLatLng([latLng.lat, latLng.lng]);
+                    }
+                };
+                marker.getPosition = function() {
+                    var pos = this.getLatLng();
+                    return {
+                        lat: function() { return pos.lat; },
+                        lng: function() { return pos.lng; }
+                    };
+                };
+                marker.setZIndex = function(z) {
+                    this.setZIndexOffset(z);
+                };
+                marker.setMap = function(map) {
+                    if (map) {
+                        this.addTo(map);
+                    } else {
+                        this.remove();
+                    }
+                };
+                marker.setIcon = function(icon) {
+                    console.log("setIcon called with:", icon);
+                    if (icon && icon.url) {
+                        // Convert Google icon object to Leaflet icon
+                        const opts = {
+                            iconUrl: icon.url,
+                            iconSize: icon.size ? [icon.size.width, icon.size.height] : [20, 20],
+                            iconAnchor: icon.anchor ? [icon.anchor.x, icon.anchor.y] : [10, 10]
+                        };
+                        this.setIcon(L.icon(opts));
+                    } else {
+                        // Fallback to a visible default icon
+                        this.setIcon(L.divIcon({
+                            html: `<div style="background-color: #31f3ff; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 2px #0006;"></div>`,
+                            className: '',
+                            iconSize: [18, 18],
+                            iconAnchor: [9, 9]
+                        }));
+                    }
+                };
+                marker.getIcon = function() {
+                    // Not strictly needed, but for compatibility
+                    return this.options.icon;
+                };
+
                 return marker;
             },
             
