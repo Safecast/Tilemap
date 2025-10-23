@@ -720,7 +720,7 @@ var BasemapHelper = (function()
         o.b2  = _NewGmapsBasemap(0, stam_z, 256, stam_pre + "/toner-lite/{z}/{x}/{y}{r}.png", "Stamen Toner Lite", stam_r, stam_subs);
         
         o.b3  = _NewGmapsBasemap(0, 19, 256, stam_pre + "/watercolor/{z}/{x}/{y}.jpg", "Stamen Watercolor", null, stam_subs);
-        o.b4  = _NewGmapsBasemap(0, 19, 256, "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap", null, osm_subs);
+        o.b4  = _NewGmapsBasemap(0, 19, 256, "https://tile.openstreetmap.org/{z}/{x}/{y}.png", "OpenStreetMap", null, osm_subs);
         
         o.b9  = _NewGmapsBasemap(0, 18, 256, "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", "GSI Japan", null, null);
 
