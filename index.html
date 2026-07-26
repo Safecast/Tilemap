@@ -4,7 +4,6 @@
 <meta charset="UTF-8"> 
 <meta name=viewport content="width=device-width, initial-scale=1, user-scalable=no">
 <meta name="referrer" content="origin">
-<meta http-equiv="refresh" content="86400">
 <link rel="shortcut icon" href="//map.safecast.org/favicon.png" />
 <link href="webicons/apple-touch-icon-152x152.png" rel="apple-touch-icon" sizes="152x152">
 <link href="webicons/apple-touch-icon-144x144.png" rel="apple-touch-icon" sizes="144x144">
@@ -130,7 +129,7 @@ function LoadGmaps()
     var l = j ? "&language=ja&region=JP" : p == "cs" ? "&language=cs&region=CZ" : p == "es" ? "&language=es&region=MX" : p == "pt" ? "&language=pt&region=BR" : "";
     var s = ElCr("script");
     s.async = true;
-    s.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyAC5-_YqoGgLWli64OHZ1HUL2XHgMJel_g&v=3.exp&libraries=geometry&callback=InitGmaps" + l;
+    s.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyCRPAheaL6s2uG9U6fsYvoCjUHtR4fDxUc&v=3.exp&libraries=geometry&callback=InitGmaps" + l;
     document.head.appendChild(s);
 }
 
